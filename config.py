@@ -9,9 +9,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
-    ELASTICSEARCH_DATA_INDEX_NAME = 'test-evidence-data-schemaless'
+    ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data'
     ELASTICSEARCH_MAPPING_INDEX_NAME = 'test-mappings-uniprot-ensemble'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'test-efo-label'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'efo-data'
     ELASTICSEARCH_ECO_INDEX_NAME = 'test-evidence-ontology-data'
     ELASTICSEARCH_GENE_NAME_INDEX_NAME = 'test-genename-data'
     DEBUG = True
@@ -19,7 +19,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.1'
+    API_VERSION = '0.2'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
 

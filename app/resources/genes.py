@@ -15,13 +15,13 @@ from app.common.responses import CTTVResponse
 class Genes(restful.Resource, Paginable):
 
     @swagger.operation(
-        notes='''get evidences for an ensembl ID, test with ENSG00000136997''',
+        notes='''get evidences for a gene, test with an ensemblID: ENSG00000136997, a uniprot ID: P25021 or a gene name: errb2''',
         nickname='Genes',
         parameters=Paginable._swagger_parameters)
-    def get(self, ensemblid ):
+    def get(self, gene ):
         kwargs = self.parser.parse_args()
         es = current_app.extensions['esquery']
-        return CTTVResponse.OK(es.get_evidences_for_gene(ensemblid, **kwargs))
+        return CTTVResponse.OK(es.get_evidences_for_gene(gene, **kwargs))
 
 
 class AvailableGenes(restful.Resource):

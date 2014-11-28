@@ -40,7 +40,7 @@ def get_swagger_parameters():
         },
         {
           "name": "datastructure",
-          "description": "Type of data structure to return. Can be 'full', 'simple' or 'count' ",
+          "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
           "required": False,
           "allowMultiple": False,
           "dataType": "string",

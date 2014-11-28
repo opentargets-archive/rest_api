@@ -12,6 +12,15 @@ from app.common.requests import OutputDataStructureOptions
 
 __author__ = 'andreap'
 
+class BooleanFilterOperator():
+    AND = 'must'
+    OR = 'should'
+    NOT = 'must_not'
+
+class FreeTextFilterOptions():
+    ALL = 'all'
+    GENE = 'gene'
+    EFO = 'efo'
 
 class esQuery():
 
@@ -47,46 +56,141 @@ class esQuery():
 
     def get_evidences_for_gene(self, gene, **kwargs):
         params = SearchParams(**kwargs)
-        if gene.startswith('ENSG'): #retrieve from ensembl code
-            res = self.handler.search(index=self._index_data,
-                    doc_type='evidence',
-                    body={'query': {
-                            'match': {
-                                'biological_subject.about': 'ensembl:'+gene}
-                            },
-                          'size':params.size,
-                          'from':params.start_from,
-                          '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                          }
+        res = self.handler.search(index=self._index_data,
+                doc_type='evidence',
+                body = {
+                        "query": {
+                            "filtered": {
+                              "query": {
+                                "match_all": {}
+                              },
+                              "filter": {
+                                "terms": {
+                                  "biological_subject.about": self._get_gene_filter(gene)
+
+                                }
+                              }
+                            }
+                          },
+                        'size':params.size,
+                        'from':params.start_from,
+                        '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                        }
                 )
-        else: #search by name
-             res = self.handler.search(index=self._index_data,
-                    doc_type='evidence',
-                    body={'query': {
-                            'match': {
-                                'biological_subject.about': 'ensembl:'+gene}
-                            },
-                          'size':params.size,
-                          'from':params.start_from,
-                          '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                          }
-                )
+
+        if res['hits']['total']==0: #search by name
+            ensemblid = self._get_ensemblid_from_gene_name(gene)
+            if ensemblid:
+                ensemblid = ensemblid[0]
+                res = self.handler.search(index=self._index_data,
+                        doc_type='evidence',
+                        body = {
+                                "query": {
+                                    "filtered": {
+                                      "query": {
+                                        "match_all": {}
+                                      },
+                                      "filter": {
+                                        "term": {
+                                          "biological_subject.about": "http://identifiers.org/ensembl/"+ensemblid,
+
+
+                                        }
+                                      }
+                                    }
+                                  },
+                                'size':params.size,
+                                'from':params.start_from,
+                                '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                                }
+                        )
 
         current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
 
         return PaginatedResult(res,params)
 
-    def free_text_search(self, searchphrase, **kwargs):
+    def free_text_search(self, searchphrase,
+                         filter = FreeTextFilterOptions.ALL,
+                         **kwargs):
+        '''
+        Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list below attempts to disambiguate these various types.
+
+        match query + fuzziness option: Adding the fuzziness parameter to a match query turns a plain match query into a fuzzy one. Analyzes the query text before performing the search.
+        fuzzy query: The elasticsearch fuzzy query type should generally be avoided. Acts much like a term query. Does not analyze the query text first.
+        fuzzy_like_this/fuzzy_like_this_field: A more_like_this query, but supports fuzziness, and has a tuned scoring algorithm that better handles the characteristics of fuzzy matched results.*
+        suggesters: Suggesters are not an actual query type, but rather a separate type of operation (internally built on top of fuzzy queries) that can be run either alongside a query, or independently. Suggesters are great for 'did you mean' style functionality.
+
+        :param searchphrase:
+        :param filter:
+        :param kwargs:
+        :return:
+        '''
         searchphrase = searchphrase.lower()
         if "*" not in searchphrase:
             params = SearchParams(**kwargs)
             searchphrase ='* '.join(searchphrase.split())
+            if filter.lower() == FreeTextFilterOptions.ALL:
+                doc_types = ['efolabel','genename']
+            elif filter.lower() == FreeTextFilterOptions.GENE:
+                doc_types = ['genename']
+            elif filter.lower() == FreeTextFilterOptions.EFO:
+                doc_types = ['efolabel']
             res = self.handler.search(index=[self._index_efo,
                                              self._index_genename],
-                    doc_type=['efolabel','genename'],
+                    doc_type= doc_types,
                     body={'query': {
-                            'fuzzy': {
-                                '_all' : searchphrase}
+                            "bool" : {
+                                "should" : [
+                                    {'fuzzy': {
+                                        "label" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         2.0,
+                                                "prefix_length" : 1,
+                                                "max_expansions": 100
+                                            },
+                                        }},
+                                    {'fuzzy': {
+                                        "path" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         1.0,
+                                                "prefix_length" : 1,
+                                                "max_expansions": 100
+                                            },
+                                        }},
+                                    {'fuzzy': {
+                                        "Ensembl Gene ID" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         3.0,
+                                                "prefix_length" : 1,
+                                                "fuzziness":      0,
+                                            },
+                                        }},
+                                    {'fuzzy': {
+                                        "Ensembl Gene ID" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         3.0,
+                                                "prefix_length" : 1,
+                                                "fuzziness":      0,
+                                            },
+                                        }},
+                                    {'fuzzy': {
+                                        "Associated Gene Name" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         2.0,
+                                                "prefix_length" : 0,
+                                                "max_expansions": 50
+                                            },
+                                        }},
+                                    {'fuzzy': {
+                                        "Description" : {
+                                                "value" :         searchphrase,
+                                                "boost" :         1.0,
+                                                "prefix_length" : 2,
+                                                "max_expansions": 50
+                                            },
+                                        }}
+                                    ]
+                                }
                             },
                           'size' : params.size,
                           'from' : params.start_from,
@@ -102,7 +206,7 @@ class esQuery():
                                             score =  hit['_score'])
                 if hit['_type'] == 'genename':
                     datapoint['title'] = hit['_source']['Associated Gene Name']
-                    datapoint['description'] = hit['_source']['Description']
+                    datapoint['description'] = hit['_source']['Description'].split('[')[0]
                 elif hit['_type'] == 'efolabel':
                     datapoint['title'] = hit['_source']['label']
                     datapoint['description'] = hit['_source']['efoid']
@@ -122,7 +226,7 @@ class esQuery():
                           }
                 )
         current_app.logger.debug("Got %d gene id  Hits in %ims"%(res['hits']['total'],res['took']))
-        return res['hits']['hits']
+        return [hit['fields']['Ensembl Gene ID'][0] for hit in res['hits']['hits']]
 
     def available_genes(self, **kwargs):
         params = SearchParams(**kwargs)
@@ -226,16 +330,29 @@ class esQuery():
 
         params = SearchParams(**kwargs)
 
-        res = self.handler.search(
-                            index=self._index_data,
-                            doc_type='evidence',
-                            body={"query" : {"match" : {'biological_object.about': efocode}},
-                                  'size' : params.size,
-                                  'from' : params.start_from,
-                                  '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                                },
-                            timeout="1m",
-                             )
+
+        res = self.handler.search(index=self._index_data,
+                doc_type='evidence',
+                body = {
+                        "query": {
+                            "filtered": {
+                              "query": {
+                                "match_all": {}
+                              },
+                              "filter": {
+                                "term": {
+                                  "biological_object.about": efocode
+
+                                }
+                              }
+                            }
+                          },
+                        'size':params.size,
+                        'from':params.start_from,
+                        '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                        },
+                timeout="1m",
+                )
 
 
         return  PaginatedResult(res,params)
@@ -295,15 +412,221 @@ class esQuery():
         current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
         return PaginatedResult(res,params)
 
+    def get_evidences(self,
+                      genes =[],
+                      objects = [],
+                      evidence_types = [],
+                      gene_operator = 'OR',
+                      object_operator = 'OR',
+                      evidence_type_operator = 'OR',
+                      **kwargs):
+        params = SearchParams(**kwargs)
+        '''convert boolean to elasticsearch syntax'''
+        gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
+        object_operator =  getattr(BooleanFilterOperator, object_operator.upper())
+        evidence_type_operator = getattr(BooleanFilterOperator, evidence_type_operator.upper())
+        '''create multiple condition boolean query'''
+        conditions = []
+        if genes:
+            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+        if objects:
+            conditions.append(self._get_complex_object_filter(objects, object_operator))
+        if evidence_types:
+            conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
+        '''boolean query joining multiple conditions with an AND'''
+        res = self.handler.search(index=self._index_data,
+                doc_type='evidence',
+                body = {
+                        "query": {
+                            "filtered": {
+                                "filter" : {
+                                    "bool" : {
+                                        "must" : conditions
+                                    }
+                                }
+
+                            }
+                          },
+                        'size':params.size,
+                        'from':params.start_from,
+                        '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                        }
+                )
+        data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
+        return PaginatedResult(res,params, data)
+
+    def _get_gene_filter(self, gene):
+        return [gene,
+                "http://identifiers.org/uniprot/"+gene,
+                "http://identifiers.org/ensembl/"+gene,
+                ]
+    def _get_complex_gene_filter(self, genes, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param genes: list of genes
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if genes:
+            return {
+                    "bool": {
+                        bol : [{
+                                "terms" :{
+                                    "biological_subject.about": self._get_gene_filter(gene)}
+                                }
+                               for gene in genes]
+                        }
+                   }
+        return dict()
 
 
+    def _get_object_filter(self, object):
+        return [object,
+                "http://identifiers.org/efo/"+object,
+                ]
+
+    def _get_complex_object_filter(self, objects, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param objects: list of objects
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if objects:
+             return {
+                    "bool": {
+                        bol : [{
+                                "terms" :{
+                                    "biological_object.about": self._get_object_filter(object)}
+                                }
+                               for object in objects]
+                        }
+                   }
+        return dict()
+
+    def _get_evidence_type_filter(self, evidence_type):
+        return [evidence_type,
+                "http://identifiers.org/eco/"+evidence_type,
+                ]
+    def _get_complex_evidence_type_filter(self, evidence_types, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param evidence_types: list of evidence types
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if evidence_types:
+             return {
+                    "bool": {
+                        bol : [{
+                                "terms" :{
+                                    "evidence.evidence_codes": self._get_evidence_type_filter(evidence_type)}
+                                }
+                               for evidence_type in evidence_types]
+                        }
+                   }
+        return dict()
+
+    def _get_generic_gene_info(self, geneids, output_format = OutputDataStructureOptions.FULL):
+        '''
+        :param geneids: list of gene ids, must be the same used to index gene info in elasticsearch
+        :return: dictionary containing generic data about the genes
+        '''
+        geneinfo = {}
+
+        if geneids:
+            res = self.handler.search(index=self._index_genename,
+                doc_type='genename',
+                body={'filter': {
+                                "ids" : {
+                                        "type" : "genename",
+                                        "values" : geneids
+                                        }
+                                }
+                }
+            )
+            if res['hits']['total']:
+                for hit in res['hits']['hits']:
+                    if output_format == OutputDataStructureOptions.FULL:
+                        geneinfo[hit['_id']]=dict(gene_name = hit['_source']["Associated Gene Name"],
+                                                  gene_description = hit['_source']["Description"].split('[')[0].strip(),
+                                                  ensembl_id = hit['_source']["Ensembl Gene ID"]
+                                                  )
+                    elif output_format == OutputDataStructureOptions.SIMPLE:
+                        geneinfo[hit['_id']]=dict(gene_name = hit['_source']["Associated Gene Name"])
+
+        return geneinfo
+
+    def _get_generic_efo_info(self, efocodes, output_format = OutputDataStructureOptions.FULL):
+        '''
+        :param geneids: list of gene ids, must be the same used to index gene info in elasticsearch
+        :return: dictionary containing generic data about the efo
+        '''
+        efoinfo = {}
+
+        if efocodes:
+            res = self.handler.search(index=self._index_efo,
+                doc_type='efolabel',
+                body={'filter': {
+                                "ids" : {
+                                        "type" : "efolabel",
+                                        "values" : efocodes
+                                        }
+                                }
+                }
+            )
+            if res['hits']['total']:
+                for hit in res['hits']['hits']:
+                    if output_format == OutputDataStructureOptions.FULL:
+                        efoinfo[hit['_id']]=dict(efo_label = hit['_source']["label"],
+                                                 efo_path = hit['_source']["path"])
+
+                    elif output_format == OutputDataStructureOptions.SIMPLE:
+                        efoinfo[hit['_id']]=dict(efo_label = hit['_source']["label"])
+
+        return efoinfo
+
+    def _inject_view_specific_data(self, evidences, params):
+        def get_gene_id_from_evidence(evidence):
+            about = evidence["biological_subject"]["about"][0]
+            if '/' in about:
+                geneid = about.split('/')[-1]
+                if not geneid.startswith('ENSG'):
+                    geneid = self.get_ensemblid_from_uniprotid(geneid)#TODO: cache this
+                return geneid
+            return about
+        def get_efo_code_from_evidence(evidence):
+            about = evidence["biological_object"]["about"][0]
+            return about
+
+        gene_ids = map(get_gene_id_from_evidence, evidences)
+        gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
+        efo_codes = map(get_efo_code_from_evidence, evidences)
+        efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
+        data = []
+        for evidence in evidences:
+            if gene_info:
+                if params.datastructure == OutputDataStructureOptions.FULL:
+                    geneid = get_gene_id_from_evidence(evidence)
+                    if geneid in gene_info:
+                        if gene_info[geneid]:
+                            evidence["biological_subject"]["gene_info"] = gene_info[geneid]
+            if efo_info:
+                if params.datastructure == OutputDataStructureOptions.FULL:
+                    efocode = get_efo_code_from_evidence(evidence)
+                    if efocode in efo_info:
+                        if efo_info[efocode]:
+                            evidence["biological_object"]["efo_info"] = efo_info[efocode]
+                            print evidence["biological_object"]["efo_info"]
+            data.append(evidence)
+        return data
 
 
 class SearchParams():
 
     _max_search_result_limit = 1000
     _default_return_size = 10
-    _allowed_groupby = ['gene','evidence-type']
+    _allowed_groupby = ['gene','evidence-type', 'efo']
 
 
     def __init__(self, **kwargs):
@@ -406,10 +729,11 @@ class PaginatedResult(Result):
                         }
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
+
         return {'data' : self.data,
                 'total' :self.res['hits']['total'],
                 'took' : self.res['took'],
-                'size' : self.params.size,
+                'size' : len(self.data) or 0,
                 'from' : self.params.start_from
                 }
 

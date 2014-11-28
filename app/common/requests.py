@@ -10,14 +10,16 @@ class FullSourceDataStructure(OutputDataStructure):
     source = True
 
 class SimpleSourceDataStructure(OutputDataStructure):
-    #TODO: cahnge it with update structure
-    source = [ "biological_object.about", "biological_subject.about", "provenance.date_asserted"]
+    source = [ "id","biological_object.about", "biological_subject.about", "evidence.evidence_codes"]
 
+class IdsSourceDataStructure(OutputDataStructure):
+    source = [ "id"]
 
 class OutputDataStructureOptions():
     FULL = 'full'
     SIMPLE = 'simple'
     COUNT = 'count'
+    IDS = 'ids'
 
     @classmethod
     def getSource(cls,structure):
@@ -25,5 +27,7 @@ class OutputDataStructureOptions():
             return FullSourceDataStructure.source
         elif structure == cls.SIMPLE:
             return SimpleSourceDataStructure.source
+        elif structure == cls.IDS:
+            return IdsSourceDataStructure.source
         else:
             return OutputDataStructure.source

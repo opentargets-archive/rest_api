@@ -16,31 +16,28 @@ def create_api(app, api_version = '0.0', basepath = '', specpath = '' ):
 
     from app.resources.genes import Genes, AvailableGenes,GeneName, GeneEvidenceByEfo
     from app.resources.uniprot import Uniprot,UniprotFromEnsembl, EnsemblFromUniprot
-    from app.resources.evidences import Evidence, EvidenceWithEfoAsObject
+    from app.resources.evidences import Evidence, Evidences, EvidenceWithEfoAsObject
     from app.resources.mappings import StartFromUniprot, StartFromEnsemblGene, StartFromEnsemblProtein, StartFromEnsemblTranscript
     from app.resources.efo import EfoLabelFromCode, EfoIDFromLabel
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch
     from app.resources.echo import Echo
 
-    api.add_resource(Genes,
-                     basepath+'/gene/<string:ensemblid>')
-    api.add_resource(GeneEvidenceByEfo,
-                     basepath+'/gene-efo/<string:ensemblid>/<string:efocode>')
-    api.add_resource(GeneName,
-                     basepath+'/genename/<string:genename>')
-    api.add_resource(Uniprot,
-                     basepath+'/uniprot/<string:uniprotid>')
-    api.add_resource(UniprotFromEnsembl,
-                     basepath+'/uniprot/from-ensembl/<string:ensemblid>')
-    api.add_resource(EnsemblFromUniprot,
-                     basepath+'/uniprot/to-ensembl/<string:uniprotid>')
-    api.add_resource(AvailableGenes,
-                     basepath+'/available-genes')
+
+
+
+
+
+    # api.add_resource(AvailableGenes,
+    #                  basepath+'/available-genes')
     api.add_resource(Evidence,
                      basepath+'/evidence/')
-    api.add_resource(EvidenceWithEfoAsObject,
-                     basepath+'/evidence/efo-object/<string:efocode>')
+    api.add_resource(Evidences,
+                     basepath+'/evidences/')
+    # api.add_resource(Genes,
+    #                  basepath+'/evidences-gene/<string:gene>')
+    # api.add_resource(GeneEvidenceByEfo,
+    #                  basepath+'/evidences-gene-efo/<string:ensemblid>/<string:efocode>')
     # api.add_resource(StartFromUniprot,
     #                  basepath+'/mapping/uniprot/<string:uniprotid>')
     # api.add_resource(StartFromEnsemblGene,
@@ -49,12 +46,16 @@ def create_api(app, api_version = '0.0', basepath = '', specpath = '' ):
     #                  basepath+'/mapping/ensembl/transcript/<string:ensembltranscriptid>')
     # api.add_resource(StartFromEnsemblTranscript,
     #                  basepath+'/mapping/ensembl/protein/<string:ensemblproteinid>')
-    api.add_resource(EfoLabelFromCode,
-                     basepath+'/efo/code/<string:code>')
+    # api.add_resource(EfoLabelFromCode,
+    #                  basepath+'/efo/code/<string:code>')
     api.add_resource(EfoIDFromLabel,
                      basepath+'/efo/label/<string:label>')
     api.add_resource(EcoLabelFromCode,
                      basepath+'/eco/code/<string:code>')
+    api.add_resource(UniprotFromEnsembl,
+                     basepath+'/mapping/uniprot/from-ensembl/<string:ensemblid>')
+    api.add_resource(EnsemblFromUniprot,
+                     basepath+'/mapping/uniprot/to-ensembl/<string:uniprotid>')
     api.add_resource(FreeTextSearch,
                      basepath+'/search')
     api.add_resource(Echo,
