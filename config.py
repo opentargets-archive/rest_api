@@ -10,10 +10,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data'
+    ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_MAPPING_INDEX_NAME = 'test-mappings-uniprot-ensemble'
+    ELASTICSEARCH_MAPPING_DOC_NAME = 'mapping'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'efo-data'
+    ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efolabel'
     ELASTICSEARCH_ECO_INDEX_NAME = 'test-evidence-ontology-data'
+    ELASTICSEARCH_ECO_DOC_NAME = 'eco'
     ELASTICSEARCH_GENE_NAME_INDEX_NAME = 'test-genename-data'
+    ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genename'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'

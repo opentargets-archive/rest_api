@@ -31,6 +31,11 @@ class esQuery():
                  index_efo = None,
                  index_eco = None,
                  index_genename = None,
+                 docname_data = None,
+                 docname_mapping = None,
+                 docname_efo = None,
+                 docname_eco = None,
+                 docname_genename = None,
                  log_level="DEBUG"):
         '''
 
@@ -50,6 +55,11 @@ class esQuery():
         self._index_efo = index_efo
         self._index_eco = index_eco
         self._index_genename = index_genename
+        self._docname_data = docname_data
+        self._docname_mapping = docname_mapping
+        self._docname_efo = docname_efo
+        self._docname_eco = docname_eco
+        self._docname_genename = index_genename
 
 
 
@@ -57,7 +67,7 @@ class esQuery():
     def get_evidences_for_gene(self, gene, **kwargs):
         params = SearchParams(**kwargs)
         res = self.handler.search(index=self._index_data,
-                doc_type='evidence',
+                doc_type=self._docname_data,
                 body = {
                         "query": {
                             "filtered": {
@@ -83,7 +93,7 @@ class esQuery():
             if ensemblid:
                 ensemblid = ensemblid[0]
                 res = self.handler.search(index=self._index_data,
-                        doc_type='evidence',
+                        doc_type=self._docname_data,
                         body = {
                                 "query": {
                                     "filtered": {
@@ -130,11 +140,11 @@ class esQuery():
             params = SearchParams(**kwargs)
             searchphrase ='* '.join(searchphrase.split())
             if filter.lower() == FreeTextFilterOptions.ALL:
-                doc_types = ['efolabel','genename']
+                doc_types = [self._docname_efo,self._docname_genename]
             elif filter.lower() == FreeTextFilterOptions.GENE:
-                doc_types = ['genename']
+                doc_types = [self._docname_genename]
             elif filter.lower() == FreeTextFilterOptions.EFO:
-                doc_types = ['efolabel']
+                doc_types = [self._docname_efo]
             res = self.handler.search(index=[self._index_efo,
                                              self._index_genename],
                     doc_type= doc_types,
@@ -204,10 +214,10 @@ class esQuery():
                                             data = hit['_source'],
                                             id =  hit['_id'],
                                             score =  hit['_score'])
-                if hit['_type'] == 'genename':
+                if hit['_type'] == self._docname_genename:
                     datapoint['title'] = hit['_source']['Associated Gene Name']
                     datapoint['description'] = hit['_source']['Description'].split('[')[0]
-                elif hit['_type'] == 'efolabel':
+                elif hit['_type'] == self._docname_efo:
                     datapoint['title'] = hit['_source']['label']
                     datapoint['description'] = hit['_source']['efoid']
                 data.append(datapoint)
@@ -216,7 +226,7 @@ class esQuery():
 
     def _get_ensemblid_from_gene_name(self,genename, **kwargs):
         res = self.handler.search(index=self._index_genename,
-                    doc_type='genename',
+                    doc_type=self._docname_genename,
                     body={'query': {
                             'match': {"Associated Gene Name":genename}
 
@@ -241,7 +251,7 @@ class esQuery():
                                   'fields': ['biological_subject.about'],
                                  },
                              scroll = '10m',
-                             doc_type='evidence',
+                             doc_type=self._docname_data,
                              timeout="10m",
                             )
 
@@ -297,7 +307,7 @@ class esQuery():
 
     def get_efo_label_from_code(self, code, **kwargs):
         res = self.handler.search(index=self._index_efo,
-                doc_type='efolabel',
+                doc_type=self._docname_efo,
                 body={'query': {
                         'match': {
                             'efoid': '*'+code}
@@ -313,7 +323,7 @@ class esQuery():
 
     def get_efo_code_from_label(self, label, **kwargs):
         res = self.handler.search(index=self._index_efo,
-                doc_type='efolabel',
+                doc_type=self._docname_efo,
                 body={'query': {
                         'match': {
                             'label': label}
@@ -332,7 +342,7 @@ class esQuery():
 
 
         res = self.handler.search(index=self._index_data,
-                doc_type='evidence',
+                doc_type=self._docname_data,
                 body = {
                         "query": {
                             "filtered": {
@@ -364,7 +374,7 @@ class esQuery():
 
 
         res = self.handler.search(index=self._index_data,
-                doc_type='evidence',
+                doc_type=self._docname_data,
                 body={'filter': {
                                 "ids" : {
                                         "type" : "evidence",
@@ -378,7 +388,7 @@ class esQuery():
 
     def get_label_for_eco_code(self, code):
         res = self.handler.search(index=self._index_eco,
-                doc_type='eco',
+                doc_type=self._docname_eco,
                 body={'filter': {
                                 "ids" : {
                                         "type" : "eco",
@@ -394,7 +404,7 @@ class esQuery():
         params = SearchParams(**kwargs)
         res = self.handler.search(
             index=self._index_data,
-            doc_type='evidence',
+            doc_type=self._docname_data,
             body={"query" : {
                       "bool" : {
                         "must" : {
@@ -435,7 +445,7 @@ class esQuery():
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         '''boolean query joining multiple conditions with an AND'''
         res = self.handler.search(index=self._index_data,
-                doc_type='evidence',
+                doc_type=self._docname_data,
                 body = {
                         "query": {
                             "filtered": {
@@ -452,6 +462,7 @@ class esQuery():
                         '_source': OutputDataStructureOptions.getSource(params.datastructure)
                         }
                 )
+
         data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
         return PaginatedResult(res,params, data)
 
@@ -536,7 +547,7 @@ class esQuery():
 
         if geneids:
             res = self.handler.search(index=self._index_genename,
-                doc_type='genename',
+                doc_type=self._docname_genename,
                 body={'filter': {
                                 "ids" : {
                                         "type" : "genename",
@@ -566,7 +577,7 @@ class esQuery():
 
         if efocodes:
             res = self.handler.search(index=self._index_efo,
-                doc_type='efolabel',
+                doc_type=self._docname_efo,
                 body={'filter': {
                                 "ids" : {
                                         "type" : "efolabel",

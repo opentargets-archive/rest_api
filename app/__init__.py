@@ -49,6 +49,11 @@ def create_app(config_name):
                                         index_efo = app.config['ELASTICSEARCH_EFO_LABEL_INDEX_NAME'],
                                         index_eco = app.config['ELASTICSEARCH_ECO_INDEX_NAME'],
                                         index_genename = app.config['ELASTICSEARCH_GENE_NAME_INDEX_NAME'],
+                                        docname_data = app.config['ELASTICSEARCH_DATA_DOC_NAME'],
+                                        docname_mapping = app.config['ELASTICSEARCH_MAPPING_DOC_NAME'],
+                                        docname_efo = app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
+                                        docname_eco = app.config['ELASTICSEARCH_ECO_DOC_NAME'],
+                                        docname_genename = app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
                                         )
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
