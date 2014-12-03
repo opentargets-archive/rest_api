@@ -1,4 +1,6 @@
 from collections import defaultdict
+import collections
+import pprint
 from flask import current_app
 import ujson as json
 from dicttoxml import dicttoxml
@@ -458,7 +460,9 @@ class esQuery():
                         }
                 )
 
-        data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
+        data = None
+        if params.datastructure == OutputDataStructureOptions.FULL:
+            data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
         return PaginatedResult(res,params, data)
 
     def _get_gene_filter(self, gene):
@@ -682,35 +686,59 @@ class Result():
     def toXML(self):
         return dicttoxml(self.toDict(), custom_root='cttv-api-result')
     def toCSV(self):
+        NOT_ALLOWED_FIELDS=['evidence.evidence_chain']
         output = StringIO()
         if self.data is None:
-            self.toDict()#populate data if empty
+            self.flatten(self.toDict())#populate data if empty
         if isinstance(self.data[0], dict):
-            keys = self.data[0].keys()
-            writer = csv.DictWriter(output, keys)
+            key_set = set()
+            flattened_data = []
+            for row in self.data:
+                flat = self.flatten(row)
+                for field in NOT_ALLOWED_FIELDS:
+                    flat.pop(field, None)
+                flattened_data.append(flat)
+                key_set.update(flat.keys())
+
+            writer = csv.DictWriter(output,
+                                    sorted(list(key_set)),
+                                    delimiter='\t',
+                                    quotechar='"',
+                                    quoting=csv.QUOTE_MINIMAL,
+                                    doublequote=False,
+                                    escapechar='|')
             writer.writeheader()
-            for row in self.data:
-                d = {}
-                for k,v in row.items():
-                    if k in keys:
-                        if isinstance(k,str):
-                            d[k] = v
-                        else:
-                            d[k]=json.dumps(v)
-                writer.writerow(d)
+            for row in flattened_data:
+                writer.writerow(row)
         if isinstance(self.data[0], list):
-            writer = csv.writer(output)
+            writer = csv.writer(output,
+                                delimiter='\t',
+                                    quotechar='"',
+                                    quoting=csv.QUOTE_MINIMAL,
+                                    doublequote=False,
+                                    escapechar='|')
             for row in self.data:
-                l = []
-                for i in row:
-                    if isinstance(i, str):
-                        l.append(i)
-                    else:
-                        l.append(json.dumps(i))
-                writer.writerow(l)
+                writer.writerow(row)
         return output.getvalue()
 
+    def flatten(self, d, parent_key='', sep='.'):
+        items = []
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, collections.MutableMapping):
+                items.extend(self.flatten(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+        return_dict = {}
+        for k,v in items:
+            if isinstance(v,list):
+                if len(v) ==1:
+                    v= v[0]
+            return_dict[k]=v
+        return return_dict
+
 class PaginatedResult(Result):
+
 
     def __init__(self, res, params, data = None):
         '''
@@ -733,6 +761,9 @@ class PaginatedResult(Result):
                  return {'total' :self.res['hits']['total'],
                          'took' : self.res['took']
                         }
+            elif self.params.datastructure == OutputDataStructureOptions.SIMPLE:
+                self.data = [self.flatten(hit['_source']) for hit in self.res['hits']['hits']]
+
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
 

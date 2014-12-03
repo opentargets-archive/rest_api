@@ -10,7 +10,12 @@ class FullSourceDataStructure(OutputDataStructure):
     source = True
 
 class SimpleSourceDataStructure(OutputDataStructure):
-    source = [ "id","biological_object.about", "biological_subject.about", "evidence.evidence_codes"]
+    source = [ "id",
+               "biological_object.about",
+               "biological_subject.about",
+               "evidence.evidence_codes",
+               "evidence.provenance_type.database.id",
+               "evidence.association_score.probability.value"]
 
 class IdsSourceDataStructure(OutputDataStructure):
     source = [ "id"]
