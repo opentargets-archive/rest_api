@@ -5,7 +5,7 @@ from flask import Flask, Response
 class ResponseType():
     JSON='json'
     XML='xml'
-    CSV='csv'
+    CSV='table'
 
 
 class CTTVResponse():

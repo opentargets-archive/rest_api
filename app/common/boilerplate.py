@@ -32,7 +32,7 @@ def get_swagger_parameters():
         },
         {
           "name": "format",
-          "description": "Format to get data back. Can be 'json', 'xml' or 'csv' ",
+          "description": "Format to get data back. Can be 'json', 'xml' or 'table' ",
           "required": False,
           "allowMultiple": False,
           "dataType": "string",

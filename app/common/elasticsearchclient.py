@@ -2,6 +2,7 @@ from collections import defaultdict
 import collections
 import pprint
 from flask import current_app
+import itertools
 import ujson as json
 from dicttoxml import dicttoxml
 import csv
@@ -569,7 +570,7 @@ class esQuery():
 
     def _get_generic_efo_info(self, efocodes, output_format = OutputDataStructureOptions.FULL):
         '''
-        :param geneids: list of gene ids, must be the same used to index gene info in elasticsearch
+        :param efocodes: list of efo code
         :return: dictionary containing generic data about the efo
         '''
         efoinfo = {}
@@ -606,6 +607,40 @@ class esQuery():
 
         return efoinfo
 
+    def _get_generic_eco_info(self, ecocodes, output_format = OutputDataStructureOptions.FULL):
+        '''
+        :param ecocodes: list of lists of efo codes
+        :return: dictionary containing generic data about each eco list
+        '''
+        ecoinfo = {}
+
+        flat_eco_list = list(itertools.chain(*ecocodes))
+        if flat_eco_list:
+            res = self.handler.search(index=self._index_eco,
+                doc_type=self._docname_eco,
+                body={'filter': {
+                                "ids" : {
+                                        "type" : "eco",
+                                        "values" : flat_eco_list
+                                        }
+                                }
+                }
+            )
+            if res['hits']['total']:
+                for hit in res['hits']['hits']:
+                        ecoinfo[hit['_id']]=hit['_source']["definition"].split("[")[0].replace('"','').strip()
+        return_info = dict()
+        for codelist in ecocodes:
+            labels=[]
+            for code in codelist:
+                if code in ecoinfo:
+                    labels.append(ecoinfo[code])
+                else:
+                    labels.append("N/A")
+            return_info[''.join(codelist)]= dict(eco_label = ', '.join(labels))
+
+        return return_info
+
     def _inject_view_specific_data(self, evidences, params):
         def get_gene_id_from_evidence(evidence):
             about = evidence["biological_subject"]["about"][0]
@@ -618,11 +653,22 @@ class esQuery():
         def get_efo_code_from_evidence(evidence):
             about = evidence["biological_object"]["about"][0]
             return about
+        def get_eco_code_from_evidence(evidence):
+            eco = []
+            try:
+
+                for code in evidence["evidence"]["evidence_codes"]:
+                    eco.append(code.split('/')[-1])
+            except:
+                return ["N/A"]
+            return eco
 
         gene_ids = map(get_gene_id_from_evidence, evidences)
         gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
         efo_codes = map(get_efo_code_from_evidence, evidences)
         efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
+        eco_codes = map(get_eco_code_from_evidence, evidences)
+        eco_info = self._get_generic_eco_info(eco_codes, params.datastructure)
         updated_evidences = []
         for evidence in evidences:
             if gene_info:
@@ -635,6 +681,12 @@ class esQuery():
                 if efocode in efo_info:
                     if efo_info[efocode]:
                         evidence["biological_object"]["efo_info"] = efo_info[efocode]
+            if eco_info:
+                ecocode = get_eco_code_from_evidence(evidence)
+                code_hash = ''.join(ecocode)
+                if code_hash in eco_info:
+                    if eco_info[code_hash]:
+                        evidence["evidence"]["evidence_type"] = eco_info[code_hash]
             updated_evidences.append(evidence)
         return updated_evidences
 
@@ -728,7 +780,7 @@ class Result():
                 writer.writerow(row)
         return output.getvalue()
 
-    def flatten(self, d, parent_key='', sep='.'):
+    def flatten(self, d, parent_key='', sep='.', simplify = False):
         items = []
         for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
@@ -742,7 +794,15 @@ class Result():
                 if len(v) ==1:
                     v= v[0]
             return_dict[k]=v
+        if simplify:
+            for k,v in items:
+                try:
+                    if v.startswith("http://identifiers.org/"):
+                        return_dict.pop(k)
+                except:
+                    pass
         return return_dict
+
 
 class PaginatedResult(Result):
 
@@ -769,13 +829,13 @@ class PaginatedResult(Result):
                          'took' : self.res['took']
                         }
             elif self.params.datastructure == OutputDataStructureOptions.SIMPLE:
-                self.data = [self.flatten(hit['_source']) for hit in self.res['hits']['hits']]
+                self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
 
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
         else:
             if self.params.datastructure == OutputDataStructureOptions.SIMPLE:
-                self.data = [self.flatten(hit['_source']) for hit in self.res['hits']['hits']]
+                self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
 
 
         return {'data' : self.data,

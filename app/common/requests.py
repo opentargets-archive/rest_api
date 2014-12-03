@@ -13,7 +13,7 @@ class SimpleSourceDataStructure(OutputDataStructure):
     source = [ "id",
                "biological_object.about",
                "biological_subject.about",
-               "biological_subject.gene_info"
+               "biological_subject.gene_info",
                "evidence.evidence_codes",
                "evidence.provenance_type.database.id",
                "evidence.association_score.probability.value"]
