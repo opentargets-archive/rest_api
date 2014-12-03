@@ -573,39 +573,52 @@ class esQuery():
         :param efocodes: list of efo code
         :return: dictionary containing generic data about the efo
         '''
+
+
+        def get_match_query(code):
+            return  { "match": { "label":  code}},
+
+        def clean_code(code):
+            if '/' in code:
+                code = code.split('/')[-1]
+            return code
+
+
         efoinfo = {}
 
         if efocodes:
             res = self.handler.search(index=self._index_efo,
                 doc_type=self._docname_efo,
-                body={'filter': {
-                                "ids" : {
-                                        "type" : "efolabel",
-                                        "values" : efocodes
-                                        }
-                                }
-                }
+                body={"query": {
+                        "bool": {
+                          "should": [ get_match_query(code) for code in efocodes ]
+                            }
+                         }
+                     }
             )
             if res['hits']['total']:
                 for hit in res['hits']['hits']:
                     if output_format == OutputDataStructureOptions.FULL:
-                        efoinfo[hit['_id']]=dict(efo_label = hit['_source']["label"],
+                        efoinfo[clean_code(hit['_id'])]=dict(efo_label = hit['_source']["label"],
                                                  efo_path = hit['_source']["path"])
 
                     elif output_format == OutputDataStructureOptions.SIMPLE:
-                        efoinfo[hit['_id']]=dict(efo_label = hit['_source']["label"])
+                        efoinfo[clean_code(hit['_id'])]=dict(efo_label = hit['_source']["label"])
             if ('EFO_0000000' in efocodes) or ("http://identifiers.org/efo/EFO_0000000" in efocodes):
                 if output_format == OutputDataStructureOptions.FULL:
                     efoinfo["EFO_0000000"]=dict(efo_label = "N/A",
                                                 efo_path = "N/A")
-                    efoinfo["http://identifiers.org/efo/EFO_0000000"]=dict(efo_label = "N/A",
-                                                                           efo_path = "N/A")
 
                 elif output_format == OutputDataStructureOptions.SIMPLE:
                     efoinfo["EFO_0000000"]=dict(efo_label = "N/A")
-                    efoinfo["http://identifiers.org/efo/EFO_0000000"]=dict(efo_label = "N/A")
 
-        return efoinfo
+        return_info = {}
+        for code in efocodes:
+            if code in efoinfo:
+                return_info[code]=efoinfo[code]
+            else:
+                return_info[code]=dict(efo_label = "N/A")
+        return return_info
 
     def _get_generic_eco_info(self, ecocodes, output_format = OutputDataStructureOptions.FULL):
         '''
@@ -652,6 +665,11 @@ class esQuery():
             return about
         def get_efo_code_from_evidence(evidence):
             about = evidence["biological_object"]["about"][0]
+            if '/' in about:
+                code = about.split('/')[-1]
+                if not code.startswith('EFO_'):
+                    code = 'EFO_'+code
+                return code
             return about
         def get_eco_code_from_evidence(evidence):
             eco = []
@@ -663,9 +681,9 @@ class esQuery():
                 return ["N/A"]
             return eco
 
-        gene_ids = map(get_gene_id_from_evidence, evidences)
+        gene_ids = list(set(map(get_gene_id_from_evidence, evidences)))
         gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
-        efo_codes = map(get_efo_code_from_evidence, evidences)
+        efo_codes = list(set(map(get_efo_code_from_evidence, evidences)))
         efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
         eco_codes = map(get_eco_code_from_evidence, evidences)
         eco_info = self._get_generic_eco_info(eco_codes, params.datastructure)
