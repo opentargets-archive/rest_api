@@ -59,7 +59,7 @@ class esQuery():
         self._docname_mapping = docname_mapping
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
-        self._docname_genename = index_genename
+        self._docname_genename = docname_genename
 
 
 
@@ -151,52 +151,47 @@ class esQuery():
                     body={'query': {
                             "bool" : {
                                 "should" : [
-                                    {'fuzzy': {
+                                    {'match': {
                                         "label" : {
-                                                "value" :         searchphrase,
+                                                "query" :         searchphrase,
                                                 "boost" :         2.0,
                                                 "prefix_length" : 1,
-                                                "max_expansions": 100
+                                                "max_expansions": 100,
+                                                "fuzziness": "AUTO"
+
                                             },
                                         }},
-                                    {'fuzzy': {
+                                    {'match': {
                                         "path" : {
-                                                "value" :         searchphrase,
+                                                "query" :         searchphrase,
                                                 "boost" :         1.0,
                                                 "prefix_length" : 1,
-                                                "max_expansions": 100
+                                                "max_expansions": 100,
+                                                "fuzziness": "AUTO"
                                             },
                                         }},
-                                    {'fuzzy': {
+                                    {'match': {
                                         "Ensembl Gene ID" : {
-                                                "value" :         searchphrase,
+                                                "query" :         searchphrase,
                                                 "boost" :         3.0,
-                                                "prefix_length" : 1,
-                                                "fuzziness":      0,
                                             },
                                         }},
-                                    {'fuzzy': {
-                                        "Ensembl Gene ID" : {
-                                                "value" :         searchphrase,
-                                                "boost" :         3.0,
-                                                "prefix_length" : 1,
-                                                "fuzziness":      0,
-                                            },
-                                        }},
-                                    {'fuzzy': {
+                                    {'match': {
                                         "Associated Gene Name" : {
-                                                "value" :         searchphrase,
-                                                "boost" :         2.0,
+                                                "query" :         searchphrase,
+                                                "boost" :         5.0,
                                                 "prefix_length" : 0,
-                                                "max_expansions": 50
+                                                "max_expansions": 5,
+                                                "fuzziness": "AUTO"
                                             },
                                         }},
-                                    {'fuzzy': {
+                                    {'match': {
                                         "Description" : {
-                                                "value" :         searchphrase,
+                                                "query" :         searchphrase,
                                                 "boost" :         1.0,
                                                 "prefix_length" : 2,
-                                                "max_expansions": 50
+                                                "max_expansions": 50,
+                                                "fuzziness": "AUTO"
                                             },
                                         }}
                                     ]
