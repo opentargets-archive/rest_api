@@ -216,7 +216,7 @@ class esQuery():
                     datapoint['description'] = hit['_source']['Description'].split('[')[0]
                 elif hit['_type'] == self._docname_efo:
                     datapoint['title'] = hit['_source']['label']
-                    datapoint['description'] = hit['_source']['efoid']
+                    datapoint['description'] = ' > '.join(hit['_source']['path'])
                 data.append(datapoint)
             return PaginatedResult(res, params, data)
 
@@ -461,7 +461,7 @@ class esQuery():
                 )
 
         data = None
-        if params.datastructure == OutputDataStructureOptions.FULL:
+        if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
             data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
         return PaginatedResult(res,params, data)
 
@@ -593,6 +593,16 @@ class esQuery():
 
                     elif output_format == OutputDataStructureOptions.SIMPLE:
                         efoinfo[hit['_id']]=dict(efo_label = hit['_source']["label"])
+            if ('EFO_0000000' in efocodes) or ("http://identifiers.org/efo/EFO_0000000" in efocodes):
+                if output_format == OutputDataStructureOptions.FULL:
+                    efoinfo["EFO_0000000"]=dict(efo_label = "N/A",
+                                                efo_path = "N/A")
+                    efoinfo["http://identifiers.org/efo/EFO_0000000"]=dict(efo_label = "N/A",
+                                                                           efo_path = "N/A")
+
+                elif output_format == OutputDataStructureOptions.SIMPLE:
+                    efoinfo["EFO_0000000"]=dict(efo_label = "N/A")
+                    efoinfo["http://identifiers.org/efo/EFO_0000000"]=dict(efo_label = "N/A")
 
         return efoinfo
 
@@ -613,23 +623,20 @@ class esQuery():
         gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
         efo_codes = map(get_efo_code_from_evidence, evidences)
         efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
-        data = []
+        updated_evidences = []
         for evidence in evidences:
             if gene_info:
-                if params.datastructure == OutputDataStructureOptions.FULL:
-                    geneid = get_gene_id_from_evidence(evidence)
-                    if geneid in gene_info:
-                        if gene_info[geneid]:
-                            evidence["biological_subject"]["gene_info"] = gene_info[geneid]
+                geneid = get_gene_id_from_evidence(evidence)
+                if geneid in gene_info:
+                    if gene_info[geneid]:
+                        evidence["biological_subject"]["gene_info"] = gene_info[geneid]
             if efo_info:
-                if params.datastructure == OutputDataStructureOptions.FULL:
-                    efocode = get_efo_code_from_evidence(evidence)
-                    if efocode in efo_info:
-                        if efo_info[efocode]:
-                            evidence["biological_object"]["efo_info"] = efo_info[efocode]
-                            print evidence["biological_object"]["efo_info"]
-            data.append(evidence)
-        return data
+                efocode = get_efo_code_from_evidence(evidence)
+                if efocode in efo_info:
+                    if efo_info[efocode]:
+                        evidence["biological_object"]["efo_info"] = efo_info[efocode]
+            updated_evidences.append(evidence)
+        return updated_evidences
 
 
 class SearchParams():
@@ -766,6 +773,10 @@ class PaginatedResult(Result):
 
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
+        else:
+            if self.params.datastructure == OutputDataStructureOptions.SIMPLE:
+                self.data = [self.flatten(hit['_source']) for hit in self.res['hits']['hits']]
+
 
         return {'data' : self.data,
                 'total' :self.res['hits']['total'],
