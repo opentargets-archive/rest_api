@@ -729,6 +729,21 @@ class Result():
 
     format = ResponseType.JSON
 
+    def __init__(self, res, params, data = None):
+        '''
+
+        :param res: elasticsearch query response
+        :param params: get parameters
+        :param data: data to display, use only to override default representation
+        :param data_structure: a type of OutputDataStructureOptions
+        '''
+
+        self.res = res
+        self.params = params
+        self.data = data
+        self.format = params.format
+
+
     def toDict(self):
         raise NotImplementedError
 
@@ -753,7 +768,8 @@ class Result():
             key_set = set()
             flattened_data = []
             for row in self.data:
-                flat = self.flatten(row)
+                flat = self.flatten(row,
+                                    simplify=self.params.datastructure==OutputDataStructureOptions.SIMPLE)
                 for field in NOT_ALLOWED_FIELDS:
                     flat.pop(field, None)
                 flattened_data.append(flat)
@@ -805,21 +821,6 @@ class Result():
 
 
 class PaginatedResult(Result):
-
-
-    def __init__(self, res, params, data = None):
-        '''
-
-        :param res: elasticsearch query response
-        :param params: get parameters
-        :param data: data to display, use only to override default representation
-        :param data_structure: a type of OutputDataStructureOptions
-        '''
-
-        self.res = res
-        self.params = params
-        self.data = data
-        self.format = params.format
 
     def toDict(self):
 
