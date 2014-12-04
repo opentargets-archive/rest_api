@@ -585,6 +585,7 @@ class esQuery():
 
 
         efoinfo = {}
+        print efocodes
 
         if efocodes:
             res = self.handler.search(index=self._index_efo,
@@ -826,6 +827,8 @@ class Result():
 
     def flatten(self, d, parent_key='', sep='.', simplify = False):
         items = []
+        if 'biological_object' in d:
+            print d['biological_object']
         for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
@@ -845,6 +848,8 @@ class Result():
                         return_dict.pop(k)
                 except:
                     pass
+                if k.startswith("biological_object.properties."):
+                    return_dict.pop(k)
         return return_dict
 
 
