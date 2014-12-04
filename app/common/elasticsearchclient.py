@@ -617,7 +617,12 @@ class esQuery():
             if code in efoinfo:
                 return_info[code]=efoinfo[code]
             else:
-                return_info[code]=dict(efo_label = "N/A")
+                if output_format == OutputDataStructureOptions.FULL:
+                    return_info[code]=dict(efo_label = code,
+                                           efo_path = "N/A")
+
+                elif output_format == OutputDataStructureOptions.SIMPLE:
+                    return_info[code]=dict(efo_label = code)
         return return_info
 
     def _get_generic_eco_info(self, ecocodes, output_format = OutputDataStructureOptions.FULL):
@@ -669,6 +674,11 @@ class esQuery():
                 code = about.split('/')[-1]
                 if not code.startswith('EFO_'):
                     code = 'EFO_'+code
+                if code == 'EFO_0000000':#temporary fix for EVA corrupted data
+                    try:
+                        code = evidence['biological_object']["properties"]["experimental_evidence_specific"]["unmapped_disease_term"]
+                    except:
+                        pass
                 return code
             return about
         def get_eco_code_from_evidence(evidence):
