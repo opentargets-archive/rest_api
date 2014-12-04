@@ -4,7 +4,7 @@ __author__ = 'andreap'
 
 
 
-from flask import Flask
+from flask import Flask, redirect, Blueprint
 # from flask.ext.bootstrap import Bootstrap
 # from flask.ext.mail import Mail
 # from flask.ext.moment import Moment
@@ -57,7 +57,10 @@ def create_app(config_name):
                                         )
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
-    specpath = basepath +'/spec'
+    latest_blueprint = Blueprint('latest', __name__)
+
+
+    specpath = '/cttv'
 
     if app.config['PROFILE'] == True:
         from werkzeug.contrib.profiler import ProfilerMiddleware
@@ -83,7 +86,13 @@ def create_app(config_name):
     # from .api_1_0 import api as api_1_0_blueprint
     # app.register_blueprint(api_1_0_blueprint, url_prefix='/api/v1.0')
 
-    create_api(app, api_version, basepath, specpath)
+    create_api(latest_blueprint, api_version, specpath)
+
+    app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
+
+    @app.route('/api-docs')
+    def docs():
+      return redirect('/api/latest/cttv.html')
 
 
     return app

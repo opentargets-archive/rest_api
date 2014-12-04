@@ -5,7 +5,7 @@ from flask.ext.restful import abort
 from flask_restful_swagger import swagger
 from app.common import boilerplate
 from app.common.boilerplate import Paginable
-from app.common.responses import CTTVResponse
+from app.common.responses import CTTVResponse, PaginatedResponse
 
 
 __author__ = 'andreap'
@@ -14,7 +14,7 @@ __author__ = 'andreap'
 
 
 class FreeTextSearch(restful.Resource, Paginable):
-    parser = boilerplate.get_parser()
+    parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('filter', type=str, required=False, help="filter by gene or efo")
     _swagger_params = [
@@ -38,8 +38,10 @@ class FreeTextSearch(restful.Resource, Paginable):
 
 
     @swagger.operation(
-        notes='''search with a parameter q = your query''',
+        summary='''search with a parameter q = your query''',
         nickname='search',
+        responseClass=PaginatedResponse.__name__,
+
         parameters=_swagger_params,
         )
     def get(self ):

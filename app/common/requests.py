@@ -1,6 +1,7 @@
+
 __author__ = 'andreap'
 
-
+import ujson as json
 
 class OutputDataStructure():
     source = False
@@ -37,3 +38,10 @@ class OutputDataStructureOptions():
             return IdsSourceDataStructure.source
         else:
             return OutputDataStructure.source
+
+
+def json_type(data):
+    try:
+        return json.loads(data)
+    except:
+        raise ValueError('Malformed JSON')

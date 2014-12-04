@@ -14,7 +14,7 @@ class Echo(restful.Resource):
     parser.add_argument('random', type=bool, required=False, help="Random delay")
 
     @swagger.operation(
-        notes='''debug utility''',
+        summary='''debug utility''',
         nickname='echo',
         parameters=[
             {

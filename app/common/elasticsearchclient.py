@@ -375,7 +375,7 @@ class esQuery():
                 doc_type=self._docname_data,
                 body={'filter': {
                                 "ids" : {
-                                        "type" : "evidence",
+                                        "type" : self._docname_data,
                                         "values" : evidenceid
                                         }
                                 }
