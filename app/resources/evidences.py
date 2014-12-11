@@ -189,6 +189,7 @@ class Evidences(restful.Resource, Paginable):
                         new_l.append(i)
             return new_l
 
+
         args = request.get_json()
         genes = fix_empty_strings(args.pop('gene',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
@@ -196,7 +197,6 @@ class Evidences(restful.Resource, Paginable):
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-
         if not (genes or objects or evidence_types):
             abort(404, message='Please provide at least one gene, efo or eco')
         return self.get_evidence(genes, objects, evidence_types, params=args)

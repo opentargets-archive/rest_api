@@ -585,7 +585,6 @@ class esQuery():
 
 
         efoinfo = {}
-        print efocodes
 
         if efocodes:
             res = self.handler.search(index=self._index_efo,
@@ -693,29 +692,50 @@ class esQuery():
             return eco
 
         gene_ids = list(set(map(get_gene_id_from_evidence, evidences)))
-        gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
+        gene_info = None
+        try:
+            gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
+        except:
+            pass
         efo_codes = list(set(map(get_efo_code_from_evidence, evidences)))
-        efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
+        efo_info = None
+        try:
+            efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
+        except:
+            pass
         eco_codes = map(get_eco_code_from_evidence, evidences)
-        eco_info = self._get_generic_eco_info(eco_codes, params.datastructure)
+        eco_info=None
+        try:
+            eco_info = self._get_generic_eco_info(eco_codes, params.datastructure)
+        except:
+            pass
         updated_evidences = []
         for evidence in evidences:
-            if gene_info:
-                geneid = get_gene_id_from_evidence(evidence)
-                if geneid in gene_info:
-                    if gene_info[geneid]:
-                        evidence["biological_subject"]["gene_info"] = gene_info[geneid]
-            if efo_info:
-                efocode = get_efo_code_from_evidence(evidence)
-                if efocode in efo_info:
-                    if efo_info[efocode]:
-                        evidence["biological_object"]["efo_info"] = efo_info[efocode]
-            if eco_info:
-                ecocode = get_eco_code_from_evidence(evidence)
-                code_hash = ''.join(ecocode)
-                if code_hash in eco_info:
-                    if eco_info[code_hash]:
-                        evidence["evidence"]["evidence_type"] = eco_info[code_hash]
+            try:
+                if gene_info:
+                    geneid = get_gene_id_from_evidence(evidence)
+                    if geneid in gene_info:
+                        if gene_info[geneid]:
+                            evidence["biological_subject"]["gene_info"] = gene_info[geneid]
+            except:
+                pass #TODO: log this
+            try:
+                if efo_info:
+                    efocode = get_efo_code_from_evidence(evidence)
+                    if efocode in efo_info:
+                        if efo_info[efocode]:
+                            evidence["biological_object"]["efo_info"] = efo_info[efocode]
+            except:
+                pass #TODO: log this
+            try:
+                if eco_info:
+                    ecocode = get_eco_code_from_evidence(evidence)
+                    code_hash = ''.join(ecocode)
+                    if code_hash in eco_info:
+                        if eco_info[code_hash]:
+                            evidence["evidence"]["evidence_type"] = eco_info[code_hash]
+            except:
+                pass #TODO: log this
             updated_evidences.append(evidence)
         return updated_evidences
 
@@ -827,8 +847,6 @@ class Result():
 
     def flatten(self, d, parent_key='', sep='.', simplify = False):
         items = []
-        if 'biological_object' in d:
-            print d['biological_object']
         for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
@@ -844,12 +862,12 @@ class Result():
         if simplify:
             for k,v in items:
                 try:
-                    if v.startswith("http://identifiers.org/"):
+                    if v.startswith("http://identifiers.org/") or \
+                            k.startswith("biological_object.properties."):
                         return_dict.pop(k)
                 except:
                     pass
-                if k.startswith("biological_object.properties."):
-                    return_dict.pop(k)
+
         return return_dict
 
 
