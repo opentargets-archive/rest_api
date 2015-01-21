@@ -12,6 +12,7 @@ from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
 # from flask.ext.pagedown import PageDown
 from config import config
+import logging
 
 # bootstrap = Bootstrap()
 # mail = Mail()
@@ -42,18 +43,19 @@ def create_app(config_name):
                                         # sniff_on_connection_fail=True,
                                         # # and also every 60 seconds
                                         # sniffer_timeout=60))
-
+    log_level = logging.INFO
+    if app.config['DEBUG']:
+        log_level = logging.DEBUG
     app.extensions['esquery'] = esQuery(es,
                                         index_data = app.config['ELASTICSEARCH_DATA_INDEX_NAME'],
-                                        index_mapping = app.config['ELASTICSEARCH_MAPPING_INDEX_NAME'],
                                         index_efo = app.config['ELASTICSEARCH_EFO_LABEL_INDEX_NAME'],
                                         index_eco = app.config['ELASTICSEARCH_ECO_INDEX_NAME'],
                                         index_genename = app.config['ELASTICSEARCH_GENE_NAME_INDEX_NAME'],
                                         docname_data = app.config['ELASTICSEARCH_DATA_DOC_NAME'],
-                                        docname_mapping = app.config['ELASTICSEARCH_MAPPING_DOC_NAME'],
                                         docname_efo = app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
                                         docname_eco = app.config['ELASTICSEARCH_ECO_DOC_NAME'],
                                         docname_genename = app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
+                                        log_level= log_level,
                                         )
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version

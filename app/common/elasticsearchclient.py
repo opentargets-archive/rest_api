@@ -11,6 +11,7 @@ from elasticsearch import helpers
 import operator
 from app.common.responses import ResponseType
 from app.common.requests import OutputDataStructureOptions
+import logging
 
 
 __author__ = 'andreap'
@@ -30,16 +31,14 @@ class esQuery():
     def __init__(self,
                  handler,
                  index_data = None,
-                 index_mapping = None,
                  index_efo = None,
                  index_eco = None,
                  index_genename = None,
                  docname_data = None,
-                 docname_mapping = None,
                  docname_efo = None,
                  docname_eco = None,
                  docname_genename = None,
-                 log_level="DEBUG"):
+                 log_level=logging.DEBUG):
         '''
 
         :param handler: initialized ElasticSearch official python client
@@ -54,15 +53,20 @@ class esQuery():
 
         self.handler= handler
         self._index_data = index_data
-        self._index_mapping = index_mapping
         self._index_efo = index_efo
         self._index_eco = index_eco
         self._index_genename = index_genename
         self._docname_data = docname_data
-        self._docname_mapping = docname_mapping
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
+
+        if log_level == logging.DEBUG:
+            es_logger = logging.getLogger('elasticsearch')
+            es_logger.setLevel(logging.DEBUG)
+            es_tracer = logging.getLogger('elasticsearch.trace')
+            es_tracer.setLevel(logging.DEBUG)
+            es_tracer.addHandler(logging.FileHandler('es_trace.log'))
 
 
 
@@ -139,88 +143,135 @@ class esQuery():
         :return:
         '''
         searchphrase = searchphrase.lower()
-        if "*" not in searchphrase:
-            params = SearchParams(**kwargs)
-            searchphrase ='* '.join(searchphrase.split())
-            if filter.lower() == FreeTextFilterOptions.ALL:
-                doc_types = [self._docname_efo,self._docname_genename]
-            elif filter.lower() == FreeTextFilterOptions.GENE:
-                doc_types = [self._docname_genename]
-            elif filter.lower() == FreeTextFilterOptions.EFO:
-                doc_types = [self._docname_efo]
-            res = self.handler.search(index=[self._index_efo,
-                                             self._index_genename],
-                    doc_type= doc_types,
-                    body={'query': {
-                            "bool" : {
-                                "should" : [
-                                    {'match': {
-                                        "label" : {
-                                                "query" :         searchphrase,
-                                                "boost" :         2.0,
-                                                "prefix_length" : 1,
-                                                "max_expansions": 100,
-                                                "fuzziness": "AUTO"
+        params = SearchParams(**kwargs)
+        if filter.lower() == FreeTextFilterOptions.ALL:
+            doc_types = [self._docname_efo,self._docname_genename]
+        elif filter.lower() == FreeTextFilterOptions.GENE:
+            doc_types = [self._docname_genename]
+        elif filter.lower() == FreeTextFilterOptions.EFO:
+            doc_types = [self._docname_efo]
+        res = self.handler.search(index=[self._index_efo,
+                                         self._index_genename],
+                doc_type= doc_types,
+                body={'query' : self._get_free_text_query(searchphrase),
+                      'size' : params.size,
+                      'from' : params.start_from,
+                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                      }
+            )
+        current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
+        data =[]
+        for hit in res['hits']['hits']:
+            datapoint = dict(type = hit['_type'],
+                                        data = hit['_source'],
+                                        id =  hit['_id'],
+                                        score =  hit['_score'])
+            if hit['_type'] == self._docname_genename:
+                datapoint['title'] = hit['_source']['approved_symbol']
+                datapoint['description'] = hit['_source']['approved_name'].split('[')[0]
+            elif hit['_type'] == self._docname_efo:
+                datapoint['title'] = hit['_source']['label']
+                datapoint['description'] = ' > '.join(hit['_source']['path_labels'])
+            data.append(datapoint)
+        return PaginatedResult(res, params, data)
 
-                                            },
-                                        }},
-                                    {'match': {
-                                        "path" : {
-                                                "query" :         searchphrase,
-                                                "boost" :         1.0,
-                                                "prefix_length" : 1,
-                                                "max_expansions": 100,
-                                                "fuzziness": "AUTO"
-                                            },
-                                        }},
-                                    {'match': {
-                                        "Ensembl Gene ID" : {
-                                                "query" :         searchphrase,
-                                                "boost" :         3.0,
-                                            },
-                                        }},
-                                    {'match': {
-                                        "Associated Gene Name" : {
-                                                "query" :         searchphrase,
-                                                "boost" :         5.0,
-                                                "prefix_length" : 0,
-                                                "max_expansions": 5,
-                                                "fuzziness": "AUTO"
-                                            },
-                                        }},
-                                    {'match': {
-                                        "Description" : {
-                                                "query" :         searchphrase,
-                                                "boost" :         1.0,
-                                                "prefix_length" : 2,
-                                                "max_expansions": 50,
-                                                "fuzziness": "AUTO"
-                                            },
-                                        }}
-                                    ]
-                                }
-                            },
-                          'size' : params.size,
-                          'from' : params.start_from,
-                          '_source': OutputDataStructureOptions.getSource(params.datastructure)
+
+    def autocomplete_search(self, searchphrase,
+                         filter = FreeTextFilterOptions.ALL,
+                         **kwargs):
+        '''
+        Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list below attempts to disambiguate these various types.
+
+        match query + fuzziness option: Adding the fuzziness parameter to a match query turns a plain match query into a fuzzy one. Analyzes the query text before performing the search.
+        fuzzy query: The elasticsearch fuzzy query type should generally be avoided. Acts much like a term query. Does not analyze the query text first.
+        fuzzy_like_this/fuzzy_like_this_field: A more_like_this query, but supports fuzziness, and has a tuned scoring algorithm that better handles the characteristics of fuzzy matched results.*
+        suggesters: Suggesters are not an actual query type, but rather a separate type of operation (internally built on top of fuzzy queries) that can be run either alongside a query, or independently. Suggesters are great for 'did you mean' style functionality.
+
+        :param searchphrase:
+        :param filter:
+        :param kwargs:
+        :return:
+        '''
+
+        def format_datapoint(hit):
+            datapoint = dict(type = hit['_type'],
+                             id =  hit['_id'],
+                             score =  hit['_score'],)
+            datapoint.update(hit['_source'])
+            if hit['_type'] == self._docname_genename:
+                returned_ids['genes'].append(hit['_id'])
+            elif hit['_type'] == self._docname_efo:
+                returned_ids['efo'].append(hit['_id'])
+
+            return datapoint
+
+
+
+        searchphrase = searchphrase.lower()
+        params = SearchParams(**kwargs)
+
+        data = dict(besthit = None,
+                    genes=[],
+                    efo = [])
+        returned_ids = dict(genes=[],
+                            efo = [])
+
+        res = self.handler.search(index=[self._index_efo,
+                                         self._index_genename],
+                doc_type= [self._docname_efo,self._docname_genename],
+                body={'query' : self._get_free_text_query(searchphrase),
+                      'size' : 30,
+                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE)
+                      }
+            )
+        current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
+
+        if res['hits']['total']:
+            '''handle best hit'''
+            best_hit = res['hits']['hits'][0]
+            data['besthit'] = format_datapoint(best_hit)
+
+            ''' store the other results in the corresponding object'''
+            for hit in res['hits']['hits'][1:]:
+                data['besthit']
+
+                if hit['_type'] == self._docname_genename:
+                    if len(data['genes'])<params.size:
+                        data['genes'].append(format_datapoint(hit))
+                elif hit['_type'] == self._docname_efo:
+                     if len(data['efo'])<params.size:
+                        data['efo'].append(format_datapoint(hit))
+            '''if there are not enough fill the results for both the categories'''
+
+            if len(data['genes'])<params.size:
+                res_genes = self.handler.search(index= self._index_genename,
+                    doc_type= self._docname_genename,
+                    body={'query' : self._get_free_text_gene_query(searchphrase),
+                          'size' : params.size+1,
+                          '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE)
                           }
                 )
-            current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
-            data =[]
-            for hit in res['hits']['hits']:
-                datapoint = dict(type = hit['_type'],
-                                            data = hit['_source'],
-                                            id =  hit['_id'],
-                                            score =  hit['_score'])
-                if hit['_type'] == self._docname_genename:
-                    datapoint['title'] = hit['_source']['Associated Gene Name']
-                    datapoint['description'] = hit['_source']['Description'].split('[')[0]
-                elif hit['_type'] == self._docname_efo:
-                    datapoint['title'] = hit['_source']['label']
-                    datapoint['description'] = ' > '.join(hit['_source']['path'])
-                data.append(datapoint)
-            return PaginatedResult(res, params, data)
+                current_app.logger.debug("Got %d additional Gene Hits in %ims"%(res_genes['hits']['total'],res['took']))
+                for hit in res_genes['hits']['hits']:
+                    if len(data['genes'])<params.size:
+                        if hit['_id'] not in returned_ids['genes']:
+                            data['genes'].append(format_datapoint(hit))
 
+            if len(data['efo'])<params.size:
+                res_efo = self.handler.search(index=self._index_efo,
+                    doc_type= self._docname_efo,
+                    body={'query' : self._get_free_text_efo_query(searchphrase),
+                          'size' : params.size+1,
+                          '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.DISEASE)
+                          }
+                )
+                current_app.logger.debug("Got %d additional EFO Hits in %ims"%(res_efo['hits']['total'],res['took']))
+                for hit in res_efo['hits']['hits']:
+                    if len(data['efo'])<params.size:
+                        if hit['_id'] not in returned_ids['efo']:
+                            data['efo'].append(format_datapoint(hit))
+
+        return SimpleResult(None, params, data)
 
     def _get_ensemblid_from_gene_name(self,genename, **kwargs):
         res = self.handler.search(index=self._index_genename,
@@ -467,8 +518,9 @@ class esQuery():
         return PaginatedResult(res,params, data)
 
     def _get_gene_filter(self, gene):
-        return [gene,
-                "http://identifiers.org/uniprot/"+gene,
+        return [
+                # gene,
+                # "http://identifiers.org/uniprot/"+gene,
                 "http://identifiers.org/ensembl/"+gene,
                 ]
     def _get_complex_gene_filter(self, genes, bol):
@@ -739,6 +791,200 @@ class esQuery():
             updated_evidences.append(evidence)
         return updated_evidences
 
+    def _get_free_text_query(self, searchphrase):
+        return {"bool" : {
+                    "should" : [
+                        {'match': {
+                            "label" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         2.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+
+                                },
+                            }},
+                        {'match': {
+                            "synonyms" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "biotype" : {
+                                    "query" :         "unprocessed_pseudogene",
+                                    "boost" :         -10.0,
+                                },
+                            }},
+
+                        {'match': {
+                            "label" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "id" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'match': {
+                            "approved_symbol" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         5.0,
+                                },
+                            }},
+                        {'prefix': {
+                            "approved_symbol" : {
+                                    "value" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'match': {
+                            "approved_name" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         5.0,
+                                    "prefix_length" : 0,
+                                    "max_expansions": 5,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "gene_family_description" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 0,
+                                    "max_expansions": 5,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "uniprot_accessions" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'match': {
+                            "hgnc_id" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }}
+                        ]
+                    }
+                }
+
+
+    def _get_free_text_gene_query(self, searchphrase):
+        return { "bool" : {
+                    "should" : [
+                        {'match': {
+                            "id" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'match': {
+                            "approved_symbol" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'prefix': {
+                            "approved_symbol" : {
+                                    "value" :         searchphrase,
+                                    "boost" :         5.0,
+                                },
+                            }},
+                        {'match': {
+                            "approved_name" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 5,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "gene_family_description" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 0,
+                                    "max_expansions": 5,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "uniprot_accessions" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        {'match': {
+                            "biotype" : {
+                                    "query" :         "unprocessed_pseudogene",
+                                    "boost" :         -10.0,
+                                },
+                            }},
+                        {'match': {
+                            "hgnc_id" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }}
+                        ]
+                    }
+
+                }
+    def _get_free_text_efo_query(self, searchphrase):
+        return {"bool" : {
+                    "should" : [
+                       {'match': {
+                            "label" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         2.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+
+                                },
+                            }},
+                        {'match': {
+                            "synonyms" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "label" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         1.0,
+                                    "prefix_length" : 1,
+                                    "max_expansions": 100,
+                                    "fuzziness": "AUTO"
+                                },
+                            }},
+                        {'match': {
+                            "id" : {
+                                    "query" :         searchphrase,
+                                    "boost" :         3.0,
+                                },
+                            }},
+                        ]
+                    }
+
+                }
+
 
 class SearchParams():
 
@@ -874,7 +1120,6 @@ class Result():
 class PaginatedResult(Result):
 
     def toDict(self):
-
         if self.data is None:
             if self.params.datastructure == OutputDataStructureOptions.COUNT:
                  return {'total' :self.res['hits']['total'],
@@ -889,7 +1134,6 @@ class PaginatedResult(Result):
             if self.params.datastructure == OutputDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
 
-
         return {'data' : self.data,
                 'total' :self.res['hits']['total'],
                 'took' : self.res['took'],
@@ -897,3 +1141,10 @@ class PaginatedResult(Result):
                 'from' : self.params.start_from
                 }
 
+class SimpleResult(Result):
+    ''' just need data to be passed and it will be returned as dict
+    '''
+    def toDict(self):
+        if not  self.data:
+            raise AttributeError('some data is needed to be returned in a SimpleResult')
+        return {'data' : self.data}

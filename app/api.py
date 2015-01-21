@@ -23,10 +23,9 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.genes import Genes, AvailableGenes,GeneName, GeneEvidenceByEfo
     from app.resources.uniprot import Uniprot,UniprotFromEnsembl, EnsemblFromUniprot
     from app.resources.evidences import Evidence, Evidences, EvidenceWithEfoAsObject
-    from app.resources.mappings import StartFromUniprot, StartFromEnsemblGene, StartFromEnsemblProtein, StartFromEnsemblTranscript
     from app.resources.efo import EfoLabelFromCode, EfoIDFromLabel
     from app.resources.evidenceontology import EcoLabelFromCode
-    from app.resources.freetextsearch import FreeTextSearch
+    from app.resources.freetextsearch import FreeTextSearch, AutoComplete
     from app.resources.echo import Echo
 
 
@@ -37,10 +36,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
     api.add_resource(Evidence,
-                     '/evidence'
+                     '/getbyid'
                      )
     api.add_resource(Evidences,
-                     '/evidences')
+                     '/filterby')
     # api.add_resource(Genes,
     #                  basepath+'/evidences-gene/<string:gene>')
     # api.add_resource(GeneEvidenceByEfo,
@@ -48,11 +47,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(StartFromUniprot,
     #                  basepath+'/mapping/uniprot/<string:uniprotid>')
     # api.add_resource(StartFromEnsemblGene,
-    #                  basepath+'/mapping/ensembl/gene/<string:ensemblgeneid>')
-    # api.add_resource(StartFromEnsemblProtein,
-    #                  basepath+'/mapping/ensembl/transcript/<string:ensembltranscriptid>')
-    # api.add_resource(StartFromEnsemblTranscript,
-    #                  basepath+'/mapping/ensembl/protein/<string:ensemblproteinid>')
     # api.add_resource(EfoLabelFromCode,
     #                  basepath+'/efo/code/<string:code>')
     api.add_resource(EfoIDFromLabel,
@@ -65,6 +59,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/mapping/uniprot/to-ensembl/<string:uniprotid>')
     api.add_resource(FreeTextSearch,
                      '/search')
+    api.add_resource(AutoComplete,
+                     '/autocomplete')
     api.add_resource(Echo,
                      '/echo')
 
