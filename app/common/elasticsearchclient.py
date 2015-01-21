@@ -156,7 +156,7 @@ class esQuery():
                 body={'query' : self._get_free_text_query(searchphrase),
                       'size' : params.size,
                       'from' : params.start_from,
-                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE)
                       }
             )
         current_app.logger.debug("Got %d Hits in %ims"%(res['hits']['total'],res['took']))
@@ -171,7 +171,7 @@ class esQuery():
                 datapoint['description'] = hit['_source']['approved_name'].split('[')[0]
             elif hit['_type'] == self._docname_efo:
                 datapoint['title'] = hit['_source']['label']
-                datapoint['description'] = ' > '.join(hit['_source']['path_labels'])
+                datapoint['description'] = hit['_source']['definition']
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
