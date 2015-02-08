@@ -488,6 +488,7 @@ class esQuery():
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         '''boolean query joining multiple conditions with an AND'''
+        print pprint.pprint(conditions)
         res = self.handler.search(index=self._index_data,
                                   doc_type=self._docname_data,
                                   body={
@@ -515,9 +516,9 @@ class esQuery():
 
     def _get_gene_filter(self, gene):
         return [
-            # gene,
+            gene,
             # "http://identifiers.org/uniprot/"+gene,
-            "http://identifiers.org/ensembl/" + gene,
+            # "http://identifiers.org/ensembl/" + gene,
         ]
 
     def _get_complex_gene_filter(self, genes, bol):
@@ -542,7 +543,7 @@ class esQuery():
 
     def _get_object_filter(self, object):
         return [object,
-                "http://identifiers.org/efo/" + object,
+               # "http://identifiers.org/efo/" + object,
         ]
 
     def _get_complex_object_filter(self, objects, bol):
@@ -553,22 +554,17 @@ class esQuery():
         :return: boolean filter
         '''
         if objects:
-            terms_condition = [{
+             return {
+                    "bool": {
+                        bol : [{
                               "terms": {
-                                  "biological_object.about": self._get_object_filter(object)}
+                                 # "biological_object.about": self._get_object_filter(object)}
+                                "_private.efo_codes": self._get_object_filter(object)}
                           }
                           for object in objects]
-            for object in objects:
-                terms_condition.append({
-                              "terms": {
-                                  "biological_object.efo_info.path": self._get_object_filter(object)}
-                          })
-            return {
-                "bool": {
-                    bol: terms_condition
-                }
+                    }
+
             }
-        return dict()
 
     def _get_evidence_type_filter(self, evidence_type):
         return [evidence_type,
