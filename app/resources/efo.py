@@ -10,7 +10,7 @@ from flask_restful_swagger import swagger
 class EfoLabelFromCode(restful.Resource):
 
     @swagger.operation(
-        notes='''get an EFO label from efo code''',)
+        notes='''get an EFO Information from a code''',)
     def get(self, code ):
         es = current_app.extensions['esquery']
         res = es.get_efo_label_from_code(code)

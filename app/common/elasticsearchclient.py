@@ -377,17 +377,17 @@ class esQuery():
     def get_efo_label_from_code(self, code, **kwargs):
         res = self.handler.search(index=self._index_efo,
                                   doc_type=self._docname_efo,
-                                  body={'query': {
-                                      'match': {
-                                          'efoid': '*' + code}
-                                  },
-                                        'size': 1
-
+                                  body={'filter': {
+                                      "ids": {
+                                          "type": "efo",
+                                          "values": [code]
+                                      }
+                                  }
                                   }
         )
         if res['hits']['total']:
             for hit in res['hits']['hits']:
-                return hit['_source']['label']
+                return hit['_source']
 
 
     def get_efo_code_from_label(self, label, **kwargs):

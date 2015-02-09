@@ -40,23 +40,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      )
     api.add_resource(Evidences,
                      '/filterby')
-    # api.add_resource(Genes,
-    #                  basepath+'/evidences-gene/<string:gene>')
-    # api.add_resource(GeneEvidenceByEfo,
-    #                  basepath+'/evidences-gene-efo/<string:ensemblid>/<string:efocode>')
-    # api.add_resource(StartFromUniprot,
-    #                  basepath+'/mapping/uniprot/<string:uniprotid>')
-    # api.add_resource(StartFromEnsemblGene,
-    # api.add_resource(EfoLabelFromCode,
-    #                  basepath+'/efo/code/<string:code>')
-    api.add_resource(EfoIDFromLabel,
-                     '/efo/label/<string:label>')
+    api.add_resource(EfoLabelFromCode,
+                     '/efo/<string:code>')
     api.add_resource(EcoLabelFromCode,
-                     '/eco/code/<string:code>')
-    api.add_resource(UniprotFromEnsembl,
-                     '/mapping/uniprot/from-ensembl/<string:ensemblid>')
-    api.add_resource(EnsemblFromUniprot,
-                     '/mapping/uniprot/to-ensembl/<string:uniprotid>')
+                     '/eco/<string:code>')
     api.add_resource(FreeTextSearch,
                      '/search')
     api.add_resource(AutoComplete,
