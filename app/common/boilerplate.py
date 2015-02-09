@@ -10,6 +10,8 @@ def get_parser():
     parser.add_argument('from', type=int, required=False, help="pagination start from", default = 0)
     parser.add_argument('format', type=str, required=False, help="return format, can be: 'json','xml','table'", choices=['json','xml','table'])
     parser.add_argument('datastructure', type=str, required=False, help="Type of data structure to return. Can be: 'full','simple','ids', 'count' ",choices=['full','simple','ids', 'count'])
+    parser.add_argument('fields', type=str, action='append', required=False, help="fields you want to retrieve")
+
     return parser
 
 def get_swagger_parameters():
@@ -43,6 +45,14 @@ def get_swagger_parameters():
           "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
           "required": False,
           "allowMultiple": False,
+          "dataType": "string",
+          "paramType": "query"
+        },
+        {
+          "name": "fields",
+          "description": "fields you want to retrieve. this will get priority over the datastructure requested",
+          "required": False,
+          "allowMultiple": True,
           "dataType": "string",
           "paramType": "query"
         }

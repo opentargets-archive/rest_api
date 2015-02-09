@@ -488,7 +488,9 @@ class esQuery():
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         '''boolean query joining multiple conditions with an AND'''
-        print pprint.pprint(conditions)
+        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"]= params.fields
         res = self.handler.search(index=self._index_data,
                                   doc_type=self._docname_data,
                                   body={
@@ -504,7 +506,7 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                                      '_source': source_filter
                                   }
         )
 
@@ -1018,6 +1020,11 @@ class SearchParams():
         self.format = kwargs.get('format', 'json') or 'json'
 
         self.datastructure = kwargs.get('datastructure', 'full') or 'full'
+
+        self.fields = kwargs.get('fields')
+
+        if self.fields:
+            self.datastructure = OutputDataStructureOptions.CUSTOM
 
 
 class Result():

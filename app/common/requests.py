@@ -8,7 +8,7 @@ class OutputDataStructure():
 
 
 class FullSourceDataStructure(OutputDataStructure):
-    source = {"exclude": [ "_private.*" ]}
+    source = {"exclude": [ "_private*" ]}
 
 class SimpleSourceDataStructure(OutputDataStructure):
     source =  {"include": [ "id",
@@ -19,7 +19,7 @@ class SimpleSourceDataStructure(OutputDataStructure):
                            "evidence.evidence_codes",
                            "evidence.provenance_type.database.id",
                            "evidence.association_score.probability.value"],
-                "exclude": [ "_private.*" ]}
+                "exclude": [ "_private*" ]}
 
 class IdsSourceDataStructure(OutputDataStructure):
     source = ["id"]
@@ -44,6 +44,11 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
     source = ShortGeneDataStructure.source + DiseaseDataStructure.source
 
 
+class CustomDataStructure(OutputDataStructure):
+    source =  {"include": [ ],
+                "exclude": [ "_private*" ]}
+
+
 class OutputDataStructureOptions():
     FULL = 'full'
     SIMPLE = 'simple'
@@ -52,21 +57,23 @@ class OutputDataStructureOptions():
     GENE = 'gene'
     DISEASE = 'disease'
     GENE_AND_DISEASE = 'gene_and_disease'
+    CUSTOM = 'custom'
+
+
+    options = {
+        FULL: FullSourceDataStructure.source,
+        SIMPLE: SimpleSourceDataStructure.source,
+        IDS: IdsSourceDataStructure.source,
+        GENE: ShortGeneDataStructure.source,
+        DISEASE: DiseaseDataStructure.source,
+        GENE_AND_DISEASE: GeneAndDiseaseDataStructure.source,
+        CUSTOM: CustomDataStructure.source,
+    }
 
     @classmethod
     def getSource(cls,structure):
-        if structure == cls.FULL:
-            return FullSourceDataStructure.source
-        elif structure == cls.SIMPLE:
-            return SimpleSourceDataStructure.source
-        elif structure == cls.IDS:
-            return IdsSourceDataStructure.source
-        elif structure == cls.GENE:
-            return ShortGeneDataStructure.source
-        elif structure == cls.DISEASE:
-            return DiseaseDataStructure.source
-        elif structure == cls.GENE_AND_DISEASE:
-            return GeneAndDiseaseDataStructure.source
+        if structure in cls.options:
+            return  cls.options[structure]
         else:
             return OutputDataStructure.source
 
