@@ -470,6 +470,7 @@ class esQuery():
                       genes=[],
                       objects=[],
                       evidence_types=[],
+                      datasources = [],
                       gene_operator='OR',
                       object_operator='OR',
                       evidence_type_operator='OR',
@@ -487,11 +488,14 @@ class esQuery():
             conditions.append(self._get_complex_object_filter(objects, object_operator))
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
+        if datasources:
+            conditions.append(self._get__complex_datasource_filter(datasources, BooleanFilterOperator.OR))
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"]= params.fields
-        res = self.handler.search(index=self._index_data,
+        if params.groupby:
+            res = self.handler.search(index=self._index_data,
                                   doc_type=self._docname_data,
                                   body={
                                       "query": {
@@ -506,15 +510,105 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       'from': params.start_from,
-                                      '_source': source_filter
+                                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                                      "aggs":{
+                                          params.groupby[0]: {
+                                             "terms": {
+                                                 "field" : "biological_object.about",
+                                                 'size': params.size,
+
+                                             },
+                                             "aggs": {
+                                                "evidencestring": { "top_hits": { "_source": source_filter, "size": params.size }}
+                                             }
+
+                                          }
+                                       }
                                   }
-        )
+            )
+        else:
+            res = self.handler.search(index=self._index_data,
+                                      doc_type=self._docname_data,
+                                      body={
+                                          "query": {
+                                              "filtered": {
+                                                  "filter": {
+                                                      "bool": {
+                                                          "must": conditions
+                                                      }
+                                                  }
+
+                                              }
+                                          },
+                                          'size': params.size,
+                                          'from': params.start_from,
+                                          '_source': source_filter,
+                                      }
+            )
 
         # data = None
         # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
         # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
         # return PaginatedResult(res,params, data)
         return PaginatedResult(res, params)
+
+    def get_associations(self,
+                      genes=[],
+                      objects=[],
+                      gene_operator='OR',
+                      object_operator='OR',
+                      **kwargs):
+        params = SearchParams(**kwargs)
+        '''convert boolean to elasticsearch syntax'''
+        gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
+        object_operator = getattr(BooleanFilterOperator, object_operator.upper())
+        '''create multiple condition boolean query'''
+        conditions = []
+        aggs = None
+        agg_key = None
+        if genes:
+            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+            aggs = self._get_gene_associations_agg()
+        elif objects:
+            conditions.append(self._get_complex_object_filter(objects, object_operator))
+            aggs = self._get_efo_associations_agg()
+
+        '''boolean query joining multiple conditions with an AND'''
+        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"]= params.fields
+
+        res = self.handler.search(index=self._index_data,
+                                  doc_type=self._docname_data,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "bool": {
+                                                      "must": conditions
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': params.size,
+                                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                                      "aggs": aggs
+
+                                      }
+                                  )
+
+        # data = None
+        # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
+        # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
+        # return PaginatedResult(res,params, data)
+        '''build data structure to return'''
+        if genes:
+            data, total = self._return_association_data_structures_for_genes(res, "efo_codes")
+        elif objects:
+            data, total = self._return_association_data_structures_for_efos(res, "genes")
+
+
+        return CountedResult(res, params, data, total = total)#res['aggregations'], res['hits']['hits']
 
     def _get_gene_filter(self, gene):
         return [
@@ -591,6 +685,29 @@ class esQuery():
                 }
             }
         return dict()
+
+
+    def _get__complex_datasource_filter(self, datasources, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param evidence_types: list of dataasource strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if datasources:
+            filters = []
+            for datasource in datasources:
+                filters.append({ "terms": {"_private.datasource": [datasource]}})
+                filters.append({ "terms": {"evidence.provenance_type.database.id": [datasource]}})
+
+
+            return {
+                "bool": {
+                    bol:filters
+                }
+            }
+        return dict()
+
 
     def _get_generic_gene_info(self, geneids, output_format=OutputDataStructureOptions.FULL):
         '''
@@ -990,6 +1107,158 @@ class esQuery():
 
         }
 
+    def _get_gene_associations_agg(self):
+        return {"efo_codes": {
+                   "terms": {
+                       "field" : "_private.efo_codes",
+                       'size': 100,
+                       "order": {
+                           "association_score": "desc"
+                       }
+                   },
+                    "aggs":{
+                          "datasources": {
+                             "terms": {
+                                 "field" : "evidence.provenance_type.database.id",
+                                 'size': 10000,
+                               },
+                             "aggs":{
+                                  "association_score": {
+                                     "sum": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     },
+
+                               }
+                            }
+                          },
+                          "association_score": {
+                                     "sum": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     },
+
+                               }
+
+                      }
+                   # "aggs":{
+                   #    "datasource": {
+                   #       "terms": {
+                   #           "field" : "evidence.provenance_type.database.id",
+                   #           'size': 10000,
+                   #       },
+                   #    }
+                   # }
+                 }
+              }
+
+    def _get_efo_associations_agg(self):
+        # return {"genes": {
+        #            "terms": {
+        #                "field" : "biological_subject.about",
+        #                'size': 100,
+        #            },
+        #            "aggs":{
+        #               "datasource": {
+        #                  "terms": {
+        #                      "field" : "evidence.provenance_type.database.id",
+        #                      'size': 10000,
+        #                  },
+        #            }
+        #          }
+        #       }
+
+        return {"genes": {
+                   "terms": {
+                       "field" : "biological_subject.about",
+                       'size': 100,
+                       "order": {
+                           "association_score": "desc"
+                       }
+                   },
+                   "aggs":{
+                          "datasources": {
+                             "terms": {
+                                 "field" : "evidence.provenance_type.database.id",
+                                 'size': 10000,
+                               },
+                             "aggs":{
+                                  "association_score": {
+                                     "sum": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     },
+
+                               }
+                            }
+                          },
+                          "association_score": {
+                                     "sum": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     },
+
+                               }
+
+                      }
+
+                 }
+              }
+
+    def _get_script_association_score_weighted(self):
+        return {"script_id":"calculate_association_score_weighted",
+                "lang" : "groovy",
+                "script" : """db =doc['evidence.provenance_type.database.id'].value;
+if (db == 'expression_atlas') {
+  return 0.01;
+} else if (db == 'uniprot'){
+  return 1.0;
+} else if (db == 'reactome'){
+  return 0.3;
+} else if (db == 'eva'){
+  return 0.8;
+} else {
+  return 0.5;
+}
+"""}
+
+    def _return_association_data_structures_for_genes(self, res, agg_key):
+        def transform_datasource_point(datasource_point):
+            return dict(evidence_count = datasource_point['doc_count'],
+                        datasource = datasource_point['key'],
+                        association_score = datasource_point['association_score']['value'],
+                        )
+
+        def transform_data_point(data_point):
+            datasources =map( transform_datasource_point, data_point["datasources"]["buckets"])
+
+            return dict(evidence_count = data_point['doc_count'],
+                        efo_code = data_point['key'],
+                        association_score = data_point['association_score']['value'],
+                        datasources = datasources,
+                        )
+        data = res['aggregations'][agg_key]["buckets"]
+        total = res['aggregations'][agg_key]["sum_other_doc_count"] + sum([i['doc_count'] for i in data])
+        new_data = map(transform_data_point, data)
+        return new_data, total
+
+    def _return_association_data_structures_for_efos(self, res, agg_key):
+        def transform_datasource_point(datasource_point):
+            return dict(evidence_count = datasource_point['doc_count'],
+                        datasource = datasource_point['key'],
+                        association_score = datasource_point['association_score']['value'],
+                        )
+
+        def transform_data_point(data_point):
+            datasources =map( transform_datasource_point, data_point["datasources"]["buckets"])
+            return dict(evidence_count = data_point['doc_count'],
+                        gene_id = data_point['key'],
+                        association_score = data_point['association_score'] or sum([i['association_score'] for i in datasources]),
+                        datasources = datasources,
+                        )
+        data = res['aggregations'][agg_key]["buckets"]
+        total = res['aggregations'][agg_key]["sum_other_doc_count"] + sum([i['doc_count'] for i in data])
+        new_data = map(transform_data_point, data)
+        return new_data, total
+
+        # return data, total
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1005,11 +1274,12 @@ class SearchParams():
 
         self.start_from = kwargs.get('from', 0) or 0
 
+        self.groupby = []
         groupby = kwargs.get('groupby')
         if groupby:
-            if groupby not in self._allowed_groupby:
-                groupby = None
-        self.groupby = groupby
+            for g in groupby:
+                if g in self._allowed_groupby:
+                    self.groupby.append(g)
 
         self.orderby = kwargs.get('orderby')
 
@@ -1027,7 +1297,7 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
 
-class Result():
+class Result(object):
     format = ResponseType.JSON
 
     def __init__(self, res, params, data=None):
@@ -1157,3 +1427,23 @@ class SimpleResult(Result):
         if not self.data:
             raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data}
+
+class CountedResult(Result):
+
+    def __init__(self, *args, **kwargs):
+        '''
+
+        :param total: count to return, needs to be passed as kwarg
+        '''
+        total = None
+        if 'total' in kwargs:
+            total = kwargs.pop('total')
+        super(self.__class__,self).__init__(*args, **kwargs)
+        self.total = total or len(self.data)
+
+    def toDict(self):
+        if not self.data:
+            raise AttributeError('some data is needed to be returned in a CountedResult')
+        return {'data': self.data,
+                'total': self.total,
+        }

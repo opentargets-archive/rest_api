@@ -27,6 +27,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, AutoComplete
     from app.resources.echo import Echo
+    from app.resources.association import Association
 
 
 
@@ -40,6 +41,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      )
     api.add_resource(Evidences,
                      '/filterby')
+    api.add_resource(Association,
+                     '/association')
     api.add_resource(EfoLabelFromCode,
                      '/efo/<string:code>')
     api.add_resource(EcoLabelFromCode,

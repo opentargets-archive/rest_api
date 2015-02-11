@@ -20,10 +20,13 @@ class EvidenceQuery:
       'gene': fields.List(fields.String(attribute='gene file name', )),
       'efo': fields.List(fields.String(attribute='efo code', )),
       'eco': fields.List(fields.String(attribute='efo code', )),
+      'datasource': fields.List(fields.String(attribute='datasource', )),
       'from': fields.Integer(attribute='paginate from',),
       'size': fields.Integer(attribute='size to return', ),
       'format': fields.String(attribute='format',),
       'datastructure': fields.String(attribute='datastructure', ),
+      'fields': fields.List(fields.String(attribute='fields to return', )),
+      'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
 
   }
 
@@ -118,6 +121,14 @@ class Evidences(restful.Resource, Paginable):
             #   "dataType": "string",
             #   "paramType": "query"
             # },
+            {
+              "name": "datasource",
+              "description": "datasource to consider",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
 
           ]
 
@@ -140,6 +151,7 @@ class Evidences(restful.Resource, Paginable):
         parser.add_argument('eco', type=str, action='append', required=False, help="List of evidence types as eco code")
         # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
         # parser.add_argument('body', type=str, action='store', required=False, location='form', help="json object with query parameter")
+        parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
 
         args = parser.parse_args()
         genes = args.pop('gene',[]) or []
@@ -148,10 +160,11 @@ class Evidences(restful.Resource, Paginable):
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
+        datasource =  args.pop('datasource',[]) or []
 
-        if not (genes or objects or evidence_types):
-            abort(404, message='Please provide at least one gene, efo or eco')
-        return self.get_evidence(genes, objects, evidence_types, params=args)
+        if not (genes or objects or evidence_types or datasource):
+            abort(404, message='Please provide at least one gene, efo, eco or datasource')
+        return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
 
 
     @swagger.operation(
@@ -197,15 +210,18 @@ class Evidences(restful.Resource, Paginable):
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        if not (genes or objects or evidence_types):
-            abort(404, message='Please provide at least one gene, efo or eco')
-        return self.get_evidence(genes, objects, evidence_types, params=args)
+        datasource =  args.pop('datasource',[]) or []
+
+        if not (genes or objects or evidence_types or datasource):
+            abort(404, message='Please provide at least one gene, efo, eco or datasource')
+        return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
 
 
     def get_evidence(self,
                      genes,
                      objects,
                      evidence_types,
+                     datasources,
                      gene_operator='OR',
                      object_operator='OR',
                      evidence_type_operator='OR',
@@ -216,6 +232,7 @@ class Evidences(restful.Resource, Paginable):
         res = es.get_evidences(genes = genes,
                                objects = objects,
                                evidence_types = evidence_types,
+                               datasources = datasources,
                                # gene_operator = gene_operator,
                                # object_operator = object_operator,
                                # evidence_type_operator = evidence_type_operator,
@@ -224,6 +241,7 @@ class Evidences(restful.Resource, Paginable):
             abort(404, message='Cannot find evidences for  %s'%str([genes,
                                                                     objects,
                                                                     evidence_types,
+                                                                    datasources,
                                                                     # gene_operator,
                                                                     # object_operator,
                                                                     # evidence_type_operator,
