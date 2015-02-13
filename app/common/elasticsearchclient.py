@@ -374,20 +374,23 @@ class esQuery():
                 return hit['_source']['uniprot_accession']
         return
 
-    def get_efo_label_from_code(self, code, **kwargs):
+    def get_efo_info_from_code(self, code, **kwargs):
         res = self.handler.search(index=self._index_efo,
                                   doc_type=self._docname_efo,
                                   body={'filter': {
                                       "ids": {
                                           "type": "efo",
                                           "values": [code]
-                                      }
-                                  }
+                                            },
+                                        },
+                                        'size' : 10000
                                   }
         )
         if res['hits']['total']:
-            for hit in res['hits']['hits']:
-                return hit['_source']
+            if res['hits']['total']==1:
+                return res['hits']['hits'][0]['_source']
+            else:
+                return [hit['_source'] for hit in res['hits']['hits']]
 
 
     def get_efo_code_from_label(self, label, **kwargs):
@@ -567,9 +570,11 @@ class esQuery():
         aggs = None
         agg_key = None
         if genes:
+            params.datastructure = OutputDataStructureOptions.TREE
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             aggs = self._get_gene_associations_agg()
         elif objects:
+            params.datastructure = OutputDataStructureOptions.FLAT
             conditions.append(self._get_complex_object_filter(objects, object_operator))
             aggs = self._get_efo_associations_agg()
 
@@ -603,9 +608,13 @@ class esQuery():
         # return PaginatedResult(res,params, data)
         '''build data structure to return'''
         if genes:
-            data, total = self._return_association_data_structures_for_genes(res, "efo_codes")
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                data, total = self._return_association_data_structures_for_genes(res, "efo_codes")
+            elif params.datastructure == OutputDataStructureOptions.TREE:
+                data, total = self._return_association_data_structures_for_genes_as_tree(res, "efo_codes")
         elif objects:
-            data, total = self._return_association_data_structures_for_efos(res, "genes")
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                data, total = self._return_association_data_structures_for_efos(res, "genes")
 
 
         return CountedResult(res, params, data, total = total)#res['aggregations'], res['hits']['hits']
@@ -1238,6 +1247,40 @@ if (db == 'expression_atlas') {
         new_data = map(transform_data_point, data)
         return new_data, total
 
+    def _return_association_data_structures_for_genes_as_tree(self, res, agg_key):
+
+
+        def transform_data_to_tree(data, efo_data):
+            data = dict([(i["efo_code"],i) for i in data])
+            efo_tree_relations = sorted(efo_data.items(),key=lambda items: len(items[1]))
+            root=AssociationTreeNode()
+            for code, parents in efo_tree_relations:
+                if not parents:
+                    root.add_child(AssociationTreeNode(code,**data[code]))
+                else:
+                    node = root.get_node_at_path(parents)
+                    node.add_child(AssociationTreeNode(code,**data[code]))
+
+            return root.to_dict_tree_with_children_as_array()
+
+        def get_efo_data(efo_keys):
+            efo_data = {}
+            data = self.get_efo_info_from_code(efo_keys)
+            for efo in data:
+                code = efo['code'].split('/')[-1]
+                parents = efo['path_codes'][:-1]
+                efo_data[code]=parents
+
+            return efo_data
+
+        data = dict([(i["key"],i) for i in res['aggregations'][agg_key]["buckets"]])
+        efo_data = get_efo_data(data.keys())
+        new_data, total = self._return_association_data_structures_for_genes(res,agg_key)
+        tree_data = transform_data_to_tree(new_data,efo_data) or new_data
+        tree_data['name']='cttv_disease'
+        return tree_data, total
+
+
     def _return_association_data_structures_for_efos(self, res, agg_key):
         def transform_datasource_point(datasource_point):
             return dict(evidence_count = datasource_point['doc_count'],
@@ -1256,9 +1299,6 @@ if (db == 'expression_atlas') {
         total = res['aggregations'][agg_key]["sum_other_doc_count"] + sum([i['doc_count'] for i in data])
         new_data = map(transform_data_point, data)
         return new_data, total
-
-        # return data, total
-
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1447,3 +1487,77 @@ class CountedResult(Result):
         return {'data': self.data,
                 'total': self.total,
         }
+
+class AssociationTreeNode(object):
+
+    def __init__(self, name = 'root', **kwargs):
+        self.name = name
+        self.children = {}
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def _is_root(self):
+        return self.name == 'root'
+
+    def add_child(self, child):
+        if isinstance(child, AssociationTreeNode):
+            if child._is_root():
+                raise AttributeError("child cannot be root ")
+            if child == self:
+                raise AttributeError("child cannot add a  node to itself ")
+            if not self.has_child(child):
+                self.children[child.name]=child
+        else:
+            raise AttributeError("child needs to be an AssociationTreeNode ")
+
+    def get_child(self, child_name):
+        return self.children[child_name]
+
+    def has_child(self, child):
+        if isinstance(child, AssociationTreeNode):
+            return child.name in self.children
+        return child in self.children
+
+    def get_children(self):
+        return self.children.values()
+
+    def get_node_at_path(self, path):
+        node = self
+        for p in path:
+            if node.has_child(p):
+                node = node.get_child(p)
+                continue
+        return node
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def children_as_array(self):
+        return self.children.values()
+
+    def single_node_to_dict(self):
+        out = self.__dict__
+        if self.children:
+            out['children']= self.children_as_array()
+        else:
+            del out['children']
+        return out
+
+
+    def recursive_node_to_dict(self, node):
+        if isinstance(node, AssociationTreeNode):
+            out = node.single_node_to_dict()
+            if 'children' in out:
+                for i,child in enumerate(out['children']):
+                    if isinstance(child, AssociationTreeNode):
+                        child = child.recursive_node_to_dict(child)
+                    out['children'][i] = child
+            return out
+
+
+    def to_dict_tree_with_children_as_array(self):
+        out = self.recursive_node_to_dict(self)
+        return out
+
+
+

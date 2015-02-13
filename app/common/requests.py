@@ -58,6 +58,8 @@ class OutputDataStructureOptions():
     DISEASE = 'disease'
     GENE_AND_DISEASE = 'gene_and_disease'
     CUSTOM = 'custom'
+    TREE = 'tree'
+    FLAT = 'flat'
 
 
     options = {
