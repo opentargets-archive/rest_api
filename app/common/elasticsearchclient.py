@@ -1250,34 +1250,35 @@ if (db == 'expression_atlas') {
     def _return_association_data_structures_for_genes_as_tree(self, res, agg_key):
 
 
-        def transform_data_to_tree(data, efo_data):
+        def transform_data_to_tree(data, efo_parents, efo_labels):
             data = dict([(i["efo_code"],i) for i in data])
-            efo_tree_relations = sorted(efo_data.items(),key=lambda items: len(items[1]))
+            efo_tree_relations = sorted(efo_parents.items(),key=lambda items: len(items[1]))
             root=AssociationTreeNode()
             for code, parents in efo_tree_relations:
                 if not parents:
-                    root.add_child(AssociationTreeNode(code,**data[code]))
+                    root.add_child(AssociationTreeNode(code,label=efo_labels[code], **data[code]))
                 else:
                     node = root.get_node_at_path(parents)
-                    node.add_child(AssociationTreeNode(code,**data[code]))
+                    node.add_child(AssociationTreeNode(code,label=efo_labels[code],**data[code]))
 
             return root.to_dict_tree_with_children_as_array()
 
         def get_efo_data(efo_keys):
-            efo_data = {}
+            efo_parents = {}
+            efo_labels = {}
             data = self.get_efo_info_from_code(efo_keys)
             for efo in data:
                 code = efo['code'].split('/')[-1]
                 parents = efo['path_codes'][:-1]
-                efo_data[code]=parents
+                efo_parents[code]=parents
+                efo_labels[code]=efo['label']
 
-            return efo_data
+            return efo_parents, efo_labels
 
         data = dict([(i["key"],i) for i in res['aggregations'][agg_key]["buckets"]])
-        efo_data = get_efo_data(data.keys())
+        efo_parents, efo_labels = get_efo_data(data.keys())
         new_data, total = self._return_association_data_structures_for_genes(res,agg_key)
-        tree_data = transform_data_to_tree(new_data,efo_data) or new_data
-        tree_data['name']='cttv_disease'
+        tree_data = transform_data_to_tree(new_data,efo_parents, efo_labels) or new_data
         return tree_data, total
 
 
