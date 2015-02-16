@@ -69,6 +69,7 @@ class OutputDataStructureOptions():
         GENE: ShortGeneDataStructure.source,
         DISEASE: DiseaseDataStructure.source,
         GENE_AND_DISEASE: GeneAndDiseaseDataStructure.source,
+        COUNT: OutputDataStructure.source,
         CUSTOM: CustomDataStructure.source,
     }
 

@@ -568,15 +568,16 @@ class esQuery():
         '''create multiple condition boolean query'''
         conditions = []
         aggs = None
-        agg_key = None
-        if genes:
-            params.datastructure = OutputDataStructureOptions.TREE
-            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
-            aggs = self._get_gene_associations_agg()
-        elif objects:
-            params.datastructure = OutputDataStructureOptions.FLAT
+        if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator))
+            params.datastructure = OutputDataStructureOptions.FLAT
             aggs = self._get_efo_associations_agg()
+        if genes:
+            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+            if not aggs:
+                params.datastructure = OutputDataStructureOptions.TREE
+                aggs = self._get_gene_associations_agg()
+
 
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
@@ -607,17 +608,18 @@ class esQuery():
         # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
         # return PaginatedResult(res,params, data)
         '''build data structure to return'''
-        if genes:
+        if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data, total = self._return_association_data_structures_for_genes(res, "efo_codes")
+                data = self._return_association_data_structures_for_efos(res, "genes")
+        elif genes:
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                data = self._return_association_data_structures_for_genes(res, "efo_codes")
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data, total = self._return_association_data_structures_for_genes_as_tree(res, "efo_codes")
-        elif objects:
-            if params.datastructure == OutputDataStructureOptions.FLAT:
-                data, total = self._return_association_data_structures_for_efos(res, "genes")
+                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes")
 
 
-        return CountedResult(res, params, data, total = total)#res['aggregations'], res['hits']['hits']
+
+        return CountedResult(res, params, data, total = res['hits']['total'])#res['aggregations'], res['hits']['hits']
 
     def _get_gene_filter(self, gene):
         return [
@@ -1222,6 +1224,12 @@ if (db == 'expression_atlas') {
   return 0.3;
 } else if (db == 'eva'){
   return 0.8;
+} else if (db == 'phenodigm'){
+  return 0.3;
+} else if (db == 'gwas'){
+  return 0.8;
+} else if (db == 'cancer_gene_census'){
+  return 0.7;
 } else {
   return 0.5;
 }
@@ -1243,9 +1251,8 @@ if (db == 'expression_atlas') {
                         datasources = datasources,
                         )
         data = res['aggregations'][agg_key]["buckets"]
-        total = res['aggregations'][agg_key]["sum_other_doc_count"] + sum([i['doc_count'] for i in data])
         new_data = map(transform_data_point, data)
-        return new_data, total
+        return new_data
 
     def _return_association_data_structures_for_genes_as_tree(self, res, agg_key):
 
@@ -1277,9 +1284,9 @@ if (db == 'expression_atlas') {
 
         data = dict([(i["key"],i) for i in res['aggregations'][agg_key]["buckets"]])
         efo_parents, efo_labels = get_efo_data(data.keys())
-        new_data, total = self._return_association_data_structures_for_genes(res,agg_key)
+        new_data = self._return_association_data_structures_for_genes(res,agg_key)
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_labels) or new_data
-        return tree_data, total
+        return tree_data
 
 
     def _return_association_data_structures_for_efos(self, res, agg_key):
@@ -1297,9 +1304,8 @@ if (db == 'expression_atlas') {
                         datasources = datasources,
                         )
         data = res['aggregations'][agg_key]["buckets"]
-        total = res['aggregations'][agg_key]["sum_other_doc_count"] + sum([i['doc_count'] for i in data])
         new_data = map(transform_data_point, data)
-        return new_data, total
+        return new_data
 
 class SearchParams():
     _max_search_result_limit = 10000
