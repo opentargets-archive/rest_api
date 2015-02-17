@@ -70,6 +70,14 @@ class Association(restful.Resource):
             #   "dataType": "string",
             #   "paramType": "query"
             # },
+            {
+              "name": "filter",
+              "description": "the minimum value of association score you want to filter by",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
 
 
 
@@ -91,6 +99,8 @@ class Association(restful.Resource):
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
+        parser.add_argument('filter', type=float, required=False, help="List of efo code in biological_object")
+
 
         args = parser.parse_args()
         genes = args.pop('gene',[]) or []

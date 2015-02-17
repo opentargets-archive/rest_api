@@ -594,12 +594,12 @@ class esQuery():
         '''build data structure to return'''
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(res, "genes")
+                data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filter)
         elif genes:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(res, "efo_codes")
+                data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filter)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes")
+                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filter)
 
 
 
@@ -1017,7 +1017,7 @@ if (db == 'expression_atlas') {
 }
 """}
 
-    def _return_association_data_structures_for_genes(self, res, agg_key):
+    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None):
         def transform_datasource_point(datasource_point):
             return dict(evidence_count = datasource_point['doc_count'],
                         datasource = datasource_point['key'],
@@ -1033,10 +1033,12 @@ if (db == 'expression_atlas') {
                         datasources = datasources,
                         )
         data = res['aggregations'][agg_key]["buckets"]
+        if filter_value is not None:
+            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         new_data = map(transform_data_point, data)
         return new_data
 
-    def _return_association_data_structures_for_genes_as_tree(self, res, agg_key):
+    def _return_association_data_structures_for_genes_as_tree(self, res, agg_key, filter_value = None):
 
 
         def transform_data_to_tree(data, efo_parents, efo_labels):
@@ -1065,14 +1067,17 @@ if (db == 'expression_atlas') {
 
             return efo_parents, efo_labels
 
-        data = dict([(i["key"],i) for i in res['aggregations'][agg_key]["buckets"]])
+        data = res['aggregations'][agg_key]["buckets"]
+        if filter_value is not None:
+            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
+        data = dict([(i["key"],i) for i in data])
         efo_parents, efo_labels = get_efo_data(data.keys())
         new_data = self._return_association_data_structures_for_genes(res,agg_key)
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_labels) or new_data
         return tree_data
 
 
-    def _return_association_data_structures_for_efos(self, res, agg_key):
+    def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None):
 
 
 
@@ -1089,8 +1094,10 @@ if (db == 'expression_atlas') {
                         label = gene_names[data_point['key']],
                         association_score = data_point['association_score']['value'],
                         datasources = datasources,
-                        )
+                            )
         data = res['aggregations'][agg_key]["buckets"]
+        if filter_value is not None:
+            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
         gene_info = self.get_gene_info(gene_ids, size = gene_ids).toDict()
         gene_names = defaultdict(str)
@@ -1137,6 +1144,8 @@ class SearchParams():
 
         if self.fields:
             self.datastructure = OutputDataStructureOptions.CUSTOM
+
+        self.filter = kwargs.get('filter')
 
 
 class Result(object):

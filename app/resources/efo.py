@@ -18,15 +18,3 @@ class EfoLabelFromCode(restful.Resource):
             return res
         else:
             abort(404, message="EFO code %s cannot be found"%code)
-
-class EfoIDFromLabel(restful.Resource):
-
-    @swagger.operation(
-        notes='''get an EFO ID from a label''',)
-    def get(self, label ):
-        es = current_app.extensions['esquery']
-        res = es.get_efo_code_from_label(label)
-        if res:
-            return res
-        else:
-            abort(404, message="EFO label %s cannot be found"%label)
