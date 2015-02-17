@@ -23,7 +23,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.genes import Genes, AvailableGenes,GeneName, GeneEvidenceByEfo
     from app.resources.uniprot import Uniprot,UniprotFromEnsembl, EnsemblFromUniprot
     from app.resources.evidences import Evidence, Evidences, EvidenceWithEfoAsObject
-    from app.resources.efo import EfoLabelFromCode, EfoIDFromLabel
+    from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, AutoComplete
     from app.resources.echo import Echo

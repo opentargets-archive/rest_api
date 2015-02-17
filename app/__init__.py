@@ -35,14 +35,14 @@ def create_app(config_name):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
-    es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-                                        # ,
-                                        # # sniff before doing anything
-                                        # sniff_on_start=True,
-                                        # # refresh nodes after a node fails to respond
-                                        # sniff_on_connection_fail=True,
-                                        # # and also every 60 seconds
-                                        # sniffer_timeout=60))
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
+                        # # sniff before doing anything
+                        # sniff_on_start=True,
+                        # # refresh nodes after a node fails to respond
+                        # sniff_on_connection_fail=True,
+                        # # and also every 60 seconds
+                        # sniffer_timeout=60
+                        )
     log_level = logging.INFO
     if app.config['DEBUG']:
         log_level = logging.DEBUG

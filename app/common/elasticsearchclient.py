@@ -345,66 +345,50 @@ class esQuery():
         return available_genes
 
 
-    def get_ensemblid_from_uniprotid(self, uniprotid, **kwargs):
-        res = self.handler.search(index=self._index_mapping,
-                                  doc_type='mapping',
-                                  body={'query': {
-                                      "match": {'uniprot_accession': uniprotid}
+    def get_gene_info(self,gene_ids, **kwargs):
+        params = SearchParams(**kwargs)
+        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"]= params.fields
 
-                                  }
 
-                                  }
-        )
-        if res['hits']['hits']:
-            for hit in res['hits']['hits']:
-                return hit['_source']['ensembl_gene_id']
-        return
+        if gene_ids:
+            res = self.handler.search(index=self._index_genename,
+                                      doc_type=self._docname_genename,
+                                      body={'filter': {
+                                              "ids": {
+                                                  "values": gene_ids
+                                                  },
+                                              },
+                                           '_source': source_filter,
+                                           'size': params.size,
+                                           'from': params.start_from,
+                                           }
+                                      )
+            return PaginatedResult(res, params)
 
-    def get_uniprotid_from_ensemblid(self, ensembleid, **kwargs):
-        res = self.handler.search(index=self._index_mapping,
-                                  doc_type='mapping',
-                                  body={'query': {
-                                      'match': {
-                                          'ensembl_gene_id': ensembleid}
-                                  },
-                                  }
-        )
-        if res['hits']['hits']:
-            for hit in res['hits']['hits']:
-                return hit['_source']['uniprot_accession']
-        return
 
-    def get_efo_info_from_code(self, code, **kwargs):
-        res = self.handler.search(index=self._index_efo,
-                                  doc_type=self._docname_efo,
-                                  body={'filter': {
-                                      "ids": {
-                                          "type": "efo",
-                                          "values": [code]
+
+
+    def get_efo_info_from_code(self, efo_codes, **kwargs):
+        params = SearchParams(**kwargs)
+        if efo_codes:
+            res = self.handler.search(index=self._index_efo,
+                                      doc_type=self._docname_efo,
+                                      body={'filter': {
+                                          "ids": {
+                                              "values": [efo_codes]
+                                                },
                                             },
-                                        },
-                                        'size' : 10000
-                                  }
-        )
-        if res['hits']['total']:
-            if res['hits']['total']==1:
-                return res['hits']['hits'][0]['_source']
-            else:
-                return [hit['_source'] for hit in res['hits']['hits']]
+                                            'size' : 10000
+                                      }
+            )
+            if res['hits']['total']:
+                if res['hits']['total']==1:
+                    return res['hits']['hits'][0]['_source']
+                else:
+                    return [hit['_source'] for hit in res['hits']['hits']]
 
-
-    def get_efo_code_from_label(self, label, **kwargs):
-        res = self.handler.search(index=self._index_efo,
-                                  doc_type=self._docname_efo,
-                                  body={'query': {
-                                      'match': {
-                                          'label': label}
-                                  },
-                                        'size': 100
-                                  }
-        )
-        if res['hits']['total']:
-            return [hit['_source']['efoid'] for hit in res['hits']['hits']]
 
     def get_evidences_with_efo_code_as_object(self, efocode, **kwargs):
         if not efocode.startswith('efo:'):  # temporary workaround
@@ -720,208 +704,6 @@ class esQuery():
         return dict()
 
 
-    def _get_generic_gene_info(self, geneids, output_format=OutputDataStructureOptions.FULL):
-        '''
-        :param geneids: list of gene ids, must be the same used to index gene info in elasticsearch
-        :return: dictionary containing generic data about the genes
-        '''
-        geneinfo = {}
-
-        if geneids:
-            res = self.handler.search(index=self._index_genename,
-                                      doc_type=self._docname_genename,
-                                      body={'filter': {
-                                          "ids": {
-                                              "type": "genename",
-                                              "values": geneids
-                                          }
-                                      }
-                                      }
-            )
-            if res['hits']['total']:
-                for hit in res['hits']['hits']:
-                    if output_format == OutputDataStructureOptions.FULL:
-                        geneinfo[hit['_id']] = dict(gene_name=hit['_source']["Associated Gene Name"],
-                                                    gene_description=hit['_source']["Description"].split('[')[
-                                                        0].strip(),
-                                                    ensembl_id=hit['_source']["Ensembl Gene ID"]
-                        )
-                    elif output_format == OutputDataStructureOptions.SIMPLE:
-                        geneinfo[hit['_id']] = dict(gene_name=hit['_source']["Associated Gene Name"])
-
-        return geneinfo
-
-    def _get_generic_efo_info(self, efocodes, output_format=OutputDataStructureOptions.FULL):
-        '''
-        :param efocodes: list of efo code
-        :return: dictionary containing generic data about the efo
-        '''
-
-
-        def get_match_query(code):
-            return {"match": {"label": code}},
-
-        def clean_code(code):
-            if '/' in code:
-                code = code.split('/')[-1]
-            return code
-
-
-        efoinfo = {}
-
-        if efocodes:
-            res = self.handler.search(index=self._index_efo,
-                                      doc_type=self._docname_efo,
-                                      body={"query": {
-                                          "bool": {
-                                              "should": [get_match_query(code) for code in efocodes]
-                                          }
-                                      }
-                                      }
-            )
-            if res['hits']['total']:
-                for hit in res['hits']['hits']:
-                    if output_format == OutputDataStructureOptions.FULL:
-                        efoinfo[clean_code(hit['_id'])] = dict(efo_label=hit['_source']["label"],
-                                                               efo_path=hit['_source']["path"])
-
-                    elif output_format == OutputDataStructureOptions.SIMPLE:
-                        efoinfo[clean_code(hit['_id'])] = dict(efo_label=hit['_source']["label"])
-            if ('EFO_0000000' in efocodes) or ("http://identifiers.org/efo/EFO_0000000" in efocodes):
-                if output_format == OutputDataStructureOptions.FULL:
-                    efoinfo["EFO_0000000"] = dict(efo_label="N/A",
-                                                  efo_path="N/A")
-
-                elif output_format == OutputDataStructureOptions.SIMPLE:
-                    efoinfo["EFO_0000000"] = dict(efo_label="N/A")
-
-        return_info = {}
-        for code in efocodes:
-            if code in efoinfo:
-                return_info[code] = efoinfo[code]
-            else:
-                if output_format == OutputDataStructureOptions.FULL:
-                    return_info[code] = dict(efo_label=code,
-                                             efo_path="N/A")
-
-                elif output_format == OutputDataStructureOptions.SIMPLE:
-                    return_info[code] = dict(efo_label=code)
-        return return_info
-
-    def _get_generic_eco_info(self, ecocodes, output_format=OutputDataStructureOptions.FULL):
-        '''
-        :param ecocodes: list of lists of efo codes
-        :return: dictionary containing generic data about each eco list
-        '''
-        ecoinfo = {}
-
-        flat_eco_list = list(itertools.chain(*ecocodes))
-        if flat_eco_list:
-            res = self.handler.search(index=self._index_eco,
-                                      doc_type=self._docname_eco,
-                                      body={'filter': {
-                                          "ids": {
-                                              "type": "eco",
-                                              "values": flat_eco_list
-                                          }
-                                      }
-                                      }
-            )
-            if res['hits']['total']:
-                for hit in res['hits']['hits']:
-                    ecoinfo[hit['_id']] = hit['_source']["definition"].split("[")[0].replace('"', '').strip()
-        return_info = dict()
-        for codelist in ecocodes:
-            labels = []
-            for code in codelist:
-                if code in ecoinfo:
-                    labels.append(ecoinfo[code])
-                else:
-                    labels.append("N/A")
-            return_info[''.join(codelist)] = dict(eco_label=', '.join(labels))
-
-        return return_info
-
-        # def _inject_view_specific_data(self, evidences, params):
-        # def get_gene_id_from_evidence(evidence):
-        # about = evidence["biological_subject"]["about"][0]
-        #     if '/' in about:
-        #         geneid = about.split('/')[-1]
-        #         if not geneid.startswith('ENSG'):
-        #             geneid = self.get_ensemblid_from_uniprotid(geneid)#TODO: cache this
-        #         return geneid
-        #     return about
-        # def get_efo_code_from_evidence(evidence):
-        #     about = evidence["biological_object"]["about"][0]
-        #     if '/' in about:
-        #         code = about.split('/')[-1]
-        #         if not code.startswith('EFO_'):
-        #             code = 'EFO_'+code
-        #         if code == 'EFO_0000000':#temporary fix for EVA corrupted data
-        #             try:
-        #                 code = evidence['biological_object']["properties"]["experimental_evidence_specific"][
-        # "unmapped_disease_term"]
-        #             except:
-        #                 pass
-        #         return code
-        #     return about
-        # def get_eco_code_from_evidence(evidence):
-        #     eco = []
-        #     try:
-        #
-        #         for code in evidence["evidence"]["evidence_codes"]:
-        #             eco.append(code.split('/')[-1])
-        #     except:
-        #         return ["N/A"]
-        #     return eco
-        #
-        # gene_ids = list(set(map(get_gene_id_from_evidence, evidences)))
-        # gene_info = None
-        # try:
-        #     gene_info = self._get_generic_gene_info(gene_ids, params.datastructure)
-        # except:
-        #     pass
-        # efo_codes = list(set(map(get_efo_code_from_evidence, evidences)))
-        # efo_info = None
-        # try:
-        #     efo_info = self._get_generic_efo_info(efo_codes, params.datastructure)
-        # except:
-        #     pass
-        # eco_codes = map(get_eco_code_from_evidence, evidences)
-        # eco_info=None
-        # try:
-        #     eco_info = self._get_generic_eco_info(eco_codes, params.datastructure)
-        # except:
-        #     pass
-        # updated_evidences = []
-        # for evidence in evidences:
-        #     try:
-        #         if gene_info:
-        #             geneid = get_gene_id_from_evidence(evidence)
-        #             if geneid in gene_info:
-        #                 if gene_info[geneid]:
-        #                     evidence["biological_subject"]["gene_info"] = gene_info[geneid]
-        #     except:
-        #         pass #TODO: log this
-        #     try:
-        #         if efo_info:
-        #             efocode = get_efo_code_from_evidence(evidence)
-        #             if efocode in efo_info:
-        #                 if efo_info[efocode]:
-        #                     evidence["biological_object"]["efo_info"] = efo_info[efocode]
-        #     except:
-        #         pass #TODO: log this
-        #     try:
-        #         if eco_info:
-        #             ecocode = get_eco_code_from_evidence(evidence)
-        #             code_hash = ''.join(ecocode)
-        #             if code_hash in eco_info:
-        #                 if eco_info[code_hash]:
-        #                     evidence["evidence"]["evidence_type"] = eco_info[code_hash]
-        #     except:
-        #         pass #TODO: log this
-        #     updated_evidences.append(evidence)
-        # return updated_evidences
 
     def _get_free_text_query(self, searchphrase):
         return {"bool": {
@@ -1260,6 +1042,7 @@ if (db == 'expression_atlas') {
         def transform_data_to_tree(data, efo_parents, efo_labels):
             data = dict([(i["efo_code"],i) for i in data])
             efo_tree_relations = sorted(efo_parents.items(),key=lambda items: len(items[1]))
+            pprint.pprint(efo_tree_relations)
             root=AssociationTreeNode()
             for code, parents in efo_tree_relations:
                 if not parents:
@@ -1290,6 +1073,9 @@ if (db == 'expression_atlas') {
 
 
     def _return_association_data_structures_for_efos(self, res, agg_key):
+
+
+
         def transform_datasource_point(datasource_point):
             return dict(evidence_count = datasource_point['doc_count'],
                         datasource = datasource_point['key'],
@@ -1300,12 +1086,21 @@ if (db == 'expression_atlas') {
             datasources =map( transform_datasource_point, data_point["datasources"]["buckets"])
             return dict(evidence_count = data_point['doc_count'],
                         gene_id = data_point['key'],
-                        association_score = data_point['association_score'] or sum([i['association_score'] for i in datasources]),
+                        label = gene_names[data_point['key']],
+                        association_score = data_point['association_score']['value'],
                         datasources = datasources,
                         )
         data = res['aggregations'][agg_key]["buckets"]
+        gene_ids = [d['key'] for d in data]
+        gene_info = self.get_gene_info(gene_ids, size = gene_ids).toDict()
+        gene_names = defaultdict(str)
+        for gene in gene_info['data']:
+            gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
         new_data = map(transform_data_point, data)
         return new_data
+
+
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1496,15 +1291,16 @@ class CountedResult(Result):
         }
 
 class AssociationTreeNode(object):
+    ROOT = 'cttv_disease'
 
-    def __init__(self, name = 'root', **kwargs):
-        self.name = name
+    def __init__(self, name = None, **kwargs):
+        self.name = name or self.ROOT
         self.children = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     def _is_root(self):
-        return self.name == 'root'
+        return self.name == self.ROOT
 
     def add_child(self, child):
         if isinstance(child, AssociationTreeNode):
