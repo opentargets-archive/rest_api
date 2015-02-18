@@ -20,9 +20,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api = restful.Api(app)
     # Wrap the Api with swagger.docs. It is a thin wrapper around the Api class that adds some swagger smarts
 
-    from app.resources.genes import Genes, AvailableGenes,GeneName, GeneEvidenceByEfo
-    from app.resources.uniprot import Uniprot,UniprotFromEnsembl, EnsemblFromUniprot
-    from app.resources.evidences import Evidence, Evidences, EvidenceWithEfoAsObject
+    from app.resources.genes import GeneInfo
+    from app.resources.evidences import Evidence, Evidences
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, AutoComplete
@@ -47,6 +46,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/efo/<string:code>')
     api.add_resource(EcoLabelFromCode,
                      '/eco/<string:code>')
+    api.add_resource(GeneInfo,
+                     '/gene/<string:gene_id>')
     api.add_resource(FreeTextSearch,
                      '/search')
     api.add_resource(AutoComplete,

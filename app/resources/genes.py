@@ -24,6 +24,22 @@ class Genes(restful.Resource, Paginable):
         return CTTVResponse.OK(es.get_evidences_for_gene(gene, **kwargs))
 
 
+
+class GeneInfo(restful.Resource):
+
+    @swagger.operation(
+        notes='''get an Gene generic information from an ensembl gene id''',)
+    def get(self, gene_id ):
+        es = current_app.extensions['esquery']
+        res = es.get_gene_info([gene_id])
+        if res:
+            data = res.toDict()['data']
+            if data:
+                return data[0]
+
+        abort(404, message="Gene id %s cannot be found"%gene_id)
+
+
 class AvailableGenes(restful.Resource):
 
     @swagger.operation(
