@@ -1012,6 +1012,8 @@ if (db == 'expression_atlas') {
   return 0.8;
 } else if (db == 'cancer_gene_census'){
   return 0.7;
+}  else if (db == 'chembl'){
+  return 1;
 } else {
   return 0.5;
 }
