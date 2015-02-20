@@ -76,7 +76,7 @@ class esQuery():
     def get_evidences_for_gene(self, gene, **kwargs):
         params = SearchParams(**kwargs)
         res = self.handler.search(index=self._index_data,
-                                  doc_type=self._docname_data,
+                                  # doc_type=self._docname_data,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -102,7 +102,7 @@ class esQuery():
             if ensemblid:
                 ensemblid = ensemblid[0]
                 res = self.handler.search(index=self._index_data,
-                                          doc_type=self._docname_data,
+                                          # doc_type=self._docname_data,
                                           body={
                                               "query": {
                                                   "filtered": {
@@ -319,7 +319,8 @@ class esQuery():
                                   'fields': ['biological_subject.about'],
                            },
                            scroll='10m',
-                           doc_type=self._docname_data,
+                           # doc_type=self._docname_data,
+                           index=self._index_data,
                            timeout="10m",
         )
 
@@ -397,7 +398,7 @@ class esQuery():
         params = SearchParams(**kwargs)
 
         res = self.handler.search(index=self._index_data,
-                                  doc_type=self._docname_data,
+                                  # doc_type=self._docname_data,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -427,10 +428,10 @@ class esQuery():
             evidenceid = [evidenceid]
 
         res = self.handler.search(index=self._index_data,
-                                  doc_type=self._docname_data,
+                                  # doc_type=self._docname_data,
                                   body={'filter': {
                                       "ids": {
-                                          "type": self._docname_data,
+                                          # "type": self._docname_data,
                                           "values": evidenceid
                                       }
                                   }
@@ -483,7 +484,7 @@ class esQuery():
             source_filter["include"]= params.fields
         if params.groupby:
             res = self.handler.search(index=self._index_data,
-                                  doc_type=self._docname_data,
+                                  # doc_type=self._docname_data,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -515,7 +516,7 @@ class esQuery():
             )
         else:
             res = self.handler.search(index=self._index_data,
-                                      doc_type=self._docname_data,
+                                      # doc_type=self._docname_data,
                                       body={
                                           "query": {
                                               "filtered": {
@@ -569,7 +570,7 @@ class esQuery():
             source_filter["include"]= params.fields
 
         res = self.handler.search(index=self._index_data,
-                                  doc_type=self._docname_data,
+                                  # doc_type='evidencestring-phenodigm',
                                   body={
                                       "query": {
                                           "filtered": {
@@ -582,28 +583,29 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
-                                      "aggs": aggs
+                                       "aggs": aggs
 
                                       }
                                   )
+        # print res
+        if res['hits']['total']:
+            # data = None
+            # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
+            # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
+            # return PaginatedResult(res,params, data)
+            '''build data structure to return'''
+            if objects:
+                if params.datastructure == OutputDataStructureOptions.FLAT:
+                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filter)
+            elif genes:
+                if params.datastructure == OutputDataStructureOptions.FLAT:
+                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filter)
+                elif params.datastructure == OutputDataStructureOptions.TREE:
+                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filter)
 
-        # data = None
-        # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
-        # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
-        # return PaginatedResult(res,params, data)
-        '''build data structure to return'''
-        if objects:
-            if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filter)
-        elif genes:
-            if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filter)
-            elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filter)
 
 
-
-        return CountedResult(res, params, data, total = res['hits']['total'])#res['aggregations'], res['hits']['hits']
+            return CountedResult(res, params, data, total = res['hits']['total'])#res['aggregations'], res['hits']['hits']
 
     def _get_gene_filter(self, gene):
         return [
@@ -910,9 +912,9 @@ class esQuery():
                        }
                    },
                     "aggs":{
-                          "datasources": {
+                          "datatypes": {
                              "terms": {
-                                 "field" : "evidence.provenance_type.database.id",
+                                 "field" : "_private.datatype",
                                  'size': 10000,
                                },
                              "aggs":{
@@ -968,9 +970,9 @@ class esQuery():
                        }
                    },
                    "aggs":{
-                          "datasources": {
+                          "datatypes": {
                              "terms": {
-                                 "field" : "evidence.provenance_type.database.id",
+                                 "field" : "_private.datatype",
                                  'size': 10000,
                                },
                              "aggs":{
@@ -985,14 +987,21 @@ class esQuery():
                           "association_score": {
                                      "sum": {
                                          "script" : self._get_script_association_score_weighted()['script'],
-                                     },
+                                     }
+                          },
+                          # "association_score": {#TODO: could use the scripted metric, change code below
+                          #           "scripted_metric": {
+                          #               "init_script" : "_agg['transactions'] = []",
+                          #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
+                          #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
+                          #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
+                          #           }
+                          #       }
+                          #     },
+                          },
 
-                               }
-
-                      }
-
-                 }
-              }
+                   }
+               }
 
     def _get_script_association_score_weighted(self):
         return {"script_id":"calculate_association_score_weighted",
@@ -1003,36 +1012,39 @@ if (db == 'expression_atlas') {
 } else if (db == 'uniprot'){
   return 1.0;
 } else if (db == 'reactome'){
-  return 0.3;
+  return 0.2;
 } else if (db == 'eva'){
-  return 0.8;
+  return 0.5;
 } else if (db == 'phenodigm'){
-  return 0.3;
+  return 0.1;
 } else if (db == 'gwas'){
-  return 0.8;
+  return 0.5;
 } else if (db == 'cancer_gene_census'){
-  return 0.7;
+  return 0.5;
 }  else if (db == 'chembl'){
   return 1;
 } else {
-  return 0.5;
+  return 0.1;
 }
 """}
 
     def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None):
-        def transform_datasource_point(datasource_point):
-            return dict(evidence_count = datasource_point['doc_count'],
-                        datasource = datasource_point['key'],
-                        association_score = datasource_point['association_score']['value'],
+        def transform_datasource_point(datatype_point):
+            if datatype_point['association_score']['value'] >1:
+                datatype_point['association_score']['value'] =1
+            return dict(evidence_count = datatype_point['doc_count'],
+                        datatype = datatype_point['key'],
+                        association_score = datatype_point['association_score']['value'],
                         )
 
         def transform_data_point(data_point):
-            datasources =map( transform_datasource_point, data_point["datasources"]["buckets"])
+            datatypes =map( transform_datasource_point, data_point["datatypes"]["buckets"])
 
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
-                        association_score = data_point['association_score']['value'],
-                        datasources = datasources,
+                        # association_score = data_point['association_score']['value'],
+                        association_score = sum([i['association_score'] for i in datatypes]),
+                        datatypes = datatypes,
                         )
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
@@ -1046,7 +1058,6 @@ if (db == 'expression_atlas') {
         def transform_data_to_tree(data, efo_parents, efo_labels):
             data = dict([(i["efo_code"],i) for i in data])
             efo_tree_relations = sorted(efo_parents.items(),key=lambda items: len(items[1]))
-            pprint.pprint(efo_tree_relations)
             root=AssociationTreeNode()
             for code, parents in efo_tree_relations:
                 if not parents:
@@ -1083,19 +1094,22 @@ if (db == 'expression_atlas') {
 
 
 
-        def transform_datasource_point(datasource_point):
-            return dict(evidence_count = datasource_point['doc_count'],
-                        datasource = datasource_point['key'],
-                        association_score = datasource_point['association_score']['value'],
+        def transform_datasource_point(datatype_point):
+            if datatype_point['association_score']['value'] >1:
+                datatype_point['association_score']['value'] =1
+            return dict(evidence_count = datatype_point['doc_count'],
+                        datatype = datatype_point['key'],
+                        association_score = datatype_point['association_score']['value'],
                         )
 
         def transform_data_point(data_point):
-            datasources =map( transform_datasource_point, data_point["datasources"]["buckets"])
+            datatypes =map( transform_datasource_point, data_point["datatypes"]["buckets"])
             return dict(evidence_count = data_point['doc_count'],
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
-                        association_score = data_point['association_score']['value'],
-                        datasources = datasources,
+                        # association_score = data_point['association_score']['value'],
+                        association_score = sum([i['association_score'] for i in datatypes]),
+                        datatypes = datatypes,
                             )
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
