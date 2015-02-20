@@ -78,6 +78,14 @@ class Association(restful.Resource):
               "dataType": "string",
               "paramType": "query"
             },
+            {
+              "name": "datastructure",
+              "description": "Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene). Can be 'flat' or 'tree'",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "string",
+              "paramType": "query"
+            },
 
 
 
@@ -94,12 +102,13 @@ class Association(restful.Resource):
         parameters=_swagger_parameters,
         )
     def get(self):
-        parser = boilerplate.get_parser()
+        parser = reqparse.RequestParser()
         parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('filter', type=float, required=False, help="List of efo code in biological_object")
+        parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
 
 
         args = parser.parse_args()

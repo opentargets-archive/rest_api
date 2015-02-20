@@ -555,12 +555,11 @@ class esQuery():
         aggs = None
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator))
-            params.datastructure = OutputDataStructureOptions.FLAT
+            params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg()
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                params.datastructure = OutputDataStructureOptions.TREE
                 aggs = self._get_gene_associations_agg()
 
 
@@ -1028,7 +1027,7 @@ if (db == 'expression_atlas') {
 }
 """}
 
-    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None):
+    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None):
         def transform_datasource_point(datatype_point):
             if datatype_point['association_score']['value'] >1:
                 datatype_point['association_score']['value'] =1
@@ -1045,50 +1044,57 @@ if (db == 'expression_atlas') {
                         # association_score = data_point['association_score']['value'],
                         association_score = sum([i['association_score'] for i in datatypes]),
                         datatypes = datatypes,
+                        label = efo_labels[data_point['key'] or data_point['key']]
                         )
+
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
+        if efo_labels is  None:
+            efo_parents, efo_labels = self._get_efo_data_for_associations([i["key"] for i in data])
+            print efo_labels
         new_data = map(transform_data_point, data)
+
+
         return new_data
 
     def _return_association_data_structures_for_genes_as_tree(self, res, agg_key, filter_value = None):
 
 
-        def transform_data_to_tree(data, efo_parents, efo_labels):
+        def transform_data_to_tree(data, efo_parents):
             data = dict([(i["efo_code"],i) for i in data])
             efo_tree_relations = sorted(efo_parents.items(),key=lambda items: len(items[1]))
             root=AssociationTreeNode()
             for code, parents in efo_tree_relations:
                 if not parents:
-                    root.add_child(AssociationTreeNode(code,label=efo_labels[code], **data[code]))
+                    root.add_child(AssociationTreeNode(code, **data[code]))
                 else:
                     node = root.get_node_at_path(parents)
-                    node.add_child(AssociationTreeNode(code,label=efo_labels[code],**data[code]))
+                    node.add_child(AssociationTreeNode(code,**data[code]))
 
             return root.to_dict_tree_with_children_as_array()
 
-        def get_efo_data(efo_keys):
-            efo_parents = {}
-            efo_labels = {}
-            data = self.get_efo_info_from_code(efo_keys)
-            for efo in data:
-                code = efo['code'].split('/')[-1]
-                parents = efo['path_codes'][:-1]
-                efo_parents[code]=parents
-                efo_labels[code]=efo['label']
-
-            return efo_parents, efo_labels
 
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         data = dict([(i["key"],i) for i in data])
-        efo_parents, efo_labels = get_efo_data(data.keys())
-        new_data = self._return_association_data_structures_for_genes(res,agg_key)
-        tree_data = transform_data_to_tree(new_data,efo_parents, efo_labels) or new_data
+        efo_parents, efo_labels = self._get_efo_data_for_associations(data.keys())
+        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels)
+        tree_data = transform_data_to_tree(new_data,efo_parents) or new_data
         return tree_data
 
+    def  _get_efo_data_for_associations(self,efo_keys):
+        efo_parents = {}
+        efo_labels = defaultdict(str)
+        data = self.get_efo_info_from_code(efo_keys)
+        for efo in data:
+            code = efo['code'].split('/')[-1]
+            parents = efo['path_codes'][:-1]
+            efo_parents[code]=parents
+            efo_labels[code]=efo['label']
+
+        return efo_parents, efo_labels
 
     def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None):
 
@@ -1154,7 +1160,7 @@ class SearchParams():
 
         self.format = kwargs.get('format', 'json') or 'json'
 
-        self.datastructure = kwargs.get('datastructure', 'full') or 'full'
+        self.datastructure = kwargs.get('datastructure', OutputDataStructureOptions.FULL) or OutputDataStructureOptions.FULL
 
         self.fields = kwargs.get('fields')
 
