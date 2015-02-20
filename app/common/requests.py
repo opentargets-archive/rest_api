@@ -50,6 +50,7 @@ class CustomDataStructure(OutputDataStructure):
 
 
 class OutputDataStructureOptions():
+    DEFAULT = 'default'
     FULL = 'full'
     SIMPLE = 'simple'
     COUNT = 'count'

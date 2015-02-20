@@ -75,6 +75,8 @@ class esQuery():
 
     def get_evidences_for_gene(self, gene, **kwargs):
         params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FULL
         res = self.handler.search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body={
@@ -348,6 +350,8 @@ class esQuery():
 
     def get_gene_info(self,gene_ids, **kwargs):
         params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FULL
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"]= params.fields
@@ -396,6 +400,8 @@ class esQuery():
             efocode = 'efo:' + efocode
 
         params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FULL
 
         res = self.handler.search(index=self._index_data,
                                   # doc_type=self._docname_data,
@@ -426,6 +432,10 @@ class esQuery():
 
         if isinstance(evidenceid, str):
             evidenceid = [evidenceid]
+
+        params = params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FULL
 
         res = self.handler.search(index=self._index_data,
                                   # doc_type=self._docname_data,
@@ -464,6 +474,8 @@ class esQuery():
                       evidence_type_operator='OR',
                       **kwargs):
         params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FULL
         '''convert boolean to elasticsearch syntax'''
         gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
@@ -534,10 +546,8 @@ class esQuery():
                                       }
             )
 
-        # data = None
-        # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
-        # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
-        # return PaginatedResult(res,params, data)
+
+
         return PaginatedResult(res, params)
 
     def get_associations(self,
@@ -547,6 +557,8 @@ class esQuery():
                       object_operator='OR',
                       **kwargs):
         params = SearchParams(**kwargs)
+        if params.datastructure == OutputDataStructureOptions.DEFAULT:
+            params.datastructure = OutputDataStructureOptions.FLAT
         '''convert boolean to elasticsearch syntax'''
         gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
@@ -588,10 +600,6 @@ class esQuery():
                                   )
         # print res
         if res['hits']['total']:
-            # data = None
-            # if params.datastructure in [OutputDataStructureOptions.FULL, OutputDataStructureOptions.SIMPLE] :
-            # data = self._inject_view_specific_data([hit['_source'] for hit in res['hits']['hits']], params)
-            # return PaginatedResult(res,params, data)
             '''build data structure to return'''
             if objects:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
@@ -1160,7 +1168,7 @@ class SearchParams():
 
         self.format = kwargs.get('format', 'json') or 'json'
 
-        self.datastructure = kwargs.get('datastructure', OutputDataStructureOptions.FULL) or OutputDataStructureOptions.FULL
+        self.datastructure = kwargs.get('datastructure', OutputDataStructureOptions.DEFAULT) or OutputDataStructureOptions.DEFAULT
 
         self.fields = kwargs.get('fields')
 

@@ -181,7 +181,6 @@ class Association(restful.Resource):
                      params ={}):
 
         es = current_app.extensions['esquery']
-
         res = es.get_associations(genes = genes,
                                  objects = objects,
                                  # gene_operator = gene_operator,
