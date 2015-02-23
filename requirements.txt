@@ -1,0 +1,16 @@
+aniso8601==0.83
+backports.ssl-match-hostname==3.4.0.2
+biopython==1.65
+certifi==14.05.14
+dicttoxml==1.5.6
+Flask-RESTful==0.2.12
+flask-restful-swagger==0.14
+Flask-Restless==0.14.2
+Flask-Script==2.0.5
+Flask-SQLAlchemy==2.0
+gevent==1.0.1
+greenlet==0.4.5
+requests==2.4.3
+SQLAlchemy==0.9.8
+tornado==4.0.2
+uWSGI==2.0.8
