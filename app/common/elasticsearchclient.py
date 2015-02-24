@@ -168,16 +168,36 @@ class esQuery():
                                         'size': params.size,
                                         'from': params.start_from,
                                         '_source': OutputDataStructureOptions.getSource(
-                                            OutputDataStructureOptions.GENE_AND_DISEASE)
-                                  }
-        )
+                                            OutputDataStructureOptions.GENE_AND_DISEASE),
+                                        "min_score": 0.,
+                                        "highlight": {
+                                            "fields": {
+                                                "label": {},
+                                                "synonyms": {},
+                                                "biotype": {},
+                                                "id": {},
+                                                "approved_symbol": {},
+                                                "approved_name": {},
+                                                "gene_family_description": {},
+                                                "uniprot_accessions": {},
+                                                "hgnc_id": {},
+                                                "enselbl_gene_id": {},
+                                                }
+                                             }
+                                        },
+
+                                )
         current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
+            highlight=''
+            if 'highlight' in hit:
+                highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
                              data=hit['_source'],
                              id=hit['_id'],
-                             score=hit['_score'])
+                             score=hit['_score'],
+                             highlight=highlight)
             if hit['_type'] == self._docname_genename:
                 datapoint['title'] = hit['_source']['approved_symbol']
                 datapoint['description'] = hit['_source']['approved_name'].split('[')[0]
@@ -212,9 +232,13 @@ class esQuery():
         '''
 
         def format_datapoint(hit):
+            highlight = ''
+            if 'highlight' in hit:
+                highlight=hit['highlight']
             datapoint = dict(type=hit['_type'],
                              id=hit['_id'],
-                             score=hit['_score'], )
+                             score=hit['_score'],
+                             highlight = highlight)
             datapoint.update(hit['_source'])
             if hit['_type'] == self._docname_genename:
                 returned_ids['genes'].append(hit['_id'])
@@ -239,7 +263,22 @@ class esQuery():
                                   body={'query': self._get_free_text_query(searchphrase),
                                         'size': 30,
                                         '_source': OutputDataStructureOptions.getSource(
-                                            OutputDataStructureOptions.GENE_AND_DISEASE)
+                                            OutputDataStructureOptions.GENE_AND_DISEASE),
+                                        "min_score": 0.,
+                                         "highlight": {
+                                            "fields": {
+                                                "label": {},
+                                                "synonyms": {},
+                                                "biotype": {},
+                                                "id": {},
+                                                "approved_symbol": {},
+                                                "approved_name": {},
+                                                "gene_family_description": {},
+                                                "uniprot_accessions": {},
+                                                "hgnc_id": {},
+                                                "enselbl_gene_id": {},
+                                            }
+                                         }
                                   }
         )
         current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
@@ -251,8 +290,6 @@ class esQuery():
 
             ''' store the other results in the corresponding object'''
             for hit in res['hits']['hits'][1:]:
-                data['besthit']
-
                 if hit['_type'] == self._docname_genename:
                     if len(data['genes']) < params.size:
                         data['genes'].append(format_datapoint(hit))
@@ -267,7 +304,22 @@ class esQuery():
                                                 body={'query': self._get_free_text_gene_query(searchphrase),
                                                       'size': params.size + 1,
                                                       '_source': OutputDataStructureOptions.getSource(
-                                                          OutputDataStructureOptions.GENE)
+                                                          OutputDataStructureOptions.GENE),
+                                                      "min_score": 0.,
+                                                      "highlight": {
+                                                        "fields": {
+                                                            "label": {},
+                                                            "synonyms": {},
+                                                            "biotype": {},
+                                                            "id": {},
+                                                            "approved_symbol": {},
+                                                            "approved_name": {},
+                                                            "gene_family_description": {},
+                                                            "uniprot_accessions": {},
+                                                            "hgnc_id": {},
+                                                            "enselbl_gene_id": {},
+                                                        }
+                                                     }
                                                 }
                 )
                 current_app.logger.debug(
@@ -283,7 +335,22 @@ class esQuery():
                                               body={'query': self._get_free_text_efo_query(searchphrase),
                                                     'size': params.size + 1,
                                                     '_source': OutputDataStructureOptions.getSource(
-                                                        OutputDataStructureOptions.DISEASE)
+                                                        OutputDataStructureOptions.DISEASE),
+                                                    "min_score": 0.,
+                                                      "highlight": {
+                                                        "fields": {
+                                                            "label": {},
+                                                            "synonyms": {},
+                                                            "biotype": {},
+                                                            "id": {},
+                                                            "approved_symbol": {},
+                                                            "approved_name": {},
+                                                            "gene_family_description": {},
+                                                            "uniprot_accessions": {},
+                                                            "hgnc_id": {},
+                                                            "enselbl_gene_id": {},
+                                                        }
+                                                     }
                                               }
                 )
                 current_app.logger.debug("Got %d additional EFO Hits in %ims" % (res_efo['hits']['total'], res['took']))
@@ -720,10 +787,20 @@ class esQuery():
                 {'match': {
                     "label": {
                         "query": searchphrase,
-                        "boost": 2.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                        "boost": 10.0,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
+
+                    },
+                }},
+                {'prefix': {
+                    "label": {
+                        "value": searchphrase,
+                        "boost": 5.0,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
 
                     },
                 }},
@@ -731,25 +808,15 @@ class esQuery():
                     "synonyms": {
                         "query": searchphrase,
                         "boost": 1.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
                     },
                 }},
                 {'match': {
                     "biotype": {
                         "query": "unprocessed_pseudogene",
-                        "boost": -10.0,
-                    },
-                }},
-
-                {'match': {
-                    "label": {
-                        "query": searchphrase,
-                        "boost": 1.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                        "boost": -100.0,
                     },
                 }},
                 {'match': {
@@ -761,43 +828,50 @@ class esQuery():
                 {'match': {
                     "approved_symbol": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 100.0,
                     },
                 }},
                 {'prefix': {
                     "approved_symbol": {
                         "value": searchphrase,
-                        "boost": 3.0,
-                    },
+                        "boost": 50.0,
+                        }
+
                 }},
-                {'match': {
-                    "approved_name": {
-                        "query": searchphrase,
-                        "boost": 5.0,
-                        "prefix_length": 0,
-                        "max_expansions": 5,
-                        "fuzziness": "AUTO"
-                    },
-                }},
-                {'match': {
-                    "gene_family_description": {
-                        "query": searchphrase,
-                        "boost": 1.0,
-                        "prefix_length": 0,
-                        "max_expansions": 5,
-                        "fuzziness": "AUTO"
-                    },
-                }},
+                # {'match': {
+                #     "approved_name": {
+                #         "query": searchphrase,
+                #         "boost": 5.0,
+                #         "prefix_length": 0,
+                #         "max_expansions": 1,
+                #         "fuzziness": "AUTO"
+                #     },
+                # }},
+                # {'match': {
+                #     "gene_family_description": {
+                #         "query": searchphrase,
+                #         "boost": 1.0,
+                #         "prefix_length": 0,
+                #         "max_expansions": 3,
+                #         "fuzziness": "AUTO"
+                #     },
+                # }},
                 {'match': {
                     "uniprot_accessions": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 5.0,
                     },
                 }},
                 {'match': {
                     "hgnc_id": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 5.0,
+                    },
+                }},
+                {'match': {
+                    "enselbl_gene_id": {
+                        "query": searchphrase,
+                        "boost": 5.0,
                     },
                 }}
             ]
