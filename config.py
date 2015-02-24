@@ -8,7 +8,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'efo-data'
@@ -33,19 +32,21 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+        print cls.ELASTICSEARCH_URL
 
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
+    ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+    ELASTICSEARCH_URL = 'http://192.168.1.156:9200/'
 
     @classmethod
     def init_app(cls, app):
