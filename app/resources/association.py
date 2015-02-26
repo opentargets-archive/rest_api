@@ -93,7 +93,7 @@ class Association(restful.Resource):
 
     # _swagger_parameters.extend(Paginable._swagger_parameters)
     @swagger.operation(
-        nickname='assocaition',
+        nickname='association',
         produces = ["application/json", "text/xml", "text/csv"],
 
         responseClass=PaginatedResponse.__name__,
