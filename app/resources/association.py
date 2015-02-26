@@ -93,8 +93,6 @@ class Association(restful.Resource):
 
     # _swagger_parameters.extend(Paginable._swagger_parameters)
     @swagger.operation(
-        summary='''get a list of association scores for a gene or an efo.''',
-        notes= 'test with ENSG00000136997',
         nickname='assocaition',
         produces = ["application/json", "text/xml", "text/csv"],
 
@@ -102,6 +100,11 @@ class Association(restful.Resource):
         parameters=_swagger_parameters,
         )
     def get(self):
+        """
+        Get association scores
+        Get association scores for a gene, an efo or a combination of them
+        Test with ENSG00000136997
+        """
         parser = reqparse.RequestParser()
         parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")

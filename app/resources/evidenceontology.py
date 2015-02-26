@@ -8,9 +8,11 @@ from flask_restful_swagger import swagger
 class EcoLabelFromCode(restful.Resource):
 
 
-    @swagger.operation(
-        notes='''test with  ECO:0000317 ''',)
+    @swagger.operation()
     def get(self, code ):
+        '''
+        get ECO information from a code
+        '''
         es = current_app.extensions['esquery']
         res = es.get_label_for_eco_code(code)
         if not res:

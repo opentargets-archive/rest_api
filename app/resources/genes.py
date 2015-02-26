@@ -27,9 +27,11 @@ class Genes(restful.Resource, Paginable):
 
 class GeneInfo(restful.Resource):
 
-    @swagger.operation(
-        notes='''get an Gene generic information from an ensembl gene id''',)
+    @swagger.operation()
     def get(self, gene_id ):
+        '''
+        Get gene information
+        Get a gene generic information from an ensembl gene id'''
         es = current_app.extensions['esquery']
         res = es.get_gene_info([gene_id])
         if res:

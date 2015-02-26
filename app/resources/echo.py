@@ -13,28 +13,28 @@ class Echo(restful.Resource):
     parser.add_argument('echo', type=str, required=True, help="tell me something")
     parser.add_argument('random', type=bool, required=False, help="Random delay")
 
-    @swagger.operation(
-        summary='''debug utility''',
-        nickname='echo',
-        parameters=[
-            {
-              "name": "echo",
-              "description": "I will echo this",
-              "required": True,
-              "allowMultiple": False,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "random",
-              "description": "insert a random delay in the response",
-              "required": False,
-              "allowMultiple": False,
-              "dataType": "integer",
-              "paramType": "query"
-            },
-
-          ],)
+    # @swagger.operation(
+    #     summary='''debug utility''',
+    #     nickname='echo',
+    #     parameters=[
+    #         {
+    #           "name": "echo",
+    #           "description": "I will echo this",
+    #           "required": True,
+    #           "allowMultiple": False,
+    #           "dataType": "string",
+    #           "paramType": "query"
+    #         },
+    #         {
+    #           "name": "random",
+    #           "description": "insert a random delay in the response",
+    #           "required": False,
+    #           "allowMultiple": False,
+    #           "dataType": "integer",
+    #           "paramType": "query"
+    #         },
+    #
+    #       ],)
     def get(self, ):
         args = self.parser.parse_args()
         value = args['echo']

@@ -38,13 +38,16 @@ class FreeTextSearch(restful.Resource, Paginable):
 
 
     @swagger.operation(
-        summary='''search with a parameter q = your query''',
         nickname='search',
         responseClass=PaginatedResponse.__name__,
 
         parameters=_swagger_params,
         )
     def get(self ):
+        """
+        Search for gene and disease
+        Search with a parameter q = 'your query'
+        """
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         filter = kwargs.pop('filter') or 'all'
@@ -81,13 +84,16 @@ class AutoComplete(restful.Resource, Paginable):
 
 
     @swagger.operation(
-        summary='''search with a parameter q = your query''',
-        nickname='search',
+        nickname='autocomplete',
         responseClass=PaginatedResponse.__name__,
         parameters=_swagger_params,
         )
 
     def get(self ):
+        """
+        Suggest best terms for gene and disease
+        Search with a parameter q = 'your query'
+        """
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         size = kwargs.pop('size') or 5

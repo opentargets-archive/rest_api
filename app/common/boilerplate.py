@@ -11,7 +11,7 @@ def get_parser():
     parser.add_argument('format', type=str, required=False, help="return format, can be: 'json','xml','table'", choices=['json','xml','table'])
     parser.add_argument('datastructure', type=str, required=False, help="Type of data structure to return. Can be: 'full','simple','ids', 'count' ",choices=['full','simple','ids', 'count'])
     parser.add_argument('fields', type=str, action='append', required=False, help="fields you want to retrieve")
-    parser.add_argument('groupby', type=str, action='append', required=False, help="group returned elements by the indicated value")
+    # parser.add_argument('groupby', type=str, action='append', required=False, help="group returned elements by the indicated value")
 
     return parser
 
@@ -38,30 +38,6 @@ def get_swagger_parameters():
           "description": "Format to get data back. Can be 'json', 'xml' or 'table' ",
           "required": False,
           "allowMultiple": False,
-          "dataType": "string",
-          "paramType": "query"
-        },
-        {
-          "name": "datastructure",
-          "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
-          "required": False,
-          "allowMultiple": False,
-          "dataType": "string",
-          "paramType": "query"
-        },
-        {
-          "name": "fields",
-          "description": "fields you want to retrieve. this will get priority over the datastructure requested",
-          "required": False,
-          "allowMultiple": True,
-          "dataType": "string",
-          "paramType": "query"
-        },
-        {
-          "name": "groupby",
-          "description": "group returned elements by the indicated value",
-          "required": False,
-          "allowMultiple": True,
           "dataType": "string",
           "paramType": "query"
         },

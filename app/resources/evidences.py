@@ -26,7 +26,7 @@ class EvidenceQuery:
       'format': fields.String(attribute='format',),
       'datastructure': fields.String(attribute='datastructure', ),
       'fields': fields.List(fields.String(attribute='fields to return', )),
-      'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
+      # 'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
 
   }
 
@@ -45,13 +45,12 @@ class Evidence(restful.Resource):
     parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to request")
 
     @swagger.operation(
-        summary='get an evidence from its id, can be used to request in batch if multiple ids are passed.',
         nickname='evidence',
         produces = ["application/json", "text/xml", "text/csv"],
         parameters=[
             {
               "name": "id",
-              "description": "an evidene id you want to retrieve",
+              "description": "an evidence id you want to retrieve",
               "required": True,
               "allowMultiple": True,
               "dataType": "string",
@@ -60,6 +59,10 @@ class Evidence(restful.Resource):
           ],
         )
     def get(self ):
+        """
+        Get an evidence from its id
+        Can be used to request in batch if multiple ids are passed
+        """
         args = self.parser.parse_args()
         evidenceids = args['id']
         es = current_app.extensions['esquery']
@@ -129,13 +132,35 @@ class Evidences(restful.Resource, Paginable):
               "dataType": "string",
               "paramType": "query"
             },
+                    {
+              "name": "datastructure",
+              "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "fields",
+              "description": "fields you want to retrieve. this will get priority over the datastructure requested",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            # {
+            #   "name": "groupby",
+            #   "description": "group returned elements by the indicated value",
+            #   "required": False,
+            #   "allowMultiple": True,
+            #   "dataType": "string",
+            #   "paramType": "query"
+            # },
 
           ]
 
     _swagger_parameters.extend(Paginable._swagger_parameters)
     @swagger.operation(
-        summary='''get a list of evidences filtered by gene, efo and/or eco codes.''',
-        notes= 'test with ENSG00000136997',
         nickname='evidences',
         produces = ["application/json", "text/xml", "text/csv"],
 
@@ -143,6 +168,10 @@ class Evidences(restful.Resource, Paginable):
         parameters=_swagger_parameters,
         )
     def get(self):
+        """
+        Get a list of evidences filtered by gene, efo and/or eco codes
+        test with: ENSG00000136997,
+        """
         parser = boilerplate.get_parser()
         parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -168,8 +197,6 @@ class Evidences(restful.Resource, Paginable):
 
 
     @swagger.operation(
-        summary='''get a list of evidences filtered by gene, efo and/or eco codes.''',
-        notes='test with: {"gene":["ENSG00000136997"]}',
         nickname='evidences',
         resourcePath ='/evidences',
         produces = ["application/json", "text/xml", "text/csv"],
@@ -188,6 +215,10 @@ class Evidences(restful.Resource, Paginable):
         )
    # @marshal_with(EvidenceQuery.resource_fields)
     def post(self ):
+        """
+        Get a list of evidences filtered by gene, efo and/or eco codes
+        test with: {"gene":["ENSG00000136997"]},
+        """
         # parser = reqparse.RequestParser()
         # parser.add_argument('gene', type=fields.List(fields.String),location='form', required=False, help="List of genes in biological_subject")
         #
