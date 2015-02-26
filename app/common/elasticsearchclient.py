@@ -1097,7 +1097,7 @@ if (db == 'expression_atlas') {
 } else if (db == 'eva'){
   return 0.5;
 } else if (db == 'phenodigm'){
-  return 0.1;
+  return 0.033333333;
 } else if (db == 'gwas'){
   return 0.5;
 } else if (db == 'cancer_gene_census'){
