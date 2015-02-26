@@ -1109,7 +1109,7 @@ if (db == 'expression_atlas') {
 }
 """}
 
-    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None):
+    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None, efo_tas = None):
         def transform_datasource_point(datatype_point):
             if datatype_point['association_score']['value'] >1:
                 datatype_point['association_score']['value'] =1
@@ -1126,15 +1126,15 @@ if (db == 'expression_atlas') {
                         # association_score = data_point['association_score']['value'],
                         association_score = sum([i['association_score'] for i in datatypes]),
                         datatypes = datatypes,
-                        label = efo_labels[data_point['key'] or data_point['key']]
+                        label = efo_labels[data_point['key'] or data_point['key']],
+                        therapeutic_area = efo_labels[efo_tas[data_point['key']]],
                         )
 
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         if efo_labels is  None:
-            efo_parents, efo_labels = self._get_efo_data_for_associations([i["key"] for i in data])
-            print efo_labels
+            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
         new_data = map(transform_data_point, data)
 
 
@@ -1161,22 +1161,27 @@ if (db == 'expression_atlas') {
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         data = dict([(i["key"],i) for i in data])
-        efo_parents, efo_labels = self._get_efo_data_for_associations(data.keys())
-        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels)
+        efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
+        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
         tree_data = transform_data_to_tree(new_data,efo_parents) or new_data
         return tree_data
 
     def  _get_efo_data_for_associations(self,efo_keys):
         efo_parents = {}
         efo_labels = defaultdict(str)
+        efo_therapeutic_area = defaultdict(str)
         data = self.get_efo_info_from_code(efo_keys)
         for efo in data:
             code = efo['code'].split('/')[-1]
             parents = efo['path_codes'][:-1]
             efo_parents[code]=parents
             efo_labels[code]=efo['label']
+            ta = ''
+            if len(parents)>1:
+                ta = parents[1]
+            efo_therapeutic_area[code]= ta
 
-        return efo_parents, efo_labels
+        return efo_parents, efo_labels, efo_therapeutic_area
 
     def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None):
 
