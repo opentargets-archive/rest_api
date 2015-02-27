@@ -868,10 +868,10 @@ class esQuery():
     def _get_free_text_query(self, searchphrase):
         return {"bool": {
             "should": [
-                {'match': {
+                {'match_phrase': {
                     "label": {
                         "query": searchphrase,
-                        "boost": 30.0,
+                        "boost": 50.0,
                         # "prefix_length": 1,
                         # "max_expansions": 100,
                         # "fuzziness": "AUTO"
@@ -888,15 +888,15 @@ class esQuery():
 
                     },
                 }},
-                {'match_phrase': {
-                    "efo_synonyms": {
-                        "query": searchphrase,
-                        "boost": 1.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
+                # {'match_phrase': {
+                #     "efo_synonyms": {
+                #         "query": searchphrase,
+                #         "boost": 1.0,
+                #         # "prefix_length": 1,
+                #         # "max_expansions": 100,
+                #         # "fuzziness": "AUTO"
+                #     },
+                # }},
                 {'prefix': {
                     "efo_synonyms": {
                         "value": searchphrase,
