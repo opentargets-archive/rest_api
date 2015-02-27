@@ -164,7 +164,30 @@ class esQuery():
         res = self.handler.search(index=[self._index_efo,
                                          self._index_genename],
                                   doc_type=doc_types,
-                                  body={'query': self._get_free_text_query(searchphrase),
+                                  body={'query':{
+                                           'filtered': {
+                                               'query': self._get_free_text_query(searchphrase),
+                                               'filter': {
+                                                   "bool": {
+                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
+                                                        # "should": [
+                                                        #   { "term": { "featured": true }},
+                                                        #   { "term": { "starred":  true }}
+                                                        # ],
+                                                        "must_not": [
+                                                            { "term": { "biotype": 'processed_pseudogene' }},
+                                                            { "term": { "biotype": 'antisense' }},
+                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                            { "term": { "biotype": 'lincRNA' }},
+                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                            { "term": { "biotype": 'sense_intronic' }},
+                                                            { "term": { "biotype": 'processed_transcript' }},
+                                                        ],
+                                                      },
+                                                   }
+                                               }
+                                           },
                                         'size': params.size,
                                         'from': params.start_from,
                                         '_source': OutputDataStructureOptions.getSource(
@@ -173,17 +196,29 @@ class esQuery():
                                         "highlight": {
                                             "fields": {
                                                 "label": {},
-                                                "synonyms": {},
+                                                "symbol_synonyms": {},
+                                                "efo_synonyms": {},
                                                 "biotype": {},
                                                 "id": {},
                                                 "approved_symbol": {},
                                                 "approved_name": {},
+                                                "name_synonyms": {},
                                                 "gene_family_description": {},
                                                 "uniprot_accessions": {},
                                                 "hgnc_id": {},
-                                                "enselbl_gene_id": {},
+                                                "ensembl_gene_id": {},
                                                 }
-                                             }
+#                                              },
+#                                         "script_fields" : {
+#                                             "gene_synonyms" : {
+#                                                 "script" : """
+# if (len(doc['ensembl_gene_id']) > 0){
+#     return doc['synonyms'].value
+#     }
+# return ""
+# """
+#                                                 }
+                                            },
                                         },
 
                                 )
@@ -260,7 +295,30 @@ class esQuery():
         res = self.handler.search(index=[self._index_efo,
                                          self._index_genename],
                                   doc_type=[self._docname_efo, self._docname_genename],
-                                  body={'query': self._get_free_text_query(searchphrase),
+                                  body={'query':{
+                                           'filtered': {
+                                               'query': self._get_free_text_query(searchphrase),
+                                               'filter': {
+                                                   "bool": {
+                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
+                                                        # "should": [
+                                                        #   { "term": { "featured": true }},
+                                                        #   { "term": { "starred":  true }}
+                                                        # ],
+                                                        "must_not": [
+                                                            { "term": { "biotype": 'processed_pseudogene' }},
+                                                            { "term": { "biotype": 'antisense' }},
+                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                            { "term": { "biotype": 'lincRNA' }},
+                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                            { "term": { "biotype": 'sense_intronic' }},
+                                                            { "term": { "biotype": 'processed_transcript' }},
+                                                        ],
+                                                      },
+                                                   }
+                                               }
+                                           },
                                         'size': 30,
                                         '_source': OutputDataStructureOptions.getSource(
                                             OutputDataStructureOptions.GENE_AND_DISEASE),
@@ -268,15 +326,18 @@ class esQuery():
                                          "highlight": {
                                             "fields": {
                                                 "label": {},
-                                                "synonyms": {},
+                                                "symbol_synonyms": {},
+                                                "efo_synonyms": {},
                                                 "biotype": {},
                                                 "id": {},
                                                 "approved_symbol": {},
                                                 "approved_name": {},
+                                                "name_synonyms": {},
                                                 "gene_family_description": {},
                                                 "uniprot_accessions": {},
                                                 "hgnc_id": {},
-                                                "enselbl_gene_id": {},
+                                                "ensembl_gene_id": {},
+
                                             }
                                          }
                                   }
@@ -301,19 +362,42 @@ class esQuery():
             if len(data['genes']) < params.size:
                 res_genes = self.handler.search(index=self._index_genename,
                                                 doc_type=self._docname_genename,
-                                                body={'query': self._get_free_text_gene_query(searchphrase),
+                                                body={'query':{
+                                                         'filtered': {
+                                                             'query': self._get_free_text_gene_query(searchphrase),
+                                                             'filter': {
+                                                                   "bool": {
+                                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
+                                                                        # "should": [
+                                                                        #   { "term": { "featured": true }},
+                                                                        #   { "term": { "starred":  true }}
+                                                                        # ],
+                                                                        "must_not": [
+                                                                            { "term": { "biotype": 'processed_pseudogene' }},
+                                                                            { "term": { "biotype": 'antisense' }},
+                                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                                            { "term": { "biotype": 'lincRNA' }},
+                                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                                            { "term": { "biotype": 'sense_intronic' }},
+                                                                            { "term": { "biotype": 'processed_transcript' }},
+                                                                        ],
+                                                                      },
+                                                                   }
+                                                             }
+                                                         },
                                                       'size': params.size + 1,
                                                       '_source': OutputDataStructureOptions.getSource(
                                                           OutputDataStructureOptions.GENE),
                                                       "min_score": 0.,
                                                       "highlight": {
                                                         "fields": {
-                                                            "label": {},
-                                                            "synonyms": {},
+                                                            "symbol_synonyms": {},
                                                             "biotype": {},
                                                             "id": {},
                                                             "approved_symbol": {},
                                                             "approved_name": {},
+                                                            "name_synonyms": {},
                                                             "gene_family_description": {},
                                                             "uniprot_accessions": {},
                                                             "hgnc_id": {},
@@ -340,7 +424,7 @@ class esQuery():
                                                       "highlight": {
                                                         "fields": {
                                                             "label": {},
-                                                            "synonyms": {},
+                                                            "efo_synonyms": {},
                                                             "biotype": {},
                                                             "id": {},
                                                             "approved_symbol": {},
@@ -787,7 +871,7 @@ class esQuery():
                 {'match': {
                     "label": {
                         "query": searchphrase,
-                        "boost": 10.0,
+                        "boost": 30.0,
                         # "prefix_length": 1,
                         # "max_expansions": 100,
                         # "fuzziness": "AUTO"
@@ -797,45 +881,53 @@ class esQuery():
                 {'prefix': {
                     "label": {
                         "value": searchphrase,
-                        "boost": 5.0,
+                        "boost": 100.0,
                         # "prefix_length": 1,
                         # "max_expansions": 100,
                         # "fuzziness": "AUTO"
 
                     },
                 }},
-                {'match': {
-                    "synonyms": {
+                {'match_phrase': {
+                    "efo_synonyms": {
                         "query": searchphrase,
-                        "boost": 25.0,
+                        "boost": 1.0,
                         # "prefix_length": 1,
                         # "max_expansions": 100,
                         # "fuzziness": "AUTO"
                     },
                 }},
                 {'prefix': {
-                    "synonyms": {
+                    "efo_synonyms": {
                         "value": searchphrase,
-                        "boost": 10.0,
+                        "boost": 5.0,
                         }
 
                 }},
                 {'match': {
-                    "biotype": {
-                        "query": "unprocessed_pseudogene",
-                        "boost": -100.0,
-                    },
+                    "symbol_synonyms": {
+                        "query": searchphrase,
+                        "boost": 20.0,
+                        }
+
+                }},
+                {'prefix': {
+                    "symbol_synonyms": {
+                        "value": searchphrase,
+                        "boost": 30.0,
+                        }
+
                 }},
                 {'match': {
                     "id": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 30.0,
                     },
                 }},
                 {'match': {
                     "approved_symbol": {
                         "query": searchphrase,
-                        "boost": 100.0,
+                        "boost": 50.0,
                     },
                 }},
                 {'prefix': {
@@ -848,7 +940,8 @@ class esQuery():
                 {'match': {
                     "approved_name": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 10.0,
+                        "operator" : "and",
                         # "prefix_length": 3,
                         # "max_expansions": 1,
                         # "fuzziness": "AUTO"
@@ -857,7 +950,8 @@ class esQuery():
                 {'match': {
                     "name_synonyms": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 10.0,
+                        "operator" : "and",
                         # "prefix_length": 3,
                         # "max_expansions": 1,
                         # "fuzziness": "AUTO"
@@ -887,7 +981,7 @@ class esQuery():
                     },
                 }},
                 {'match': {
-                    "enselbl_gene_id": {
+                    "ensembl_gene_id": {
                         "query": searchphrase,
                         "boost": 50.0,
                     },
@@ -900,58 +994,86 @@ class esQuery():
     def _get_free_text_gene_query(self, searchphrase):
         return {"bool": {
             "should": [
+               {'match': {
+                    "symbol_synonyms": {
+                        "query": searchphrase,
+                        "boost": 20.0,
+                        }
+
+                }},
+                {'prefix': {
+                    "symbol_synonyms": {
+                        "value": searchphrase,
+                        "boost": 30.0,
+                        }
+
+                }},
                 {'match': {
                     "id": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 30.0,
                     },
                 }},
                 {'match': {
                     "approved_symbol": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 50.0,
                     },
                 }},
                 {'prefix': {
                     "approved_symbol": {
                         "value": searchphrase,
-                        "boost": 5.0,
-                    },
+                        "boost": 50.0,
+                        }
+
                 }},
                 {'match': {
                     "approved_name": {
                         "query": searchphrase,
-                        "boost": 3.0,
-                        "prefix_length": 1,
-                        "max_expansions": 5,
-                        "fuzziness": "AUTO"
+                        "boost": 10.0,
+                        "operator" : "and",
+                        # "prefix_length": 3,
+                        # "max_expansions": 1,
+                        # "fuzziness": "AUTO"
                     },
                 }},
                 {'match': {
+                    "name_synonyms": {
+                        "query": searchphrase,
+                        "boost": 10.0,
+                        "operator" : "and",
+                        # "prefix_length": 3,
+                        # "max_expansions": 1,
+                        # "fuzziness": "AUTO"
+                    },
+                }},
+
+
+                {'match': {
                     "gene_family_description": {
                         "query": searchphrase,
-                        "boost": 1.0,
-                        "prefix_length": 0,
-                        "max_expansions": 5,
+                        "boost": 10.0,
+                        "prefix_length": 3,
+                        "max_expansions": 3,
                         "fuzziness": "AUTO"
                     },
                 }},
                 {'match': {
                     "uniprot_accessions": {
                         "query": searchphrase,
-                        "boost": 3.0,
-                    },
-                }},
-                {'match': {
-                    "biotype": {
-                        "query": "unprocessed_pseudogene",
-                        "boost": -10.0,
+                        "boost": 50.0,
                     },
                 }},
                 {'match': {
                     "hgnc_id": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 10.0,
+                    },
+                }},
+                {'match': {
+                    "ensembl_gene_id": {
+                        "query": searchphrase,
+                        "boost": 50.0,
                     },
                 }}
             ]
@@ -962,38 +1084,46 @@ class esQuery():
     def _get_free_text_efo_query(self, searchphrase):
         return {"bool": {
             "should": [
-                {'match': {
+                  {'match_phrase': {
                     "label": {
                         "query": searchphrase,
-                        "boost": 2.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                        "boost": 30.0,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
 
                     },
                 }},
-                {'match': {
-                    "synonyms": {
-                        "query": searchphrase,
-                        "boost": 1.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                {'prefix': {
+                    "label": {
+                        "value": searchphrase,
+                        "boost": 100.0,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
+
                     },
                 }},
-                {'match': {
-                    "label": {
+                {'match_phrase': {
+                    "efo_synonyms": {
                         "query": searchphrase,
-                        "boost": 1.0,
-                        "prefix_length": 1,
-                        "max_expansions": 100,
-                        "fuzziness": "AUTO"
+                        "boost": 10.0,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
                     },
+                }},
+                {'prefix': {
+                    "efo_synonyms": {
+                        "value": searchphrase,
+                        "boost": 10.0,
+                        }
+
                 }},
                 {'match': {
                     "id": {
                         "query": searchphrase,
-                        "boost": 3.0,
+                        "boost": 50.0,
                     },
                 }},
             ]
