@@ -807,11 +807,18 @@ class esQuery():
                 {'match': {
                     "synonyms": {
                         "query": searchphrase,
-                        "boost": 1.0,
+                        "boost": 25.0,
                         # "prefix_length": 1,
                         # "max_expansions": 100,
                         # "fuzziness": "AUTO"
                     },
+                }},
+                {'prefix': {
+                    "synonyms": {
+                        "value": searchphrase,
+                        "boost": 10.0,
+                        }
+
                 }},
                 {'match': {
                     "biotype": {
@@ -838,40 +845,51 @@ class esQuery():
                         }
 
                 }},
-                # {'match': {
-                #     "approved_name": {
-                #         "query": searchphrase,
-                #         "boost": 5.0,
-                #         "prefix_length": 0,
-                #         "max_expansions": 1,
-                #         "fuzziness": "AUTO"
-                #     },
-                # }},
-                # {'match': {
-                #     "gene_family_description": {
-                #         "query": searchphrase,
-                #         "boost": 1.0,
-                #         "prefix_length": 0,
-                #         "max_expansions": 3,
-                #         "fuzziness": "AUTO"
-                #     },
-                # }},
+                {'match': {
+                    "approved_name": {
+                        "query": searchphrase,
+                        "boost": 5.0,
+                        # "prefix_length": 3,
+                        # "max_expansions": 1,
+                        # "fuzziness": "AUTO"
+                    },
+                }},
+                {'match': {
+                    "name_synonyms": {
+                        "query": searchphrase,
+                        "boost": 5.0,
+                        # "prefix_length": 3,
+                        # "max_expansions": 1,
+                        # "fuzziness": "AUTO"
+                    },
+                }},
+
+
+                {'match': {
+                    "gene_family_description": {
+                        "query": searchphrase,
+                        "boost": 10.0,
+                        "prefix_length": 3,
+                        "max_expansions": 3,
+                        "fuzziness": "AUTO"
+                    },
+                }},
                 {'match': {
                     "uniprot_accessions": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 50.0,
                     },
                 }},
                 {'match': {
                     "hgnc_id": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 10.0,
                     },
                 }},
                 {'match': {
                     "enselbl_gene_id": {
                         "query": searchphrase,
-                        "boost": 5.0,
+                        "boost": 50.0,
                     },
                 }}
             ]
@@ -1097,7 +1115,7 @@ if (db == 'expression_atlas') {
 } else if (db == 'eva'){
   return 0.5;
 } else if (db == 'phenodigm'){
-  return 0.033333333;
+  return 0.0333;
 } else if (db == 'gwas'){
   return 0.5;
 } else if (db == 'cancer_gene_census'){
@@ -1115,7 +1133,7 @@ if (db == 'expression_atlas') {
                 datatype_point['association_score']['value'] =1
             return dict(evidence_count = datatype_point['doc_count'],
                         datatype = datatype_point['key'],
-                        association_score = datatype_point['association_score']['value'],
+                        association_score = round(datatype_point['association_score']['value'],2),
                         )
 
         def transform_data_point(data_point):
@@ -1124,7 +1142,7 @@ if (db == 'expression_atlas') {
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
                         # association_score = data_point['association_score']['value'],
-                        association_score = sum([i['association_score'] for i in datatypes]),
+                        association_score = round(sum([i['association_score'] for i in datatypes]), 2),
                         datatypes = datatypes,
                         label = efo_labels[data_point['key'] or data_point['key']],
                         therapeutic_area = efo_labels[efo_tas[data_point['key']]],
@@ -1192,7 +1210,7 @@ if (db == 'expression_atlas') {
                 datatype_point['association_score']['value'] =1
             return dict(evidence_count = datatype_point['doc_count'],
                         datatype = datatype_point['key'],
-                        association_score = datatype_point['association_score']['value'],
+                        association_score = round(datatype_point['association_score']['value'],2),
                         )
 
         def transform_data_point(data_point):
@@ -1201,7 +1219,7 @@ if (db == 'expression_atlas') {
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
                         # association_score = data_point['association_score']['value'],
-                        association_score = sum([i['association_score'] for i in datatypes]),
+                        association_score = round(sum([i['association_score'] for i in datatypes]),2),
                         datatypes = datatypes,
                             )
         data = res['aggregations'][agg_key]["buckets"]
