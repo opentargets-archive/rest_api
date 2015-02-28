@@ -168,24 +168,17 @@ class esQuery():
                                            'filtered': {
                                                'query': self._get_free_text_query(searchphrase),
                                                'filter': {
-                                                   "bool": {
-                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
-                                                        # "should": [
-                                                        #   { "term": { "featured": true }},
-                                                        #   { "term": { "starred":  true }}
-                                                        # ],
-                                                        "must_not": [
-                                                            { "term": { "biotype": 'processed_pseudogene' }},
-                                                            { "term": { "biotype": 'antisense' }},
-                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                            { "term": { "biotype": 'lincRNA' }},
-                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                            { "term": { "biotype": 'sense_intronic' }},
-                                                            { "term": { "biotype": 'processed_transcript' }},
-                                                        ],
-                                                      },
-                                                   }
+                                                   # "not":{ "term": { "biotype": 'processed_pseudogene' }},
+                                                   # "not":{ "term": { "biotype": 'antisense' }},
+                                                   # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                   # "not":{ "term": { "biotype": 'lincRNA' }},
+                                                   # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                   # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                   # "not":{ "term": { "biotype": 'sense_intronic' }},
+                                                   # "not":{ "term": { "biotype": 'processed_transcript' }},
+                                                   # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
+                                                   # "not":{ "term": { "biotype": 'miRNA' }},
+                                                  }
                                                }
                                            },
                                         'size': params.size,
@@ -299,23 +292,25 @@ class esQuery():
                                            'filtered': {
                                                'query': self._get_free_text_query(searchphrase),
                                                'filter': {
-                                                   "bool": {
-                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
-                                                        # "should": [
-                                                        #   { "term": { "featured": true }},
-                                                        #   { "term": { "starred":  true }}
-                                                        # ],
-                                                        "must_not": [
-                                                            { "term": { "biotype": 'processed_pseudogene' }},
-                                                            { "term": { "biotype": 'antisense' }},
-                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                            { "term": { "biotype": 'lincRNA' }},
-                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                            { "term": { "biotype": 'sense_intronic' }},
-                                                            { "term": { "biotype": 'processed_transcript' }},
-                                                        ],
-                                                      },
+                                                   # "bool": {
+                                                   #      # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
+                                                   #      # "should": [
+                                                   #      #   { "term": { "featured": true }},
+                                                   #      #   { "term": { "starred":  true }}
+                                                   #      # ],
+                                                   #      "must_not": [
+                                                   #          { "term": { "biotype": 'processed_pseudogene' }},
+                                                   #          { "term": { "biotype": 'antisense' }},
+                                                   #          { "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                   #          { "term": { "biotype": 'lincRNA' }},
+                                                   #          { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                   #          { "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                   #          { "term": { "biotype": 'sense_intronic' }},
+                                                   #          { "term": { "biotype": 'processed_transcript' }},
+                                                   #          { "term": { "biotype": 'IG_V_pseudogene' }},
+                                                   #          { "term": { "biotype": 'miRNA' }},
+                                                   #      ],
+                                                   #    },
                                                    }
                                                }
                                            },
@@ -365,25 +360,21 @@ class esQuery():
                                                 body={'query':{
                                                          'filtered': {
                                                              'query': self._get_free_text_gene_query(searchphrase),
-                                                             'filter': {
-                                                                   "bool": {
-                                                                        # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
-                                                                        # "should": [
-                                                                        #   { "term": { "featured": true }},
-                                                                        #   { "term": { "starred":  true }}
-                                                                        # ],
-                                                                        "must_not": [
-                                                                            { "term": { "biotype": 'processed_pseudogene' }},
-                                                                            { "term": { "biotype": 'antisense' }},
-                                                                            { "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                                            { "term": { "biotype": 'lincRNA' }},
-                                                                            { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                                            { "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                                            { "term": { "biotype": 'sense_intronic' }},
-                                                                            { "term": { "biotype": 'processed_transcript' }},
-                                                                        ],
-                                                                      },
-                                                                   }
+                                                             # 'filter': {
+                                                             #
+                                                             #            "not":{ "term": { "biotype": 'processed_pseudogene' }},
+                                                             #                { "term": { "biotype": 'antisense' }},
+                                                             #                { "term": { "biotype": 'unprocessed_pseudogene' }},
+                                                             #                { "term": { "biotype": 'lincRNA' }},
+                                                             #                { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                                                             #                { "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                                                             #                { "term": { "biotype": 'sense_intronic' }},
+                                                             #                { "term": { "biotype": 'processed_transcript' }},
+                                                             #                { "term": { "biotype": 'IG_V_pseudogene' }},
+                                                             #                { "term": { "biotype": 'miRNA' }},
+                                                             #                                                                                        ],
+                                                             #
+                                                             #       }
                                                              }
                                                          },
                                                       'size': params.size + 1,
@@ -888,10 +879,20 @@ class esQuery():
 
                     },
                 }},
+                 {'prefix': {
+                    "_id": {
+                        "value": "EFO_",
+                        "boost": .0001,
+                        # "prefix_length": 1,
+                        # "max_expansions": 100,
+                        # "fuzziness": "AUTO"
+
+                    },
+                }},
                 # {'match_phrase': {
                 #     "efo_synonyms": {
                 #         "query": searchphrase,
-                #         "boost": 1.0,
+                #         "boost": .1,
                 #         # "prefix_length": 1,
                 #         # "max_expansions": 100,
                 #         # "fuzziness": "AUTO"
@@ -937,7 +938,7 @@ class esQuery():
                         }
 
                 }},
-                {'match': {
+                {'match_phrase': {
                     "approved_name": {
                         "query": searchphrase,
                         "boost": 10.0,
@@ -947,7 +948,7 @@ class esQuery():
                         # "fuzziness": "AUTO"
                     },
                 }},
-                {'match': {
+                {'match_phrase': {
                     "name_synonyms": {
                         "query": searchphrase,
                         "boost": 10.0,
