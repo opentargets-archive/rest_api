@@ -879,16 +879,16 @@ class esQuery():
 
                     },
                 }},
-                 {'prefix': {
-                    "_id": {
-                        "value": "EFO_",
-                        "boost": .0001,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
-
-                    },
-                }},
+                #  {'prefix': {
+                #     "_id": {
+                #         "value": "EFO_",
+                #         "boost": .0001,
+                #         # "prefix_length": 1,
+                #         # "max_expansions": 100,
+                #         # "fuzziness": "AUTO"
+                #
+                #     },
+                # }},
                 # {'match_phrase': {
                 #     "efo_synonyms": {
                 #         "query": searchphrase,
