@@ -185,7 +185,7 @@ class esQuery():
                                         'from': params.start_from,
                                         '_source': OutputDataStructureOptions.getSource(
                                             OutputDataStructureOptions.GENE_AND_DISEASE),
-                                        "min_score": 0.,
+                                        # "min_score": 0.,
                                         "highlight": {
                                             "fields": {
                                                 "label": {},
@@ -317,7 +317,7 @@ class esQuery():
                                         'size': 30,
                                         '_source': OutputDataStructureOptions.getSource(
                                             OutputDataStructureOptions.GENE_AND_DISEASE),
-                                        "min_score": 0.,
+                                        # "min_score": 0.,
                                          "highlight": {
                                             "fields": {
                                                 "label": {},
@@ -380,7 +380,7 @@ class esQuery():
                                                       'size': params.size + 1,
                                                       '_source': OutputDataStructureOptions.getSource(
                                                           OutputDataStructureOptions.GENE),
-                                                      "min_score": 0.,
+                                                      # "min_score": 0.,
                                                       "highlight": {
                                                         "fields": {
                                                             "symbol_synonyms": {},
@@ -411,8 +411,8 @@ class esQuery():
                                                     'size': params.size + 1,
                                                     '_source': OutputDataStructureOptions.getSource(
                                                         OutputDataStructureOptions.DISEASE),
-                                                    "min_score": 0.,
-                                                      "highlight": {
+                                                    # "min_score": 0.,
+                                                    "highlight": {
                                                         "fields": {
                                                             "label": {},
                                                             "efo_synonyms": {},
@@ -857,280 +857,358 @@ class esQuery():
 
 
     def _get_free_text_query(self, searchphrase):
-        return {"bool": {
-            "should": [
-                {'match_phrase': {
-                    "label": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
-
-                    },
-                }},
-                {'prefix': {
-                    "label": {
-                        "value": searchphrase,
-                        "boost": 100.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
-
-                    },
-                }},
-                #  {'prefix': {
-                #     "_id": {
-                #         "value": "EFO_",
-                #         "boost": .0001,
-                #         # "prefix_length": 1,
-                #         # "max_expansions": 100,
-                #         # "fuzziness": "AUTO"
-                #
-                #     },
-                # }},
-                # {'match_phrase': {
-                #     "efo_synonyms": {
-                #         "query": searchphrase,
-                #         "boost": .1,
-                #         # "prefix_length": 1,
-                #         # "max_expansions": 100,
-                #         # "fuzziness": "AUTO"
-                #     },
-                # }},
-                {'prefix': {
-                    "efo_synonyms": {
-                        "value": searchphrase,
-                        "boost": 5.0,
-                        }
-
-                }},
-                {'match': {
-                    "symbol_synonyms": {
-                        "query": searchphrase,
-                        "boost": 20.0,
-                        }
-
-                }},
-                {'prefix': {
-                    "symbol_synonyms": {
-                        "value": searchphrase,
-                        "boost": 30.0,
-                        }
-
-                }},
-                {'match': {
-                    "id": {
-                        "query": searchphrase,
-                        "boost": 30.0,
-                    },
-                }},
-                {'match': {
-                    "approved_symbol": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }},
-                {'prefix': {
-                    "approved_symbol": {
-                        "value": searchphrase,
-                        "boost": 50.0,
-                        }
-
-                }},
-                {'match_phrase': {
-                    "approved_name": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "operator" : "and",
-                        # "prefix_length": 3,
-                        # "max_expansions": 1,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
-                {'match_phrase': {
-                    "name_synonyms": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "operator" : "and",
-                        # "prefix_length": 3,
-                        # "max_expansions": 1,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
+        return {
+              "multi_match" : {
+                "query":    searchphrase,
+                "fields": [ "label^2",
+                            "symbol_synonyms",
+                            "efo_synonyms",
+                            "id",
+                            "approved_symbol^2",
+                            "approved_name",
+                            "name_synonyms",
+                            "gene_family_description",
+                            "uniprot_id",
+                            "uniprot_accessions",
+                            "hgnc_id",
+                            "ensembl_gene_id",
+                            ],
+                "analyzer" : 'whitespace',
+                "fuzziness": "AUTO"
+              }
+            }
 
 
-                {'match': {
-                    "gene_family_description": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "prefix_length": 3,
-                        "max_expansions": 3,
-                        "fuzziness": "AUTO"
-                    },
-                }},
-                {'match': {
-                    "uniprot_accessions": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }},
-                {'match': {
-                    "hgnc_id": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                    },
-                }},
-                {'match': {
-                    "ensembl_gene_id": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }}
-            ]
-        }
-        }
+
+        #
+        # return {"bool": {
+        #     "should": [
+        #         {'match': {
+        #             "label": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #                 # "prefix_length": 1,
+        #                 # "max_expansions": 100,
+        #                 # "fuzziness": "AUTO"
+        #
+        #             },
+        #         }},
+        #         # {'prefix': {
+        #         #     "label": {
+        #         #         "value": searchphrase,
+        #         #         "boost": 1.0,
+        #         #         # "prefix_length": 1,
+        #         #         # "max_expansions": 100,
+        #         #         # "fuzziness": "AUTO"
+        #         #
+        #         #     },
+        #         # }},
+        #         #  {'prefix': {
+        #         #     "_id": {
+        #         #         "value": "EFO_",
+        #         #         "boost": .0001,
+        #         #         # "prefix_length": 1,
+        #         #         # "max_expansions": 100,
+        #         #         # "fuzziness": "AUTO"
+        #         #
+        #         #     },
+        #         # }},
+        #         # {'match_phrase': {
+        #         #     "efo_synonyms": {
+        #         #         "query": searchphrase,
+        #         #         "boost": .1,
+        #         #         # "prefix_length": 1,
+        #         #         # "max_expansions": 100,
+        #         #         # "fuzziness": "AUTO"
+        #         #     },
+        #         # }},
+        #         {'match': {
+        #             "efo_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #                 }
+        #
+        #         }},
+        #          {'term': {
+        #             "efo_synonyms": {
+        #                 "value": searchphrase,
+        #                 "boost": 1.0,
+        #                 }
+        #
+        #         }},
+        #         {'match': {
+        #             "symbol_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #                 }
+        #
+        #         }},
+        #         # {'prefix': {
+        #         #     "symbol_synonyms": {
+        #         #         "value": searchphrase,
+        #         #         "boost": 1.0,
+        #         #         }
+        #         #
+        #         # }},
+        #         {'match': {
+        #             "id": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #             },
+        #         }},
+        #         {'match': {
+        #             "approved_symbol": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                 "analyzer" : "keyword",
+        #             },
+        #         }},
+        #         # {'prefix': {
+        #         #     "approved_symbol": {
+        #         #         "value": searchphrase,
+        #         #         "boost": 1.0,
+        #         #         }
+        #         #
+        #         # }},
+        #         {'match': {
+        #             "approved_name": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                 # "operator" : "and",
+        #                  "analyzer" : "keyword",
+        #                 # "prefix_length": 3,
+        #                 # "max_expansions": 1,
+        #                 #  "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #         {'match_phrase': {
+        #             "name_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                 "operator" : "and",
+        #                  "analyzer" : "keyword",
+        #                 # "prefix_length": 3,
+        #                 # "max_expansions": 1,
+        #                 # "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #
+        #
+        #         {'match': {
+        #             "gene_family_description": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                 # "prefix_length": 3,
+        #                 # "max_expansions": 3,
+        #                 # "fuzziness": "AUTO",
+        #                  "analyzer" : "keyword"
+        #             },
+        #         }},
+        #         {'match': {
+        #             "uniprot_id": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #             },
+        #         }},
+        #         {'match': {
+        #             "uniprot_accessions": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #             },
+        #         }},
+        #         {'match': {
+        #             "hgnc_id": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #                  "analyzer" : "keyword",
+        #             },
+        #         }},
+        #         {'match': {
+        #             "ensembl_gene_id": {
+        #                 "query": searchphrase,
+        #                 "boost": 1.0,
+        #             },
+        #         }}
+        #     ]
+        # }
+        # }
 
 
     def _get_free_text_gene_query(self, searchphrase):
-        return {"bool": {
-            "should": [
-               {'match': {
-                    "symbol_synonyms": {
-                        "query": searchphrase,
-                        "boost": 20.0,
-                        }
+        return {
+              "multi_match" : {
+                "query":    searchphrase,
+                "fields": [ "symbol_synonyms",
+                            "id",
+                            "approved_symbol^2",
+                            "approved_name",
+                            "name_synonyms",
+                            "gene_family_description",
+                            "uniprot_id",
+                            "uniprot_accessions",
+                            "hgnc_id",
+                            "ensembl_gene_id",
+                            ],
+                "analyzer" : 'whitespace',
+                "fuzziness": "AUTO"
+              }
+            }
 
-                }},
-                {'prefix': {
-                    "symbol_synonyms": {
-                        "value": searchphrase,
-                        "boost": 30.0,
-                        }
-
-                }},
-                {'match': {
-                    "id": {
-                        "query": searchphrase,
-                        "boost": 30.0,
-                    },
-                }},
-                {'match': {
-                    "approved_symbol": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }},
-                {'prefix': {
-                    "approved_symbol": {
-                        "value": searchphrase,
-                        "boost": 50.0,
-                        }
-
-                }},
-                {'match': {
-                    "approved_name": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "operator" : "and",
-                        # "prefix_length": 3,
-                        # "max_expansions": 1,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
-                {'match': {
-                    "name_synonyms": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "operator" : "and",
-                        # "prefix_length": 3,
-                        # "max_expansions": 1,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
-
-
-                {'match': {
-                    "gene_family_description": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        "prefix_length": 3,
-                        "max_expansions": 3,
-                        "fuzziness": "AUTO"
-                    },
-                }},
-                {'match': {
-                    "uniprot_accessions": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }},
-                {'match': {
-                    "hgnc_id": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                    },
-                }},
-                {'match': {
-                    "ensembl_gene_id": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }}
-            ]
-        }
-
-        }
+        # return {"bool": {
+        #     "should": [
+        #        {'match': {
+        #             "symbol_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 20.0,
+        #                 }
+        #
+        #         }},
+        #         {'prefix': {
+        #             "symbol_synonyms": {
+        #                 "value": searchphrase,
+        #                 "boost": 30.0,
+        #                 }
+        #
+        #         }},
+        #         {'match': {
+        #             "id": {
+        #                 "query": searchphrase,
+        #                 "boost": 30.0,
+        #             },
+        #         }},
+        #         {'match': {
+        #             "approved_symbol": {
+        #                 "query": searchphrase,
+        #                 "boost": 50.0,
+        #             },
+        #         }},
+        #         {'prefix': {
+        #             "approved_symbol": {
+        #                 "value": searchphrase,
+        #                 "boost": 50.0,
+        #                 }
+        #
+        #         }},
+        #         {'match': {
+        #             "approved_name": {
+        #                 "query": searchphrase,
+        #                 "boost": 10.0,
+        #                 "operator" : "and",
+        #                 # "prefix_length": 3,
+        #                 # "max_expansions": 1,
+        #                 # "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #         {'match': {
+        #             "name_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 10.0,
+        #                 "operator" : "and",
+        #                 # "prefix_length": 3,
+        #                 # "max_expansions": 1,
+        #                 # "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #
+        #
+        #         {'match': {
+        #             "gene_family_description": {
+        #                 "query": searchphrase,
+        #                 "boost": 10.0,
+        #                 "prefix_length": 3,
+        #                 "max_expansions": 3,
+        #                 "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #         {'match': {
+        #             "uniprot_accessions": {
+        #                 "query": searchphrase,
+        #                 "boost": 50.0,
+        #             },
+        #         }},
+        #         {'match': {
+        #             "hgnc_id": {
+        #                 "query": searchphrase,
+        #                 "boost": 10.0,
+        #             },
+        #         }},
+        #         {'match': {
+        #             "ensembl_gene_id": {
+        #                 "query": searchphrase,
+        #                 "boost": 50.0,
+        #             },
+        #         }}
+        #     ]
+        # }
+        #
+        # }
 
     def _get_free_text_efo_query(self, searchphrase):
-        return {"bool": {
-            "should": [
-                  {'match_phrase': {
-                    "label": {
-                        "query": searchphrase,
-                        "boost": 30.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
+         return {
+              "multi_match" : {
+                "query":    searchphrase,
+                "fields": [ "label^2",
+                            "efo_synonyms",
+                            "id",
+                            ],
+                "analyzer" : 'whitespace'
+              }
+            }
 
-                    },
-                }},
-                {'prefix': {
-                    "label": {
-                        "value": searchphrase,
-                        "boost": 100.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
 
-                    },
-                }},
-                {'match_phrase': {
-                    "efo_synonyms": {
-                        "query": searchphrase,
-                        "boost": 10.0,
-                        # "prefix_length": 1,
-                        # "max_expansions": 100,
-                        # "fuzziness": "AUTO"
-                    },
-                }},
-                {'prefix': {
-                    "efo_synonyms": {
-                        "value": searchphrase,
-                        "boost": 10.0,
-                        }
-
-                }},
-                {'match': {
-                    "id": {
-                        "query": searchphrase,
-                        "boost": 50.0,
-                    },
-                }},
-            ]
-        }
-
-        }
+        # return {"bool": {
+        #     "should": [
+        #           {'match_phrase': {
+        #             "label": {
+        #                 "query": searchphrase,
+        #                 "boost": 30.0,
+        #                 # "prefix_length": 1,
+        #                 # "max_expansions": 100,
+        #                 # "fuzziness": "AUTO"
+        #
+        #             },
+        #         }},
+        #         {'prefix': {
+        #             "label": {
+        #                 "value": searchphrase,
+        #                 "boost": 100.0,
+        #                 # "prefix_length": 1,
+        #                 # "max_expansions": 100,
+        #                 # "fuzziness": "AUTO"
+        #
+        #             },
+        #         }},
+        #         {'match_phrase': {
+        #             "efo_synonyms": {
+        #                 "query": searchphrase,
+        #                 "boost": 10.0,
+        #                 # "prefix_length": 1,
+        #                 # "max_expansions": 100,
+        #                 # "fuzziness": "AUTO"
+        #             },
+        #         }},
+        #         {'prefix': {
+        #             "efo_synonyms": {
+        #                 "value": searchphrase,
+        #                 "boost": 10.0,
+        #                 }
+        #
+        #         }},
+        #         {'match': {
+        #             "id": {
+        #                 "query": searchphrase,
+        #                 "boost": 50.0,
+        #             },
+        #         }},
+        #     ]
+        # }
+        #
+        # }
 
     def _get_gene_associations_agg(self):
         return {"efo_codes": {
