@@ -861,22 +861,23 @@ class esQuery():
                     "should": [
                         {"multi_match" : {
                             "query":    searchphrase,
-                            "fields": [ "label^2",
+                            "fields": [ "label^5",
                                         "symbol_synonyms",
                                         "efo_synonyms",
-                                        "approved_symbol^2",
                                         "approved_name",
                                         "name_synonyms",
                                         "gene_family_description",
                                         ],
                             "analyzer" : 'standard',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            "tie_breaker": 0.1,
+                            "type": "phrase_prefix",
                           }
                         },
                         {"multi_match" : {
                             "query":    searchphrase,
-                            "fields": [ "id",
+                            "fields": [ "label",
+                                        "id",
                                         "approved_symbol^2",
                                         "name_synonyms",
                                         "uniprot_id",
@@ -886,7 +887,8 @@ class esQuery():
                                         ],
                             "analyzer" : 'keyword',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            # "tie_breaker": 0.1,
+                            "type": "best_fields",
                           }
                         }
                     ]
@@ -1060,14 +1062,14 @@ class esQuery():
                         {"multi_match" : {
                             "query":    searchphrase,
                             "fields": [ "symbol_synonyms",
-                                        "approved_symbol^2",
                                         "approved_name",
                                         "name_synonyms",
                                         "gene_family_description",
                                         ],
                             "analyzer" : 'standard',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            "tie_breaker": 0.1,
+                            "type": "phrase_prefix",
                           }
                         },
                         {"multi_match" : {
@@ -1082,7 +1084,8 @@ class esQuery():
                                         ],
                             "analyzer" : 'keyword',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            # "tie_breaker": 0.1,
+                            "type": "best_fields",
                           }
                         }
                     ]
@@ -1183,21 +1186,24 @@ class esQuery():
                     "should": [
                         {"multi_match" : {
                             "query":    searchphrase,
-                            "fields": [ "label^2",
+                            "fields": [ "label^5",
                                         "efo_synonyms",
                                         ],
                             "analyzer" : 'standard',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            "tie_breaker": 0.1,
+                            "type": "phrase_prefix",
                           }
                         },
                         {"multi_match" : {
                             "query":    searchphrase,
-                            "fields": [ "id",
-                                        ],
+                            "fields": [ "label",
+                                        "id",
+                                      ]
                             "analyzer" : 'keyword',
                             # "fuzziness": "AUTO",
-                            "type": "cross_fields",
+                            # "tie_breaker": 0.1,
+                            "type": "best_fields",
                           }
                         }
                     ]
