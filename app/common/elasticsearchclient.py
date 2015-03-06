@@ -1199,7 +1199,7 @@ class esQuery():
                             "query":    searchphrase,
                             "fields": [ "label",
                                         "id",
-                                      ]
+                                      ],
                             "analyzer" : 'keyword',
                             # "fuzziness": "AUTO",
                             # "tie_breaker": 0.1,
