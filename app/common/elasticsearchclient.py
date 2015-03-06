@@ -857,25 +857,40 @@ class esQuery():
 
 
     def _get_free_text_query(self, searchphrase):
-        return {
-              "multi_match" : {
-                "query":    searchphrase,
-                "fields": [ "label^2",
-                            "symbol_synonyms",
-                            "efo_synonyms",
-                            "id",
-                            "approved_symbol^2",
-                            "approved_name",
-                            "name_synonyms",
-                            "gene_family_description",
-                            "uniprot_id",
-                            "uniprot_accessions",
-                            "hgnc_id",
-                            "ensembl_gene_id",
-                            ],
-                "analyzer" : 'whitespace',
-                "fuzziness": "AUTO"
-              }
+        return {"bool": {
+                    "should": [
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "label^2",
+                                        "symbol_synonyms",
+                                        "efo_synonyms",
+                                        "approved_symbol^2",
+                                        "approved_name",
+                                        "name_synonyms",
+                                        "gene_family_description",
+                                        ],
+                            "analyzer" : 'standard',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        },
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "id",
+                                        "approved_symbol^2",
+                                        "name_synonyms",
+                                        "uniprot_id",
+                                        "uniprot_accessions",
+                                        "hgnc_id",
+                                        "ensembl_gene_id",
+                                        ],
+                            "analyzer" : 'keyword',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        }
+                    ]
+                }
             }
 
 
@@ -1040,23 +1055,38 @@ class esQuery():
 
 
     def _get_free_text_gene_query(self, searchphrase):
-        return {
-              "multi_match" : {
-                "query":    searchphrase,
-                "fields": [ "symbol_synonyms",
-                            "id",
-                            "approved_symbol^2",
-                            "approved_name",
-                            "name_synonyms",
-                            "gene_family_description",
-                            "uniprot_id",
-                            "uniprot_accessions",
-                            "hgnc_id",
-                            "ensembl_gene_id",
-                            ],
-                "analyzer" : 'whitespace',
-                "fuzziness": "AUTO"
-              }
+        return {"bool": {
+                    "should": [
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "symbol_synonyms",
+                                        "approved_symbol^2",
+                                        "approved_name",
+                                        "name_synonyms",
+                                        "gene_family_description",
+                                        ],
+                            "analyzer" : 'standard',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        },
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "id",
+                                        "approved_symbol^2",
+                                        "name_synonyms",
+                                        "uniprot_id",
+                                        "uniprot_accessions",
+                                        "hgnc_id",
+                                        "ensembl_gene_id",
+                                        ],
+                            "analyzer" : 'keyword',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        }
+                    ]
+                }
             }
 
         # return {"bool": {
@@ -1149,15 +1179,29 @@ class esQuery():
         # }
 
     def _get_free_text_efo_query(self, searchphrase):
-         return {
-              "multi_match" : {
-                "query":    searchphrase,
-                "fields": [ "label^2",
-                            "efo_synonyms",
-                            "id",
-                            ],
-                "analyzer" : 'whitespace'
-              }
+         return {"bool": {
+                    "should": [
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "label^2",
+                                        "efo_synonyms",
+                                        ],
+                            "analyzer" : 'standard',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        },
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "id",
+                                        ],
+                            "analyzer" : 'keyword',
+                            "fuzziness": "AUTO",
+                            "type": "cross_fields",
+                          }
+                        }
+                    ]
+                }
             }
 
 
