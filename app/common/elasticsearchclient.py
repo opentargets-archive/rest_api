@@ -870,7 +870,7 @@ class esQuery():
                                         "gene_family_description",
                                         ],
                             "analyzer" : 'standard',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         },
@@ -885,7 +885,7 @@ class esQuery():
                                         "ensembl_gene_id",
                                         ],
                             "analyzer" : 'keyword',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         }
@@ -1066,7 +1066,7 @@ class esQuery():
                                         "gene_family_description",
                                         ],
                             "analyzer" : 'standard',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         },
@@ -1081,7 +1081,7 @@ class esQuery():
                                         "ensembl_gene_id",
                                         ],
                             "analyzer" : 'keyword',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         }
@@ -1187,7 +1187,7 @@ class esQuery():
                                         "efo_synonyms",
                                         ],
                             "analyzer" : 'standard',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         },
@@ -1196,7 +1196,7 @@ class esQuery():
                             "fields": [ "id",
                                         ],
                             "analyzer" : 'keyword',
-                            "fuzziness": "AUTO",
+                            # "fuzziness": "AUTO",
                             "type": "cross_fields",
                           }
                         }
