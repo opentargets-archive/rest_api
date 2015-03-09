@@ -21,13 +21,13 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # Wrap the Api with swagger.docs. It is a thin wrapper around the Api class that adds some swagger smarts
 
     from app.resources.genes import GeneInfo
-    from app.resources.evidences import Evidence, Evidences
+    from app.resources.evidence import Evidence, FilterBy
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, AutoComplete
     from app.resources.echo import Echo
     from app.resources.association import Association
-
+    from app.resources.auth import RequestToken, ValidateToken
 
 
 
@@ -36,12 +36,14 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
     api.add_resource(Evidence,
-                     '/getbyid'
+                     '/getbyid',
                      )
-    api.add_resource(Evidences,
-                     '/filterby')
+    api.add_resource(FilterBy,
+                     '/filterby',
+                     )
     api.add_resource(Association,
-                     '/association')
+                     '/association',
+                     )
     api.add_resource(EfoLabelFromCode,
                      '/efo/<string:code>')
     api.add_resource(EcoLabelFromCode,
@@ -54,5 +56,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/autocomplete')
     api.add_resource(Echo,
                      '/echo')
-
+    api.add_resource(RequestToken,
+                     '/auth/request_token')
+    api.add_resource(ValidateToken,
+                     '/auth/validate_token')
     return api

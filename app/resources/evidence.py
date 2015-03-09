@@ -10,6 +10,7 @@ from app.common.boilerplate import Paginable
 from app.common.responses import CTTVResponse, PaginatedResponse
 from app.common.requests import json_type
 import ujson as json
+from app.common.auth import is_authenticated
 
 
 
@@ -72,8 +73,7 @@ class Evidence(restful.Resource):
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return res
 
-
-class Evidences(restful.Resource, Paginable):
+class FilterBy(restful.Resource, Paginable):
 
     _swagger_parameters = [
             {
@@ -161,12 +161,13 @@ class Evidences(restful.Resource, Paginable):
 
     _swagger_parameters.extend(Paginable._swagger_parameters)
     @swagger.operation(
-        nickname='evidences',
+        nickname='filterby',
         produces = ["application/json", "text/xml", "text/csv"],
 
         responseClass=PaginatedResponse.__name__,
         parameters=_swagger_parameters,
         )
+    @is_authenticated
     def get(self):
         """
         Get a list of evidences filtered by gene, efo and/or eco codes
@@ -181,6 +182,8 @@ class Evidences(restful.Resource, Paginable):
         # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
         # parser.add_argument('body', type=str, action='store', required=False, location='form', help="json object with query parameter")
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
+        # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
+
 
         args = parser.parse_args()
         genes = args.pop('gene',[]) or []
@@ -278,21 +281,5 @@ class Evidences(restful.Resource, Paginable):
                                                                     # evidence_type_operator,
                                                                     ]))
         return CTTVResponse.OK(res)
-
-
-class EvidenceWithEfoAsObject(restful.Resource, Paginable):
-    '''http://127.0.0.1:5000/api/public/v0.2/evidences/?gene=ENSG00000103197&gene=ENSG00000181090'''
-
-    @swagger.operation(
-        notes='''get evidences for for an EFO code, test with  http://identifiers.org/atc/A, efo:EFO_0000637, efo:EFO_0000761''',
-        nickname='EvidenceWithEfoAsObject',
-        parameters=Paginable._swagger_parameters)
-
-
-    def get(self, efocode ):
-        es = current_app.extensions['esquery']
-        kwargs = self.parser.parse_args()
-        res = es.get_evidences_with_efo_code_as_object(efocode,**kwargs)
-        return  CTTVResponse.OK(res)
 
 
