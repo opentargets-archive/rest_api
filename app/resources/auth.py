@@ -13,14 +13,14 @@ __author__ = 'andreap'
 
 class RequestToken(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('appname', type=str, required=True, help="appname is required")
-    parser.add_argument('secret', type=str, required=True, help="app secret is required")
+    parser.add_argument('appname', type=str, required=True, help="app name [appname] is required")
+    parser.add_argument('secret', type=str, required=True, help="app secret [secret] is required")
+    parser.add_argument('uid', type=str, required=False, help="user id [uid] ")
+    parser.add_argument('password', type=str, required=False, help="password [password] ")
 
     def get(self, ):
         args = self.parser.parse_args()
-        appname = args['appname']
-        secret = args['appname']
-        return TokenAuthentication.get_auth_token('cttv_api',salt=secret, payload={'appname': appname})
+        return TokenAuthentication.get_auth_token('cttv_api',auth_data=args)
 
 
 class ValidateToken(restful.Resource):

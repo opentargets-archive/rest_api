@@ -40,42 +40,69 @@ class TokenAuthentication():
 
     app_name='cttv-rest-api'
 
+    @staticmethod
+    def _autenticate(auth_data):
+        #TODO: use a proper authentication
+        authorized_keys = {
+            'cttv-web-app':'2J23T20O31UyepRj7754pEA2osMOYfFK'
+        }
+        if auth_data['appname'] in authorized_keys:
+            if auth_data['secret'] == authorized_keys[ auth_data['appname']]:
+                return True
+        return False
+
 
     @staticmethod
-    def get_auth_token(api_name='', expiration=600, salt='', payload ={}):
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
-        cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
-        payload['api'] = api_name
-        payload['app secret'] = salt
-        token = s.dumps(cipher.encrypt(json.dumps(payload)))
-        print repr(token)
-        return token
+    def _prepare_payload(api_name, auth_data):
+        payload = {'api_name': api_name,
+                   'app_name': auth_data['appname']}
+        if 'uid' in auth_data:
+            payload['uid'] = auth_data['uid']
+        return payload
 
     @staticmethod
-    def is_valid(token):
+    def _get_payload_from_token(token):
         s = Serializer(current_app.config['SECRET_KEY'])
-        print repr(token)
         cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
         try:
             data = json.loads(cipher.decrypt(s.loads(token)))
 
-            print data
-            #TODO: do something with data and log usage
+            return data
         except SignatureExpired:
-            print 'expired'
+            print 'token expired'
             return False    # valid token, but expired
         except BadSignature, e:
-            print 'bad signature'
-            encoded_payload = e.payload
-            if encoded_payload is not None:
-                try:
-                    decoded_payload = s.load_payload(encoded_payload)
-                    print json.loads(cipher.decrypt(decoded_payload))
-                except BadData:
-                    print 'bad data'
-            raise
-            return False    # invalid token
-        return True
+            print 'bad signature in token'
+            # encoded_payload = e.payload
+            # if encoded_payload is not None:
+            #     try:
+            #         decoded_payload = s.load_payload(encoded_payload)
+            #         print json.loads(cipher.decrypt(decoded_payload))
+            #     except BadData:
+            #         print 'bad data in token'
+
+
+
+
+    @classmethod
+    def get_auth_token(cls, api_name='', expiration=600, salt='', auth_data ={}):
+        """
+
+        :rtype : str token
+        """
+        if cls._autenticate(auth_data):
+            payload = cls._prepare_payload(api_name,auth_data)
+            s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
+            cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
+            token = s.dumps(cipher.encrypt(json.dumps(payload)))
+            return token
+        abort(401)
+
+    @classmethod#TODO: this is temporary just for testing
+    def is_valid(cls,token):
+        if cls._get_payload_from_token(token):
+            return True
+        return False
 
 
 def is_authenticated(func):
@@ -84,16 +111,13 @@ def is_authenticated(func):
         if not getattr(func, 'authenticated', True):
             return func(*args, **kwargs)
 
-        resp = make_response(func(*args, **kwargs))
-        h = resp.headers
+        token = request.headers.get('X-Auth-Token')
         authorized =False
-        print h
-        if 'X-Auth-Token' in h:
-            authorized = TokenAuthentication.is_valid(h['X-Auth-Token'])
+        if token:
+            authorized = TokenAuthentication.is_valid(token)
         else:
             try:
                  call_args = args[0].parser.parse_args()
-                 print call_args
                  if 'auth_token' in call_args:
                      authorized = TokenAuthentication.is_valid(call_args['auth_token'])
             except:pass

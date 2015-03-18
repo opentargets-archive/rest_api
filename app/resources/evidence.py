@@ -59,6 +59,7 @@ class Evidence(restful.Resource):
             }
           ],
         )
+    @is_authenticated
     def get(self ):
         """
         Get an evidence from its id
@@ -217,6 +218,7 @@ class FilterBy(restful.Resource, Paginable):
             ]
         )
    # @marshal_with(EvidenceQuery.resource_fields)
+    @is_authenticated
     def post(self ):
         """
         Get a list of evidences filtered by gene, efo and/or eco codes

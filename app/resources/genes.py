@@ -5,6 +5,7 @@ from flask.ext.restful import abort
 from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common import boilerplate
+from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
 from app.common.responses import CTTVResponse
 
@@ -28,6 +29,7 @@ class Genes(restful.Resource, Paginable):
 class GeneInfo(restful.Resource):
 
     @swagger.operation()
+    @is_authenticated
     def get(self, gene_id ):
         '''
         Get gene information
@@ -46,6 +48,7 @@ class AvailableGenes(restful.Resource):
 
     @swagger.operation(
         notes='''get a list of available genes - WARNING VERY SLOW''',)
+    @is_authenticated
     def get(self):
         es = current_app.extensions['esquery']
         return es.available_genes()
@@ -55,6 +58,7 @@ class GeneName(restful.Resource):
 
     @swagger.operation(
         notes='''get evidences for a gene name''',)
+    @is_authenticated
     def get(self, genename ):
         es = current_app.extensions['esquery']
         try:
@@ -79,6 +83,7 @@ class GeneEvidenceByEfo(restful.Resource, Paginable):
         nickname='GeneEvidenceByEfo',
         parameters=Paginable._swagger_parameters,
     )
+    @is_authenticated
     def get(self, ensemblid, efocode ):
         es = current_app.extensions['esquery']
         kwargs = self.parser.parse_args()

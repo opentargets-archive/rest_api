@@ -1,3 +1,5 @@
+from app.common.auth import is_authenticated
+
 __author__ = 'andreap'
 from flask import current_app
 from flask.ext import restful
@@ -9,6 +11,7 @@ class EcoLabelFromCode(restful.Resource):
 
 
     @swagger.operation()
+    @is_authenticated
     def get(self, code ):
         '''
         get ECO information from a code

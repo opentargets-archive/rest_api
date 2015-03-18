@@ -1,3 +1,5 @@
+from app.common.auth import is_authenticated
+
 __author__ = 'andreap'
 from flask import current_app
 from flask.ext import restful
@@ -10,6 +12,7 @@ from flask_restful_swagger import swagger
 class EfoLabelFromCode(restful.Resource):
 
     @swagger.operation()
+    @is_authenticated
     def get(self, code ):
         '''
         get EFO information from a code

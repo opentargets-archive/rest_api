@@ -1264,7 +1264,7 @@ class esQuery():
         return {"efo_codes": {
                    "terms": {
                        "field" : "_private.efo_codes",
-                       'size': 100,
+                       'size': 10000,
                        "order": {
                            "association_score": "desc"
                        }

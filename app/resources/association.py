@@ -6,6 +6,7 @@ from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
+from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
 from app.common.responses import CTTVResponse, PaginatedResponse
 from app.common.requests import json_type
@@ -99,6 +100,7 @@ class Association(restful.Resource):
         responseClass=PaginatedResponse.__name__,
         parameters=_swagger_parameters,
         )
+    @is_authenticated
     def get(self):
         """
         Get association scores
