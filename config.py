@@ -18,7 +18,7 @@ class Config:
     ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genedata'
     DEBUG = True
     PROFILE = False
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '0.2'
@@ -39,6 +39,14 @@ class DevelopmentConfig(Config):
         Config.init_app(app)
         print cls.ELASTICSEARCH_URL
 
+class DockerLinkedDevConfig(Config):
+    DEBUG = True
+    ELASTICSEARCH_URL = 'http://elastic:9200'
+
+class DockerLinkedConfig(Config):
+    TESTING = True
+    ELASTICSEARCH_URL = 'http://elastic:9200'
+
 
 class TestingConfig(Config):
     TESTING = True
@@ -52,7 +60,7 @@ class ProductionConfig(Config):
     def init_app(cls, app):
         Config.init_app(app)
 
-        #TODO: email errors to the administrators
+        #TODO: handle logs
         #
         # import logging
         # from logging.handlers import SMTPHandler
@@ -92,7 +100,7 @@ config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
-    'unix': UnixConfig,
-
+    'dockerlink': DockerLinkedConfig,
+    'dockerlinkdev': DockerLinkedDevConfig,
     'default': DevelopmentConfig
 }
