@@ -111,7 +111,7 @@ def is_authenticated(func):
         if not getattr(func, 'authenticated', True):
             return func(*args, **kwargs)
 
-        token = request.headers.get('X-Auth-Token')
+        token = request.headers.get('Auth-Token')
         authorized =False
         if token:
             authorized = TokenAuthentication.is_valid(token)
