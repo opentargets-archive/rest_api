@@ -113,6 +113,11 @@ def is_authenticated(func):
 
         token = request.headers.get('Auth-Token')
         authorized =False
+        if not token:
+            token= request.headers.get('Authorization')
+            if token:
+                token = token.split()[-1].strip()
+                token = base64.b64decode(token)[:-1]
         if token:
             authorized = TokenAuthentication.is_valid(token)
         else:
