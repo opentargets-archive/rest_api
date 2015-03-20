@@ -1,15 +1,24 @@
 __author__ = 'andreap'
 
 from flask.ext.restful import Api
-from flask.ext.restful.utils import cors
+# from flask.ext.restful.utils import cors
+from flask.ext.cors import CORS
 from flask_restful_swagger import swagger
 
 def create_api(app, api_version = '0.0', specpath = '' ):
-    api = swagger.docs(Api(app,
-                           decorators=[cors.crossdomain(origin='*', headers=["Auth-Token",
-                                                                             "Content-Type",
-                                                                             "Authentication"])],
-                            ),
+    # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
+    api = Api(app)
+    api = swagger.docs(api,
+                           # decorators=[cors.crossdomain(origin='*',
+                           #                              headers=["Auth-Token",
+                           #                                       "Content-Type",
+                           #                                       "Authentication"],
+                           #                              methods=["GET",
+                           #                                       "POST",
+                           #                                       "OPTIONS",
+                           #                                       "OPTIONS"])],
+                           # ),
+                           # resources=r'/api/*', allow_headers='Content-Type, Auth-Token'),
                        basePath='http://localhost:8080',
                        resourcePath='/',
                        produces=["application/json", "text/xml"],
