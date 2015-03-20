@@ -1401,7 +1401,7 @@ if (db == 'expression_atlas') {
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
                         # association_score = data_point['association_score']['value'],
-                        association_score = round(sum([i['association_score'] for i in datatypes]), 2),
+                        association_score = round(max([i['association_score'] for i in datatypes]), 2),
                         datatypes = datatypes,
                         label = efo_labels[data_point['key'] or data_point['key']],
                         therapeutic_area = efo_labels[efo_tas[data_point['key']]],
@@ -1478,7 +1478,7 @@ if (db == 'expression_atlas') {
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
                         # association_score = data_point['association_score']['value'],
-                        association_score = round(sum([i['association_score'] for i in datatypes]),2),
+                        association_score = round(max([i['association_score'] for i in datatypes]),2),
                         datatypes = datatypes,
                             )
         data = res['aggregations'][agg_key]["buckets"]
