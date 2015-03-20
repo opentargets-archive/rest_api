@@ -6,7 +6,9 @@ from flask_restful_swagger import swagger
 
 def create_api(app, api_version = '0.0', specpath = '' ):
     api = swagger.docs(Api(app,
-                           decorators=[cors.crossdomain(origin='*')],
+                           decorators=[cors.crossdomain(origin='*', headers=["Auth-Token",
+                                                                             "Content-Type",
+                                                                             "Authentication"])],
                             ),
                        basePath='http://localhost:8080',
                        resourcePath='/',
