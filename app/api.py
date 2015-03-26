@@ -35,7 +35,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.evidence import Evidence, FilterBy
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
-    from app.resources.freetextsearch import FreeTextSearch, AutoComplete
+    from app.resources.freetextsearch import FreeTextSearch, AutoComplete, QuickSearch
     from app.resources.echo import Echo
     from app.resources.association import Association
     from app.resources.auth import RequestToken, ValidateToken
@@ -63,6 +63,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/gene/<string:gene_id>')
     api.add_resource(FreeTextSearch,
                      '/search')
+    api.add_resource(QuickSearch,
+                     '/quicksearch')
     api.add_resource(AutoComplete,
                      '/autocomplete')
     api.add_resource(Echo,

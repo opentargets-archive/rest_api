@@ -62,7 +62,7 @@ class FreeTextSearch(restful.Resource, Paginable):
 
 
 
-class AutoComplete(restful.Resource, Paginable):
+class QuickSearch(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number of genes or efo to be returned.")
@@ -86,8 +86,56 @@ class AutoComplete(restful.Resource, Paginable):
 
 
     @swagger.operation(
+        nickname='quick search',
+        # responseClass=PaginatedResponse.__name__,
+        parameters=_swagger_params,
+        )
+    @is_authenticated
+    def get(self ):
+        """
+        Suggest best terms for gene and disease
+        Search with a parameter q = 'your query'
+        """
+        kwargs = self.parser.parse_args()
+        searchphrase = kwargs.pop('q')
+        size = kwargs.pop('size') or 5
+        if size > 10:
+            size = 10
+        if len(searchphrase)>1:
+            res = current_app.extensions['esquery'].quick_search(searchphrase, size = size,**kwargs)
+            return CTTVResponse.OK(res)
+        else:
+            abort(404, message = "Query is too short")
+
+
+
+class AutoComplete(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
+    parser.add_argument('size', type=int, required=False, help="number of genes or efo to be returned.")
+    _swagger_params = [
+            {
+              "name": "q",
+              "description": "a full text query",
+              "required": True,
+              "allowMultiple": False,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {"name": "size",
+              "description": "number of genes or efo to be returned",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "integer",
+              "paramType": "query"
+            },
+            ]
+
+
+
+    @swagger.operation(
         nickname='autocomplete',
-        responseClass=PaginatedResponse.__name__,
+        # responseClass=PaginatedResponse.__name__,
         parameters=_swagger_params,
         )
     @is_authenticated
@@ -100,11 +148,8 @@ class AutoComplete(restful.Resource, Paginable):
         searchphrase = kwargs.pop('q')
         size = kwargs.pop('size') or 5
         if len(searchphrase)>1:
-            res = current_app.extensions['esquery'].autocomplete_search(searchphrase, size = size,**kwargs)
+            res = current_app.extensions['esquery'].autocomplete(searchphrase, size = size,**kwargs)
             return CTTVResponse.OK(res)
         else:
             abort(404, message = "Query is too short")
-
-
-
 

@@ -236,7 +236,7 @@ class esQuery():
         return PaginatedResult(res, params, data)
 
 
-    def autocomplete_search(self, searchphrase,
+    def quick_search(self, searchphrase,
                             filter=FreeTextFilterOptions.ALL,
                             **kwargs):
         '''
@@ -337,9 +337,8 @@ class esQuery():
                                          }
                                   }
         )
-        current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
 
-        if res['hits']['total']:
+        if ('hits' in res) and res['hits']['total']:
             '''handle best hit'''
             best_hit = res['hits']['hits'][0]
             data['besthit'] = format_datapoint(best_hit)
@@ -433,6 +432,32 @@ class esQuery():
                     if len(data['efo']) < params.size:
                         if hit['_id'] not in returned_ids['efo']:
                             data['efo'].append(format_datapoint(hit))
+
+        return SimpleResult(None, params, data)
+
+    def autocomplete(self,
+                     searchphrase,
+                     **kwargs):
+
+        searchphrase = searchphrase.lower()
+        params = SearchParams(**kwargs)
+
+
+        res = self.handler.suggest(index=[self._index_efo,
+                                          self._index_genename,
+                                         ],
+                                  body={"suggest":{
+                                            "text" : searchphrase,
+                                              "completion" : {
+                                                "field" : "_private.suggestions"
+                                              }
+                                            }
+                                        }
+        )
+        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
+        data = []
+        if 'suggest' in res:
+            data = res['suggest'][0]['options']
 
         return SimpleResult(None, params, data)
 
@@ -1661,7 +1686,7 @@ class SimpleResult(Result):
     '''
 
     def toDict(self):
-        if not self.data:
+        if  self.data is None:
             raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data}
 
