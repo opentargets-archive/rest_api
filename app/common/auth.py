@@ -95,7 +95,7 @@ class TokenAuthentication():
             s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
-            return token
+            return dict(token=token)
         abort(401)
 
     @classmethod#TODO: this is temporary just for testing
