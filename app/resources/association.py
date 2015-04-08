@@ -192,11 +192,11 @@ class Association(restful.Resource):
                                  # object_operator = object_operator,
                                  # evidence_type_operator = evidence_type_operator,
                                  **params)
-        if not res:
-            abort(404, message='Cannot find associations for  %s'%str([genes,
-                                                                    objects,
-                                                                    # gene_operator,
-                                                                    # object_operator,
-                                                                    ]))
+        # if not res:
+        #     abort(404, message='Cannot find associations for  %s'%str([genes,
+        #                                                             objects,
+        #                                                             # gene_operator,
+        #                                                             # object_operator,
+        #                                                             ]))
         return CTTVResponse.OK(res)
 

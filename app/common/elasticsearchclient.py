@@ -11,6 +11,7 @@ from flask import current_app
 import ujson as json
 from dicttoxml import dicttoxml
 from elasticsearch import helpers
+from pythonjsonlogger import jsonlogger
 
 from app.common.responses import ResponseType
 from app.common.requests import OutputDataStructureOptions
@@ -66,11 +67,16 @@ class esQuery():
         self._docname_genename = docname_genename
 
         if log_level == logging.DEBUG:
+            formatter = jsonlogger.JsonFormatter()
             es_logger = logging.getLogger('elasticsearch')
+            for handler in es_logger.handlers:
+                handler.setFormatter(formatter)
             es_logger.setLevel(logging.DEBUG)
             es_tracer = logging.getLogger('elasticsearch.trace')
             es_tracer.setLevel(logging.DEBUG)
             es_tracer.addHandler(logging.FileHandler('es_trace.log'))
+            for handler in es_tracer.handlers:
+                handler.setFormatter(formatter)
 
 
     def get_evidences_for_gene(self, gene, **kwargs):
@@ -443,9 +449,7 @@ class esQuery():
         params = SearchParams(**kwargs)
 
 
-        res = self.handler.suggest(index=[self._index_efo,
-                                          self._index_genename,
-                                         ],
+        res_gene = self.handler.suggest(index=[self._index_genename],
                                   body={"suggest":{
                                             "text" : searchphrase,
                                               "completion" : {
@@ -454,10 +458,23 @@ class esQuery():
                                             }
                                         }
         )
+
+        res_efo = self.handler.suggest(index=[self._index_efo],
+                                  body={"suggest":{
+                                            "text" : searchphrase,
+                                              "completion" : {
+                                                "field" : "_private.suggestions"
+                                              }
+
+                                            }
+                                        }
+        )
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
-        data = []
-        if 'suggest' in res:
-            data = res['suggest'][0]['options']
+        data = dict(gene =[], efo=[])
+        if 'suggest' in res_gene:
+            data['gene'] = res_gene['suggest'][0]['options']
+        if 'suggest' in res_efo:
+            data['efo'] = res_efo['suggest'][0]['options']
 
         return SimpleResult(None, params, data)
 
@@ -779,7 +796,16 @@ class esQuery():
 
 
 
-            return CountedResult(res, params, data, total = res['hits']['total'])#res['aggregations'], res['hits']['hits']
+            return CountedResult(res, params, data, total = res['hits']['total'])
+        else:
+            if genes and objects:
+                data = [{"evidence_count": 0,
+                         "datatypes": [],
+                         "association_score": 0,
+                         "gene_id": genes[0],
+                        }]
+                return CountedResult(res, params, data, total = 0)
+            return CountedResult(res, params, [])
 
     def _get_gene_filter(self, gene):
         return [
@@ -1297,7 +1323,8 @@ class esQuery():
                     "aggs":{
                           "datatypes": {
                              "terms": {
-                                 "field" : "_private.datatype",
+                                 # "field" : "_private.datatype",
+                                 "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
                                },
                              "aggs":{
@@ -1355,7 +1382,8 @@ class esQuery():
                    "aggs":{
                           "datatypes": {
                              "terms": {
-                                 "field" : "_private.datatype",
+                                 # "field" : "_private.datatype",
+                                 "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
                                },
                              "aggs":{
@@ -1699,13 +1727,13 @@ class CountedResult(Result):
         '''
         total = None
         if 'total' in kwargs:
-            total = kwargs.pop('total')
+            self.total = kwargs.pop('total')
+        else:
+            self.total = len(self.data)
+
         super(self.__class__,self).__init__(*args, **kwargs)
-        self.total = total or len(self.data)
 
     def toDict(self):
-        if not self.data:
-            raise AttributeError('some data is needed to be returned in a CountedResult')
         return {'data': self.data,
                 'total': self.total,
         }
