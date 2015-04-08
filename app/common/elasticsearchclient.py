@@ -749,14 +749,20 @@ class esQuery():
         '''create multiple condition boolean query'''
         conditions = []
         aggs = None
+        datasources = '.*'
+        if params.filterbydatasource:
+            #datasources = '|'.join([".*%s.*"%x for x in params.filterbystring])#this will match substrings
+            datasources = '|'.join(["%s"%x for x in params.filterbydatasource])
+
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg()
+            aggs = self._get_efo_associations_agg(include_filter=datasources)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg()
+                aggs = self._get_gene_associations_agg(include_filter=datasources)
+        print datasources
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -765,7 +771,6 @@ class esQuery():
             source_filter["include"]= params.fields
 
         res = self.handler.search(index=self._index_data,
-                                  # doc_type='evidencestring-phenodigm',
                                   body={
                                       "query": {
                                           "filtered": {
@@ -787,12 +792,12 @@ class esQuery():
             '''build data structure to return'''
             if objects:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filter)
+                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filterbyvalue)
             elif genes:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filter)
+                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue)
                 elif params.datastructure == OutputDataStructureOptions.TREE:
-                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filter)
+                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue)
 
 
 
@@ -1311,7 +1316,7 @@ class esQuery():
         #
         # }
 
-    def _get_gene_associations_agg(self):
+    def _get_gene_associations_agg(self, include_filter = '.*'):
         return {"efo_codes": {
                    "terms": {
                        "field" : "_private.efo_codes",
@@ -1326,6 +1331,10 @@ class esQuery():
                                  # "field" : "_private.datatype",
                                  "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
+                                 "include" : {
+                                     "pattern" : include_filter,
+                                     "flags" : "CASE_INSENSITIVE"
+                                 },
                                },
                              "aggs":{
                                   "association_score": {
@@ -1355,7 +1364,7 @@ class esQuery():
                  }
               }
 
-    def _get_efo_associations_agg(self):
+    def _get_efo_associations_agg(self, include_filter = '.*'):
         # return {"genes": {
         #            "terms": {
         #                "field" : "biological_subject.about",
@@ -1385,6 +1394,10 @@ class esQuery():
                                  # "field" : "_private.datatype",
                                  "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
+                                 "include" : {
+                                     "pattern" : include_filter,
+                                     "flags" : "CASE_INSENSITIVE"
+                                 },
                                },
                              "aggs":{
                                   "association_score": {
@@ -1450,11 +1463,15 @@ if (db == 'expression_atlas') {
 
         def transform_data_point(data_point):
             datatypes =map( transform_datasource_point, data_point["datatypes"]["buckets"])
+            try:
+                score = round(max([i['association_score'] for i in datatypes]), 2)
+            except:
+                score = 0.
 
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
                         # association_score = data_point['association_score']['value'],
-                        association_score = round(max([i['association_score'] for i in datatypes]), 2),
+                        association_score = score,
                         datatypes = datatypes,
                         label = efo_labels[data_point['key'] or data_point['key']],
                         therapeutic_area = efo_labels[efo_tas[data_point['key']]],
@@ -1585,7 +1602,8 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
         self.filter = kwargs.get('filter')
-
+        self.filterbyvalue = kwargs.get('filterbyvalue')
+        self.filterbydatasource = kwargs.get('filterbydatasource')
 
 class Result(object):
     format = ResponseType.JSON
