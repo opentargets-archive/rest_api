@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 __author__ = 'andreap'
 
 
@@ -24,6 +26,14 @@ class Config:
     API_VERSION = '0.2'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
+    '''datatype configuration'''
+    DATATYPES = defaultdict(lambda: "other")
+    DATATYPES['rna_expression'] = ['expression_atlas',]
+    DATATYPES['genetic_association'] = ['uniprot','gwas','eva',]
+    DATATYPES['affected_pathway'] = ['reactome',]
+    DATATYPES['animal_model'] = ['phenodigm',]
+    DATATYPES['somatic_mutation'] = ['cancer_gene_census',]
+    DATATYPES['known_drug'] = ['chembl',]
 
     @staticmethod
     def init_app(app):
@@ -33,6 +43,8 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
+    LOGSTASH_HOST = '127.0.0.1'
+    LOGSTASH_PORT = 5555
 
     @classmethod
     def init_app(cls, app):
@@ -42,19 +54,27 @@ class DevelopmentConfig(Config):
 class DockerLinkedDevConfig(Config):
     DEBUG = True
     ELASTICSEARCH_URL = 'http://elastic:9200'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
 
 class DockerLinkedConfig(Config):
     TESTING = True
     ELASTICSEARCH_URL = 'http://elastic:9200'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
 
 
 class TestingConfig(Config):
     TESTING = True
     ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
 
 
 class ProductionConfig(Config):
     ELASTICSEARCH_URL = 'http://192.168.1.156:9200/'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
 
     @classmethod
     def init_app(cls, app):
