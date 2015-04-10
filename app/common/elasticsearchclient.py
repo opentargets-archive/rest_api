@@ -763,7 +763,6 @@ class esQuery():
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
                 aggs = self._get_gene_associations_agg(include_filter=datasources)
-        print datasources
 
 
         '''boolean query joining multiple conditions with an AND'''

@@ -28,7 +28,9 @@ class DataTypes():
             self.datatypes[datatype_name] = DataType(datatype_name, datasources)
             for datasource_name in datasources:
                 if datasource_name not in self.datasources:
-                    self.datasourcesp[datasource_name] = DataSource(datasource_name,[datatype_name])
+                    self.datasources[datasource_name] = DataSource(datasource_name,[datatype_name])
+                else:
+                    self.datasources[datasource_name].datatypes.append()
 
 
     def get_datasources(self, datatype):

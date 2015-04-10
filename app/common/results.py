@@ -1,6 +1,7 @@
 import collections
 from app.common.requests import OutputDataStructureOptions
 from app.common.responses import ResponseType
+import ujson as json
 
 __author__ = 'andreap'
 
