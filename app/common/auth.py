@@ -113,8 +113,8 @@ def is_authenticated(func):
             return func(*args, **kwargs)
         authorized =False
 
-        if current_app.config['DEBUG']:
-            authorized = True
+        # if current_app.config['DEBUG']:
+        #     authorized = True
         token = request.headers.get('Auth-Token')
         if not token:
             token= request.headers.get('Authorization')
