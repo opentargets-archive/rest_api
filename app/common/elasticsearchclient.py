@@ -12,11 +12,11 @@ import ujson as json
 from dicttoxml import dicttoxml
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
+from app.common.datatypes import DataTypes
 
 from app.common.responses import ResponseType
 from app.common.requests import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult
-
 
 __author__ = 'andreap'
 
@@ -36,6 +36,7 @@ class FreeTextFilterOptions():
 class esQuery():
     def __init__(self,
                  handler,
+                 datatypes,
                  index_data=None,
                  index_efo=None,
                  index_eco=None,
@@ -66,6 +67,7 @@ class esQuery():
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
+        self.datatypes = datatypes
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
@@ -1462,9 +1464,11 @@ if (db == 'expression_atlas') {
                         )
 
         def transform_data_point(data_point):
-            datatypes =map( transform_datasource_point, data_point["datatypes"]["buckets"])
+            datasources = map( transform_datasource_point, data_point["datatypes"]["buckets"])
+            datatypes = self._get_datatype_aggregation_from_datasource(datasources)
             try:
-                score = round(max([i['association_score'] for i in datatypes]), 2)
+                scores = [i['association_score'] for i in datatypes]
+                score = round(max(scores.min(), scores.max(), key=abs), 2)
             except:
                 score = 0.
 
@@ -1543,12 +1547,15 @@ if (db == 'expression_atlas') {
                         )
 
         def transform_data_point(data_point):
-            datatypes =map( transform_datasource_point, data_point["datatypes"]["buckets"])
+            datasources =map( transform_datasource_point, data_point["datatypes"]["buckets"])
+            datatypes = self._get_datatype_aggregation_from_datasource(datasources)
+            scores = [i['association_score'] for i in datatypes]
+            score = round(max(scores.min(), scores.max(), key=abs), 2)
             return dict(evidence_count = data_point['doc_count'],
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
                         # association_score = data_point['association_score']['value'],
-                        association_score = round(max([i['association_score'] for i in datatypes]),2),
+                        association_score = score,
                         datatypes = datatypes,
                             )
         data = res['aggregations'][agg_key]["buckets"]
@@ -1562,6 +1569,20 @@ if (db == 'expression_atlas') {
         new_data = map(transform_data_point, data)
         return new_data
 
+    def _get_datatype_aggregation_from_datasource(self, datasources):
+        datatype_aggs = {}
+        for ds in datasources:
+            dts = self.datatypes.get_datatypes(ds['datatype'])
+            for dt in dts:
+                if dt not in datatype_aggs:
+                    datatype_aggs[dt]= dict(evidence_count = 0,
+                                            datatype = dt,
+                                            association_score = 0,
+                                            )
+                datatype_aggs[dt]['evidence_count'] += ds['evidence_count']
+                if abs(ds['association_score']) > abs(datatype_aggs[dt]['association_score']):
+                    datatype_aggs[dt]['association_score'] = ds['association_score']
+        return datatype_aggs.values()
 
 
 

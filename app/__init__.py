@@ -1,11 +1,14 @@
 from flask.ext.cors import CORS
 from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
+import logstash
+from app.common.datatypes import DataTypes
 from config import config
 import logging
-
-__author__ = 'andreap'
-
+from pythonjsonlogger import jsonlogger
+from elasticsearch import Elasticsearch
+from common.elasticsearchclient import esQuery
+from api import create_api
 
 
 
@@ -15,15 +18,26 @@ __author__ = 'andreap'
 # login_manager.login_view = 'auth.login'
 
 
-from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery
-from api import create_api
 
+__author__ = 'andreap'
 
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
+
+
+    log_level = logging.INFO
+    if app.config['DEBUG']:
+        log_level = logging.DEBUG
+    logger = logging.getLogger()
+    logHandler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter()
+    logHandler.setFormatter(formatter)
+    logger.addHandler(logHandler)
+    logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
+    # logger.error("hi", extra=dict(hi="hi"))
+
 
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
                         # # sniff before doing anything
@@ -33,10 +47,8 @@ def create_app(config_name):
                         # # and also every 60 seconds
                         # sniffer_timeout=60
                         )
-    log_level = logging.INFO
-    if app.config['DEBUG']:
-        log_level = logging.DEBUG
     app.extensions['esquery'] = esQuery(es,
+                                        DataTypes(app),
                                         index_data = app.config['ELASTICSEARCH_DATA_INDEX_NAME'],
                                         index_efo = app.config['ELASTICSEARCH_EFO_LABEL_INDEX_NAME'],
                                         index_eco = app.config['ELASTICSEARCH_ECO_INDEX_NAME'],
@@ -46,6 +58,7 @@ def create_app(config_name):
                                         docname_eco = app.config['ELASTICSEARCH_ECO_DOC_NAME'],
                                         docname_genename = app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
                                         log_level= log_level,
+
                                         )
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version

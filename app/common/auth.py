@@ -69,10 +69,10 @@ class TokenAuthentication():
 
             return data
         except SignatureExpired:
-            print 'token expired'
+            current_app.logger.error('token expired')
             return False    # valid token, but expired
         except BadSignature, e:
-            print 'bad signature in token'
+            current_app.logger.error('bad signature in token')
             # encoded_payload = e.payload
             # if encoded_payload is not None:
             #     try:
@@ -95,6 +95,7 @@ class TokenAuthentication():
             s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
+            current_app.logger.info('token served', extra=dict(token=token))
             return dict(token=token)
         abort(401)
 

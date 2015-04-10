@@ -21,16 +21,16 @@ class DataTypes():
     ''' Singleton representing all the known datatypes with associated datasources
     '''
 
-    def __init__(self):
+    def __init__(self, app):
         self.datatypes = {}
         self.datasources = {}
-        for datatype_name,datasources in current_app.config.DATATYPES.items():
+        for datatype_name,datasources in app.config['DATATYPES'].items():
             self.datatypes[datatype_name] = DataType(datatype_name, datasources)
             for datasource_name in datasources:
                 if datasource_name not in self.datasources:
                     self.datasources[datasource_name] = DataSource(datasource_name,[datatype_name])
                 else:
-                    self.datasources[datasource_name].datatypes.append()
+                    self.datasources[datasource_name].datatypes.append(datatype_name)
 
 
     def get_datasources(self, datatype):
