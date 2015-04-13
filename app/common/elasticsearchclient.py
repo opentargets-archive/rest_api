@@ -753,9 +753,16 @@ class esQuery():
         conditions = []
         aggs = None
         datasources = '.*'
-        if params.filterbydatasource:
-            #datasources = '|'.join([".*%s.*"%x for x in params.filterbystring])#this will match substrings
-            datasources = '|'.join(["%s"%x for x in params.filterbydatasource])
+        if params.filterbydatasource or params.filterbydatatype:
+            requested_datasources = []
+            if params.filterbydatasource:
+                requested_datasources.extend(params.filterbydatasource)
+            if params.filterbydatatype:
+                for datatype in params.filterbydatatype:
+                    requested_datasources.extend(self.datatypes.get_datasources(datatype))
+            requested_datasources = list(set(requested_datasources))
+            #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
+            datasources = '|'.join(["%s"%x for x in requested_datasources])
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator))
@@ -1468,7 +1475,7 @@ if (db == 'expression_atlas') {
             datatypes = self._get_datatype_aggregation_from_datasource(datasources)
             try:
                 scores = [i['association_score'] for i in datatypes]
-                score = round(max(scores.min(), scores.max(), key=abs), 2)
+                score = round(max(min(scores), max(scores), key=abs), 2)
             except:
                 score = 0.
 
@@ -1550,7 +1557,10 @@ if (db == 'expression_atlas') {
             datasources =map( transform_datasource_point, data_point["datatypes"]["buckets"])
             datatypes = self._get_datatype_aggregation_from_datasource(datasources)
             scores = [i['association_score'] for i in datatypes]
-            score = round(max(scores.min(), scores.max(), key=abs), 2)
+            try:
+                score = round(max(min(scores), max(scores), key=abs), 2)
+            except:
+                score = 0.
             return dict(evidence_count = data_point['doc_count'],
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
@@ -1625,6 +1635,7 @@ class SearchParams():
         self.filter = kwargs.get('filter')
         self.filterbyvalue = kwargs.get('filterbyvalue')
         self.filterbydatasource = kwargs.get('filterbydatasource')
+        self.filterbydatatype = kwargs.get('filterbydatatype')
 
 
 

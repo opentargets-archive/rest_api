@@ -81,7 +81,15 @@ class Association(restful.Resource):
             },
             {
               "name": "filterbydatasource",
-              "description": "the datasource you want to consider when calculating the association score. pass as a java regular expression.",
+              "description": "the datasource you want to consider when calculating the association score. Accepts a list of datasources.",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "filterbydatatype",
+              "description": "the datatype you want to consider when calculating the association score. Accepts a list of datatypes.",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -95,7 +103,6 @@ class Association(restful.Resource):
               "dataType": "string",
               "paramType": "query"
             },
-
 
 
           ]
@@ -122,6 +129,7 @@ class Association(restful.Resource):
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('filterbyvalue', type=float, required=False, help="filter by minimum value")
         parser.add_argument('filterbydatasource', type=str, action='append', required=False, help="datasources to consider to calculate the association score")
+        parser.add_argument('filterbydatatype', type=str, action='append', required=False, help="datatype to consider to calculate the association score")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
 
 
