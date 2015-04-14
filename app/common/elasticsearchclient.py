@@ -1,15 +1,10 @@
 from collections import defaultdict
-import collections
-import pprint
-import itertools
-import csv
-from StringIO import StringIO
+
 import operator
 import logging
 
 from flask import current_app
 import ujson as json
-from dicttoxml import dicttoxml
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.datatypes import DataTypes
@@ -1478,20 +1473,20 @@ if (db == 'expression_atlas') {
                 score = round(max(min(scores), max(scores), key=abs), 2)
             except:
                 score = 0.
-
+            terapeutic_area = list(set([efo_labels[ta] for ta in efo_tas[data_point['key']]]))
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
                         # association_score = data_point['association_score']['value'],
                         association_score = score,
                         datatypes = datatypes,
                         label = efo_labels[data_point['key'] or data_point['key']],
-                        therapeutic_area = efo_labels[efo_tas[data_point['key']]],
+                        therapeutic_area = terapeutic_area,
                         )
 
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
-        if efo_labels is  None:
+        if efo_labels is None:
             efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
         new_data = map(transform_data_point, data)
 
@@ -1503,9 +1498,14 @@ if (db == 'expression_atlas') {
 
         def transform_data_to_tree(data, efo_parents):
             data = dict([(i["efo_code"],i) for i in data])
-            efo_tree_relations = sorted(efo_parents.items(),key=lambda items: len(items[1]))
+            expanded_relations = []
+            for code, paths in efo_parents.items():
+                for path in paths:
+                    expanded_relations.append([code,path])
+            efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
             for code, parents in efo_tree_relations:
+                # print code, parents
                 if not parents:
                     root.add_child(AssociationTreeNode(code, **data[code]))
                 else:
@@ -1531,13 +1531,18 @@ if (db == 'expression_atlas') {
         data = self.get_efo_info_from_code(efo_keys)
         for efo in data:
             code = efo['code'].split('/')[-1]
-            parents = efo['path_codes'][:-1]
+            parents = []
+            for path in efo['path_codes']:
+                parents.append(path[:-1])
             efo_parents[code]=parents
             efo_labels[code]=efo['label']
-            ta = ''
-            if len(parents)>1:
-                ta = parents[1]
+            ta = []
+            for path in parents:
+                if len(path)>1:
+                    ta.append(path[1])
             efo_therapeutic_area[code]= ta
+            # if len(efo['path_codes'])>2:
+
 
         return efo_parents, efo_labels, efo_therapeutic_area
 
