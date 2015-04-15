@@ -1684,8 +1684,8 @@ class AssociationTreeNode(object):
             if node.has_child(p):
                 node = node.get_child(p)
                 continue
-        if node._is_root():
-            print 'got root for path: ', path, node.children_as_array()
+        # if node._is_root():
+        #     print 'got root for path: ', path, node.children_as_array()
         return node
 
     def __eq__(self, other):
