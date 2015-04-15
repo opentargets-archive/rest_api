@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import operator
 import logging
+import pprint
 
 from flask import current_app
 import ujson as json
@@ -791,7 +792,6 @@ class esQuery():
 
                                       }
                                   )
-        # print res
         if res['hits']['total']:
             '''build data structure to return'''
             if objects:
@@ -802,7 +802,6 @@ class esQuery():
                     data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue)
                 elif params.datastructure == OutputDataStructureOptions.TREE:
                     data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue)
-
 
 
             return CountedResult(res, params, data, total = res['hits']['total'])
@@ -1647,11 +1646,12 @@ class SearchParams():
 class AssociationTreeNode(object):
     ROOT = 'cttv_disease'
 
-    def __init__(self, name = None, **kwargs):
+    def __init__(self, name = None, root_label = 'cttv_disease', **kwargs):
         self.name = name or self.ROOT
         self.children = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
+        self.ROOT = root_label
 
     def _is_root(self):
         return self.name == self.ROOT
@@ -1661,7 +1661,7 @@ class AssociationTreeNode(object):
             if child._is_root():
                 raise AttributeError("child cannot be root ")
             if child == self:
-                raise AttributeError("child cannot add a  node to itself ")
+                raise AttributeError(" cannot add a node to itself as a child")
             if not self.has_child(child):
                 self.children[child.name]=child
         else:
@@ -1684,10 +1684,21 @@ class AssociationTreeNode(object):
             if node.has_child(p):
                 node = node.get_child(p)
                 continue
+        if node._is_root():
+            print 'got root for path: ', path, node.children_as_array()
         return node
 
     def __eq__(self, other):
         return self.name == other.name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    def __unicode__(self):
+        return unicode(self.name)
 
     def children_as_array(self):
         return self.children.values()
