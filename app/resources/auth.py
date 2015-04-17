@@ -18,6 +18,46 @@ class RequestToken(restful.Resource):
     parser.add_argument('uid', type=str, required=False, help="user id [uid] ")
     parser.add_argument('password', type=str, required=False, help="password [password] ")
 
+    _swagger_parameters = [
+                {
+                  "name": "appname",
+                  "description": "the name of the app you are using to request a token. You need to register the app before you will be able to request a token",
+                  "required": True,
+                  "dataType": "string",
+                  "paramType": "query"
+                },
+                {
+                  "name": "secret",
+                  "description": "the secret you were given when registering your app",
+                  "required": True,
+                  "dataType": "string",
+                  "paramType": "query"
+
+                },
+                {
+                  "name": "uid",
+                  "description": "the id of the user that is using your app",
+                  "required": False,
+                  "dataType": "string",
+                  "paramType": "query"
+
+                },
+                {
+                  "name": "password",
+                  "description": "the id of the user that is using your app",
+                  "required": False,
+                  "dataType": "string",
+                  "paramType": "query"
+
+                },
+
+              ]
+
+    @swagger.operation(
+        nickname='association',
+        produces = ["application/json"],
+        parameters=_swagger_parameters,
+        )
     def get(self, ):
         args = self.parser.parse_args()
         return TokenAuthentication.get_auth_token('cttv_api',auth_data=args)
