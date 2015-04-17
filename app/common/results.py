@@ -149,13 +149,12 @@ class CountedResult(Result):
 
         :param total: count to return, needs to be passed as kwarg
         '''
-        total = None
+        self.total = None
         if 'total' in kwargs:
             self.total = kwargs.pop('total')
-        else:
-            self.total = len(self.data)
-
         super(self.__class__,self).__init__(*args, **kwargs)
+        if self.total is None:
+            self.total = len(self.data)
 
     def toDict(self):
         return {'data': self.data,

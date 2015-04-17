@@ -748,7 +748,6 @@ class esQuery():
         '''create multiple condition boolean query'''
         conditions = []
         aggs = None
-        datasources = '.*'
         if params.filterbydatasource or params.filterbydatatype:
             requested_datasources = []
             if params.filterbydatasource:
@@ -757,17 +756,18 @@ class esQuery():
                 for datatype in params.filterbydatatype:
                     requested_datasources.extend(self.datatypes.get_datasources(datatype))
             requested_datasources = list(set(requested_datasources))
-            #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
-            datasources = '|'.join(["%s"%x for x in requested_datasources])
+            conditions.append(self._get__complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR))
+            # #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
+            # datasources = '|'.join(["%s"%x for x in requested_datasources])
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg(include_filter=datasources)
+            aggs = self._get_efo_associations_agg()
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg(include_filter=datasources)
+                aggs = self._get_gene_associations_agg()
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -822,7 +822,7 @@ class esQuery():
             # "http://identifiers.org/ensembl/" + gene,
         ]
 
-    def _get_complex_gene_filter(self, genes, bol):
+    def _get_complex_gene_filter(self, genes, bol, datasources = None):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param genes: list of genes
@@ -1319,7 +1319,7 @@ class esQuery():
         #
         # }
 
-    def _get_gene_associations_agg(self, include_filter = '.*'):
+    def _get_gene_associations_agg(self):
         return {"efo_codes": {
                    "terms": {
                        "field" : "_private.efo_codes",
@@ -1334,10 +1334,6 @@ class esQuery():
                                  # "field" : "_private.datatype",
                                  "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
-                                 "include" : {
-                                     "pattern" : include_filter,
-                                     "flags" : "CASE_INSENSITIVE"
-                                 },
                                },
                              "aggs":{
                                   "association_score": {
@@ -1367,7 +1363,7 @@ class esQuery():
                  }
               }
 
-    def _get_efo_associations_agg(self, include_filter = '.*'):
+    def _get_efo_associations_agg(self):
         # return {"genes": {
         #            "terms": {
         #                "field" : "biological_subject.about",
@@ -1397,10 +1393,6 @@ class esQuery():
                                  # "field" : "_private.datatype",
                                  "field" : "evidence.provenance_type.database.id",
                                  'size': 10000,
-                                 "include" : {
-                                     "pattern" : include_filter,
-                                     "flags" : "CASE_INSENSITIVE"
-                                 },
                                },
                              "aggs":{
                                   "association_score": {
@@ -1646,12 +1638,11 @@ class SearchParams():
 class AssociationTreeNode(object):
     ROOT = 'cttv_disease'
 
-    def __init__(self, name = None, root_label = 'cttv_disease', **kwargs):
+    def __init__(self, name = None, **kwargs):
         self.name = name or self.ROOT
         self.children = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
-        self.ROOT = root_label
 
     def _is_root(self):
         return self.name == self.ROOT
