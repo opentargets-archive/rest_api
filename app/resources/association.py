@@ -112,7 +112,7 @@ class Association(restful.Resource):
         nickname='association',
         produces = ["application/json", "text/xml", "text/csv"],
 
-        responseClass=PaginatedResponse.__name__,
+        # responseClass=PaginatedResponse.__name__,
         parameters=_swagger_parameters,
         )
     @is_authenticated

@@ -32,10 +32,10 @@ def create_app(config_name):
         log_level = logging.DEBUG
     logger = logging.getLogger()
     logHandler = logging.StreamHandler()
-    formatter = jsonlogger.JsonFormatter()
-    logHandler.setFormatter(formatter)
+    # formatter = jsonlogger.JsonFormatter()
+    # logHandler.setFormatter(formatter)
     logger.addHandler(logHandler)
-    logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
+    # logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
     # logger.error("hi", extra=dict(hi="hi"))
 
 

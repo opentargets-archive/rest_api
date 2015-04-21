@@ -12,11 +12,17 @@ from app.common.requests import json_type
 import ujson as json
 from app.common.auth import is_authenticated
 
+@swagger.model
+class GetByIdQuery:
+  "An object to specify an getbyid query"
+  resource_fields = {
+      'id': fields.List(fields.String(attribute='gene file name', ))
+  }
 
 
 @swagger.model
-class EvidenceQuery:
-  "An object to specify an evidence query"
+class FilterByQuery:
+  "An object to specify a filterby query"
   resource_fields = {
       'gene': fields.List(fields.String(attribute='gene file name', )),
       'efo': fields.List(fields.String(attribute='efo code', )),
@@ -31,13 +37,6 @@ class EvidenceQuery:
 
   }
 
-  swagger_metadata = {
-      'gene': {
-          'list': ['one', 'two', 'three']
-      }
-  }
-
-
 
 
 
@@ -47,7 +46,7 @@ class Evidence(restful.Resource):
 
     @swagger.operation(
         nickname='evidence',
-        produces = ["application/json", "text/xml", "text/csv"],
+        produces = ["application/json"],
         parameters=[
             {
               "name": "id",
@@ -60,7 +59,7 @@ class Evidence(restful.Resource):
           ],
         )
     @is_authenticated
-    def get(self ):
+    def get(self):
         """
         Get an evidence from its id
         Can be used to request in batch if multiple ids are passed
@@ -73,6 +72,35 @@ class Evidence(restful.Resource):
         if not res:
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return res
+
+    @swagger.operation(
+        nickname='evidence',
+        resourcePath ='/evidence',
+        produces = ["application/json",],
+        parameters=[
+            {
+              "name": "body",
+              "description": "an evidence id you want to retrieve",
+              "required": True,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "body",
+              "type": "GetByIdQuery"
+            },
+            ]
+        )
+    @is_authenticated
+    def post(self):
+
+        args = request.get_json()
+        evidenceids = args['id']
+        es = current_app.extensions['esquery']
+
+        res = es.get_evidences_by_id(evidenceids)
+        if not res:
+            abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
+        return res
+
 
 class FilterBy(restful.Resource, Paginable):
 
@@ -201,8 +229,8 @@ class FilterBy(restful.Resource, Paginable):
 
 
     @swagger.operation(
-        nickname='evidences',
-        resourcePath ='/evidences',
+        nickname='filterby',
+        resourcePath ='/filterby',
         produces = ["application/json", "text/xml", "text/csv"],
         responseClass=PaginatedResponse.__name__,
         parameters=[
@@ -213,7 +241,7 @@ class FilterBy(restful.Resource, Paginable):
               "allowMultiple": True,
               "dataType": "string",
               "paramType": "body",
-              "type": "EvidenceQuery"
+              "type": "FilterByQuery"
             },
             ]
         )
