@@ -949,7 +949,18 @@ class esQuery():
                             # "tie_breaker": 0.1,
                             "type": "best_fields",
                           }
-                        }
+                        },
+                        {"multi_match" : {
+                            "query":    searchphrase,
+                            "fields": [ "id",
+                                        "approved_symbol^5",
+                                        ],
+                            "analyzer" : 'keyword',
+                            "fuzziness": "AUTO",
+                            # "tie_breaker": 0.1,
+                            "type": "best_fields",
+                          }
+                        },
                     ]
                 }
             }
