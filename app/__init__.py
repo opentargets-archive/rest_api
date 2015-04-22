@@ -3,6 +3,7 @@ from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
 import logstash
 from app.common.datatypes import DataTypes
+from app.common.scoring import DataSourceScoring
 from config import config
 import logging
 from pythonjsonlogger import jsonlogger
@@ -49,6 +50,7 @@ def create_app(config_name):
                         )
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
+                                        DataSourceScoring(app),
                                         index_data = app.config['ELASTICSEARCH_DATA_INDEX_NAME'],
                                         index_efo = app.config['ELASTICSEARCH_EFO_LABEL_INDEX_NAME'],
                                         index_eco = app.config['ELASTICSEARCH_ECO_INDEX_NAME'],

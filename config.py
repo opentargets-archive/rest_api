@@ -1,4 +1,5 @@
 from collections import defaultdict
+from app.common.scoring import ScoringMethods
 
 __author__ = 'andreap'
 
@@ -34,6 +35,9 @@ class Config:
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census',]
     DATATYPES['known_drug'] = ['chembl',]
+
+    DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
+    DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
 
     @staticmethod
     def init_app(app):

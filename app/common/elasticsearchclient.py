@@ -13,6 +13,7 @@ from app.common.datatypes import DataTypes
 from app.common.responses import ResponseType
 from app.common.requests import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult
+from app.common.scoring import DataSourceScoring
 
 __author__ = 'andreap'
 
@@ -33,6 +34,7 @@ class esQuery():
     def __init__(self,
                  handler,
                  datatypes,
+                 datatource_scoring,
                  index_data=None,
                  index_efo=None,
                  index_eco=None,
@@ -64,6 +66,7 @@ class esQuery():
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
         self.datatypes = datatypes
+        self.datatource_scoring = datatource_scoring
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
@@ -71,11 +74,11 @@ class esQuery():
             for handler in es_logger.handlers:
                 handler.setFormatter(formatter)
             es_logger.setLevel(logging.DEBUG)
-            es_tracer = logging.getLogger('elasticsearch.trace')
-            es_tracer.setLevel(logging.DEBUG)
-            es_tracer.addHandler(logging.FileHandler('es_trace.log'))
-            for handler in es_tracer.handlers:
-                handler.setFormatter(formatter)
+            # es_tracer = logging.getLogger('elasticsearch.trace')
+            # es_tracer.setLevel(logging.DEBUG)
+            # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
+            # for handler in es_tracer.handlers:
+            #     handler.setFormatter(formatter)
 
 
     def get_evidences_for_gene(self, gene, **kwargs):
@@ -1336,7 +1339,7 @@ class esQuery():
                        "field" : "_private.efo_codes",
                        'size': 10000,
                        "order": {
-                           "association_score": "desc"
+                           "association_score.count": "desc"
                        }
                    },
                     "aggs":{
@@ -1348,7 +1351,7 @@ class esQuery():
                                },
                              "aggs":{
                                   "association_score": {
-                                     "sum": {
+                                     "stats": {
                                          "script" : self._get_script_association_score_weighted()['script'],
                                      },
 
@@ -1356,7 +1359,7 @@ class esQuery():
                             }
                           },
                           "association_score": {
-                                     "sum": {
+                                     "stats": {
                                          "script" : self._get_script_association_score_weighted()['script'],
                                      },
 
@@ -1395,7 +1398,7 @@ class esQuery():
                        "field" : "biological_subject.about",
                        'size': 100,
                        "order": {
-                           "association_score": "desc"
+                           "association_score.count": "desc"
                        }
                    },
                    "aggs":{
@@ -1407,7 +1410,7 @@ class esQuery():
                                },
                              "aggs":{
                                   "association_score": {
-                                     "sum": {
+                                     "stats": {
                                          "script" : self._get_script_association_score_weighted()['script'],
                                      },
 
@@ -1415,7 +1418,7 @@ class esQuery():
                             }
                           },
                           "association_score": {
-                                     "sum": {
+                                     "stats": {
                                          "script" : self._get_script_association_score_weighted()['script'],
                                      }
                           },
@@ -1446,7 +1449,7 @@ if (db == 'expression_atlas') {
 } else if (db == 'eva'){
   return 0.5;
 } else if (db == 'phenodigm'){
-  return 0.0333;
+  return  doc['evidence.association_score.probability.value'].value;
 } else if (db == 'gwas'){
   return 0.5;
 } else if (db == 'cancer_gene_census'){
@@ -1460,11 +1463,14 @@ if (db == 'expression_atlas') {
 
     def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None, efo_tas = None):
         def transform_datasource_point(datatype_point):
-            if datatype_point['association_score']['value'] >1:
-                datatype_point['association_score']['value'] =1
+            score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
+            if score >1:
+                score =1
+            elif score <-1:
+                score = -1
             return dict(evidence_count = datatype_point['doc_count'],
                         datatype = datatype_point['key'],
-                        association_score = round(datatype_point['association_score']['value'],2),
+                        association_score = round(score,2),
                         )
 
         def transform_data_point(data_point):
@@ -1553,11 +1559,14 @@ if (db == 'expression_atlas') {
 
 
         def transform_datasource_point(datatype_point):
-            if datatype_point['association_score']['value'] >1:
-                datatype_point['association_score']['value'] =1
+            score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
+            if score >1:
+                score =1
+            elif score <-1:
+                score = -1
             return dict(evidence_count = datatype_point['doc_count'],
                         datatype = datatype_point['key'],
-                        association_score = round(datatype_point['association_score']['value'],2),
+                        association_score = round(score,2),
                         )
 
         def transform_data_point(data_point):
@@ -1584,6 +1593,7 @@ if (db == 'expression_atlas') {
         for gene in gene_info['data']:
             gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
         new_data = map(transform_data_point, data)
+
         return new_data
 
     def _get_datatype_aggregation_from_datasource(self, datasources):
