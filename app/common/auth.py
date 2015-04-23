@@ -34,7 +34,8 @@ class AESCipher:
 
 
 
-
+def get_domain():
+    return request.environ.get('HTTP_HOST').split(':')[0]
 
 class TokenAuthentication():
 
@@ -47,7 +48,7 @@ class TokenAuthentication():
             '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'beta.targetvalidation.org','localhost', '127.0.0.1']
         }
 
-        domain = request.environ.get('HTTP_HOST').split(':')[0]
+        domain = get_domain()
         if auth_data['secret'] in authorized_keys:
             if authorized_keys[auth_data['secret']]:
                 if domain in authorized_keys[auth_data['secret']]:
@@ -60,7 +61,8 @@ class TokenAuthentication():
     @staticmethod
     def _prepare_payload(api_name, auth_data):
         payload = {'api_name': api_name,
-                   'app_name': auth_data['appname']}
+                   'app_name': auth_data['appname'],
+                   'domain': get_domain()}
         if 'uid' in auth_data:
             payload['uid'] = auth_data['uid']
         return payload
@@ -71,7 +73,6 @@ class TokenAuthentication():
         cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
         try:
             data = json.loads(cipher.decrypt(s.loads(token)))
-
             return data
         except SignatureExpired:
             current_app.logger.error('token expired')
@@ -106,7 +107,11 @@ class TokenAuthentication():
 
     @classmethod#TODO: this is temporary just for testing
     def is_valid(cls,token):
-        if cls._get_payload_from_token(token):
+        payload = cls._get_payload_from_token(token)
+        if payload:
+            if payload['domain'] != get_domain():
+                current_app.logger.error("bad domain in token: got %s expecting %s"%(payload['domain'],get_domain()))
+                return False
             return True
         return False
 
