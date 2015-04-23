@@ -44,10 +44,15 @@ class TokenAuthentication():
     def _autenticate(auth_data):
         #TODO: use a proper authentication
         authorized_keys = {
-            'cttv-web-app':'2J23T20O31UyepRj7754pEA2osMOYfFK'
+            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'beta.targetvalidation.org','localhost', '127.0.0.1']
         }
-        if auth_data['appname'] in authorized_keys:
-            if auth_data['secret'] == authorized_keys[ auth_data['appname']]:
+
+        domain = request.environ.get('HTTP_HOST').split(':')[0]
+        if auth_data['secret'] in authorized_keys:
+            if authorized_keys[auth_data['secret']]:
+                if domain in authorized_keys[auth_data['secret']]:
+                    return True
+            else:
                 return True
         return False
 
