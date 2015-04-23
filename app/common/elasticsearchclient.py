@@ -816,7 +816,10 @@ class esQuery():
                          "gene_id": genes[0],
                         }]
                 return CountedResult(res, params, data, total = 0)
-            return CountedResult(res, params, [])
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                return CountedResult(res, params, [])
+            elif params.datastructure == OutputDataStructureOptions.TREE:
+                return CountedResult(res, params, {})
 
     def _get_gene_filter(self, gene):
         return [
