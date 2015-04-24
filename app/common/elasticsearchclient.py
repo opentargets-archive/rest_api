@@ -576,7 +576,7 @@ class esQuery():
             )
             if res['hits']['total']:
                 if res['hits']['total']==1:
-                    return res['hits']['hits'][0]['_source']
+                    return [res['hits']['hits'][0]['_source']]
                 else:
                     return [hit['_source'] for hit in res['hits']['hits']]
 

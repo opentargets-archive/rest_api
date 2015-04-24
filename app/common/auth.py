@@ -105,7 +105,7 @@ class TokenAuthentication():
             return dict(token=token)
         abort(401)
 
-    @classmethod#TODO: this is temporary just for testing
+    @classmethod
     def is_valid(cls,token):
         payload = cls._get_payload_from_token(token)
         if payload:
