@@ -20,6 +20,6 @@ class EfoLabelFromCode(restful.Resource):
         es = current_app.extensions['esquery']
         res = es.get_efo_info_from_code(code)
         if res:
-            return res
+            return res[0]
         else:
             abort(404, message="EFO code %s cannot be found"%code)
