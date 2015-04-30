@@ -7,7 +7,7 @@ import pprint
 import itertools
 import csv
 from StringIO import StringIO
-import ujson as json
+import json
 
 __author__ = 'andreap'
 

@@ -2,7 +2,7 @@ __author__ = 'andreap'
 
 import urllib
 import urllib2
-import ujson as json
+import json
 import time
 
 class EnsemblRestClient():

@@ -5,15 +5,10 @@ import logging
 import pprint
 
 from flask import current_app
-import ujson as json
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.datatypes import DataTypes
-
-from app.common.responses import ResponseType
 from app.common.requests import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult
-from app.common.scoring import DataSourceScoring
 
 __author__ = 'andreap'
 

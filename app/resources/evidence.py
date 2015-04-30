@@ -8,8 +8,7 @@ from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.boilerplate import Paginable
 from app.common.responses import CTTVResponse, PaginatedResponse
-from app.common.requests import json_type
-import ujson as json
+import json
 from app.common.auth import is_authenticated
 
 @swagger.model

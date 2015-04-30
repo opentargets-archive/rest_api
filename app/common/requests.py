@@ -1,7 +1,7 @@
 
 __author__ = 'andreap'
 
-import ujson as json
+import json
 
 class OutputDataStructure():
     source = False

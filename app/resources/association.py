@@ -7,10 +7,8 @@ from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
-from app.common.boilerplate import Paginable
 from app.common.responses import CTTVResponse, PaginatedResponse
-from app.common.requests import json_type
-import ujson as json
+
 
 
 __author__ = 'andreap'

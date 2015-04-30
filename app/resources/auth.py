@@ -44,7 +44,7 @@ class RequestToken(restful.Resource):
                 },
                 {
                   "name": "password",
-                  "description": "the id of the user that is using your app",
+                  "description": "the password of the user that is using your app",
                   "required": False,
                   "dataType": "string",
                   "paramType": "query"
