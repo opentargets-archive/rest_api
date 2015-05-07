@@ -39,6 +39,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.echo import Echo
     from app.resources.association import Association
     from app.resources.auth import RequestToken, ValidateToken
+    from app.resources.expression import Expression
 
 
 
@@ -61,6 +62,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/eco/<string:code>')
     api.add_resource(GeneInfo,
                      '/gene/<string:gene_id>')
+    api.add_resource(Expression,
+                     '/expression')
     api.add_resource(FreeTextSearch,
                      '/search')
     api.add_resource(QuickSearch,

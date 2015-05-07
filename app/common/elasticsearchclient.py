@@ -34,10 +34,12 @@ class esQuery():
                  index_efo=None,
                  index_eco=None,
                  index_genename=None,
+                 index_expression=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
                  docname_genename=None,
+                 docname_expression=None,
                  log_level=logging.DEBUG):
         '''
 
@@ -56,12 +58,15 @@ class esQuery():
         self._index_efo = index_efo
         self._index_eco = index_eco
         self._index_genename = index_genename
+        self._index_expression = index_expression
         self._docname_data = docname_data
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
+        self._docname_expression = docname_expression
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
+
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
@@ -1608,6 +1613,40 @@ if (db == 'expression_atlas') {
                 if abs(ds['association_score']) > abs(datatype_aggs[dt]['association_score']):
                     datatype_aggs[dt]['association_score'] = ds['association_score']
         return datatype_aggs.values()
+
+    def get_expression(self,
+                              genes,
+                              **kwargs):
+        '''
+        returns the expression data for a list of genes
+        :param genes: list of genes
+        :param params: query parameters
+        :return: tissue expression data object
+        '''
+        params = SearchParams(**kwargs)
+        if genes:
+
+
+            source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+            if params.fields:
+                source_filter["include"]= params.fields
+
+            res = self.handler.search(index=self._index_expression,
+                                      body={
+                                          'filter': {
+                                              "ids": {
+                                                  "values": genes
+                                              }
+                                          },
+                                          # 'size': params.size,
+                                          # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+
+                                          }
+                                      )
+            if res['hits']['total']:
+                data = dict([(hit['_id'],hit['_source']) for hit in res['hits']['hits']])
+                return SimpleResult(res, params, data)
+
 
 
 

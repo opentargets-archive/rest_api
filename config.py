@@ -19,6 +19,8 @@ class Config:
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
     ELASTICSEARCH_GENE_NAME_INDEX_NAME = 'gene-data'
     ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genedata'
+    ELASTICSEARCH_EXPRESSION_INDEX_NAME = 'expression-data'
+    ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
