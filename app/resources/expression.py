@@ -14,6 +14,12 @@ from app.common.responses import CTTVResponse, PaginatedResponse
 __author__ = 'andreap'
 
 
+@swagger.model
+class ExpressionQuery:
+  "An object to specify an getbyid query"
+  resource_fields = {
+      'id': fields.List(fields.String(attribute='gene identifier', ))
+  }
 
 
 
@@ -58,8 +64,17 @@ class Expression(restful.Resource):
     @swagger.operation(
         nickname='expression',
         produces = ["application/json", "text/xml", "text/csv"],
-
-        parameters=_swagger_parameters,
+        parameters=[
+            {
+              "name": "body",
+              "description": "gene id(s) you want expression data for",
+              "required": True,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "body",
+              "type": "ExpressionQuery"
+            },
+            ]
         )
 
     @is_authenticated
