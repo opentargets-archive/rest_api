@@ -4,7 +4,7 @@ elasticsearch==1.4.0
 Flask==0.10.1
 Flask-Cors==1.10.3
 Flask-RESTful==0.3.2
--e git+https://github.com/CTTV/flask-restful-swagger.git@657faa7377f5dcf7718f4e094d50aa2dd86999cf#egg=flask_restful_swagger-master
+-e git+https://github.com/CTTV/flask-restful-swagger.git@657faa7377f5dcf7718f4e094d50aa2dd86999cf#egg=flask_restful_swagger
 Flask-Script==2.0.5
 Flask-SQLAlchemy==2.0
 Flask-SSLify==0.1.4
