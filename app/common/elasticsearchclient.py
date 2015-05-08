@@ -764,13 +764,13 @@ class esQuery():
             # datasources = '|'.join(["%s"%x for x in requested_datasources])
 
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator))
+            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg()
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg()
+                aggs = self._get_gene_associations_agg(expand_efo=params.expand_efo)
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -828,7 +828,7 @@ class esQuery():
             # "http://identifiers.org/ensembl/" + gene,
         ]
 
-    def _get_complex_gene_filter(self, genes, bol, datasources = None):
+    def  _get_complex_gene_filter(self, genes, bol, datasources = None):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param genes: list of genes
@@ -853,25 +853,37 @@ class esQuery():
                # "http://identifiers.org/efo/" + object,
         ]
 
-    def _get_complex_object_filter(self, objects, bol):
+    def _get_complex_object_filter(self, objects, bol, expand_efo = False):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
         :param bol: boolean operator to use for combining filters
+        :param expand_efo: search in the full efo parent list (True) or just direct links (False)
         :return: boolean filter
         '''
         if objects:
-             return {
+            if expand_efo:
+                return {
                     "bool": {
                         bol : [{
                               "terms": {
-                                 # "biological_object.about": self._get_object_filter(object)}
                                 "_private.efo_codes": self._get_object_filter(object)}
                           }
                           for object in objects]
                     }
 
-            }
+                }
+            else:
+                return {
+                    "bool": {
+                        bol : [{
+                              "terms": {
+                                 "biological_object.about": self._get_object_filter(object)}
+                          }
+                          for object in objects]
+                    }
+
+                }
 
     def _get_evidence_type_filter(self, evidence_type):
         return [evidence_type,
@@ -1336,10 +1348,14 @@ class esQuery():
         #
         # }
 
-    def _get_gene_associations_agg(self):
+    def _get_gene_associations_agg(self, expand_efo = False):
+        field = "biological_object.about"
+        if expand_efo:
+            field = "_private.efo_codes"
+
         return {"efo_codes": {
                    "terms": {
-                       "field" : "_private.efo_codes",
+                       "field" : field,
                        'size': 10000,
                        "order": {
                            "association_score.count": "desc"
@@ -1515,14 +1531,17 @@ if (db == 'expression_atlas') {
                     expanded_relations.append([code,path])
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
+            # 'always add available therapeutic areas'
+            # for code, parents in efo_tree_relations:
+            #     if len(parents)==2:
+            #         root.add_child(AssociationTreeNode(code, **data[code]))
             for code, parents in efo_tree_relations:
-                # print code, parents
+                print code, parents
                 if not parents:
                     root.add_child(AssociationTreeNode(code, **data[code]))
                 else:
                     node = root.get_node_at_path(parents)
                     node.add_child(AssociationTreeNode(code,**data[code]))
-
             return root.to_dict_tree_with_children_as_array()
 
 
@@ -1690,6 +1709,8 @@ class SearchParams():
         self.filterbyvalue = kwargs.get('filterbyvalue')
         self.filterbydatasource = kwargs.get('filterbydatasource')
         self.filterbydatatype = kwargs.get('filterbydatatype')
+
+        self.expand_efo = kwargs.get('expandefo', False) or False
 
 
 

@@ -1,3 +1,4 @@
+from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
 
 
@@ -101,6 +102,15 @@ class Association(restful.Resource):
               "dataType": "string",
               "paramType": "query"
             },
+            {
+              "name": "expandefo",
+              "description": "return the full efo tree if True or just direct links to an EFO code if False",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "boolean",
+              "defaultValue": "false",
+              "paramType": "query"
+            },
 
 
           ]
@@ -129,6 +139,7 @@ class Association(restful.Resource):
         parser.add_argument('filterbydatasource', type=str, action='append', required=False, help="datasources to consider to calculate the association score")
         parser.add_argument('filterbydatatype', type=str, action='append', required=False, help="datatype to consider to calculate the association score")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
+        parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
 
 
         args = parser.parse_args()
@@ -162,36 +173,7 @@ class Association(restful.Resource):
             },
             ]
         )
-   # # @marshal_with(EvidenceQuery.resource_fields)
-   #  def post(self ):
-   #      # parser = reqparse.RequestParser()
-   #      # parser.add_argument('gene', type=fields.List(fields.String),location='form', required=False, help="List of genes in biological_subject")
-   #      #
-   #      # args = parser.parse_args()
-   #      # print args
-   #      # print request
-   #      def fix_empty_strings(l):
-   #          new_l=[]
-   #          if l:
-   #              for i in l:
-   #                  if i:
-   #                      new_l.append(i)
-   #          return new_l
-   #
-   #
-   #      args = request.get_json()
-   #      genes = fix_empty_strings(args.pop('gene',[]) or [])
-   #      # gene_operator = args.pop('gene-bool','OR') or 'OR'
-   #      objects = fix_empty_strings(args.pop('efo',[]) or [])
-   #      # object_operator = args.pop('efo-bool','OR') or 'OR'
-   #      evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
-   #      # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-   #      datasource =  args.pop('datasource',[]) or []
-   #
-   #      if not (genes or objects or evidence_types or datasource):
-   #          abort(404, message='Please provide at least one gene, efo, eco or datasource')
-   #      return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
-   #
+
 
     def get_association(self,
                      genes,
