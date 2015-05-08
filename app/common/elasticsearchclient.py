@@ -751,6 +751,7 @@ class esQuery():
         '''create multiple condition boolean query'''
         conditions = []
         aggs = None
+        efo_with_data = []
         if params.filterbydatasource or params.filterbydatatype:
             requested_datasources = []
             if params.filterbydatasource:
@@ -770,7 +771,10 @@ class esQuery():
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg(expand_efo=params.expand_efo)
+                aggs = self._get_gene_associations_agg()
+            if not params.expand_efo:
+                efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
+
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -804,7 +808,7 @@ class esQuery():
                 if params.datastructure == OutputDataStructureOptions.FLAT:
                     data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue)
                 elif params.datastructure == OutputDataStructureOptions.TREE:
-                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue)
+                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
 
 
             return CountedResult(res, params, data, total = res['hits']['total'])
@@ -1348,7 +1352,7 @@ class esQuery():
         #
         # }
 
-    def _get_gene_associations_agg(self, expand_efo = False):
+    def _get_gene_associations_agg(self, expand_efo = True):
         field = "biological_object.about"
         if expand_efo:
             field = "_private.efo_codes"
@@ -1415,7 +1419,7 @@ class esQuery():
         return {"genes": {
                    "terms": {
                        "field" : "biological_subject.about",
-                       'size': 100,
+                       'size': 10000,
                        "order": {
                            "association_score.count": "desc"
                        }
@@ -1520,10 +1524,14 @@ if (db == 'expression_atlas') {
 
         return new_data
 
-    def _return_association_data_structures_for_genes_as_tree(self, res, agg_key, filter_value = None):
+    def _return_association_data_structures_for_genes_as_tree(self,
+                                                              res,
+                                                              agg_key,
+                                                              filter_value = None,
+                                                              efo_with_data =[]):
 
 
-        def transform_data_to_tree(data, efo_parents):
+        def transform_data_to_tree(data, efo_parents, efo_with_data=[]):
             data = dict([(i["efo_code"],i) for i in data])
             expanded_relations = []
             for code, paths in efo_parents.items():
@@ -1535,13 +1543,21 @@ if (db == 'expression_atlas') {
             # for code, parents in efo_tree_relations:
             #     if len(parents)==2:
             #         root.add_child(AssociationTreeNode(code, **data[code]))
+            if not efo_with_data:
+                efo_with_data= [code for code, parents in efo_tree_relations]
+            else:
+                for code, parents in efo_tree_relations:
+                    if len(parents)==1:
+                        if code not in efo_with_data:
+                            efo_with_data.append(code)
             for code, parents in efo_tree_relations:
-                print code, parents
-                if not parents:
-                    root.add_child(AssociationTreeNode(code, **data[code]))
-                else:
-                    node = root.get_node_at_path(parents)
-                    node.add_child(AssociationTreeNode(code,**data[code]))
+                if code in efo_with_data:
+                    print code, parents
+                    if not parents:
+                        root.add_child(AssociationTreeNode(code, **data[code]))
+                    else:
+                        node = root.get_node_at_path(parents)
+                        node.add_child(AssociationTreeNode(code,**data[code]))
             return root.to_dict_tree_with_children_as_array()
 
 
@@ -1551,7 +1567,7 @@ if (db == 'expression_atlas') {
         data = dict([(i["key"],i) for i in data])
         efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
         new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
-        tree_data = transform_data_to_tree(new_data,efo_parents) or new_data
+        tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
         return tree_data
 
     def  _get_efo_data_for_associations(self,efo_keys):
@@ -1666,7 +1682,34 @@ if (db == 'expression_atlas') {
                 data = dict([(hit['_id'],hit['_source']) for hit in res['hits']['hits']])
                 return SimpleResult(res, params, data)
 
+    def _get_efo_with_data(self, gene_filter):
+        efo_with_data =[]
+        res = self.handler.search(index=self._index_data,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "bool": {
+                                                      "must": gene_filter
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': 100000,
+                                      '_source': [ "biological_object.about"],
+                                       "aggs": {"efo_codes": {
+                                           "terms": {
+                                               "field" : "biological_object.about",
+                                               'size': 10000,
 
+                                           },
+                                         }
+                                      }
+                                  })
+        if res['hits']['total']:
+            data = res['aggregations']["efo_codes"]["buckets"]
+            efo_with_data=list(set([i['key'] for i in data]))
+        return efo_with_data
 
 
 class SearchParams():
