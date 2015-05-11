@@ -671,7 +671,7 @@ class esQuery():
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator))
+            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=params.expand_efo))
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources:
@@ -857,7 +857,7 @@ class esQuery():
                # "http://identifiers.org/efo/" + object,
         ]
 
-    def _get_complex_object_filter(self, objects, bol, expand_efo = True):
+    def _get_complex_object_filter(self, objects, bol, expand_efo = False):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects

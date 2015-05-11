@@ -104,7 +104,7 @@ class Association(restful.Resource):
             },
             {
               "name": "expandefo",
-              "description": "return the full efo tree if True or just direct links to an EFO code if False",
+              "description": "return the full efo tree if true or just direct links to an EFO code if false",
               "required": False,
               "allowMultiple": False,
               "dataType": "boolean",

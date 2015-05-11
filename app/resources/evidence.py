@@ -1,3 +1,4 @@
+from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
 
 __author__ = 'andreap'
@@ -32,6 +33,7 @@ class FilterByQuery:
       'format': fields.String(attribute='format',),
       'datastructure': fields.String(attribute='datastructure', ),
       'fields': fields.List(fields.String(attribute='fields to return', )),
+      'expandefo': fields.Boolean(attribute='get data for efo children',),
       # 'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
 
   }
@@ -184,6 +186,15 @@ class FilterBy(restful.Resource, Paginable):
             #   "dataType": "string",
             #   "paramType": "query"
             # },
+            {
+              "name": "expandefo",
+              "description": "return only evidence directly associated with the efo term if false or to all its children if true",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "boolean",
+              "defaultValue": "false",
+              "paramType": "query"
+            },
 
           ]
 
@@ -211,6 +222,8 @@ class FilterBy(restful.Resource, Paginable):
         # parser.add_argument('body', type=str, action='store', required=False, location='form', help="json object with query parameter")
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
+        parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
+
 
 
         args = parser.parse_args()
