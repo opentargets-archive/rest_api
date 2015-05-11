@@ -857,7 +857,7 @@ class esQuery():
                # "http://identifiers.org/efo/" + object,
         ]
 
-    def _get_complex_object_filter(self, objects, bol, expand_efo = False):
+    def _get_complex_object_filter(self, objects, bol, expand_efo = True):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
