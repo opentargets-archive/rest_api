@@ -26,7 +26,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.3'
+    API_VERSION = '0.4'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -37,6 +37,8 @@ class Config:
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census',]
     DATATYPES['known_drug'] = ['chembl',]
+    # DATATYPES['literature'] = ['europmc','disgenet']
+    # DATATYPES['protein_expression'] = ['hpa']
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
