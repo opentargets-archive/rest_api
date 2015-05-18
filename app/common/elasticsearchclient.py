@@ -771,7 +771,7 @@ class esQuery():
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg()
+                aggs = self._get_gene_associations_agg(expand_efo=params.expand_efo)
             if not params.expand_efo:
                 efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
 
