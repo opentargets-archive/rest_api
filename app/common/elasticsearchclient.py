@@ -771,7 +771,7 @@ class esQuery():
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg(expand_efo=params.expand_efo)
+                aggs = self._get_gene_associations_agg()
             if not params.expand_efo:
                 efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
 
@@ -806,7 +806,7 @@ class esQuery():
                     data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filterbyvalue)
             elif genes:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue)
+                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
                 elif params.datastructure == OutputDataStructureOptions.TREE:
                     data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
 
@@ -1484,7 +1484,7 @@ if (db == 'expression_atlas') {
 }
 """}
 
-    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None, efo_tas = None):
+    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None, efo_tas = None, efo_with_data=[]):
         def transform_datasource_point(datatype_point):
             score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
             if score >1:
@@ -1496,7 +1496,7 @@ if (db == 'expression_atlas') {
                         association_score = round(score,2),
                         )
 
-        def transform_data_point(data_point):
+        def transform_data_point(data_point, efo_with_data=[]):
             datasources = map( transform_datasource_point, data_point["datatypes"]["buckets"])
             datatypes = self._get_datatype_aggregation_from_datasource(datasources)
             try:
@@ -1520,6 +1520,8 @@ if (db == 'expression_atlas') {
         if efo_labels is None:
             efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
         new_data = map(transform_data_point, data)
+        if efo_with_data:
+            new_data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , new_data)
 
 
         return new_data
@@ -1552,7 +1554,6 @@ if (db == 'expression_atlas') {
                             efo_with_data.append(code)
             for code, parents in efo_tree_relations:
                 if code in efo_with_data:
-                    print code, parents
                     if not parents:
                         root.add_child(AssociationTreeNode(code, **data[code]))
                     else:
@@ -1571,18 +1572,18 @@ if (db == 'expression_atlas') {
         return tree_data
 
     def  _get_efo_data_for_associations(self,efo_keys):
-        def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
-            all_tas = []
-            for tas in efo_therapeutic_area.values():
-                for ta in tas:
-                    all_tas.append(ta)
-            all_tas=set(all_tas)
-            all_efo_label_keys = set(efo_labels.keys())
-            missing_tas_labels = list(all_tas - all_efo_label_keys)
-            if missing_tas_labels:
-                for efo in self.get_efo_info_from_code(missing_tas_labels):
-                    efo_labels[efo['path_codes'][0][-1]]=efo['label']
-            return efo_labels
+        # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
+        #     all_tas = []
+        #     for tas in efo_therapeutic_area.values():
+        #         for ta in tas:
+        #             all_tas.append(ta)
+        #     all_tas=set(all_tas)
+        #     all_efo_label_keys = set(efo_labels.keys())
+        #     missing_tas_labels = list(all_tas - all_efo_label_keys)
+        #     if missing_tas_labels:
+        #         for efo in self.get_efo_info_from_code(missing_tas_labels):
+        #             efo_labels[efo['path_codes'][0][-1]]=efo['label']
+        #     return efo_labels
 
         efo_parents = {}
         efo_labels = defaultdict(str)
@@ -1602,7 +1603,7 @@ if (db == 'expression_atlas') {
                         ta.append(path[1])
             efo_therapeutic_area[code]= ta
             # if len(efo['path_codes'])>2:
-        efo_labels = get_missing_ta_labels(efo_labels,efo_therapeutic_area)
+        # efo_labels = get_missing_ta_labels(efo_labels,efo_therapeutic_area)
 
 
         return efo_parents, efo_labels, efo_therapeutic_area
