@@ -1571,6 +1571,19 @@ if (db == 'expression_atlas') {
         return tree_data
 
     def  _get_efo_data_for_associations(self,efo_keys):
+        def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
+            all_tas = []
+            for tas in efo_therapeutic_area.values():
+                for ta in tas:
+                    all_tas.append(ta)
+            all_tas=set(all_tas)
+            all_efo_label_keys = set(efo_labels.keys())
+            missing_tas_labels = list(all_tas - all_efo_label_keys)
+            if missing_tas_labels:
+                for efo in self.get_efo_info_from_code(missing_tas_labels):
+                    efo_labels[efo['path_codes'][0][-1]]=efo['label']
+            return efo_labels
+
         efo_parents = {}
         efo_labels = defaultdict(str)
         efo_therapeutic_area = defaultdict(str)
@@ -1585,9 +1598,11 @@ if (db == 'expression_atlas') {
             ta = []
             for path in parents:
                 if len(path)>1:
-                    ta.append(path[1])
+                    if path[1] not in ta:
+                        ta.append(path[1])
             efo_therapeutic_area[code]= ta
             # if len(efo['path_codes'])>2:
+        efo_labels = get_missing_ta_labels(efo_labels,efo_therapeutic_area)
 
 
         return efo_parents, efo_labels, efo_therapeutic_area
