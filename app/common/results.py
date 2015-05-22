@@ -14,7 +14,7 @@ __author__ = 'andreap'
 class Result(object):
     format = ResponseType.JSON
 
-    def __init__(self, res, params, data=None):
+    def __init__(self, res, params, data=None, facets=None):
         '''
 
         :param res: elasticsearch query response
@@ -27,6 +27,7 @@ class Result(object):
         self.params = params
         self.data = data
         self.format = params.format
+        self.facets = facets
 
 
     def toDict(self):
@@ -124,8 +125,12 @@ class PaginatedResult(Result):
         else:
             if self.params.datastructure == OutputDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
+        if self.facets is None:
+            if 'aggregations' in self.res:
+                self.facets = self.res['aggregations']
 
         return {'data': self.data,
+                'facets':self.facets,
                 'total': self.res['hits']['total'],
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
@@ -157,6 +162,11 @@ class CountedResult(Result):
             self.total = len(self.data)
 
     def toDict(self):
+        if self.facets:
+            return {'data': self.data,
+                    'facets': self.facets,
+                    'total': self.total,
+            }
         return {'data': self.data,
                 'total': self.total,
         }

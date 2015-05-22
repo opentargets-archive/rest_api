@@ -554,6 +554,8 @@ class esQuery():
                                            '_source': source_filter,
                                            'size': params.size,
                                            'from': params.start_from,
+                                           'aggs':  self._get_gene_info_agg()
+
                                            }
                                       )
             return PaginatedResult(res, params)
@@ -811,7 +813,7 @@ class esQuery():
                     data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
 
 
-            return CountedResult(res, params, data, total = res['hits']['total'])
+            return CountedResult(res, params, data['data'], total = res['hits']['total'], facets=data['facets'])
         else:
             if genes and objects:
                 data = [{"evidence_count": 0,
@@ -819,11 +821,11 @@ class esQuery():
                          "association_score": 0,
                          "gene_id": genes[0],
                         }]
-                return CountedResult(res, params, data, total = 0)
+                return CountedResult(res, params, data, total = 0, facets = {})
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                return CountedResult(res, params, [])
+                return CountedResult(res, params, [],facets = {})
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                return CountedResult(res, params, {})
+                return CountedResult(res, params, {},facets = {})
 
     def _get_gene_filter(self, gene):
         return [
@@ -1524,7 +1526,8 @@ if (db == 'expression_atlas') {
             new_data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , new_data)
 
 
-        return new_data
+        return dict(data = new_data,
+                    facets = {})
 
     def _return_association_data_structures_for_genes_as_tree(self,
                                                               res,
@@ -1569,7 +1572,9 @@ if (db == 'expression_atlas') {
         efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
         new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
-        return tree_data
+
+        return dict(data = tree_data,
+                    facets = {})
 
     def  _get_efo_data_for_associations(self,efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
@@ -1642,13 +1647,18 @@ if (db == 'expression_atlas') {
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
-        gene_info = self.get_gene_info(gene_ids, size = gene_ids).toDict()
+        gene_info = self.get_gene_info(gene_ids, size = gene_ids, fields =['ensembl_gene_id',
+                                                                           'approved_symbol',
+                                                                           'ensembl_external_name',
+                                                                           'reactome.*'
+                                                                           ]).toDict()
         gene_names = defaultdict(str)
         for gene in gene_info['data']:
             gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
         new_data = map(transform_data_point, data)
 
-        return new_data
+        return dict(data = new_data,
+                    facets = gene_info['facets'])
 
     def _get_datatype_aggregation_from_datasource(self, datasources):
         datatype_aggs = {}
@@ -1726,6 +1736,17 @@ if (db == 'expression_atlas') {
             data = res['aggregations']["efo_codes"]["buckets"]
             efo_with_data=list(set([i['key'] for i in data]))
         return efo_with_data
+
+    def _get_gene_info_agg(self):
+        return {
+                "pathways": {
+                    "terms": {
+                         # "field" : "_private.datatype",
+                         "field" : "_private.facets.reactome.pathway",
+                         'size': 100000,
+                        },
+                    },
+           }
 
 
 class SearchParams():
