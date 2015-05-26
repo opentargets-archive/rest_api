@@ -1739,13 +1739,23 @@ if (db == 'expression_atlas') {
 
     def _get_gene_info_agg(self):
         return {
-                "pathways": {
+                "pathway_type": {
                     "terms": {
                          # "field" : "_private.datatype",
-                         "field" : "_private.facets.reactome.pathway",
+                         "field" : "_private.facets.reactome.pathway_type_code",
                          'size': 100000,
                         },
-                    },
+
+                    "aggs": {
+                        "pathway": {
+                            "terms": {
+                                 # "field" : "_private.datatype",
+                                 "field" : "_private.facets.reactome.pathway_code",
+                                 'size': 100000,
+                            },
+                        },
+                    }
+                }
            }
 
 
