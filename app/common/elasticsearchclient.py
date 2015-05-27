@@ -1599,9 +1599,9 @@ if (db == 'expression_atlas') {
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
-        data = dict([(i["key"],i) for i in data['data']])
+        data = dict([(i["key"],i) for i in data])
         efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
-        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
+        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)['data']
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
 
         return dict(data = tree_data,
@@ -1683,13 +1683,14 @@ if (db == 'expression_atlas') {
                                                                            'ensembl_external_name',
                                                                            'reactome.*'
                                                                            ]).toDict()
+        facets =  gene_info['facets']
         gene_names = defaultdict(str)
         for gene in gene_info['data']:
             gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
         new_data = map(transform_data_point, data)
 
         return dict(data = new_data,
-                    facets = gene_info['facets'])
+                    facets = facets)
 
     def _get_datatype_aggregation_from_datasource(self, datasources):
         datatype_aggs = {}
