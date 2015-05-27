@@ -1559,7 +1559,7 @@ if (db == 'expression_atlas') {
 
 
         def transform_data_to_tree(data, efo_parents, efo_with_data=[]):
-            data = dict([(i["efo_code"],i) for i in data['data']])
+            data = dict([(i["efo_code"],i) for i in data])
             expanded_relations = []
             for code, paths in efo_parents.items():
                 for path in paths:
@@ -1590,7 +1590,7 @@ if (db == 'expression_atlas') {
         data = res['aggregations'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
-        data = dict([(i["key"],i) for i in data])
+        data = dict([(i["key"],i) for i in data['data']])
         efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
         new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
@@ -1765,7 +1765,7 @@ if (db == 'expression_atlas') {
                     "terms": {
                          # "field" : "_private.datatype",
                          "field" : "_private.facets.reactome.pathway_type_code",
-                         'size': 100000,
+                         'size': 10,
                         },
 
                     "aggs": {
@@ -1773,24 +1773,24 @@ if (db == 'expression_atlas') {
                             "terms": {
                                  # "field" : "_private.datatype",
                                  "field" : "_private.facets.reactome.pathway_code",
-                                 'size': 100000,
+                                 'size': 10,
                             },
-                            "aggs": {
-                                "gene_count" : {
-                                    "cardinality" : {
-                                        "field" : "biological_subject.about",
-                                        "precision_threshold": 1000,
-                                    }
-                                }
-                            },
+                            # "aggs": {
+                            #     "count" : {
+                            #         "cardinality" : {
+                            #             "field" : "ensembl_gene_id",
+                            #             "precision_threshold": 1000,
+                            #         }
+                            #     }
+                            # },
                         },
 
-                        "gene_count" : {
-                            "cardinality" : {
-                                "field" : "biological_subject.about",
-                                "precision_threshold": 1000,
-                            }
-                        }
+                        # "count" : {
+                        #     "cardinality" : {
+                        #         "field" : "ensembl_gene_id",
+                        #         "precision_threshold": 1000,
+                        #     }
+                        # }
                     }
                 }
              }
