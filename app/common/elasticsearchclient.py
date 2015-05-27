@@ -764,7 +764,7 @@ class esQuery():
                 for datatype in params.filterbydatatype:
                     requested_datasources.extend(self.datatypes.get_datasources(datatype))
             requested_datasources = list(set(requested_datasources))
-            conditions.append(self._get__complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR))
             # #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
             # datasources = '|'.join(["%s"%x for x in requested_datasources])
 
@@ -1559,7 +1559,7 @@ if (db == 'expression_atlas') {
 
 
         def transform_data_to_tree(data, efo_parents, efo_with_data=[]):
-            data = dict([(i["efo_code"],i) for i in data])
+            data = dict([(i["efo_code"],i) for i in data['data']])
             expanded_relations = []
             for code, paths in efo_parents.items():
                 for path in paths:
@@ -1775,10 +1775,25 @@ if (db == 'expression_atlas') {
                                  "field" : "_private.facets.reactome.pathway_code",
                                  'size': 100000,
                             },
+                            "aggs": {
+                                "gene_count" : {
+                                    "cardinality" : {
+                                        "field" : "biological_subject.about",
+                                        "precision_threshold": 1000,
+                                    }
+                                }
+                            },
                         },
+
+                        "gene_count" : {
+                            "cardinality" : {
+                                "field" : "biological_subject.about",
+                                "precision_threshold": 1000,
+                            }
+                        }
                     }
                 }
-           }
+             }
 
     def _get_genes_for_pathway_code(self, pathway_codes):
         data =[]
