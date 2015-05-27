@@ -546,11 +546,20 @@ class esQuery():
         if gene_ids:
             res = self.handler.search(index=self._index_genename,
                                       doc_type=self._docname_genename,
-                                      body={'filter': {
-                                              "ids": {
-                                                  "values": gene_ids
-                                                  },
-                                              },
+                                      body={"query": {
+                                              "filtered": {
+                                                  # "query": {
+                                                  #     "match_all": {}
+                                                  # },
+                                                  "filter": {
+                                                      "ids": {
+                                                          "values": gene_ids
+
+                                                         }
+                                                    }
+                                                }
+                                            },
+
                                            '_source': source_filter,
                                            'size': params.size,
                                            'from': params.start_from,
