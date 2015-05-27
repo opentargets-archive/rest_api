@@ -1787,9 +1787,12 @@ if (db == 'expression_atlas') {
                                       "query": {
                                           "filtered": {
                                               "filter": {
-                                                  "terms": {
-                                                      "_private.facets.reactome.pathway_code":pathway_codes
-                                                  }
+                                                   "bool": {
+                                                       "should": [
+                                                           {"terms": {"_private.facets.reactome.pathway_code":pathway_codes}},
+                                                           {"terms": {"_private.facets.reactome.pathway_type_code":pathway_codes}},
+                                                       ]
+                                                   }
                                               }
                                           }
                                       },
