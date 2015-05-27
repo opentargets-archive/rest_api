@@ -27,6 +27,7 @@ class FilterByQuery:
       'gene': fields.List(fields.String(attribute='gene file name', )),
       'efo': fields.List(fields.String(attribute='efo code', )),
       'eco': fields.List(fields.String(attribute='efo code', )),
+      'pathway': fields.List(fields.String(attribute='pathway', )),
       'datasource': fields.List(fields.String(attribute='datasource', )),
       'from': fields.Integer(attribute='paginate from',),
       'size': fields.Integer(attribute='size to return', ),
@@ -155,6 +156,14 @@ class FilterBy(restful.Resource, Paginable):
             #   "paramType": "query"
             # },
             {
+              "name": "pathway",
+              "description": "a pathway identifier (meaning all the genes linked to that pathway",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
               "name": "datasource",
               "description": "datasource to consider",
               "required": False,
@@ -162,7 +171,7 @@ class FilterBy(restful.Resource, Paginable):
               "dataType": "string",
               "paramType": "query"
             },
-                    {
+            {
               "name": "datastructure",
               "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
               "required": False,
@@ -223,6 +232,7 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
         parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
+        parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
 
 
 
@@ -235,7 +245,7 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasource =  args.pop('datasource',[]) or []
 
-        if not (genes or objects or evidence_types or datasource):
+        if not (genes or objects or evidence_types or datasource or args['pathway']):
             abort(404, message='Please provide at least one gene, efo, eco or datasource')
         return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
 

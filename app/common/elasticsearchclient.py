@@ -677,7 +677,9 @@ class esQuery():
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources:
-            conditions.append(self._get__complex_datasource_filter(datasources, BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_datasource_filter(datasources, BooleanFilterOperator.OR))
+        if params.pathway:
+            conditions.append(self._get_complex_pathway_filter(params.pathway, BooleanFilterOperator.OR))
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
@@ -834,7 +836,10 @@ class esQuery():
             # "http://identifiers.org/ensembl/" + gene,
         ]
 
-    def  _get_complex_gene_filter(self, genes, bol, datasources = None):
+    def  _get_complex_gene_filter(self,
+                                  genes,
+                                  bol=BooleanFilterOperator.OR,
+                                  datasources=None):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param genes: list of genes
@@ -859,7 +864,10 @@ class esQuery():
                # "http://identifiers.org/efo/" + object,
         ]
 
-    def _get_complex_object_filter(self, objects, bol, expand_efo = False):
+    def _get_complex_object_filter(self,
+                                   objects,
+                                   bol=BooleanFilterOperator.OR,
+                                   expand_efo = False):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
@@ -896,7 +904,9 @@ class esQuery():
                 "http://identifiers.org/eco/" + evidence_type,
         ]
 
-    def _get_complex_evidence_type_filter(self, evidence_types, bol):
+    def _get_complex_evidence_type_filter(self,
+                                          evidence_types,
+                                          bol=BooleanFilterOperator.OR):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param evidence_types: list of evidence types
@@ -916,7 +926,7 @@ class esQuery():
         return dict()
 
 
-    def _get__complex_datasource_filter(self, datasources, bol):
+    def _get_complex_datasource_filter(self, datasources, bol):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param evidence_types: list of dataasource strings
@@ -938,6 +948,18 @@ class esQuery():
         return dict()
 
 
+    def _get_complex_pathway_filter(self, pathway_codes, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param pathway_codes: list of pathway_codes strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if pathway_codes:
+            genes = self._get_genes_for_pathway_code(pathway_codes)
+            if genes:
+                return self._get_complex_gene_filter(genes, bol)
+        return dict()
 
     def _get_free_text_query(self, searchphrase):
         return {"bool": {
@@ -1758,6 +1780,28 @@ if (db == 'expression_atlas') {
                 }
            }
 
+    def _get_genes_for_pathway_code(self, pathway_codes):
+        data =[]
+        res = self.handler.search(index=self._index_genename,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "terms": {
+                                                      "_private.facets.reactome.pathway_code":pathway_codes
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': 100000,
+                                      '_source': ["id"],
+
+
+                                  })
+        if res['hits']['total']:
+            data = [hit['_id'] for hit in res['hits']['hits']]
+        return data
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1799,6 +1843,9 @@ class SearchParams():
         self.filterbyvalue = kwargs.get('filterbyvalue')
         self.filterbydatasource = kwargs.get('filterbydatasource')
         self.filterbydatatype = kwargs.get('filterbydatatype')
+
+        self.pathway= kwargs.get('pathway', [])
+        self.target_class= kwargs.get('target_class')
 
         self.expand_efo = kwargs.get('expandefo', False) or False
 
