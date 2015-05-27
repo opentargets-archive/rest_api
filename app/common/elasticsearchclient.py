@@ -35,11 +35,13 @@ class esQuery():
                  index_eco=None,
                  index_genename=None,
                  index_expression=None,
+                 index_reactome=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
                  docname_genename=None,
                  docname_expression=None,
+                 docname_reactome=None,
                  log_level=logging.DEBUG):
         '''
 
@@ -59,11 +61,13 @@ class esQuery():
         self._index_eco = index_eco
         self._index_genename = index_genename
         self._index_expression = index_expression
+        self._index_reactome = index_reactome
         self._docname_data = docname_data
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
         self._docname_expression = docname_expression
+        self._docname_reactome = docname_reactome
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
 
@@ -1684,6 +1688,7 @@ if (db == 'expression_atlas') {
                                                                            'reactome.*'
                                                                            ]).toDict()
         facets =  gene_info['facets']
+        facets = self._extend_facets(facets)
         gene_names = defaultdict(str)
         for gene in gene_info['data']:
             gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
@@ -1829,6 +1834,69 @@ if (db == 'expression_atlas') {
         if res['hits']['total']:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
+
+    def _extend_facets(self, facets):
+
+        reactome_ids = []
+
+        '''get data'''
+        for facet in facets:
+            if 'buckets' in facets[facet]:
+                facet_buckets = facets[facet]['buckets']
+                for bucket in facet_buckets:
+                    if facet=='pathway_type':
+                        reactome_ids.append(bucket['key'])
+                    if 'pathway' in bucket:
+                        if 'buckets' in bucket['pathway']:
+                            sub_facet_buckets = bucket['pathway']['buckets']
+                            for sub_bucket in sub_facet_buckets:
+                                reactome_ids.append(sub_bucket['key'])
+        reactome_ids= list(set(reactome_ids))
+        reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
+
+        '''alter data'''
+        for facet in facets:
+            if 'buckets' in facets[facet]:
+                facet_buckets = facets[facet]['buckets']
+                for bucket in facet_buckets:
+                    if facet=='pathway_type':
+                        bucket['label']=reactome_labels[bucket['key']]
+                    if 'pathway' in bucket:
+                        if 'buckets' in bucket['pathway']:
+                            sub_facet_buckets = bucket['pathway']['buckets']
+                            for sub_bucket in sub_facet_buckets:
+                                sub_bucket['label'] = reactome_labels[sub_bucket['key']]
+        return facets
+
+    def _get_labels_for_reactome_ids(self, reactome_ids):
+        labels = defaultdict(str)
+        if reactome_ids:
+            res = self.handler.search(index=self._index_reactome,
+                                      doc_type=self._docname_reactome,
+                                      body={"query": {
+                                              "filtered": {
+                                                  # "query": {
+                                                  #     "match_all": {}
+                                                  # },
+                                                  "filter": {
+                                                      "ids": {
+                                                          "values": reactome_ids
+
+                                                         }
+                                                    }
+                                                }
+                                            },
+
+                                           '_source': ['label'],
+                                           'size': 10000,
+                                           'from': 0,
+
+                                           }
+                                      )
+            if res['hits']['total']:
+                for hit in res['hits']['hits']:
+                    labels[hit['_id']]= hit['_source']['label']
+        return labels
 
 
 class SearchParams():
