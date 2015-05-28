@@ -1557,6 +1557,10 @@ if (db == 'expression_atlas') {
                         )
 
         data = res['aggregations'][agg_key]["buckets"]
+        facets = {}
+        if 'datatypes' in res['aggregations'][agg_key]:
+            facets = res['aggregations'][agg_key]['datatypes']
+        facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         if efo_labels is None:
@@ -1567,7 +1571,7 @@ if (db == 'expression_atlas') {
 
 
         return dict(data = new_data,
-                    facets = {})
+                    facets = facets)
 
     def _return_association_data_structures_for_genes_as_tree(self,
                                                               res,
@@ -1606,6 +1610,10 @@ if (db == 'expression_atlas') {
 
 
         data = res['aggregations'][agg_key]["buckets"]
+        facets = {}
+        if 'datatypes' in res['aggregations'][agg_key]:
+            facets = res['aggregations'][agg_key]['datatypes']
+        facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         data = dict([(i["key"],i) for i in data])
@@ -1614,7 +1622,7 @@ if (db == 'expression_atlas') {
         tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
 
         return dict(data = tree_data,
-                    facets = {})
+                    facets = facets)
 
     def  _get_efo_data_for_associations(self,efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
