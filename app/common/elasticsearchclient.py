@@ -780,6 +780,8 @@ class esQuery():
             conditions.append(self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR))
             # #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
             # datasources = '|'.join(["%s"%x for x in requested_datasources])
+        if params.filterbypathway:
+            conditions.append(self._get_complex_pathway_filter(params.filterbypathway, BooleanFilterOperator.OR))
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
@@ -1434,7 +1436,9 @@ class esQuery():
                    #       },
                    #    }
                    # }
-                 }
+                 },
+                "datatypes": self._get_datatype_facet_aggregation(),
+
               }
 
     def _get_efo_associations_agg(self):
@@ -1493,7 +1497,8 @@ class esQuery():
                           #     },
                           },
 
-                   }
+                   },
+                "datatypes": self._get_datatype_facet_aggregation(),
                }
 
     def _get_script_association_score_weighted(self):
@@ -1685,9 +1690,11 @@ if (db == 'expression_atlas') {
         gene_info = self.get_gene_info(gene_ids, size = gene_ids, fields =['ensembl_gene_id',
                                                                            'approved_symbol',
                                                                            'ensembl_external_name',
-                                                                           'reactome.*'
+                                                                           'reactome.*',
                                                                            ]).toDict()
         facets =  gene_info['facets']
+        if 'datatypes' in res['aggregations']:
+            facets['datatypes'] = res['aggregations']['datatypes']
         facets = self._extend_facets(facets)
         gene_names = defaultdict(str)
         for gene in gene_info['data']:
@@ -1898,6 +1905,22 @@ if (db == 'expression_atlas') {
                     labels[hit['_id']]= hit['_source']['label']
         return labels
 
+    def _get_datatype_facet_aggregation(self):
+        return {"terms": {
+                     "field" : "_private.datatype",
+                     'size': 10,
+                   },
+                 "aggs":{
+                      "datasources": {
+                          "terms": {
+                            "field" :  "evidence.provenance_type.database.id",
+                            }
+                        }
+                    }
+                 }
+
+
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1941,6 +1964,7 @@ class SearchParams():
         self.filterbydatatype = kwargs.get('filterbydatatype')
 
         self.pathway= kwargs.get('pathway', [])
+        self.filterbypathway = kwargs.get('filterbypathway')
         self.target_class= kwargs.get('target_class')
 
         self.expand_efo = kwargs.get('expandefo', False) or False

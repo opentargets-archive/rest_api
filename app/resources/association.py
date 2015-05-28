@@ -95,6 +95,14 @@ class Association(restful.Resource):
               "paramType": "query"
             },
             {
+              "name": "filterbypathway",
+              "description": "Consider just genes involved in this pathway. Accepts a list of pathway codes.",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
               "name": "datastructure",
               "description": "Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene). Can be 'flat' or 'tree'",
               "required": False,
@@ -138,6 +146,8 @@ class Association(restful.Resource):
         parser.add_argument('filterbyvalue', type=float, required=False, help="filter by minimum value")
         parser.add_argument('filterbydatasource', type=str, action='append', required=False, help="datasources to consider to calculate the association score")
         parser.add_argument('filterbydatatype', type=str, action='append', required=False, help="datatype to consider to calculate the association score")
+        parser.add_argument('filterbypathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
+
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
 
