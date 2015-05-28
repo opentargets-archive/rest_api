@@ -1558,8 +1558,8 @@ if (db == 'expression_atlas') {
 
         data = res['aggregations'][agg_key]["buckets"]
         facets = {}
-        if 'datatypes' in res['aggregations'][agg_key]:
-            facets = res['aggregations'][agg_key]['datatypes']
+        if 'datatypes' in res['aggregations']:
+            facets['datatypes'] = res['aggregations']['datatypes']
         facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
@@ -1611,8 +1611,8 @@ if (db == 'expression_atlas') {
 
         data = res['aggregations'][agg_key]["buckets"]
         facets = {}
-        if 'datatypes' in res['aggregations'][agg_key]:
-            facets = res['aggregations'][agg_key]['datatypes']
+        if 'datatypes' in res['aggregations']:
+            facets['datatypes'] = res['aggregations']['datatypes']
         facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
