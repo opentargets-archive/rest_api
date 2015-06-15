@@ -1799,6 +1799,16 @@ if (db == 'expression_atlas') {
                         },
 
                     "aggs": {
+                         # "unique_target_count": {
+                         #    "cardinality" : {
+                         #        "field" : "biological_subject.about",
+                         #        "precision_threshold": 1000},
+                         #  },
+                         # "unique_disease_count": {
+                         #    "cardinality" : {
+                         #        "field" : "biological_object.about",
+                         #        "precision_threshold": 1000},
+                         #      },
                         "pathway": {
                             "terms": {
                                  # "field" : "_private.datatype",
@@ -1822,7 +1832,7 @@ if (db == 'expression_atlas') {
                         #     }
                         # }
                     }
-                }
+                },
              }
 
     def _get_genes_for_pathway_code(self, pathway_codes):
@@ -1922,8 +1932,31 @@ if (db == 'expression_atlas') {
                       "datasources": {
                           "terms": {
                             "field" :  "evidence.provenance_type.database.id",
-                            }
-                        }
+                            },
+                          "aggs":{
+                              "unique_target_count": {
+                                  "cardinality" : {
+                                      "field" : "biological_subject.about",
+                                      "precision_threshold": 1000},
+                              },
+                               "unique_disease_count": {
+                                   "cardinality" : {
+                                      "field" : "biological_object.about",
+                                      "precision_threshold": 1000},
+                                  }
+                          },
+                        },
+                      "unique_target_count": {
+                           "cardinality" : {
+                              "field" : "biological_subject.about",
+                              "precision_threshold": 1000},
+                          },
+                      "unique_disease_count": {
+                           "cardinality" : {
+                              "field" : "biological_object.about",
+                              "precision_threshold": 1000},
+                          },
+
                     }
                  }
 
