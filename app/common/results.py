@@ -1,6 +1,6 @@
 import collections
-from app.common.requests import OutputDataStructureOptions
-from app.common.responses import ResponseType
+from app.common.request_templates import OutputDataStructureOptions
+from app.common.response_templates import ResponseType
 from dicttoxml import dicttoxml
 import collections
 import pprint

@@ -7,7 +7,7 @@ from flask.ext.restful import reqparse
 from app.common import boilerplate
 from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
-from app.common.responses import CTTVResponse
+from app.common.response_templates import CTTVResponse
 
 
 

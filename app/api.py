@@ -40,6 +40,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.association import Association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
+    from app.resources.proxy import ProxyEnsembl
 
 
 
@@ -76,4 +77,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/auth/request_token')
     api.add_resource(ValidateToken,
                      '/auth/validate_token')
+
+    api.add_resource(ProxyEnsembl,
+                     '/proxy/ensembl/<path:url>')
+
     return api

@@ -7,7 +7,7 @@ import pprint
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.requests import OutputDataStructureOptions
+from app.common.request_templates import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult
 
 __author__ = 'andreap'

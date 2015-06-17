@@ -148,3 +148,13 @@ def is_authenticated(func):
 
         restful.abort(401)
     return wrapper
+
+def get_token_payload():
+    token = request.headers.get('Auth-Token')
+    if not token:
+        token= request.headers.get('Authorization')
+        if token:
+            token = token.split()[-1].strip()
+            token = base64.b64decode(token)[:-1]
+    if token:
+        return TokenAuthentication._get_payload_from_token(token)

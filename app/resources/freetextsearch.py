@@ -6,7 +6,7 @@ from flask_restful_swagger import swagger
 from app.common import boilerplate
 from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
-from app.common.responses import CTTVResponse, PaginatedResponse
+from app.common.response_templates import CTTVResponse, PaginatedResponse
 
 
 __author__ = 'andreap'

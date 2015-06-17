@@ -1,4 +1,4 @@
-import requests
+import request_templates
 import random, string
 from datetime import datetime, timedelta
 import time
@@ -16,7 +16,7 @@ def test_random_search():
     ok = errors= 0
     while 1:
         random_string = ''.join(random.choice(string.ascii_uppercase) for _ in range(6))
-        r = requests.get(path , params = dict(q=random_string))
+        r = request_templates.get(path , params = dict(q=random_string))
         if r.status_code ==200:
             ok +=1
         else:
@@ -33,7 +33,7 @@ def test_available_genes():
     start_time = datetime.now()
     ok = errors= 0.
     while 1:
-        r = requests.get(path)
+        r = request_templates.get(path)
         if r.status_code ==200:
             ok +=1
         else:
@@ -49,7 +49,7 @@ def test_echo():
     start_time = datetime.now()
     ok = errors= 0.
     while 1:
-        r = requests.get(path, params = dict(echo="Hi"))
+        r = request_templates.get(path, params = dict(echo="Hi"))
         if r.status_code ==200:
             ok +=1
         else:
@@ -65,7 +65,7 @@ def test_echo_random_slowdown():
     start_time = datetime.now()
     ok = errors= 0.
     while 1:
-        r = requests.get(path, params = dict(echo="Hi", random = True))
+        r = request_templates.get(path, params = dict(echo="Hi", random = True))
         if r.status_code ==200:
             ok +=1
         else:

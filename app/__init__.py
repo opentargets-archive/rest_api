@@ -3,6 +3,7 @@ from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
 import logstash
 from app.common.datatypes import DataTypes
+from app.common.proxy import ProxyHandler
 from app.common.scoring import DataSourceScoring
 from config import config
 import logging
@@ -66,6 +67,7 @@ def create_app(config_name):
                                         log_level=log_level,
 
                                         )
+    app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS'])
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
