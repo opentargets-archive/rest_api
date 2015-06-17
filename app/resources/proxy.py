@@ -48,3 +48,49 @@ class ProxyEnsembl(restful.Resource):
             return res
         else:
             abort(404, message="cannot proxy to: %s "%url)
+
+
+class ProxyGXA(restful.Resource):
+
+    @swagger.operation()
+    @is_authenticated
+    def get(self, url ):
+        '''
+        proxy for the gxa rest api
+        '''
+        proxy = current_app.extensions['proxy']
+        res = proxy.proxy('gxa',url, get_token_payload())
+        if res:
+            return res
+        else:
+            abort(404, message="cannot proxy to: %s "%url)
+
+class ProxyPDB(restful.Resource):
+
+    @swagger.operation()
+    @is_authenticated
+    def get(self, url ):
+        '''
+        proxy for the pdbe rest api
+        '''
+        proxy = current_app.extensions['proxy']
+        res = proxy.proxy('pdbe',url, get_token_payload())
+        if res:
+            return res
+        else:
+            abort(404, message="cannot proxy to: %s "%url)
+
+class ProxyEPMC(restful.Resource):
+
+    @swagger.operation()
+    @is_authenticated
+    def get(self, url ):
+        '''
+        proxy for the pdbe rest api
+        '''
+        proxy = current_app.extensions['proxy']
+        res = proxy.proxy('epmc',url, get_token_payload())
+        if res:
+            return res
+        else:
+            abort(404, message="cannot proxy to: %s "%url)

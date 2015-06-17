@@ -48,7 +48,7 @@ class Config:
     PROXY_SETTINGS={'ensembl': 'https://rest.ensembl.org/',
                     'gxa': 'https://www.ebi.ac.uk/gxa/',
                     'pdbe': 'https://www.ebi.ac.uk/pdbe/',
-                    'europmc': 'http://www.ebi.ac.uk/europepmc/webservices/rest/',
+                    'epmc': 'http://www.ebi.ac.uk/europepmc/',
                     }
 
     @staticmethod
