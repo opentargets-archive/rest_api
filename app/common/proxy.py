@@ -12,8 +12,11 @@ CHUNK_SIZE = 1024
 ALLOWED_HEADERS = ['Content-Type']
 class ProxyHandler():
 
-    def __init__(self, allowed_targets = {}):
+    def __init__(self,
+                 allowed_targets = {},
+                 allowed_domains = []):
         self.allowed_targets = allowed_targets
+        self.allowed_domains = allowed_domains
 
     def proxy(self,
               domain,
@@ -63,7 +66,19 @@ class ProxyHandler():
     def get_full_url(self, domain, url):
         if domain in self.allowed_targets:
             return self.allowed_targets[domain]+url
+        elif self.is_url_allowed(url):
+            return url
         else:
             logging.warn("domain is not allowed: %s", domain)
             abort(403)
+
+    def is_url_allowed(self, url):
+        allowed = False
+        try:
+            domain = url.split('//')[1].split('/')[0]
+            if domain in self.allowed_domains:
+                allowed = True
+        except:
+            pass
+        return allowed
 

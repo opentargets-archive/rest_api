@@ -45,10 +45,12 @@ class Config:
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
 
-    PROXY_SETTINGS={'ensembl': 'https://rest.ensembl.org/',
-                    'gxa': 'https://www.ebi.ac.uk/gxa/',
-                    'pdbe': 'https://www.ebi.ac.uk/pdbe/',
-                    'epmc': 'http://www.ebi.ac.uk/europepmc/',
+    PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
+                                        'gxa': 'https://www.ebi.ac.uk/gxa/',
+                                        'pdbe': 'https://www.ebi.ac.uk/pdbe/',
+                                        'epmc': 'http://www.ebi.ac.uk/europepmc/',
+                                        },
+                    'allowed_domains': ['www.ebi.ac.uk']
                     }
 
     @staticmethod

@@ -94,3 +94,44 @@ class ProxyEPMC(restful.Resource):
             return res
         else:
             abort(404, message="cannot proxy to: %s "%url)
+
+
+class ProxyGeneric(restful.Resource):
+
+    @swagger.operation()
+    @is_authenticated
+    def get(self, url ):
+        '''
+        proxy for the ensembl rest api
+        '''
+        proxy = current_app.extensions['proxy']
+        res = proxy.proxy('',url, get_token_payload())
+        if res:
+            return res
+        else:
+            abort(404, message="cannot proxy to: %s "%url)
+
+    @swagger.operation(
+        parameters=[
+            {
+              "name": "body",
+              "description": "json data you want to pass in the body",
+              "required": True,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "body",
+            },
+            ]
+
+    )
+    @is_authenticated
+    def post(self, url ):
+        '''
+        proxy for the ensembl rest api
+        '''
+        proxy = current_app.extensions['proxy']
+        res = proxy.proxy('',url, get_token_payload(), request.data)
+        if res:
+            return res
+        else:
+            abort(404, message="cannot proxy to: %s "%url)

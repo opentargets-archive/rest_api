@@ -40,7 +40,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.association import Association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
-    from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyEPMC
+    from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
 
 
 
@@ -86,4 +86,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/proxy/pdbe/<path:url>')
     # api.add_resource(ProxyEPMC,
     #                  '/proxy/epmc/<path:url>')
+    api.add_resource(ProxyGeneric,
+                     '/proxy/generic/<path:url>')
     return api
