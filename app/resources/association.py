@@ -1,4 +1,5 @@
 from flask.ext.restful.inputs import boolean
+from flask.ext.restful.reqparse import Argument
 from app.common import boilerplate
 
 
@@ -9,7 +10,7 @@ from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.response_templates import CTTVResponse, PaginatedResponse
-
+from app.common.utils import get_ordered_filter_list
 
 
 __author__ = 'andreap'
@@ -70,8 +71,24 @@ class Association(restful.Resource):
             #   "dataType": "string",
             #   "paramType": "query"
             # },
+            # {
+            #   "name": "filters",
+            #   "description": "pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request",
+            #   "required": False,
+            #   "allowMultiple": False,
+            #   "dataType": "string",
+            #   "paramType": "query"
+            # },
+             {
+              "name": "filterbyscorevalue_max",
+              "description": "the maximum value of association score you want to filter by",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "string",
+              "paramType": "query"
+            },
             {
-              "name": "filterbyvalue",
+              "name": "filterbyscorevalue_min",
               "description": "the minimum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
@@ -143,16 +160,24 @@ class Association(restful.Resource):
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('filterbyvalue', type=float, required=False, help="filter by minimum value")
-        parser.add_argument('filterbydatasource', type=str, action='append', required=False, help="datasources to consider to calculate the association score")
-        parser.add_argument('filterbydatatype', type=str, action='append', required=False, help="datatype to consider to calculate the association score")
+        parser.add_argument('filterbyscorevalue_min', type=float, required=False, help="filter by minimum score value")
+        parser.add_argument('filterbyscorevalue_max', type=float, required=False, help="filter by maximum score value")
+        parser.add_argument('filterbydatasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
+        parser.add_argument('filterbydatatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('filterbypathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
-
+        # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
 
 
         args = parser.parse_args()
+        # filters = args.pop('filter',[]) or []
+        # if filters:
+        #     filters = get_ordered_filter_list(filters)
+        # else:
+        #     filters = get_ordered_filter_list(request.query_string)
+        # if filters:
+        #     args['filter']=filters
         genes = args.pop('gene',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
         objects = args.pop('efo',[]) or []

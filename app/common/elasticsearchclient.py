@@ -9,6 +9,7 @@ from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult
+from app.common.datatypes import FilterTypes
 
 __author__ = 'andreap'
 
@@ -538,14 +539,16 @@ class esQuery():
         return available_genes
 
 
-    def get_gene_info(self,gene_ids, **kwargs):
+    def get_gene_info(self,gene_ids, facets = False, **kwargs):
         params = SearchParams(**kwargs)
         if params.datastructure == OutputDataStructureOptions.DEFAULT:
             params.datastructure = OutputDataStructureOptions.FULL
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"]= params.fields
-
+        aggs = {}
+        if facets:
+            aggs = self._get_gene_info_agg()
 
         if gene_ids:
             res = self.handler.search(index=self._index_genename,
@@ -567,7 +570,7 @@ class esQuery():
                                            '_source': source_filter,
                                            'size': params.size,
                                            'from': params.start_from,
-                                           'aggs':  self._get_gene_info_agg()
+                                           'aggs':  aggs,
 
                                            }
                                       )
@@ -766,31 +769,34 @@ class esQuery():
         gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
         '''create multiple condition boolean query'''
-        conditions = []
         aggs = None
         efo_with_data = []
-        if params.filterbydatasource or params.filterbydatatype:
+        conditions = []
+        filter_data_conditions = dict()
+
+        if params.filters[FilterTypes.DATASOURCE] or \
+                 params.filters[FilterTypes.DATATYPE]:
             requested_datasources = []
-            if params.filterbydatasource:
-                requested_datasources.extend(params.filterbydatasource)
-            if params.filterbydatatype:
-                for datatype in params.filterbydatatype:
+            if params.filters[FilterTypes.DATASOURCE]:
+                requested_datasources.extend(params.filters[FilterTypes.DATASOURCE])
+            if params.filters[FilterTypes.DATATYPE]:
+                for datatype in params.filters[FilterTypes.DATATYPE]:
                     requested_datasources.extend(self.datatypes.get_datasources(datatype))
             requested_datasources = list(set(requested_datasources))
-            conditions.append(self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR))
+            filter_data_conditions[FilterTypes.DATASOURCE]=self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR)
             # #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
             # datasources = '|'.join(["%s"%x for x in requested_datasources])
-        if params.filterbypathway:
-            conditions.append(self._get_complex_pathway_filter(params.filterbypathway, BooleanFilterOperator.OR))
+        if params.filters[FilterTypes.PATHWAY]:
+            filter_data_conditions[FilterTypes.PATHWAY]=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY], BooleanFilterOperator.OR)
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg()
+            aggs = self._get_efo_associations_agg(filters = filter_data_conditions)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg()
+                aggs = self._get_gene_associations_agg(filters = filter_data_conditions)
             if not params.expand_efo:
                 efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
 
@@ -803,6 +809,7 @@ class esQuery():
 
         res = self.handler.search(index=self._index_data,
                                   body={
+                                      #restrict the set of datapoints using the target and disease ids
                                       "query": {
                                           "filtered": {
                                               "filter": {
@@ -814,20 +821,28 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                                      # filter out the results as requested, this will not be applied to the aggregation
+                                      "filter": {
+                                          "bool": {
+                                              "must": filter_data_conditions.values()
+                                          }
+                                       },
+                                      # calculate aggregation using proper ad hoc filters
                                        "aggs": aggs
 
                                       }
                                   )
         if res['hits']['total']:
             '''build data structure to return'''
+            filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
             if objects:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=params.filterbyvalue)
+                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=filter_value, filters = params.filters)
             elif genes:
                 if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
+                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
                 elif params.datastructure == OutputDataStructureOptions.TREE:
-                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=params.filterbyvalue, efo_with_data=efo_with_data)
+                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
 
 
             return CountedResult(res, params, data['data'], total = res['hits']['total'], facets=data['facets'])
@@ -1391,7 +1406,7 @@ class esQuery():
         #
         # }
 
-    def _get_gene_associations_agg(self, expand_efo = True):
+    def _get_gene_associations_agg(self, expand_efo = True, filters = {}):
         field = "biological_object.about"
         if expand_efo:
             field = "_private.efo_codes"
@@ -1437,11 +1452,11 @@ class esQuery():
                    #    }
                    # }
                  },
-                "datatypes": self._get_datatype_facet_aggregation(),
+                "datatypes": self._get_datatype_facet_aggregation(filters),
 
               }
 
-    def _get_efo_associations_agg(self):
+    def _get_efo_associations_agg(self, filters = {}):
         # return {"genes": {
         #            "terms": {
         #                "field" : "biological_subject.about",
@@ -1456,6 +1471,8 @@ class esQuery():
         #            }
         #          }
         #       }
+        gene_related_aggs = self._get_pathway_facet_aggregation(filters)
+
 
         return {"genes": {
                    "terms": {
@@ -1498,8 +1515,18 @@ class esQuery():
                           },
 
                    },
-                "datatypes": self._get_datatype_facet_aggregation(),
+                "datatypes": self._get_datatype_facet_aggregation(filters),
+                "pathway_type": gene_related_aggs["pathway_type"]
+
+
                }
+
+    def _get_complimentary_facet_filters(self, key, filters):
+        conditions = []
+        for filter_type, filter_value in filters.items():
+            if filter_type != key:
+                conditions.append(filter_value)
+        return conditions
 
     def _get_script_association_score_weighted(self):
         return {"script_id":"calculate_association_score_weighted",
@@ -1558,8 +1585,9 @@ if (db == 'expression_atlas') {
 
         data = res['aggregations'][agg_key]["buckets"]
         facets = {}
+        #need to add handle there the internal 'data' object coming from the facet filter for every facet
         if 'datatypes' in res['aggregations']:
-            facets['datatypes'] = res['aggregations']['datatypes']
+            facets['datatypes'] = res['aggregations']['datatypes']['data']
         facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
@@ -1661,7 +1689,7 @@ if (db == 'expression_atlas') {
 
         return efo_parents, efo_labels, efo_therapeutic_area
 
-    def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None):
+    def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None, filters = {}):
 
 
 
@@ -1695,14 +1723,19 @@ if (db == 'expression_atlas') {
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
-        gene_info = self.get_gene_info(gene_ids, size = gene_ids, fields =['ensembl_gene_id',
-                                                                           'approved_symbol',
-                                                                           'ensembl_external_name',
-                                                                           'reactome.*',
-                                                                           ]).toDict()
-        facets =  gene_info['facets']
+        gene_info = self.get_gene_info(gene_ids,
+                                       size = gene_ids,
+                                       fields =['ensembl_gene_id',
+                                               'approved_symbol',
+                                               'ensembl_external_name',
+                                               'reactome.*',
+                                               ],
+                                       ).toDict()
+        facets =  {}
         if 'datatypes' in res['aggregations']:
-            facets['datatypes'] = res['aggregations']['datatypes']
+            facets['datatypes'] = res['aggregations']['datatypes']['data']
+        if 'pathway_type' in res['aggregations']:
+            facets['pathway_type'] = res['aggregations']['pathway_type']['data']
         facets = self._extend_facets(facets)
         gene_names = defaultdict(str)
         for gene in gene_info['data']:
@@ -1789,51 +1822,34 @@ if (db == 'expression_atlas') {
             efo_with_data=list(set([i['key'] for i in data]))
         return efo_with_data
 
-    def _get_gene_info_agg(self):
+    def _get_gene_info_agg(self, filters = {}):
+
         return {
-                "pathway_type": {
-                    "terms": {
-                         # "field" : "_private.datatype",
-                         "field" : "_private.facets.reactome.pathway_type_code",
-                         'size': 10,
-                        },
-
-                    "aggs": {
-                         # "unique_target_count": {
-                         #    "cardinality" : {
-                         #        "field" : "biological_subject.about",
-                         #        "precision_threshold": 1000},
-                         #  },
-                         # "unique_disease_count": {
-                         #    "cardinality" : {
-                         #        "field" : "biological_object.about",
-                         #        "precision_threshold": 1000},
-                         #      },
-                        "pathway": {
+            "pathway_type": {
+                "filter": {
+                    "bool": {
+                        "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+                        }
+                    },
+                    "aggs":{
+                        "data": {
                             "terms": {
-                                 # "field" : "_private.datatype",
-                                 "field" : "_private.facets.reactome.pathway_code",
+                                 "field" : "_private.facets.reactome.pathway_type_code",
                                  'size': 10,
-                            },
-                            # "aggs": {
-                            #     "count" : {
-                            #         "cardinality" : {
-                            #             "field" : "ensembl_gene_id",
-                            #             "precision_threshold": 1000,
-                            #         }
-                            #     }
-                            # },
-                        },
+                                },
 
-                        # "count" : {
-                        #     "cardinality" : {
-                        #         "field" : "ensembl_gene_id",
-                        #         "precision_threshold": 1000,
-                        #     }
-                        # }
+                            "aggs": {
+                                "pathway": {
+                                    "terms": {
+                                         "field" : "_private.facets.reactome.pathway_code",
+                                         'size': 10,
+                                    },
+                            }
+                        },
                     }
-                },
+                }
              }
+        }
 
     def _get_genes_for_pathway_code(self, pathway_codes):
         data =[]
@@ -1876,7 +1892,7 @@ if (db == 'expression_atlas') {
                             sub_facet_buckets = bucket['pathway']['buckets']
                             for sub_bucket in sub_facet_buckets:
                                 reactome_ids.append(sub_bucket['key'])
-        reactome_ids= list(set(reactome_ids))
+        reactome_ids= [i.upper() for i in list(set(reactome_ids))]
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
 
         '''alter data'''
@@ -1885,17 +1901,18 @@ if (db == 'expression_atlas') {
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
                     if facet=='pathway_type':
-                        bucket['label']=reactome_labels[bucket['key']]
+                        bucket['label']=reactome_labels[bucket['key'].upper()]#TODO: fix the data so there is no need for upper
                     if 'pathway' in bucket:
                         if 'buckets' in bucket['pathway']:
                             sub_facet_buckets = bucket['pathway']['buckets']
                             for sub_bucket in sub_facet_buckets:
-                                sub_bucket['label'] = reactome_labels[sub_bucket['key']]
+                                sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()]
         return facets
 
     def _get_labels_for_reactome_ids(self, reactome_ids):
         labels = defaultdict(str)
         if reactome_ids:
+            reactome_ids = [i.upper() for i in reactome_ids]
             res = self.handler.search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
@@ -1923,42 +1940,108 @@ if (db == 'expression_atlas') {
                     labels[hit['_id']]= hit['_source']['label']
         return labels
 
-    def _get_datatype_facet_aggregation(self):
-        return {"terms": {
-                     "field" : "_private.datatype",
-                     'size': 10,
-                   },
-                 "aggs":{
-                      "datasources": {
-                          "terms": {
-                            "field" :  "evidence.provenance_type.database.id",
-                            },
-                          "aggs":{
-                              "unique_target_count": {
-                                  "cardinality" : {
+    def _get_datatype_facet_aggregation(self, filters):
+
+        return  {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
+                    }
+                },
+                "aggs":{
+                    "data": {
+                        "terms": {
+                             "field" : "_private.datatype",
+                             'size': 10,
+                           },
+                        "aggs":{
+                            "datasources": {
+                                "terms": {
+                                    "field" :  "evidence.provenance_type.database.id",
+                                },
+                            "aggs":{
+                                "unique_target_count": {
+                                    "cardinality" : {
                                       "field" : "biological_subject.about",
                                       "precision_threshold": 1000},
-                              },
-                               "unique_disease_count": {
-                                   "cardinality" : {
+                                },
+                                "unique_disease_count": {
+                                    "cardinality" : {
                                       "field" : "biological_object.about",
                                       "precision_threshold": 1000},
-                                  }
-                          },
-                        },
-                      "unique_target_count": {
-                           "cardinality" : {
-                              "field" : "biological_subject.about",
-                              "precision_threshold": 1000},
-                          },
-                      "unique_disease_count": {
-                           "cardinality" : {
-                              "field" : "biological_object.about",
-                              "precision_threshold": 1000},
-                          },
+                                    }
+                                },
+                            },
+                            "unique_target_count": {
+                               "cardinality" : {
+                                  "field" : "biological_subject.about",
+                                  "precision_threshold": 1000},
+                              },
+                            "unique_disease_count": {
+                               "cardinality" : {
+                                  "field" : "biological_object.about",
+                                  "precision_threshold": 1000},
+                            },
 
+                        }
                     }
-                 }
+                }
+        }
+
+
+    def _get_pathway_facet_aggregation(self, filters = {}):
+
+        return {
+            "pathway_type": {
+                "filter": {
+                    "bool": {
+                        "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+                        }
+                    },
+                    "aggs":{
+                        "data": {
+                            "terms": {
+                                 "field" : "_private.facets.reactome.pathway_type_code",
+                                 'size': 10,
+                                },
+
+                            "aggs": {
+                                "pathway": {
+                                    "terms": {
+                                         "field" : "_private.facets.reactome.pathway_code",
+                                         'size': 10,
+                                    },
+                                    "aggs":{
+                                        "unique_target_count": {
+                                            "cardinality" : {
+                                              "field" : "biological_subject.about",
+                                              "precision_threshold": 1000},
+                                        },
+                                        "unique_disease_count": {
+                                            "cardinality" : {
+                                              "field" : "biological_object.about",
+                                              "precision_threshold": 1000},
+                                            }
+                                        },
+                                },
+                                "unique_target_count": {
+                                   "cardinality" : {
+                                      "field" : "biological_subject.about",
+                                      "precision_threshold": 1000
+                                   },
+                                },
+                                "unique_disease_count": {
+                                   "cardinality" : {
+                                      "field" : "biological_object.about",
+                                      "precision_threshold": 1000
+                                   },
+                                },
+                            }
+                        },
+                    }
+                }
+            }
+
 
 
 
@@ -1999,13 +2082,15 @@ class SearchParams():
         if self.fields:
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
-        self.filter = kwargs.get('filter')
-        self.filterbyvalue = kwargs.get('filterbyvalue')
-        self.filterbydatasource = kwargs.get('filterbydatasource')
-        self.filterbydatatype = kwargs.get('filterbydatatype')
+        self.filters = dict()
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0)
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1)
+        self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
+        self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
+        self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
+
 
         self.pathway= kwargs.get('pathway', [])
-        self.filterbypathway = kwargs.get('filterbypathway')
         self.target_class= kwargs.get('target_class')
 
         self.expand_efo = kwargs.get('expandefo', False) or False

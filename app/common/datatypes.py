@@ -40,3 +40,9 @@ class DataTypes():
         return self.datasources[datasource].datatypes
 
 
+class FilterTypes():
+    DATASOURCE = 'filterbydatasource'
+    DATATYPE = 'filterbydatatype'
+    ASSOCIATION_SCORE_MIN = 'filterbyscorevalue_min'
+    ASSOCIATION_SCORE_MAX = 'filterbyscorevalue_max'
+    PATHWAY = 'filterbypathway'
