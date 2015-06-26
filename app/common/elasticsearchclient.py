@@ -1553,7 +1553,14 @@ if (db == 'expression_atlas') {
 }
 """}
 
-    def _return_association_data_structures_for_genes(self, res, agg_key, filter_value = None, efo_labels = None, efo_tas = None, efo_with_data=[]):
+    def _return_association_data_structures_for_genes(self,
+                                                      res,
+                                                      agg_key,
+                                                      filter_value = None,
+                                                      efo_labels = None,
+                                                      efo_tas = None,
+                                                      efo_with_data=[],
+                                                      filters = {}):
         def transform_datasource_point(datatype_point):
             score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
             if score >1:
@@ -1605,7 +1612,8 @@ if (db == 'expression_atlas') {
                                                               res,
                                                               agg_key,
                                                               filter_value = None,
-                                                              efo_with_data =[]):
+                                                              efo_with_data =[],
+                                                              filters = {}):
 
 
         def transform_data_to_tree(data, efo_parents, efo_with_data=[]):
