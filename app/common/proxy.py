@@ -21,8 +21,9 @@ class ProxyHandler():
     def proxy(self,
               domain,
               url,
-              token_payload,
+              token_payload = None,
               post_payload =None,
+              preserve_headers = True,
               ):
         """Fetches the specified URL and streams it out to the client.
 
@@ -35,8 +36,9 @@ class ProxyHandler():
         def generate():
             for chunk in r.iter_content(CHUNK_SIZE):
                 yield chunk
-        content = generate()
-        return Response(content, headers = headers)
+        if preserve_headers:
+            return Response(generate(), headers = headers,)
+        return Response(generate())
 
 
     def get_source_rsp(self,
@@ -48,7 +50,7 @@ class ProxyHandler():
         # Pass original Referer for subsequent resource requests
         headers= {"Referer" : url}
         for h in ALLOWED_HEADERS:
-            if h in request.headers:
+            if h in request.headers and request.headers[h]:
                 headers[h]=request.headers.get(h)
         # Fetch the URL, and stream it back
         logging.info("Fetching with headers: %s, %s", url, headers)
@@ -69,7 +71,7 @@ class ProxyHandler():
         elif self.is_url_allowed(url):
             return url
         else:
-            logging.warn("domain is not allowed: %s", domain)
+            logging.warn("domain is not allowed: %s%s"%(domain,url))
             abort(403)
 
     def is_url_allowed(self, url):

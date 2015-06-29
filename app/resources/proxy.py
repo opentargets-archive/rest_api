@@ -12,7 +12,7 @@ from flask_restful_swagger import swagger
 class ProxyEnsembl(restful.Resource):
 
     @swagger.operation()
-    @is_authenticated
+    # @is_authenticated
     def get(self, url ):
         '''
         proxy for the ensembl rest api
@@ -37,7 +37,7 @@ class ProxyEnsembl(restful.Resource):
             ]
 
     )
-    @is_authenticated
+    # @is_authenticated
     def post(self, url ):
         '''
         proxy for the ensembl rest api
@@ -53,7 +53,7 @@ class ProxyEnsembl(restful.Resource):
 class ProxyGXA(restful.Resource):
 
     @swagger.operation()
-    @is_authenticated
+    # @is_authenticated
     def get(self, url ):
         '''
         proxy for the gxa rest api
@@ -68,7 +68,7 @@ class ProxyGXA(restful.Resource):
 class ProxyPDB(restful.Resource):
 
     @swagger.operation()
-    @is_authenticated
+    # @is_authenticated
     def get(self, url ):
         '''
         proxy for the pdbe rest api
@@ -83,7 +83,7 @@ class ProxyPDB(restful.Resource):
 class ProxyEPMC(restful.Resource):
 
     @swagger.operation()
-    @is_authenticated
+    # @is_authenticated
     def get(self, url ):
         '''
         proxy for the pdbe rest api
@@ -99,13 +99,13 @@ class ProxyEPMC(restful.Resource):
 class ProxyGeneric(restful.Resource):
 
     @swagger.operation()
-    @is_authenticated
+    # @is_authenticated
     def get(self, url ):
         '''
         proxy for the ensembl rest api
         '''
         proxy = current_app.extensions['proxy']
-        res = proxy.proxy('',url, get_token_payload())
+        res = proxy.proxy('',url, )
         if res:
             return res
         else:
@@ -124,7 +124,7 @@ class ProxyGeneric(restful.Resource):
             ]
 
     )
-    @is_authenticated
+    # @is_authenticated
     def post(self, url ):
         '''
         proxy for the ensembl rest api
