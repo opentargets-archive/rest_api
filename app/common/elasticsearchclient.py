@@ -801,7 +801,6 @@ class esQuery():
                 efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
 
 
-
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
@@ -822,7 +821,7 @@ class esQuery():
                                       'size': params.size,
                                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
                                       # filter out the results as requested, this will not be applied to the aggregation
-                                      "filter": {
+                                      "post_filter": {
                                           "bool": {
                                               "must": filter_data_conditions.values()
                                           }
