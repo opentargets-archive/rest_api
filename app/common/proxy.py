@@ -14,9 +14,11 @@ class ProxyHandler():
 
     def __init__(self,
                  allowed_targets = {},
-                 allowed_domains = []):
+                 allowed_domains = [],
+                 allowed_request_domains = []):
         self.allowed_targets = allowed_targets
         self.allowed_domains = allowed_domains
+        self.allowed_request_domains = allowed_request_domains
 
     def proxy(self,
               domain,
@@ -66,6 +68,10 @@ class ProxyHandler():
                                 headers=headers)
 
     def get_full_url(self, domain, url):
+        request_domain = request.environ.get('HTTP_HOST').split(':')[0]
+        if request_domain not in self.allowed_request_domains:
+            logging.warn("request domain is not allowed: %s%s"%(request_domain))
+            abort(403)
         if domain in self.allowed_targets:
             return self.allowed_targets[domain]+url
         elif self.is_url_allowed(url):

@@ -50,7 +50,8 @@ class Config:
                                         'pdbe': 'https://www.ebi.ac.uk/pdbe/',
                                         'epmc': 'http://www.ebi.ac.uk/europepmc/',
                                         },
-                    'allowed_domains': ['www.ebi.ac.uk']
+                    'allowed_domains': ['www.ebi.ac.uk'],
+                    'allowed_request_domains' : ['targetvalidation.org', 'beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
 
     @staticmethod
