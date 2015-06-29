@@ -807,6 +807,7 @@ class esQuery():
             source_filter["include"]= params.fields
 
         res = self.handler.search(index=self._index_data,
+                                  search_type="count",
                                   body={
                                       #restrict the set of datapoints using the target and disease ids
                                       "query": {
@@ -827,7 +828,7 @@ class esQuery():
                                           }
                                        },
                                       # calculate aggregation using proper ad hoc filters
-                                       "aggs": aggs
+                                      "aggs": aggs,
 
                                       }
                                   )
@@ -1042,164 +1043,6 @@ class esQuery():
 
 
 
-        #
-        # return {"bool": {
-        #     "should": [
-        #         {'match': {
-        #             "label": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #                 # "prefix_length": 1,
-        #                 # "max_expansions": 100,
-        #                 # "fuzziness": "AUTO"
-        #
-        #             },
-        #         }},
-        #         # {'prefix': {
-        #         #     "label": {
-        #         #         "value": searchphrase,
-        #         #         "boost": 1.0,
-        #         #         # "prefix_length": 1,
-        #         #         # "max_expansions": 100,
-        #         #         # "fuzziness": "AUTO"
-        #         #
-        #         #     },
-        #         # }},
-        #         #  {'prefix': {
-        #         #     "_id": {
-        #         #         "value": "EFO_",
-        #         #         "boost": .0001,
-        #         #         # "prefix_length": 1,
-        #         #         # "max_expansions": 100,
-        #         #         # "fuzziness": "AUTO"
-        #         #
-        #         #     },
-        #         # }},
-        #         # {'match_phrase': {
-        #         #     "efo_synonyms": {
-        #         #         "query": searchphrase,
-        #         #         "boost": .1,
-        #         #         # "prefix_length": 1,
-        #         #         # "max_expansions": 100,
-        #         #         # "fuzziness": "AUTO"
-        #         #     },
-        #         # }},
-        #         {'match': {
-        #             "efo_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #                 }
-        #
-        #         }},
-        #          {'term': {
-        #             "efo_synonyms": {
-        #                 "value": searchphrase,
-        #                 "boost": 1.0,
-        #                 }
-        #
-        #         }},
-        #         {'match': {
-        #             "symbol_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #                 }
-        #
-        #         }},
-        #         # {'prefix': {
-        #         #     "symbol_synonyms": {
-        #         #         "value": searchphrase,
-        #         #         "boost": 1.0,
-        #         #         }
-        #         #
-        #         # }},
-        #         {'match': {
-        #             "id": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #             },
-        #         }},
-        #         {'match': {
-        #             "approved_symbol": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                 "analyzer" : "keyword",
-        #             },
-        #         }},
-        #         # {'prefix': {
-        #         #     "approved_symbol": {
-        #         #         "value": searchphrase,
-        #         #         "boost": 1.0,
-        #         #         }
-        #         #
-        #         # }},
-        #         {'match': {
-        #             "approved_name": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                 # "operator" : "and",
-        #                  "analyzer" : "keyword",
-        #                 # "prefix_length": 3,
-        #                 # "max_expansions": 1,
-        #                 #  "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #         {'match_phrase': {
-        #             "name_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                 "operator" : "and",
-        #                  "analyzer" : "keyword",
-        #                 # "prefix_length": 3,
-        #                 # "max_expansions": 1,
-        #                 # "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #
-        #
-        #         {'match': {
-        #             "gene_family_description": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                 # "prefix_length": 3,
-        #                 # "max_expansions": 3,
-        #                 # "fuzziness": "AUTO",
-        #                  "analyzer" : "keyword"
-        #             },
-        #         }},
-        #         {'match': {
-        #             "uniprot_id": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #             },
-        #         }},
-        #         {'match': {
-        #             "uniprot_accessions": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #             },
-        #         }},
-        #         {'match': {
-        #             "hgnc_id": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #                  "analyzer" : "keyword",
-        #             },
-        #         }},
-        #         {'match': {
-        #             "ensembl_gene_id": {
-        #                 "query": searchphrase,
-        #                 "boost": 1.0,
-        #             },
-        #         }}
-        #     ]
-        # }
-        # }
-
 
     def _get_free_text_gene_query(self, searchphrase):
         return {"bool": {
@@ -1237,94 +1080,6 @@ class esQuery():
                 }
             }
 
-        # return {"bool": {
-        #     "should": [
-        #        {'match': {
-        #             "symbol_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 20.0,
-        #                 }
-        #
-        #         }},
-        #         {'prefix': {
-        #             "symbol_synonyms": {
-        #                 "value": searchphrase,
-        #                 "boost": 30.0,
-        #                 }
-        #
-        #         }},
-        #         {'match': {
-        #             "id": {
-        #                 "query": searchphrase,
-        #                 "boost": 30.0,
-        #             },
-        #         }},
-        #         {'match': {
-        #             "approved_symbol": {
-        #                 "query": searchphrase,
-        #                 "boost": 50.0,
-        #             },
-        #         }},
-        #         {'prefix': {
-        #             "approved_symbol": {
-        #                 "value": searchphrase,
-        #                 "boost": 50.0,
-        #                 }
-        #
-        #         }},
-        #         {'match': {
-        #             "approved_name": {
-        #                 "query": searchphrase,
-        #                 "boost": 10.0,
-        #                 "operator" : "and",
-        #                 # "prefix_length": 3,
-        #                 # "max_expansions": 1,
-        #                 # "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #         {'match': {
-        #             "name_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 10.0,
-        #                 "operator" : "and",
-        #                 # "prefix_length": 3,
-        #                 # "max_expansions": 1,
-        #                 # "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #
-        #
-        #         {'match': {
-        #             "gene_family_description": {
-        #                 "query": searchphrase,
-        #                 "boost": 10.0,
-        #                 "prefix_length": 3,
-        #                 "max_expansions": 3,
-        #                 "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #         {'match': {
-        #             "uniprot_accessions": {
-        #                 "query": searchphrase,
-        #                 "boost": 50.0,
-        #             },
-        #         }},
-        #         {'match': {
-        #             "hgnc_id": {
-        #                 "query": searchphrase,
-        #                 "boost": 10.0,
-        #             },
-        #         }},
-        #         {'match': {
-        #             "ensembl_gene_id": {
-        #                 "query": searchphrase,
-        #                 "boost": 50.0,
-        #             },
-        #         }}
-        #     ]
-        # }
-        #
-        # }
 
     def _get_free_text_efo_query(self, searchphrase):
          return {"bool": {
@@ -1356,104 +1111,66 @@ class esQuery():
             }
 
 
-        # return {"bool": {
-        #     "should": [
-        #           {'match_phrase': {
-        #             "label": {
-        #                 "query": searchphrase,
-        #                 "boost": 30.0,
-        #                 # "prefix_length": 1,
-        #                 # "max_expansions": 100,
-        #                 # "fuzziness": "AUTO"
-        #
-        #             },
-        #         }},
-        #         {'prefix': {
-        #             "label": {
-        #                 "value": searchphrase,
-        #                 "boost": 100.0,
-        #                 # "prefix_length": 1,
-        #                 # "max_expansions": 100,
-        #                 # "fuzziness": "AUTO"
-        #
-        #             },
-        #         }},
-        #         {'match_phrase': {
-        #             "efo_synonyms": {
-        #                 "query": searchphrase,
-        #                 "boost": 10.0,
-        #                 # "prefix_length": 1,
-        #                 # "max_expansions": 100,
-        #                 # "fuzziness": "AUTO"
-        #             },
-        #         }},
-        #         {'prefix': {
-        #             "efo_synonyms": {
-        #                 "value": searchphrase,
-        #                 "boost": 10.0,
-        #                 }
-        #
-        #         }},
-        #         {'match': {
-        #             "id": {
-        #                 "query": searchphrase,
-        #                 "boost": 50.0,
-        #             },
-        #         }},
-        #     ]
-        # }
-        #
-        # }
 
     def _get_gene_associations_agg(self, expand_efo = True, filters = {}):
         field = "biological_object.about"
         if expand_efo:
             field = "_private.efo_codes"
 
-        return {"efo_codes": {
-                   "terms": {
-                       "field" : field,
-                       'size': 10000,
-                       "order": {
-                           "association_score.count": "desc"
-                       }
+        return {"data": {
+                   "filter" :{
+                       "bool": {
+                           "must": filters.values(),
+                        },
                    },
-                    "aggs":{
-                          "datatypes": {
-                             "terms": {
-                                 # "field" : "_private.datatype",
-                                 "field" : "evidence.provenance_type.database.id",
-                                 'size': 10000,
-                               },
-                             "aggs":{
+                   "aggs":{
+                        "efo_codes": {
+                           "terms": {
+                               "field" : field,
+                               'size': 10000,
+                               "order": {
+                                   "association_score.count": "desc"
+                               }
+                           },
+                            "aggs":{
+                                  "datatypes": {
+                                     "terms": {
+                                         # "field" : "_private.datatype",
+                                         "field" : "evidence.provenance_type.database.id",
+                                         'size': 10000,
+                                       },
+                                     "aggs":{
+                                          "association_score": {
+                                             "stats": {
+                                                 "script" : self._get_script_association_score_weighted()['script'],
+                                             },
+
+                                       }
+                                    }
+                                  },
                                   "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     },
+                                             "stats": {
+                                                 "script" : self._get_script_association_score_weighted()['script'],
+                                             },
 
-                               }
-                            }
-                          },
-                          "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     },
+                                       }
 
-                               }
-
-                      }
-                   # "aggs":{
-                   #    "datasource": {
-                   #       "terms": {
-                   #           "field" : "evidence.provenance_type.database.id",
-                   #           'size': 10000,
-                   #       },
-                   #    }
-                   # }
-                 },
+                              }
+                           # "aggs":{
+                           #    "datasource": {
+                           #       "terms": {
+                           #           "field" : "evidence.provenance_type.database.id",
+                           #           'size': 10000,
+                           #       },
+                           #    }
+                           # }
+                         },
+                    },
+                },
                 "datatypes": self._get_datatype_facet_aggregation(filters),
 
-              }
+
+         }
 
     def _get_efo_associations_agg(self, filters = {}):
         # return {"genes": {
@@ -1473,51 +1190,59 @@ class esQuery():
         gene_related_aggs = self._get_pathway_facet_aggregation(filters)
 
 
-        return {"genes": {
-                   "terms": {
-                       "field" : "biological_subject.about",
-                       'size': 10000,
-                       "order": {
-                           "association_score.count": "desc"
-                       }
-                   },
+        return { "data": {
+                   "filter" :{
+                       "bool": {
+                           "must": filters.values(),
+                        }
+,                           },
                    "aggs":{
-                          "datatypes": {
-                             "terms": {
-                                 # "field" : "_private.datatype",
-                                 "field" : "evidence.provenance_type.database.id",
-                                 'size': 10000,
-                               },
-                             "aggs":{
-                                  "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     },
+                       "genes": {
+                           "terms": {
+                               "field" : "biological_subject.about",
+                               'size': 10000,
+                               # "order": {
+                               #     "association_score.count": "desc"
+                               # }
+                           },
+                           "aggs":{
 
-                               }
-                            }
-                          },
-                          "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     }
-                          },
-                          # "association_score": {#TODO: could use the scripted metric, change code below
-                          #           "scripted_metric": {
-                          #               "init_script" : "_agg['transactions'] = []",
-                          #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
-                          #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
-                          #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
-                          #           }
-                          #       }
-                          #     },
-                          },
+                              "datatypes": {
+                                 "terms": {
+                                     # "field" : "_private.datatype",
+                                     "field" : "evidence.provenance_type.database.id",
+                                     'size': 10000,
+                                 },
+                                 "aggs":{
+                                      "association_score": {
+                                         "stats": {
+                                             "script" : self._get_script_association_score_weighted()['script'],
+                                         },
 
-                   },
+                                   }
+                                }
+                              },
+                              "association_score": {
+                                         "stats": {
+                                             "script" : self._get_script_association_score_weighted()['script'],
+                                         }
+                              },
+                              # "association_score": {#TODO: could use the scripted metric, change code below
+                              #           "scripted_metric": {
+                              #               "init_script" : "_agg['transactions'] = []",
+                              #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
+                              #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
+                              #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
+                              #           }
+                              #       }
+                              #     },
+                              },
+
+                            },
+                        },
+                    },
                 "datatypes": self._get_datatype_facet_aggregation(filters),
                 "pathway_type": gene_related_aggs["pathway_type"]
-
-
                }
 
     def _get_complimentary_facet_filters(self, key, filters):
@@ -1589,7 +1314,7 @@ if (db == 'expression_atlas') {
                         therapeutic_area = terapeutic_area,
                         )
 
-        data = res['aggregations'][agg_key]["buckets"]
+        data = res['aggregations']['data'][agg_key]["buckets"]
         facets = {}
         #need to add handle there the internal 'data' object coming from the facet filter for every facet
         if 'datatypes' in res['aggregations']:
@@ -1644,7 +1369,7 @@ if (db == 'expression_atlas') {
             return root.to_dict_tree_with_children_as_array()
 
 
-        data = res['aggregations'][agg_key]["buckets"]
+        data = res['aggregations']['data'][agg_key]["buckets"]
         facets = {}
         if 'datatypes' in res['aggregations']:
             facets['datatypes'] = res['aggregations']['datatypes']
@@ -1726,7 +1451,7 @@ if (db == 'expression_atlas') {
                         association_score = score,
                         datatypes = datatypes,
                             )
-        data = res['aggregations'][agg_key]["buckets"]
+        data = res['aggregations']['data'][agg_key]["buckets"]
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
@@ -2095,6 +1820,8 @@ class SearchParams():
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
+        if self.filters[FilterTypes.PATHWAY]:
+            self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
 
         self.pathway= kwargs.get('pathway', [])
