@@ -832,7 +832,15 @@ class esQuery():
 
                                       }
                                   )
-        if res['hits']['total']:
+        if (not res['hits']['total']) and \
+                genes and objects:
+            data = [{"evidence_count": 0,
+                     "datatypes": [],
+                     "association_score": 0,
+                     "gene_id": genes[0],
+                    }]
+            return CountedResult(res, params, data, total = 0, facets = {})
+        if 1:
             '''build data structure to return'''
             filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
             if objects:
@@ -846,18 +854,6 @@ class esQuery():
 
 
             return CountedResult(res, params, data['data'], total = res['hits']['total'], facets=data['facets'])
-        else:
-            if genes and objects:
-                data = [{"evidence_count": 0,
-                         "datatypes": [],
-                         "association_score": 0,
-                         "gene_id": genes[0],
-                        }]
-                return CountedResult(res, params, data, total = 0, facets = {})
-            if params.datastructure == OutputDataStructureOptions.FLAT:
-                return CountedResult(res, params, [],facets = {})
-            elif params.datastructure == OutputDataStructureOptions.TREE:
-                return CountedResult(res, params, {},facets = {})
 
     def _get_gene_filter(self, gene):
         return [
@@ -1322,14 +1318,15 @@ if (db == 'expression_atlas') {
         facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
-        if efo_labels is None:
-            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
-        new_data = map(transform_data_point, data)
-        if efo_with_data:
-            new_data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , new_data)
+        if data:
+            if efo_labels is None:
+                efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
+            data = map(transform_data_point, data)
+            if efo_with_data:
+                data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , data)
 
 
-        return dict(data = new_data,
+        return dict(data = data,
                     facets = facets)
 
     def _return_association_data_structures_for_genes_as_tree(self,
@@ -1377,9 +1374,12 @@ if (db == 'expression_atlas') {
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         data = dict([(i["key"],i) for i in data])
-        efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
-        new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)['data']
-        tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
+        if data:
+            efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
+            new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)['data']
+            tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
+        else:
+            tree_data = data
 
         return dict(data = tree_data,
                     facets = facets)
@@ -1455,23 +1455,27 @@ if (db == 'expression_atlas') {
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
-        gene_info = self.get_gene_info(gene_ids,
-                                       size = gene_ids,
-                                       fields =['ensembl_gene_id',
-                                               'approved_symbol',
-                                               'ensembl_external_name',
-                                               'reactome.*',
-                                               ],
-                                       ).toDict()
+        if gene_ids:
+            gene_info = self.get_gene_info(gene_ids,
+                                           size = gene_ids,
+                                           fields =['ensembl_gene_id',
+                                                   'approved_symbol',
+                                                   'ensembl_external_name',
+                                                   'reactome.*',
+                                                   ],
+                                           ).toDict()
+            gene_names = defaultdict(str)
+            for gene in gene_info['data']:
+                gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
+        else:
+            gene_info = []
         facets =  {}
         if 'datatypes' in res['aggregations']:
             facets['datatypes'] = res['aggregations']['datatypes']['data']
         if 'pathway_type' in res['aggregations']:
             facets['pathway_type'] = res['aggregations']['pathway_type']['data']
         facets = self._extend_facets(facets)
-        gene_names = defaultdict(str)
-        for gene in gene_info['data']:
-            gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
+
         new_data = map(transform_data_point, data)
 
         return dict(data = new_data,
