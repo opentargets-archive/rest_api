@@ -993,8 +993,9 @@ class esQuery():
                         {"multi_match" : {
                             "query":    searchphrase,
                             "fields": [ "label^5",
-                                        "symbol_synonyms",
                                         "efo_synonyms",
+                                        "symbol_synonyms",
+                                        "approved_symbol",
                                         "approved_name",
                                         "name_synonyms",
                                         "gene_family_description",
@@ -1010,6 +1011,7 @@ class esQuery():
                             "fields": [ "label",
                                         "id",
                                         "approved_symbol^2",
+                                        "symbol_synonyms^2",
                                         "name_synonyms",
                                         "uniprot_id",
                                         "uniprot_accessions",
@@ -1025,7 +1027,7 @@ class esQuery():
                         {"multi_match" : {
                             "query":    searchphrase,
                             "fields": [ "id",
-                                        "approved_symbol^5",
+                                        "approved_symbol",
                                         ],
                             "analyzer" : 'keyword',
                             "fuzziness": "AUTO",
