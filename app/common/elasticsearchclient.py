@@ -589,7 +589,7 @@ class esQuery():
                                               "values": [efo_codes]
                                                 },
                                             },
-                                            'size' : 10000
+                                            'size' : 100000
                                       }
             )
             if res['hits']['total']:
@@ -1125,7 +1125,7 @@ class esQuery():
                         "efo_codes": {
                            "terms": {
                                "field" : field,
-                               'size': 10000,
+                               'size': 100000,
                                "order": {
                                    "association_score.count": "desc"
                                }
@@ -1135,7 +1135,7 @@ class esQuery():
                                      "terms": {
                                          # "field" : "_private.datatype",
                                          "field" : "evidence.provenance_type.database.id",
-                                         'size': 10000,
+                                         'size': 100000,
                                        },
                                      "aggs":{
                                           "association_score": {
@@ -1158,7 +1158,7 @@ class esQuery():
                            #    "datasource": {
                            #       "terms": {
                            #           "field" : "evidence.provenance_type.database.id",
-                           #           'size': 10000,
+                           #           'size': 100000,
                            #       },
                            #    }
                            # }
@@ -1198,7 +1198,7 @@ class esQuery():
                        "genes": {
                            "terms": {
                                "field" : "biological_subject.about",
-                               'size': 10000,
+                               'size': 100000,
                                # "order": {
                                #     "association_score.count": "desc"
                                # }
@@ -1209,7 +1209,7 @@ class esQuery():
                                  "terms": {
                                      # "field" : "_private.datatype",
                                      "field" : "evidence.provenance_type.database.id",
-                                     'size': 10000,
+                                     'size': 100000,
                                  },
                                  "aggs":{
                                       "association_score": {
@@ -1549,7 +1549,7 @@ if (db == 'expression_atlas') {
                                        "aggs": {"efo_codes": {
                                            "terms": {
                                                "field" : "biological_object.about",
-                                               'size': 10000,
+                                               'size': 100000,
 
                                            },
                                          }
@@ -1668,7 +1668,7 @@ if (db == 'expression_atlas') {
                                             },
 
                                            '_source': ['label'],
-                                           'size': 10000,
+                                           'size': 100000,
                                            'from': 0,
 
                                            }
