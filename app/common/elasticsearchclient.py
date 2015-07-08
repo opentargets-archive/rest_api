@@ -1459,7 +1459,7 @@ if (db == 'expression_atlas') {
         gene_ids = [d['key'] for d in data]
         if gene_ids:
             gene_info = self.get_gene_info(gene_ids,
-                                           size = gene_ids,
+                                           size = len(gene_ids),
                                            fields =['ensembl_gene_id',
                                                    'approved_symbol',
                                                    'ensembl_external_name',
@@ -1785,7 +1785,7 @@ if (db == 'expression_atlas') {
 
 
 class SearchParams():
-    _max_search_result_limit = 10000
+    _max_search_result_limit = 100000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
 
