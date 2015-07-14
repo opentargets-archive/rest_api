@@ -1378,7 +1378,7 @@ if (db == 'expression_atlas') {
         data = res['aggregations']['data'][agg_key]["buckets"]
         facets = {}
         if 'datatypes' in res['aggregations']:
-            facets['datatypes'] = res['aggregations']['datatypes']
+            facets['datatypes'] = res['aggregations']['datatypes']['data']
         facets = self._extend_facets(facets)
         if filter_value is not None:
             data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
