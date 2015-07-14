@@ -46,3 +46,5 @@ class FilterTypes():
     ASSOCIATION_SCORE_MIN = 'filterbyscorevalue_min'
     ASSOCIATION_SCORE_MAX = 'filterbyscorevalue_max'
     PATHWAY = 'filterbypathway'
+    GO = 'filterbygo'
+    UNIPROT_KW = 'filterbyuniprotkw'

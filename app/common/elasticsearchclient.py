@@ -1185,63 +1185,66 @@ class esQuery():
         #            }
         #          }
         #       }
-        gene_related_aggs = self._get_pathway_facet_aggregation(filters)
+        gene_related_aggs = self._get_gene_related_aggs(filters)
 
 
-        return { "data": {
-                   "filter" :{
-                       "bool": {
-                           "must": filters.values(),
-                        }
+        return {
+            "data": {
+               "filter" :{
+                   "bool": {
+                       "must": filters.values(),
+                    }
 ,                           },
-                   "aggs":{
-                       "genes": {
-                           "terms": {
-                               "field" : "biological_subject.about",
-                               'size': 100000,
-                               # "order": {
-                               #     "association_score.count": "desc"
-                               # }
-                           },
-                           "aggs":{
+               "aggs":{
+                   "genes": {
+                       "terms": {
+                           "field" : "biological_subject.about",
+                           'size': 100000,
+                           # "order": {
+                           #     "association_score.count": "desc"
+                           # }
+                       },
+                       "aggs":{
 
-                              "datatypes": {
-                                 "terms": {
-                                     # "field" : "_private.datatype",
-                                     "field" : "evidence.provenance_type.database.id",
-                                     'size': 100000,
-                                 },
-                                 "aggs":{
-                                      "association_score": {
-                                         "stats": {
-                                             "script" : self._get_script_association_score_weighted()['script'],
-                                         },
+                          "datatypes": {
+                             "terms": {
+                                 # "field" : "_private.datatype",
+                                 "field" : "evidence.provenance_type.database.id",
+                                 'size': 100000,
+                             },
+                             "aggs":{
+                                  "association_score": {
+                                     "stats": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     },
 
-                                   }
-                                }
-                              },
-                              "association_score": {
-                                         "stats": {
-                                             "script" : self._get_script_association_score_weighted()['script'],
-                                         }
-                              },
-                              # "association_score": {#TODO: could use the scripted metric, change code below
-                              #           "scripted_metric": {
-                              #               "init_script" : "_agg['transactions'] = []",
-                              #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
-                              #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
-                              #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
-                              #           }
-                              #       }
-                              #     },
-                              },
+                               }
+                            }
+                          },
+                          "association_score": {
+                                     "stats": {
+                                         "script" : self._get_script_association_score_weighted()['script'],
+                                     }
+                          },
+                          # "association_score": {#TODO: could use the scripted metric, change code below
+                          #           "scripted_metric": {
+                          #               "init_script" : "_agg['transactions'] = []",
+                          #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
+                          #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
+                          #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
+                          #           }
+                          #       }
+                          #     },
+                          },
 
-                            },
                         },
                     },
-                "datatypes": self._get_datatype_facet_aggregation(filters),
-                "pathway_type": gene_related_aggs["pathway_type"]
-               }
+                },
+            "datatypes": self._get_datatype_facet_aggregation(filters),
+            "pathway_type": gene_related_aggs["pathway_type"],
+            # "go": gene_related_aggs["go"],
+            "uniprot_keywords": gene_related_aggs["uniprot_keywords"],
+            }
 
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
@@ -1302,7 +1305,11 @@ if (db == 'expression_atlas') {
                 score = round(max(min(scores), max(scores), key=abs), 2)
             except:
                 score = 0.
-            terapeutic_area = list(set([efo_labels[ta] for ta in efo_tas[data_point['key']]]))
+            terapeutic_area_data = list(set([(ta,efo_labels[ta]) for ta in efo_tas[data_point['key']]]))
+            terapeutic_area =[]
+            for ta,ta_label in terapeutic_area_data:
+                terapeutic_area.append(dict(efo_code = ta,
+                                            label = ta_label))
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
                         # association_score = data_point['association_score']['value'],
@@ -1476,6 +1483,8 @@ if (db == 'expression_atlas') {
             facets['datatypes'] = res['aggregations']['datatypes']['data']
         if 'pathway_type' in res['aggregations']:
             facets['pathway_type'] = res['aggregations']['pathway_type']['data']
+        if 'uniprot_keywords' in res['aggregations']:
+            facets['uniprot_keywords'] = res['aggregations']['uniprot_keywords']['data']
         facets = self._extend_facets(facets)
 
         new_data = map(transform_data_point, data)
@@ -1730,58 +1739,96 @@ if (db == 'expression_atlas') {
     def _get_pathway_facet_aggregation(self, filters = {}):
 
         return {
-            "pathway_type": {
-                "filter": {
-                    "bool": {
-                        "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+                    }
+                },
+                "aggs":{
+                    "data": {
+                        "terms": {
+                             "field" : "_private.facets.reactome.pathway_type_code",
+                             'size': 100,
+                            },
+
+                        "aggs": {
+                            "pathway": {
+                                "terms": {
+                                     "field" : "_private.facets.reactome.pathway_code",
+                                     'size': 10,
+                                },
+                                "aggs":{
+                                    "unique_target_count": {
+                                        "cardinality" : {
+                                          "field" : "biological_subject.about",
+                                          "precision_threshold": 1000},
+                                    },
+                                    "unique_disease_count": {
+                                        "cardinality" : {
+                                          "field" : "biological_object.about",
+                                          "precision_threshold": 1000},
+                                        }
+                                    },
+                            },
+                            "unique_target_count": {
+                               "cardinality" : {
+                                  "field" : "biological_subject.about",
+                                  "precision_threshold": 1000
+                               },
+                            },
+                            "unique_disease_count": {
+                               "cardinality" : {
+                                  "field" : "biological_object.about",
+                                  "precision_threshold": 1000
+                               },
+                            },
                         }
                     },
-                    "aggs":{
-                        "data": {
-                            "terms": {
-                                 "field" : "_private.facets.reactome.pathway_type_code",
-                                 'size': 10,
-                                },
-
-                            "aggs": {
-                                "pathway": {
-                                    "terms": {
-                                         "field" : "_private.facets.reactome.pathway_code",
-                                         'size': 10,
-                                    },
-                                    "aggs":{
-                                        "unique_target_count": {
-                                            "cardinality" : {
-                                              "field" : "biological_subject.about",
-                                              "precision_threshold": 1000},
-                                        },
-                                        "unique_disease_count": {
-                                            "cardinality" : {
-                                              "field" : "biological_object.about",
-                                              "precision_threshold": 1000},
-                                            }
-                                        },
-                                },
-                                "unique_target_count": {
-                                   "cardinality" : {
-                                      "field" : "biological_subject.about",
-                                      "precision_threshold": 1000
-                                   },
-                                },
-                                "unique_disease_count": {
-                                   "cardinality" : {
-                                      "field" : "biological_object.about",
-                                      "precision_threshold": 1000
-                                   },
-                                },
-                            }
-                        },
-                    }
                 }
             }
 
 
+    def _get_gene_related_aggs(self, filters):
+        return dict(
+            pathway_type = self._get_pathway_facet_aggregation(filters),
+            go = self._get_go_facet_aggregation(filters),
+            uniprot_keywords = self._get_uniprot_keywords_facet_aggregation(filters),
 
+        )
+
+    def _get_go_facet_aggregation(self, filters):
+        pass
+
+    def _get_uniprot_keywords_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
+                    }
+                },
+                "aggs":{
+                    "data": {
+                        "terms": {
+                             "field" : "_private.facets.uniprot_keywords",
+                             'size': 100,
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                               "cardinality" : {
+                                  "field" : "biological_subject.about",
+                                  "precision_threshold": 1000
+                               },
+                            },
+                            "unique_disease_count": {
+                               "cardinality" : {
+                                  "field" : "biological_object.about",
+                                  "precision_threshold": 1000
+                               },
+                            },
+                        },
+                    },
+                }
+            }
 
 
 class SearchParams():
