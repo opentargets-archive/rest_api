@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 
 import operator
 import logging
@@ -798,7 +799,7 @@ class esQuery():
             if not aggs:
                 aggs = self._get_gene_associations_agg(filters = filter_data_conditions)
             if not params.expand_efo:
-                full_conditions = conditions
+                full_conditions = copy(conditions)
                 full_conditions.extend(filter_data_conditions.values())
                 efo_with_data = self._get_efo_with_data(conditions = full_conditions)
 
