@@ -793,11 +793,11 @@ class esQuery():
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg(filters = filter_data_conditions)
+            aggs = self._get_efo_associations_agg(filters = filter_data_conditions, facets=params.facets)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg(filters = filter_data_conditions)
+                aggs = self._get_gene_associations_agg(filters = filter_data_conditions, facets=params.facets)
             if not params.expand_efo:
                 full_conditions = copy(conditions)
                 full_conditions.extend(filter_data_conditions.values())
@@ -1113,12 +1113,12 @@ class esQuery():
 
 
 
-    def _get_gene_associations_agg(self, expand_efo = True, filters = {}):
+    def _get_gene_associations_agg(self, expand_efo = True, filters = {}, facets = True):
         field = "biological_object.about"
         if expand_efo:
             field = "_private.efo_codes"
 
-        return {"data": {
+        aggs = {"data": {
                    "filter" :{
                        "bool": {
                            "must": filters.values(),
@@ -1168,12 +1168,12 @@ class esQuery():
                          },
                     },
                 },
-                "datatypes": self._get_datatype_facet_aggregation(filters),
-
-
          }
+        if facets:
+            aggs["datatypes"] = self._get_datatype_facet_aggregation(filters)
+        return aggs
 
-    def _get_efo_associations_agg(self, filters = {}):
+    def _get_efo_associations_agg(self, filters = {}, facets = True):
         # return {"genes": {
         #            "terms": {
         #                "field" : "biological_subject.about",
@@ -1191,7 +1191,7 @@ class esQuery():
         gene_related_aggs = self._get_gene_related_aggs(filters)
 
 
-        return {
+        aggs = {
             "data": {
                "filter" :{
                    "bool": {
@@ -1243,11 +1243,15 @@ class esQuery():
                         },
                     },
                 },
-            "datatypes": self._get_datatype_facet_aggregation(filters),
-            "pathway_type": gene_related_aggs["pathway_type"],
-            # "go": gene_related_aggs["go"],
-            "uniprot_keywords": gene_related_aggs["uniprot_keywords"],
             }
+        if facets:
+            aggs['datatypes'] = self._get_datatype_facet_aggregation(filters)
+            aggs['pathway_type'] = gene_related_aggs["pathway_type"]
+            aggs['uniprot_keywords'] = gene_related_aggs["uniprot_keywords"]
+            # aggs['go'] = gene_related_aggs["go"]
+
+
+        return aggs
 
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
@@ -1884,7 +1888,8 @@ class SearchParams():
         self.pathway= kwargs.get('pathway', [])
         self.target_class= kwargs.get('target_class')
 
-        self.expand_efo = kwargs.get('expandefo', False) or False
+        self.expand_efo = kwargs.get('expandefo', False)
+        self.facets = kwargs.get('facets', True)
 
 
 

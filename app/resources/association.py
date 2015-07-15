@@ -136,6 +136,15 @@ class Association(restful.Resource):
               "defaultValue": "false",
               "paramType": "query"
             },
+            {
+              "name": "facets",
+              "description": "return the facets for the call. Default to True",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "boolean",
+              "defaultValue": "true",
+              "paramType": "query"
+            },
 
 
           ]
@@ -168,7 +177,7 @@ class Association(restful.Resource):
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
-
+        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=True)
 
         args = parser.parse_args()
         # filters = args.pop('filter',[]) or []
