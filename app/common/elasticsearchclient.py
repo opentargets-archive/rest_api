@@ -798,7 +798,9 @@ class esQuery():
             if not aggs:
                 aggs = self._get_gene_associations_agg(filters = filter_data_conditions)
             if not params.expand_efo:
-                efo_with_data = self._get_efo_with_data(gene_filter=self._get_complex_gene_filter(genes, gene_operator))
+                full_conditions = conditions
+                full_conditions.extend(filter_data_conditions.values())
+                efo_with_data = self._get_efo_with_data(conditions = full_conditions)
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -1540,7 +1542,7 @@ if (db == 'expression_atlas') {
                 data = dict([(hit['_id'],hit['_source']) for hit in res['hits']['hits']])
                 return SimpleResult(res, params, data)
 
-    def _get_efo_with_data(self, gene_filter):
+    def _get_efo_with_data(self, conditions):
         efo_with_data =[]
         res = self.handler.search(index=self._index_data,
                                   body={
@@ -1548,7 +1550,8 @@ if (db == 'expression_atlas') {
                                           "filtered": {
                                               "filter": {
                                                   "bool": {
-                                                      "must": gene_filter
+                                                      "must": conditions
+
                                                   }
                                               }
                                           }
