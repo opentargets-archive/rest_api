@@ -14,7 +14,12 @@ __author__ = 'andreap'
 class Result(object):
     format = ResponseType.JSON
 
-    def __init__(self, res, params, data=None, facets=None):
+    def __init__(self,
+                 res,
+                 params,
+                 data=None,
+                 facets=None,
+                 available_datatypes = []):
         '''
 
         :param res: elasticsearch query response
@@ -28,6 +33,7 @@ class Result(object):
         self.data = data
         self.format = params.format
         self.facets = facets
+        self.available_datatypes = available_datatypes
 
 
     def toDict(self):
@@ -166,7 +172,9 @@ class CountedResult(Result):
             return {'data': self.data,
                     'facets': self.facets,
                     'total': self.total,
+                    'available_datatypes': self.available_datatypes
             }
         return {'data': self.data,
                 'total': self.total,
+                'available_datatypes': self.available_datatypes
         }

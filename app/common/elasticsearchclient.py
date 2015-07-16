@@ -842,21 +842,32 @@ class esQuery():
                      "association_score": 0,
                      "gene_id": genes[0],
                     }]
-            return CountedResult(res, params, data, total = 0, facets = {})
-        if 1:
-            '''build data structure to return'''
-            filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
-            if objects:
-                if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_efos(res, "genes", filter_value=filter_value, filters = params.filters)
-            elif genes:
-                if params.datastructure == OutputDataStructureOptions.FLAT:
-                    data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
-                elif params.datastructure == OutputDataStructureOptions.TREE:
-                    data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
+            return CountedResult(res,
+                                 params,
+                                 data,
+                                 total = 0,
+                                 facets = {},
+                                 available_datatypes = self.datatypes.available_datatypes,
+                                 )
+
+        '''build data structure to return'''
+        filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
+        if objects:
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                data = self._return_association_data_structures_for_efos(res, "genes", filter_value=filter_value, filters = params.filters)
+        elif genes:
+            if params.datastructure == OutputDataStructureOptions.FLAT:
+                data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
+            elif params.datastructure == OutputDataStructureOptions.TREE:
+                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
 
 
-            return CountedResult(res, params, data['data'], total = res['hits']['total'], facets=data['facets'])
+        return CountedResult(res,
+                             params, data['data'],
+                             total = res['hits']['total'],
+                             facets=data['facets'],
+                             available_datatypes = self.datatypes.available_datatypes,
+                             )
 
     def _get_gene_filter(self, gene):
         return [
