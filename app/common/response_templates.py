@@ -41,8 +41,9 @@ class CTTVResponse():
             resp = Response(response=str(result),
                             status=200,
                             mimetype="application/json")
-        if took > 1:
-            resp.headers.add('X-Accel-Expires', '1h')
+        if took > 0.5:
+            cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
+            resp.headers.add('X-Accel-Expires', cache_time)
         resp.headers.add('X-API-Took', int(round(took*1000)))
         return resp
 
