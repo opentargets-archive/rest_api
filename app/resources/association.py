@@ -11,6 +11,7 @@ from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.response_templates import CTTVResponse, PaginatedResponse
 from app.common.utils import get_ordered_filter_list
+import time
 
 
 __author__ = 'andreap'
@@ -227,17 +228,19 @@ class Association(restful.Resource):
                      params ={}):
 
         es = current_app.extensions['esquery']
+        start_time = time.time()
         res = es.get_associations(genes = genes,
                                  objects = objects,
                                  # gene_operator = gene_operator,
                                  # object_operator = object_operator,
                                  # evidence_type_operator = evidence_type_operator,
                                  **params)
+        took = time.time() - start_time
         # if not res:
         #     abort(404, message='Cannot find associations for  %s'%str([genes,
         #                                                             objects,
         #                                                             # gene_operator,
         #                                                             # object_operator,
         #                                                             ]))
-        return CTTVResponse.OK(res)
+        return CTTVResponse.OK(res, took=took)
 

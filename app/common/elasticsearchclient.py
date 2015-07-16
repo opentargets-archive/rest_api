@@ -849,7 +849,6 @@ class esQuery():
                                  facets = {},
                                  available_datatypes = self.datatypes.available_datatypes,
                                  )
-
         '''build data structure to return'''
         filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
         if objects:
