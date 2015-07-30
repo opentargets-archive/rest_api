@@ -58,11 +58,11 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/association',
                      )
     api.add_resource(EfoLabelFromCode,
-                     '/efo/<string:code>')
+                     '/disease/<string:code>')
     api.add_resource(EcoLabelFromCode,
                      '/eco/<string:code>')
     api.add_resource(GeneInfo,
-                     '/gene/<string:gene_id>')
+                     '/target/<string:target_id>')
     api.add_resource(Expression,
                      '/expression')
     api.add_resource(FreeTextSearch,
@@ -71,8 +71,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/quicksearch')
     api.add_resource(AutoComplete,
                      '/autocomplete')
-    api.add_resource(Echo,
-                     '/echo')
+    # api.add_resource(Echo,
+    #                  '/echo')
     api.add_resource(RequestToken,
                      '/auth/request_token')
     api.add_resource(ValidateToken,

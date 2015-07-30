@@ -108,8 +108,8 @@ class FilterBy(restful.Resource, Paginable):
 
     _swagger_parameters = [
             {
-              "name": "gene",
-              "description": "a gene identifier listed as biological subject",
+              "name": "target",
+              "description": "a target identifier listed as target.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -124,8 +124,8 @@ class FilterBy(restful.Resource, Paginable):
             #   "paramType": "query"
             # },
             {
-              "name": "efo",
-              "description": "a efo identifier listed as biological object",
+              "name": "disease",
+              "description": "a efo identifier listed as disease.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -222,9 +222,9 @@ class FilterBy(restful.Resource, Paginable):
         test with: ENSG00000136997,
         """
         parser = boilerplate.get_parser()
-        parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
+        parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
+        parser.add_argument('disease', type=str, action='append', required=False, help="List of efo code in disease")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('eco', type=str, action='append', required=False, help="List of evidence types as eco code")
         # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
@@ -237,9 +237,9 @@ class FilterBy(restful.Resource, Paginable):
 
 
         args = parser.parse_args()
-        genes = args.pop('gene',[]) or []
+        genes = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = args.pop('efo',[]) or []
+        objects = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
@@ -274,12 +274,6 @@ class FilterBy(restful.Resource, Paginable):
         Get a list of evidences filtered by gene, efo and/or eco codes
         test with: {"gene":["ENSG00000136997"]},
         """
-        # parser = reqparse.RequestParser()
-        # parser.add_argument('gene', type=fields.List(fields.String),location='form', required=False, help="List of genes in biological_subject")
-        #
-        # args = parser.parse_args()
-        # print args
-        # print request
         def fix_empty_strings(l):
             new_l=[]
             if l:
@@ -290,9 +284,9 @@ class FilterBy(restful.Resource, Paginable):
 
 
         args = request.get_json()
-        genes = fix_empty_strings(args.pop('gene',[]) or [])
+        genes = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = fix_empty_strings(args.pop('efo',[]) or [])
+        objects = fix_empty_strings(args.pop('disease',[]) or [])
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'

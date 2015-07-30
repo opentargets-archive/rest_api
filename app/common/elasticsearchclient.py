@@ -101,7 +101,7 @@ class esQuery():
                                               },
                                               "filter": {
                                                   "terms": {
-                                                      "biological_subject.about": self._get_gene_filter(gene)
+                                                      "target.id": self._get_gene_filter(gene)
 
                                                   }
                                               }
@@ -127,7 +127,7 @@ class esQuery():
                                                       },
                                                       "filter": {
                                                           "term": {
-                                                              "biological_subject.about":
+                                                              "target.id":
                                                                   "http://identifiers.org/ensembl/" + ensemblid,
 
 
@@ -505,12 +505,12 @@ class esQuery():
         res = helpers.scan(client=self.handler,
                            # query = {'filter': {
                            # 'prefix': {
-                           #                        'biological_subject.about': 'ensembl:'},
+                           #                        'target.id': 'ensembl:'},
                            #                    },
                            query={"query": {"match_all": {}},
 
                                   'size': 1000,
-                                  'fields': ['biological_subject.about'],
+                                  'fields': ['target.id'],
                            },
                            scroll='10m',
                            # doc_type=self._docname_data,
@@ -520,7 +520,7 @@ class esQuery():
 
         available_genes = defaultdict(int)
         for hit in res:
-            gene_name = hit['fields']['biological_subject.about'][0]
+            gene_name = hit['fields']['target.id'][0]
             if gene_name.startswith('ensembl:'):
                 gene_name = gene_name.split('ensembl:')[1]
             available_genes[gene_name] += 1
@@ -618,7 +618,7 @@ class esQuery():
                                               },
                                               "filter": {
                                                   "term": {
-                                                      "biological_object.about": efocode
+                                                      "disease.id": efocode
 
                                                   }
                                               }
@@ -721,7 +721,7 @@ class esQuery():
                                       "aggs":{
                                           params.groupby[0]: {
                                              "terms": {
-                                                 "field" : "biological_object.about",
+                                                 "field" : "disease.id",
                                                  'size': params.size,
 
                                              },
@@ -890,7 +890,7 @@ class esQuery():
                 "bool": {
                     bol: [{
                               "terms": {
-                                  "biological_subject.about": self._get_gene_filter(gene)}
+                                  "target.id": self._get_gene_filter(gene)}
                           }
                           for gene in genes]
                 }
@@ -931,7 +931,7 @@ class esQuery():
                     "bool": {
                         bol : [{
                               "terms": {
-                                 "biological_object.about": self._get_object_filter(object)}
+                                 "disease.id": self._get_object_filter(object)}
                           }
                           for object in objects]
                     }
@@ -1124,7 +1124,7 @@ class esQuery():
 
 
     def _get_gene_associations_agg(self, expand_efo = True, filters = {}, facets = True):
-        field = "biological_object.about"
+        field = "disease.id"
         if expand_efo:
             field = "_private.efo_codes"
 
@@ -1186,7 +1186,7 @@ class esQuery():
     def _get_efo_associations_agg(self, filters = {}, facets = True):
         # return {"genes": {
         #            "terms": {
-        #                "field" : "biological_subject.about",
+        #                "field" : "target.id",
         #                'size': 100,
         #            },
         #            "aggs":{
@@ -1211,7 +1211,7 @@ class esQuery():
                "aggs":{
                    "genes": {
                        "terms": {
-                           "field" : "biological_subject.about",
+                           "field" : "target.id",
                            'size': 100000,
                            # "order": {
                            #     "association_score.count": "desc"
@@ -1572,10 +1572,10 @@ if (db == 'expression_atlas') {
                                           }
                                       },
                                       'size': 100000,
-                                      '_source': [ "biological_object.about"],
+                                      '_source': [ "disease.id"],
                                        "aggs": {"efo_codes": {
                                            "terms": {
-                                               "field" : "biological_object.about",
+                                               "field" : "disease.id",
                                                'size': 100000,
 
                                            },
@@ -1727,24 +1727,24 @@ if (db == 'expression_atlas') {
                             "aggs":{
                                 "unique_target_count": {
                                     "cardinality" : {
-                                      "field" : "biological_subject.about",
+                                      "field" : "target.id",
                                       "precision_threshold": 1000},
                                 },
                                 "unique_disease_count": {
                                     "cardinality" : {
-                                      "field" : "biological_object.about",
+                                      "field" : "disease.id",
                                       "precision_threshold": 1000},
                                     }
                                 },
                             },
                             "unique_target_count": {
                                "cardinality" : {
-                                  "field" : "biological_subject.about",
+                                  "field" : "target.id",
                                   "precision_threshold": 1000},
                               },
                             "unique_disease_count": {
                                "cardinality" : {
-                                  "field" : "biological_object.about",
+                                  "field" : "disease.id",
                                   "precision_threshold": 1000},
                             },
 
@@ -1778,25 +1778,25 @@ if (db == 'expression_atlas') {
                                 "aggs":{
                                     "unique_target_count": {
                                         "cardinality" : {
-                                          "field" : "biological_subject.about",
+                                          "field" : "target.id",
                                           "precision_threshold": 1000},
                                     },
                                     "unique_disease_count": {
                                         "cardinality" : {
-                                          "field" : "biological_object.about",
+                                          "field" : "disease.id",
                                           "precision_threshold": 1000},
                                         }
                                     },
                             },
                             "unique_target_count": {
                                "cardinality" : {
-                                  "field" : "biological_subject.about",
+                                  "field" : "target.id",
                                   "precision_threshold": 1000
                                },
                             },
                             "unique_disease_count": {
                                "cardinality" : {
-                                  "field" : "biological_object.about",
+                                  "field" : "disease.id",
                                   "precision_threshold": 1000
                                },
                             },
@@ -1833,13 +1833,13 @@ if (db == 'expression_atlas') {
                         "aggs": {
                             "unique_target_count": {
                                "cardinality" : {
-                                  "field" : "biological_subject.about",
+                                  "field" : "target.id",
                                   "precision_threshold": 1000
                                },
                             },
                             "unique_disease_count": {
                                "cardinality" : {
-                                  "field" : "biological_object.about",
+                                  "field" : "disease.id",
                                   "precision_threshold": 1000
                                },
                             },

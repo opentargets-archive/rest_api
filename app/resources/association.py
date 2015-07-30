@@ -20,8 +20,8 @@ __author__ = 'andreap'
 class EvidenceQuery:
   "An object to specify an association query"
   resource_fields = {
-      'gene': fields.List(fields.String(attribute='gene file name', )),
-      'efo': fields.List(fields.String(attribute='efo code', )),
+      'target': fields.List(fields.String(attribute='target id', )),
+      'disease': fields.List(fields.String(attribute='disease efo code', )),
 
 
   }
@@ -41,8 +41,8 @@ class Association(restful.Resource):
 
     _swagger_parameters = [
             {
-              "name": "gene",
-              "description": "a gene identifier listed as biological subject",
+              "name": "target",
+              "description": "a gene identifier listed as target.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -57,8 +57,8 @@ class Association(restful.Resource):
             #   "paramType": "query"
             # },
             {
-              "name": "efo",
-              "description": "a efo identifier listed as biological object",
+              "name": "disease",
+              "description": "a efo identifier listed as disease.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -166,9 +166,9 @@ class Association(restful.Resource):
         Test with ENSG00000136997
         """
         parser = reqparse.RequestParser()
-        parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
+        parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
+        parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('filterbyscorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('filterbyscorevalue_max', type=float, required=False, help="filter by maximum score value")
@@ -188,9 +188,9 @@ class Association(restful.Resource):
         #     filters = get_ordered_filter_list(request.query_string)
         # if filters:
         #     args['filter']=filters
-        genes = args.pop('gene',[]) or []
+        genes = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = args.pop('efo',[]) or []
+        objects = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
 
 
@@ -218,6 +218,7 @@ class Association(restful.Resource):
             },
             ]
         )
+    #TODO: add post method
 
 
     def get_association(self,
