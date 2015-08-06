@@ -1,3 +1,4 @@
+from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
@@ -73,6 +74,9 @@ def create_app(config_name):
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
+
+    compress = Compress()
+    compress.init_app(app)
 
     latest_blueprint = Blueprint('latest', __name__)
 

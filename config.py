@@ -90,9 +90,20 @@ class TestingConfig(Config):
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
 
+class StagingConfig(Config):
+    ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+
+        #TODO: handle logs
+
 
 class ProductionConfig(Config):
-    ELASTICSEARCH_URL = 'http://192.168.1.156:9200/'
+    ELASTICSEARCH_URL = 'http://elasticsearch-9200.production.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
 
@@ -139,6 +150,7 @@ class UnixConfig(ProductionConfig):
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
+    'staging': StagingConfig,
     'production': ProductionConfig,
     'dockerlink': DockerLinkedConfig,
     'dockerlinkdev': DockerLinkedDevConfig,

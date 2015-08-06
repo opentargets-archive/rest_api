@@ -752,10 +752,33 @@ class esQuery():
                                           '_source': source_filter,
                                       }
             )
+        return PaginatedResult(res, params, )
 
-
-
-        return PaginatedResult(res, params)
+        #     res = helpers.scan(client= self.handler,
+        #                                     index=self._index_data,
+        #                                     query={
+        #                                       "query": {
+        #                                           "filtered": {
+        #                                               "filter": {
+        #                                                   "bool": {
+        #                                                       "must": conditions
+        #                                                   }
+        #                                               }
+        #
+        #                                           }
+        #                                       },
+        #                                       'size': params.size,
+        #                                       'from': params.start_from,
+        #                                       '_source': source_filter,
+        #                                     },
+        #                                     scroll= "1m",
+        #                                     timeout="10m",
+        #                        )
+        #
+        #
+        #
+        #
+        # return PaginatedResult(None, params, data = [i for i in res])
 
     def get_associations(self,
                       genes=[],
@@ -822,7 +845,7 @@ class esQuery():
                                               }
                                           }
                                       },
-                                      'size': params.size,
+                                      'size': 0,
                                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
                                       # filter out the results as requested, this will not be applied to the aggregation
                                       "post_filter": {

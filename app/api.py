@@ -4,6 +4,8 @@ from flask.ext.restful import Api
 # from flask.ext.restful.utils import cors
 from flask.ext.cors import CORS
 from flask_restful_swagger import swagger
+from flask.ext.compress import Compress
+
 
 def create_api(app, api_version = '0.0', specpath = '' ):
     # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
