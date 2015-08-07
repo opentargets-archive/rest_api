@@ -1296,23 +1296,21 @@ class esQuery():
     def _get_script_association_score_weighted(self):
         return {"script_id":"calculate_association_score_weighted",
                 "lang" : "groovy",
-                "script" : """db =doc['evidence.provenance_type.database.id'].value;
-if (db == 'expression_atlas') {
-  return 0.01;
-} else if (db == 'uniprot'){
-  return 1.0;
-} else if (db == 'reactome'){
-  return 0.2;
-} else if (db == 'eva'){
-  return 0.5;
-} else if (db == 'phenodigm'){
-  return  doc['evidence.association_score.probability.value'].value;
-} else if (db == 'gwas'){
-  return 0.5;
-} else if (db == 'cancer_gene_census'){
-  return 0.5;
-}  else if (db == 'chembl'){
-  return 1;
+                "script" : """ev_type =doc['type'].value;
+if (ev_type == 'rna_expression') {
+  return doc['evidence.scores.association_score'].value * 0.5;
+} else if (ev_type == 'genetic_association'){
+  return doc['evidence.scores.association_score'].value;
+} else if (ev_type == 'affected_pathway'){
+  return doc['evidence.scores.association_score'].value;
+} else if (ev_type == 'animal_model'){
+  return  doc['evidence.scores.association_score'].value;
+} else if (ev_type == 'somatic_mutation'){
+  return doc['evidence.scores.association_score'].value * 0.5;
+} else if (ev_type == 'literature'){
+  return doc['evidence.scores.association_score'].value;
+}  else if (ev_type == 'known_drug'){
+  return doc['evidence.scores.association_score'].value;
 } else {
   return 0.1;
 }
