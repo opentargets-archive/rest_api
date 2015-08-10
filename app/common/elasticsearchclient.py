@@ -873,15 +873,14 @@ class esQuery():
                                  available_datatypes = self.datatypes.available_datatypes,
                                  )
         '''build data structure to return'''
-        filter_value = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN]
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(res, "genes", filter_value=filter_value, filters = params.filters)
+                data = self._return_association_data_structures_for_efos(res, "genes", filters = params.filters)
         elif genes:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
+                data = self._return_association_data_structures_for_genes(res, "efo_codes", efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes", filter_value=filter_value, efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(res, "efo_codes",  efo_with_data=efo_with_data, filters = params.filters)
 
 
         return CountedResult(res,
@@ -1298,19 +1297,19 @@ class esQuery():
                 "lang" : "groovy",
                 "script" : """ev_type =doc['type'].value;
 if (ev_type == 'rna_expression') {
-  return doc['evidence.scores.association_score'].value * 0.5;
+  return doc['scores.association_score'].value * 0.5;
 } else if (ev_type == 'genetic_association'){
-  return doc['evidence.scores.association_score'].value;
+  return doc['scores.association_score'].value;
 } else if (ev_type == 'affected_pathway'){
-  return doc['evidence.scores.association_score'].value;
+  return doc['scores.association_score'].value;
 } else if (ev_type == 'animal_model'){
-  return  doc['evidence.scores.association_score'].value;
+  return  doc['scores.association_score'].value;
 } else if (ev_type == 'somatic_mutation'){
-  return doc['evidence.scores.association_score'].value * 0.5;
+  return doc['scores.association_score'].value * 0.5;
 } else if (ev_type == 'literature'){
-  return doc['evidence.scores.association_score'].value;
+  return doc['scores.association_score'].value;
 }  else if (ev_type == 'known_drug'){
-  return doc['evidence.scores.association_score'].value;
+  return doc['scores.association_score'].value;
 } else {
   return 0.1;
 }
@@ -1319,7 +1318,6 @@ if (ev_type == 'rna_expression') {
     def _return_association_data_structures_for_genes(self,
                                                       res,
                                                       agg_key,
-                                                      filter_value = None,
                                                       efo_labels = None,
                                                       efo_tas = None,
                                                       efo_with_data=[],
@@ -1363,8 +1361,6 @@ if (ev_type == 'rna_expression') {
         if 'datatypes' in res['aggregations']:
             facets['datatypes'] = res['aggregations']['datatypes']['data']
         facets = self._extend_facets(facets)
-        if filter_value is not None:
-            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         if data:
             if efo_labels is None:
                 efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
@@ -1379,7 +1375,6 @@ if (ev_type == 'rna_expression') {
     def _return_association_data_structures_for_genes_as_tree(self,
                                                               res,
                                                               agg_key,
-                                                              filter_value = None,
                                                               efo_with_data =[],
                                                               filters = {}):
 
@@ -1418,8 +1413,6 @@ if (ev_type == 'rna_expression') {
         if 'datatypes' in res['aggregations']:
             facets['datatypes'] = res['aggregations']['datatypes']['data']
         facets = self._extend_facets(facets)
-        if filter_value is not None:
-            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         data = dict([(i["key"],i) for i in data])
         if data:
             efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
@@ -1468,7 +1461,7 @@ if (ev_type == 'rna_expression') {
 
         return efo_parents, efo_labels, efo_therapeutic_area
 
-    def _return_association_data_structures_for_efos(self, res, agg_key, filter_value=None, filters = {}):
+    def _return_association_data_structures_for_efos(self, res, agg_key,  filters = {}):
 
 
 
@@ -1499,8 +1492,6 @@ if (ev_type == 'rna_expression') {
                         datatypes = datatypes,
                             )
         data = res['aggregations']['data'][agg_key]["buckets"]
-        if filter_value is not None:
-            data = filter(lambda data_point: data_point['association_score']['value'] >= filter_value, data)
         gene_ids = [d['key'] for d in data]
         if gene_ids:
             gene_info = self.get_gene_info(gene_ids,
@@ -1907,7 +1898,7 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0)
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.25)
         self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1)
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)

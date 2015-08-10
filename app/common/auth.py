@@ -125,7 +125,8 @@ def is_authenticated(func):
     def wrapper(*args, **kwargs):
         if not getattr(func, 'authenticated', True):
             return func(*args, **kwargs)
-        authorized =False
+        # authorized =False # set to false to authorise only requests with token
+        authorized =True
 
         # if current_app.config['DEBUG']:
         #     authorized = True

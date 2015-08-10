@@ -85,7 +85,8 @@ class Association(restful.Resource):
               "description": "the maximum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "dataType": "string",
+              "defaultValue": 1,
+              "dataType": "float",
               "paramType": "query"
             },
             {
@@ -93,7 +94,8 @@ class Association(restful.Resource):
               "description": "the minimum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "dataType": "string",
+              "defaultValue": 0.25,
+              "dataType": "float",
               "paramType": "query"
             },
             {
