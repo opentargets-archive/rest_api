@@ -131,11 +131,11 @@ def is_authenticated(func):
         # if current_app.config['DEBUG']:
         #     authorized = True
         token = request.headers.get('Auth-Token')
-        if not token:
-            token= request.headers.get('Authorization')
-            if token:
-                token = token.split()[-1].strip()
-                token = base64.b64decode(token)[:-1]
+        # if not token:
+        #     token= request.headers.get('Authorization')
+        #     if token:
+        #         token = token.split()[-1].strip()
+        #         token = base64.b64decode(token)[:-1]
         if token:
             authorized = TokenAuthentication.is_valid(token)
         else:
