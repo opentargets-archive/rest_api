@@ -1,3 +1,4 @@
+from datetime import datetime
 import time
 
 __author__ = 'andreap'
@@ -81,9 +82,11 @@ class TokenAuthentication():
             data = json.loads(cipher.decrypt(s.loads(token)))
             return data
         except SignatureExpired, se:
-            current_app.logger.error('token expired: %s. signature date %s. current date = %s'%(se.message,str(se.date_signed),str(int(time.time()))))
-            if time.time()-int(se.date_signed) <5:#allow for 5 seconds out of sync machines
-                return json.loads(cipher.decrypt(s.loads(se.payload)))
+            time_offset = (datetime.now()- se.date_signed).total_seconds()
+            current_app.logger.error('token expired: %s. signature date %s. offset with current date = %s'%(se.message,str(se.date_signed),str(time_offset)))
+            if -5<= time_offset < 0:#allow for 5 seconds out of sync machines
+                current_app.logger.info('token time offset within grace period. allowing auth')
+                return json.loads(cipher.decrypt(se.payload))
             return False    # valid token, but expired
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
