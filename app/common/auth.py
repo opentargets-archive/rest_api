@@ -1,3 +1,5 @@
+import time
+
 __author__ = 'andreap'
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadData
@@ -78,8 +80,8 @@ class TokenAuthentication():
         try:
             data = json.loads(cipher.decrypt(s.loads(token)))
             return data
-        except SignatureExpired:
-            current_app.logger.error('token expired')
+        except SignatureExpired, se:
+            current_app.logger.error('token expired: %s. signature date %s. current date = %s'%(se.message,str(se.date_signed),str(int(time.time()))))
             return False    # valid token, but expired
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
