@@ -998,7 +998,7 @@ class esQuery():
             filters = []
             for datasource in datasources:
                 filters.append({ "terms": {"_private.datasource": [datasource]}})
-                filters.append({ "terms": {"evidence.provenance_type.database.id": [datasource]}})
+                filters.append({ "terms": {"sourceID": [datasource]}})
 
 
             return {
@@ -1169,7 +1169,7 @@ class esQuery():
                                   "datatypes": {
                                      "terms": {
                                          # "field" : "_private.datatype",
-                                         "field" : "evidence.provenance_type.database.id",
+                                         "field" : "sourceID",
                                          'size': 100000,
                                        },
                                      "aggs":{
@@ -1192,7 +1192,7 @@ class esQuery():
                            # "aggs":{
                            #    "datasource": {
                            #       "terms": {
-                           #           "field" : "evidence.provenance_type.database.id",
+                           #           "field" : "sourceID",
                            #           'size': 100000,
                            #       },
                            #    }
@@ -1214,7 +1214,7 @@ class esQuery():
         #            "aggs":{
         #               "datasource": {
         #                  "terms": {
-        #                      "field" : "evidence.provenance_type.database.id",
+        #                      "field" : "sourceID",
         #                      'size': 10000,
         #                  },
         #            }
@@ -1244,7 +1244,7 @@ class esQuery():
                           "datatypes": {
                              "terms": {
                                  # "field" : "_private.datatype",
-                                 "field" : "evidence.provenance_type.database.id",
+                                 "field" : "sourceID",
                                  'size': 100000,
                              },
                              "aggs":{
@@ -1734,7 +1734,7 @@ if (ev_type == 'rna_expression') {
                         "aggs":{
                             "datasources": {
                                 "terms": {
-                                    "field" :  "evidence.provenance_type.database.id",
+                                    "field" :  "sourceID",
                                 },
                             "aggs":{
                                 "unique_target_count": {
