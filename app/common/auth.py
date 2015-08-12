@@ -82,6 +82,8 @@ class TokenAuthentication():
             return data
         except SignatureExpired, se:
             current_app.logger.error('token expired: %s. signature date %s. current date = %s'%(se.message,str(se.date_signed),str(int(time.time()))))
+            if time.time()-int(se.date_signed) <5:#allow for 5 seconds out of sync machines
+                return json.loads(cipher.decrypt(s.loads(se.payload)))
             return False    # valid token, but expired
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
