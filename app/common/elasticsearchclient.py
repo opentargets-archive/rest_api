@@ -734,23 +734,25 @@ class esQuery():
                                   }
             )
         else:
+            query_body = {
+                          "query": {
+                              "filtered": {
+                                  "filter": {
+                                      "bool": {
+                                          "must": conditions
+                                      }
+                                  }
+
+                              }
+                          },
+                          'size': params.size,
+                          'from': params.start_from,
+                          '_source': source_filter,
+                      }
             res = self.handler.search(index=self._index_data,
                                       # doc_type=self._docname_data,
-                                      body={
-                                          "query": {
-                                              "filtered": {
-                                                  "filter": {
-                                                      "bool": {
-                                                          "must": conditions
-                                                      }
-                                                  }
+                                      body=query_body,
 
-                                              }
-                                          },
-                                          'size': params.size,
-                                          'from': params.start_from,
-                                          '_source': source_filter,
-                                      }
             )
         return PaginatedResult(res, params, )
 
@@ -890,17 +892,12 @@ class esQuery():
                              available_datatypes = self.datatypes.available_datatypes,
                              )
 
-    def _get_gene_filter(self, gene):
-        return [
-            gene,
-            # "http://identifiers.org/uniprot/"+gene,
-            # "http://identifiers.org/ensembl/" + gene,
-        ]
+
 
     def  _get_complex_gene_filter(self,
                                   genes,
                                   bol=BooleanFilterOperator.OR,
-                                  datasources=None):
+                                  ):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param genes: list of genes
@@ -912,18 +909,13 @@ class esQuery():
                 "bool": {
                     bol: [{
                               "terms": {
-                                  "target.id": self._get_gene_filter(gene)}
+                                  "target.id": [gene]}
                           }
                           for gene in genes]
                 }
             }
         return dict()
 
-
-    def _get_object_filter(self, object):
-        return [object,
-               # "http://identifiers.org/efo/" + object,
-        ]
 
     def _get_complex_object_filter(self,
                                    objects,
@@ -942,7 +934,7 @@ class esQuery():
                     "bool": {
                         bol : [{
                               "terms": {
-                                "_private.efo_codes": self._get_object_filter(object)}
+                                "_private.efo_codes":[object]}
                           }
                           for object in objects]
                     }
@@ -960,10 +952,6 @@ class esQuery():
 
                 }
 
-    def _get_evidence_type_filter(self, evidence_type):
-        return [evidence_type,
-                "http://identifiers.org/eco/" + evidence_type,
-        ]
 
     def _get_complex_evidence_type_filter(self,
                                           evidence_types,
@@ -979,7 +967,7 @@ class esQuery():
                 "bool": {
                     bol: [{
                               "terms": {
-                                  "evidence.evidence_codes": self._get_evidence_type_filter(evidence_type)}
+                                  "evidence.evidence_codes": [evidence_type]}
                           }
                           for evidence_type in evidence_types]
                 }
@@ -997,7 +985,7 @@ class esQuery():
         if datasources:
             filters = []
             for datasource in datasources:
-                filters.append({ "terms": {"_private.datasource": [datasource]}})
+                # filters.append({ "terms": {"_private.datasource": [datasource]}})
                 filters.append({ "terms": {"sourceID": [datasource]}})
 
 
