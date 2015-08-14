@@ -945,7 +945,7 @@ class esQuery():
                     "bool": {
                         bol : [{
                               "terms": {
-                                 "disease.id": self._get_object_filter(object)}
+                                 "disease.id": [object]}
                           }
                           for object in objects]
                     }
@@ -1826,9 +1826,9 @@ if (ev_type == 'rna_expression') {
                 },
                 "aggs":{
                     "data": {
-                        "terms": {
+                        "significant_terms": {
                              "field" : "_private.facets.uniprot_keywords",
-                             'size': 100,
+                             'size': 10,
                         },
                         "aggs": {
                             "unique_target_count": {
