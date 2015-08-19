@@ -860,6 +860,7 @@ class esQuery():
 
                                       }
                                   )
+
         if (not res['hits']['total']) and \
                 genes and objects:
             data = [{"evidence_count": 0,
@@ -1149,42 +1150,17 @@ class esQuery():
                            "terms": {
                                "field" : field,
                                'size': 100000,
-                               "order": {
-                                   "association_score.count": "desc"
-                               }
+                               # "order": {
+                               #     "association_score_mp.value.all": "desc"
+                               # }
                            },
                             "aggs":{
-                                  "datatypes": {
-                                     "terms": {
-                                         # "field" : "_private.datatype",
-                                         "field" : "sourceID",
-                                         'size': 100000,
-                                       },
-                                     "aggs":{
-                                          "association_score": {
-                                             "stats": {
-                                                 "script" : self._get_script_association_score_weighted()['script'],
-                                             },
 
-                                       }
-                                    }
-                                  },
-                                  "association_score": {
-                                             "stats": {
-                                                 "script" : self._get_script_association_score_weighted()['script'],
-                                             },
+                                  "association_score_mp": self._get_association_score_scripted_metric_script(),
 
-                                       }
 
                               }
-                           # "aggs":{
-                           #    "datasource": {
-                           #       "terms": {
-                           #           "field" : "sourceID",
-                           #           'size': 100000,
-                           #       },
-                           #    }
-                           # }
+
                          },
                     },
                 },
@@ -1216,8 +1192,8 @@ class esQuery():
                "filter" :{
                    "bool": {
                        "must": filters.values(),
-                    }
-,                           },
+                    },
+                },
                "aggs":{
                    "genes": {
                        "terms": {
@@ -1228,42 +1204,13 @@ class esQuery():
                            # }
                        },
                        "aggs":{
+                          "association_score_mp": self._get_association_score_scripted_metric_script(),
 
-                          "datatypes": {
-                             "terms": {
-                                 # "field" : "_private.datatype",
-                                 "field" : "sourceID",
-                                 'size': 100000,
-                             },
-                             "aggs":{
-                                  "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     },
-
-                               }
-                            }
-                          },
-                          "association_score": {
-                                     "stats": {
-                                         "script" : self._get_script_association_score_weighted()['script'],
-                                     }
-                          },
-                          # "association_score": {#TODO: could use the scripted metric, change code below
-                          #           "scripted_metric": {
-                          #               "init_script" : "_agg['transactions'] = []",
-                          #               "map_script" : "if (doc['type'].value == \"sale\") { _agg.transactions.add(doc['amount'].value) } else { _agg.transactions.add(-1 * doc['amount'].value) }",
-                          #               "combine_script" : "profit = 0; for (t in _agg.transactions) { profit += t }; return profit",
-                          #               "reduce_script" : "profit = 0; for (a in _aggs) { profit += a }; return profit"
-                          #           }
-                          #       }
-                          #     },
-                          },
-
-                        },
-                    },
-                },
+                       },
+                   },
+               },
             }
+        }
         if facets:
             aggs['datatypes'] = self._get_datatype_facet_aggregation(filters)
             aggs['pathway_type'] = gene_related_aggs["pathway_type"]
@@ -1273,6 +1220,23 @@ class esQuery():
 
         return aggs
 
+    def _get_datasource_init_list(self):
+        datatype_list = []#["'all':[]"]
+        for datatype in self.datatypes.available_datatypes:
+            # datatype_list.append("'%s': []"%datatype)
+            for datasource in  self.datatypes.get_datasources(datatype):
+                datatype_list.append("'%s': []"%datasource)
+        return ',\n'.join(datatype_list)
+
+    def _get_datatype_combine_init_list(self):
+        datatype_list = ["'all':0"]
+        for datatype in self.datatypes.available_datatypes:
+            datatype_list.append("'%s': 0"%datatype)
+            for datasource in  self.datatypes.get_datasources(datatype):
+                datatype_list.append("'%s': 0"%datasource)
+        return ',\n'.join(datatype_list)
+
+
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
         for filter_type, filter_value in filters.items():
@@ -1280,28 +1244,6 @@ class esQuery():
                 conditions.append(filter_value)
         return conditions
 
-    def _get_script_association_score_weighted(self):
-        return {"script_id":"calculate_association_score_weighted",
-                "lang" : "groovy",
-                "script" : """ev_type =doc['type'].value;
-if (ev_type == 'rna_expression') {
-  return doc['scores.association_score'].value * 0.5;
-} else if (ev_type == 'genetic_association'){
-  return doc['scores.association_score'].value;
-} else if (ev_type == 'affected_pathway'){
-  return doc['scores.association_score'].value;
-} else if (ev_type == 'animal_model'){
-  return  doc['scores.association_score'].value;
-} else if (ev_type == 'somatic_mutation'){
-  return doc['scores.association_score'].value * 0.5;
-} else if (ev_type == 'literature'){
-  return doc['scores.association_score'].value;
-}  else if (ev_type == 'known_drug'){
-  return doc['scores.association_score'].value;
-} else {
-  return 0.1;
-}
-"""}
 
     def _return_association_data_structures_for_genes(self,
                                                       res,
@@ -1310,25 +1252,12 @@ if (ev_type == 'rna_expression') {
                                                       efo_tas = None,
                                                       efo_with_data=[],
                                                       filters = {}):
-        def transform_datasource_point(datatype_point):
-            score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
-            if score >1:
-                score =1
-            elif score <-1:
-                score = -1
-            return dict(evidence_count = datatype_point['doc_count'],
-                        datatype = datatype_point['key'],
-                        association_score = round(score,2),
-                        )
+
 
         def transform_data_point(data_point, efo_with_data=[]):
-            datasources = map( transform_datasource_point, data_point["datatypes"]["buckets"])
-            datatypes = self._get_datatype_aggregation_from_datasource(datasources)
-            try:
-                scores = [i['association_score'] for i in datatypes]
-                score = round(max(min(scores), max(scores), key=abs), 2)
-            except:
-                score = 0.
+            scores = data_point['association_score_mp']['value']
+            datatypes = self._get_datatype_score_breakdown(scores)
+            score =scores['all']
             terapeutic_area_data = list(set([(ta,efo_labels[ta]) for ta in efo_tas[data_point['key']]]))
             terapeutic_area =[]
             for ta,ta_label in terapeutic_area_data:
@@ -1336,7 +1265,6 @@ if (ev_type == 'rna_expression') {
                                             label = ta_label))
             return dict(evidence_count = data_point['doc_count'],
                         efo_code = data_point['key'],
-                        # association_score = data_point['association_score']['value'],
                         association_score = score,
                         datatypes = datatypes,
                         label = efo_labels[data_point['key'] or data_point['key']],
@@ -1375,10 +1303,6 @@ if (ev_type == 'rna_expression') {
                     expanded_relations.append([code,path])
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
-            # 'always add available therapeutic areas'
-            # for code, parents in efo_tree_relations:
-            #     if len(parents)==2:
-            #         root.add_child(AssociationTreeNode(code, **data[code]))
             if not efo_with_data:
                 efo_with_data= [code for code, parents in efo_tree_relations]
             else:
@@ -1452,26 +1376,10 @@ if (ev_type == 'rna_expression') {
     def _return_association_data_structures_for_efos(self, res, agg_key,  filters = {}):
 
 
-
-        def transform_datasource_point(datatype_point):
-            score = datatype_point['association_score'][self.datatource_scoring.scoring_method[datatype_point['key']]]
-            if score >1:
-                score =1
-            elif score <-1:
-                score = -1
-            return dict(evidence_count = datatype_point['doc_count'],
-                        datatype = datatype_point['key'],
-                        association_score = round(score,2),
-                        )
-
         def transform_data_point(data_point):
-            datasources =map( transform_datasource_point, data_point["datatypes"]["buckets"])
-            datatypes = self._get_datatype_aggregation_from_datasource(datasources)
-            scores = [i['association_score'] for i in datatypes]
-            try:
-                score = round(max(min(scores), max(scores), key=abs), 2)
-            except:
-                score = 0.
+            scores = data_point['association_score_mp']['value']
+            datatypes = self._get_datatype_score_breakdown(scores)
+            score =scores['all']
             return dict(evidence_count = data_point['doc_count'],
                         gene_id = data_point['key'],
                         label = gene_names[data_point['key']],
@@ -1509,20 +1417,6 @@ if (ev_type == 'rna_expression') {
         return dict(data = new_data,
                     facets = facets)
 
-    def _get_datatype_aggregation_from_datasource(self, datasources):
-        datatype_aggs = {}
-        for ds in datasources:
-            dts = self.datatypes.get_datatypes(ds['datatype'])
-            for dt in dts:
-                if dt not in datatype_aggs:
-                    datatype_aggs[dt]= dict(evidence_count = 0,
-                                            datatype = dt,
-                                            association_score = 0,
-                                            )
-                datatype_aggs[dt]['evidence_count'] += ds['evidence_count']
-                if abs(ds['association_score']) > abs(datatype_aggs[dt]['association_score']):
-                    datatype_aggs[dt]['association_score'] = ds['association_score']
-        return datatype_aggs.values()
 
     def get_expression(self,
                               genes,
@@ -1847,6 +1741,107 @@ if (ev_type == 'rna_expression') {
                     },
                 }
             }
+
+    def _get_association_score_scripted_metric_script(self):
+        #TODO:  use the scripted metric to calculate association score.
+        #TODO: Use script parameters to pass the weights from request.
+        #TODO: implement using the max for datatype and overall score in combine and reduce
+        return {
+               "scripted_metric": dict(
+                    init_script = "_agg['evs_scores'] = [%s];"%self._get_datasource_init_list(),
+                    map_script = """
+//get values from entry
+ev_type = doc['type'].value;
+ev_sourceID = doc['sourceID'].value
+ev_score_ds = doc['scores.association_score'].value
+
+// calculate single point score depending on parameters
+%s
+
+//store the score value in the proper category
+//_agg.evs_scores['all'].add(ev_score_dt)
+_agg.evs_scores[ev_sourceID].add(ev_score_ds)
+//_agg.evs_scores[ev_type].add(ev_score_dt)
+"""%self._get_datasource_score_calculation_script(),
+                    combine_script = """
+scores = [%s];
+// sum all the values coming from a single shard
+_agg.evs_scores.each { key, value ->
+    for (v in value) {
+        scores[key] += v;
+        };
+    };
+return scores"""%self._get_datatype_combine_init_list(),
+                    reduce_script = """
+//init scores table with available datasource and datatypes
+scores = [%s];
+//generate a datasource to datatype (ds2dt) map
+%s
+
+_aggs.each {
+    it.each { key, value ->
+        for (v in value) {
+            scores['all'] += v;
+            scores[key] += v;
+            ds2dt[key].each { dt ->
+                scores[dt] += v;
+                };
+            };
+        };
+    };
+
+
+
+// cap each data category sum to 1
+scores.each { key, value ->
+    if (value > 1) {
+        scores[key] = 1;
+        };
+    };
+return scores"""%(self._get_datatype_combine_init_list(),
+                  self._get_datasource_to_datatype_mapping_script()),
+                )
+
+
+          }
+
+    def _get_datasource_score_calculation_script(self):
+        template_ds = """if (ev_sourceID == '%s') {
+  ev_score_ds = doc['scores.association_score'].value * %f;
+  }"""
+        script = []
+        for ds in self.datatypes.datasources:
+            script.append(template_ds%(ds,self.datatource_scoring.weights[ds]))
+
+        return '\n'.join(script)
+
+    def _get_datasource_to_datatype_mapping_script(self):
+        script = ['ds2dt = [']
+        for ds in self.datatypes.datasources.values():
+            script.append("'%s' : %s,"%(ds.name, str(ds.datatypes)))
+
+        script.append(']')
+        script = '\n'.join(script)
+        return script
+
+    def _get_datatype_score_breakdown(self, scores):
+        datatype_data = []
+        for dt in self.datatypes.datatypes.values():
+            dt_score = scores[dt.name]
+            if dt_score != 0:
+                dt_data = dict(datatype = dt.name,
+                               association_score = dt_score,
+                               datasources = []
+                              )
+                for ds in dt.datasources:
+                    ds_score = scores[ds]
+                    if ds_score != 0:
+                        dt_data['datasources'].append(dict(datasource = ds,
+                                                           association_score = ds_score,
+                                                            ))
+                datatype_data.append(dt_data)
+
+        return datatype_data
 
 
 class SearchParams():

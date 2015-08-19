@@ -14,7 +14,8 @@ class ScoringMethods():
 class DataSourceScoring():
 
     def __init__(self, app):
-        self.scoring_method = app.config['DATASOURCE_SCORING_METHOD']
+        self.methods = app.config['DATASOURCE_SCORING_METHOD']
+        self.weights = app.config['SCORING_WEIGHTS']
 
 
 

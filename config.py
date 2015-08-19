@@ -37,7 +37,7 @@ class Config:
     DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva',]
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
-    DATATYPES['somatic_mutation'] = ['cancer_gene_census',]
+    DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic',]
     DATATYPES['known_drug'] = ['chembl',]
     DATATYPES['literature'] = ['europmc','disgenet']
     DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature']
@@ -45,6 +45,11 @@ class Config:
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
+    SCORING_WEIGHTS = defaultdict(lambda: 1)
+    SCORING_WEIGHTS['phenodigm'] = 0.3
+    SCORING_WEIGHTS['expression_atlas'] = 0.1
+    SCORING_WEIGHTS['disgenet'] = 0.2
+
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
                                         'gxa': 'https://www.ebi.ac.uk/gxa/',
