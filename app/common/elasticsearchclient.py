@@ -4,6 +4,7 @@ from copy import copy
 import operator
 import logging
 import pprint
+import numpy as np
 
 from flask import current_app
 from elasticsearch import helpers
@@ -752,6 +753,7 @@ class esQuery():
             res = self.handler.search(index=self._index_data,
                                       # doc_type=self._docname_data,
                                       body=query_body,
+                                      timeout=180,
 
             )
         return PaginatedResult(res, params, )
@@ -858,7 +860,8 @@ class esQuery():
                                       # calculate aggregation using proper ad hoc filters
                                       "aggs": aggs,
 
-                                      }
+                                      },
+                                  timeout = 180,
                                   )
 
         if (not res['hits']['total']) and \
@@ -1156,7 +1159,10 @@ class esQuery():
                            },
                             "aggs":{
 
-                                  "association_score_mp": self._get_association_score_scripted_metric_script(),
+                                "association_score_mp": {
+                                    "scripted_metric": self._get_association_score_scripted_metric_script(),
+
+                                }
 
 
                               }
@@ -1204,8 +1210,9 @@ class esQuery():
                            # }
                        },
                        "aggs":{
-                          "association_score_mp": self._get_association_score_scripted_metric_script(),
-
+                          "association_score_mp": {
+                              "scripted_metric": self._get_association_score_scripted_metric_script(),
+                          }
                        },
                    },
                },
@@ -1283,7 +1290,9 @@ class esQuery():
             data = map(transform_data_point, data)
             if efo_with_data:
                 data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , data)
-
+            if facets:
+                scores =np.array([i['association_score'] for i in data])
+                facets['data_distribution'] = self._get_association_data_distribution(scores)
 
         return dict(data = data,
                     facets = facets)
@@ -1413,6 +1422,9 @@ class esQuery():
         facets = self._extend_facets(facets)
 
         new_data = map(transform_data_point, data)
+        if facets:
+            scores =np.array([i['association_score'] for i in new_data])
+            facets['data_distribution'] = self._get_association_data_distribution(scores)
 
         return dict(data = new_data,
                     facets = facets)
@@ -1746,8 +1758,7 @@ class esQuery():
         #TODO:  use the scripted metric to calculate association score.
         #TODO: Use script parameters to pass the weights from request.
         #TODO: implement using the max for datatype and overall score in combine and reduce
-        return {
-               "scripted_metric": dict(
+        return dict(
                     init_script = "_agg['evs_scores'] = [%s];"%self._get_datasource_init_list(),
                     map_script = """
 //get values from entry
@@ -1803,8 +1814,6 @@ return scores"""%(self._get_datatype_combine_init_list(),
                 )
 
 
-          }
-
     def _get_datasource_score_calculation_script(self):
         template_ds = """if (ev_sourceID == '%s') {
   ev_score_ds = doc['scores.association_score'].value * %f;
@@ -1842,6 +1851,14 @@ return scores"""%(self._get_datatype_combine_init_list(),
                 datatype_data.append(dt_data)
 
         return datatype_data
+
+    def _get_association_data_distribution(self, scores):
+        histogram, bin_edges = np.histogram(scores,10)
+        distribution = dict(buckets={})
+        for i in range(len(bin_edges)-1):
+            distribution['buckets'][round(bin_edges[i],1)]={'value':histogram[i]}
+
+        return distribution
 
 
 class SearchParams():
