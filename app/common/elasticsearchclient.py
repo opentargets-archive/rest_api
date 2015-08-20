@@ -1871,7 +1871,6 @@ return scores"""%(self._get_datatype_combine_init_list(),
 
     def _get_association_data_distribution(self, scores):
         histogram, bin_edges = np.histogram(scores,10)
-        print scores.min(), scores.max()
         distribution = dict(buckets={})
         for i in range(len(bin_edges)-1):
             distribution['buckets'][round(bin_edges[i],1)]={'value':histogram[i]}
