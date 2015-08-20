@@ -820,11 +820,11 @@ class esQuery():
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg(filters = filter_data_conditions, facets=params.facets)
+            aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
-                aggs = self._get_gene_associations_agg(filters = filter_data_conditions, facets=params.facets)
+                aggs = self._get_gene_associations_agg(filters = filter_data_conditions, params = params)
             if not params.expand_efo:
                 full_conditions = copy(conditions)
                 full_conditions.extend(filter_data_conditions.values())
@@ -1137,7 +1137,8 @@ class esQuery():
 
 
 
-    def _get_gene_associations_agg(self, expand_efo = True, filters = {}, facets = True):
+    def _get_gene_associations_agg(self, expand_efo = True, filters = {}, params = None):
+        facets = params.facets
         field = "disease.id"
         if expand_efo:
             field = "_private.efo_codes"
@@ -1160,7 +1161,7 @@ class esQuery():
                             "aggs":{
 
                                 "association_score_mp": {
-                                    "scripted_metric": self._get_association_score_scripted_metric_script(),
+                                    "scripted_metric": self._get_association_score_scripted_metric_script(params),
 
                                 }
 
@@ -1175,7 +1176,9 @@ class esQuery():
             aggs["datatypes"] = self._get_datatype_facet_aggregation(filters)
         return aggs
 
-    def _get_efo_associations_agg(self, filters = {}, facets = True):
+    def _get_efo_associations_agg(self, filters = {}, params = None):
+
+        facets = params.facets
         # return {"genes": {
         #            "terms": {
         #                "field" : "target.id",
@@ -1211,7 +1214,7 @@ class esQuery():
                        },
                        "aggs":{
                           "association_score_mp": {
-                              "scripted_metric": self._get_association_score_scripted_metric_script(),
+                              "scripted_metric": self._get_association_score_scripted_metric_script(params),
                           }
                        },
                    },
@@ -1227,7 +1230,7 @@ class esQuery():
 
         return aggs
 
-    def _get_datasource_init_list(self):
+    def _get_datasource_init_list(self, params = None):
         datatype_list = []#["'all':[]"]
         for datatype in self.datatypes.available_datatypes:
             # datatype_list.append("'%s': []"%datatype)
@@ -1235,7 +1238,7 @@ class esQuery():
                 datatype_list.append("'%s': []"%datasource)
         return ',\n'.join(datatype_list)
 
-    def _get_datatype_combine_init_list(self):
+    def _get_datatype_combine_init_list(self, params = None):
         datatype_list = ["'all':0"]
         for datatype in self.datatypes.available_datatypes:
             datatype_list.append("'%s': 0"%datatype)
@@ -1771,12 +1774,12 @@ class esQuery():
                 }
             }
 
-    def _get_association_score_scripted_metric_script(self):
+    def _get_association_score_scripted_metric_script(self, params):
         #TODO:  use the scripted metric to calculate association score.
         #TODO: Use script parameters to pass the weights from request.
         #TODO: implement using the max for datatype and overall score in combine and reduce
         return dict(
-                    init_script = "_agg['evs_scores'] = [%s];"%self._get_datasource_init_list(),
+                    init_script = "_agg['evs_scores'] = [%s];"%self._get_datasource_init_list(params),
                     map_script = """
 //get values from entry
 ev_type = doc['type'].value;
@@ -1790,7 +1793,7 @@ ev_score_ds = doc['scores.association_score'].value
 //_agg.evs_scores['all'].add(ev_score_dt)
 _agg.evs_scores[ev_sourceID].add(ev_score_ds)
 //_agg.evs_scores[ev_type].add(ev_score_dt)
-"""%self._get_datasource_score_calculation_script(),
+"""%self._get_datasource_score_calculation_script(params),
                     combine_script = """
 scores = [%s];
 // sum all the values coming from a single shard
@@ -1799,7 +1802,7 @@ _agg.evs_scores.each { key, value ->
         scores[key] += v;
         };
     };
-return scores"""%self._get_datatype_combine_init_list(),
+return scores"""%self._get_datatype_combine_init_list(params),
                     reduce_script = """
 //init scores table with available datasource and datatypes
 scores = [%s];
@@ -1826,22 +1829,22 @@ scores.each { key, value ->
         scores[key] = 1;
         };
     };
-return scores"""%(self._get_datatype_combine_init_list(),
-                  self._get_datasource_to_datatype_mapping_script()),
+return scores"""%(self._get_datatype_combine_init_list(params),
+                  self._get_datasource_to_datatype_mapping_script(params)),
                 )
 
 
-    def _get_datasource_score_calculation_script(self):
+    def _get_datasource_score_calculation_script(self, params = None):
         template_ds = """if (ev_sourceID == '%s') {
-  ev_score_ds = doc['scores.association_score'].value * %f;
+  ev_score_ds = doc['scores.association_score'].value * %f / %f;
   }"""
         script = []
         for ds in self.datatypes.datasources:
-            script.append(template_ds%(ds,self.datatource_scoring.weights[ds]))
+            script.append(template_ds%(ds,self.datatource_scoring.weights[ds],params.stringency))
 
         return '\n'.join(script)
 
-    def _get_datasource_to_datatype_mapping_script(self):
+    def _get_datasource_to_datatype_mapping_script(self, params = None):
         script = ['ds2dt = [']
         for ds in self.datatypes.datasources.values():
             script.append("'%s' : %s,"%(ds.name, str(ds.datatypes)))
@@ -1923,6 +1926,7 @@ class SearchParams():
         if self.filters[FilterTypes.PATHWAY]:
             self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
+        self.stringency = kwargs.get('stringency', 3) or 3
 
         self.pathway= kwargs.get('pathway', [])
         self.target_class= kwargs.get('target_class')

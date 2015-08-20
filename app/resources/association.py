@@ -123,6 +123,23 @@ class Association(restful.Resource):
               "paramType": "query"
             },
             {
+              "name": "filterbyuniprotkw",
+              "description": "Consider just genes with this uniprot keyword. Accepts a list of uniprot keywords.",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "stringency",
+              "description": "Define the stringency in the association score calculation. The higher the stringency the more evidence is needed to reach a score of 1",
+              "required": False,
+              "allowMultiple": True,
+              "defaultValue": 3,
+              "dataType": "int",
+              "paramType": "query"
+            },
+            {
               "name": "datastructure",
               "description": "Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene). Can be 'flat' or 'tree'",
               "required": False,
@@ -177,6 +194,8 @@ class Association(restful.Resource):
         parser.add_argument('filterbydatasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
         parser.add_argument('filterbydatatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('filterbypathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
+        parser.add_argument('filterbyuniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
+        parser.add_argument('stringency', type=int, required=False, help="Define the stringency in the association score calculation.", choices=['flat','tree'])
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
