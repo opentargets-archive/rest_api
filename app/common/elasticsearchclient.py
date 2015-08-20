@@ -1289,10 +1289,20 @@ class esQuery():
                 efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["key"] for i in data])
             data = map(transform_data_point, data)
             if efo_with_data:
-                data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , data)
+                # data = filter(lambda data_point: data_point['efo_code'] in efo_with_data , data)
+                data = [data_point for data_point in data if data_point['efo_code'] in efo_with_data]
             if facets:
                 scores =np.array([i['association_score'] for i in data])
                 facets['data_distribution'] = self._get_association_data_distribution(scores)
+            if filters and (
+                (filters[FilterTypes.ASSOCIATION_SCORE_MIN] is not None) or
+                (filters[FilterTypes.ASSOCIATION_SCORE_MAX] is not None)
+                ):
+                data = [data_point \
+                            for data_point in data \
+                            if (data_point['association_score']>filters[FilterTypes.ASSOCIATION_SCORE_MIN]) and \
+                                 (data_point['association_score']<=filters[FilterTypes.ASSOCIATION_SCORE_MAX]) \
+                            ]
 
         return dict(data = data,
                     facets = facets)
@@ -1423,6 +1433,15 @@ class esQuery():
         if facets:
             scores =np.array([i['association_score'] for i in new_data])
             facets['data_distribution'] = self._get_association_data_distribution(scores)
+        if filters and (
+                (filters[FilterTypes.ASSOCIATION_SCORE_MIN] is not None) or
+                (filters[FilterTypes.ASSOCIATION_SCORE_MAX] is not None)
+                ):
+                new_data = [data_point \
+                            for data_point in new_data \
+                            if (data_point['association_score']>filters[FilterTypes.ASSOCIATION_SCORE_MIN]) and \
+                                 (data_point['association_score']<=filters[FilterTypes.ASSOCIATION_SCORE_MAX]) \
+                            ]
 
         return dict(data = new_data,
                     facets = facets)
@@ -1852,6 +1871,7 @@ return scores"""%(self._get_datatype_combine_init_list(),
 
     def _get_association_data_distribution(self, scores):
         histogram, bin_edges = np.histogram(scores,10)
+        print scores.min(), scores.max()
         distribution = dict(buckets={})
         for i in range(len(bin_edges)-1):
             distribution['buckets'][round(bin_edges[i],1)]={'value':histogram[i]}
