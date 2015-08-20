@@ -1331,14 +1331,12 @@ class esQuery():
 
         data = res['aggregations']['data'][agg_key]["buckets"]
         facets = {}
-        if 'datatypes' in res['aggregations']:
-            facets['datatypes'] = res['aggregations']['datatypes']['data']
-        facets = self._extend_facets(facets)
         data = dict([(i["key"],i) for i in data])
         if data:
             efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
-            new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)['data']
-            tree_data = transform_data_to_tree(new_data,efo_parents, efo_with_data) or new_data
+            new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
+            tree_data = transform_data_to_tree(new_data['data'],efo_parents, efo_with_data) or new_data['data']
+            facets= new_data['facets']
         else:
             tree_data = data
 
