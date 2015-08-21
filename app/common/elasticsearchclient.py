@@ -1918,7 +1918,7 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.25)
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.2)
         self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1)
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
