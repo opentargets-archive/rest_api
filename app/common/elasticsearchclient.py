@@ -960,12 +960,12 @@ class esQuery():
         '''build data structure to return'''
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(scores, aggregation_results,  filters = params.filters)
+                data = self._return_association_data_structures_for_efos(filtered_scores, aggregation_results,  filters = params.filters)
         elif genes:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(scores, aggregation_results,  efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results,  efo_with_data=efo_with_data, filters = params.filters)
 
 
         return CountedResult(res,
