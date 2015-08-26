@@ -132,6 +132,7 @@ class Scorer():
         if sortby is None:
             sortby = self.default_sorting
         counter = 0
+        expanded_efo = set()
 
         for es_result in evs:
             counter+=1
@@ -156,6 +157,8 @@ class Scorer():
             diseases[disease].add_evidence_score(ev_score,
                                                  ev['type'],
                                                  ev['sourceID'])
+            for efo in ev['_private']['efo_codes']:
+                expanded_efo.add(efo)
 
         sorted_targets = sorted(targets.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
         sorted_diseases = sorted(diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
@@ -165,7 +168,7 @@ class Scorer():
         for i,score in enumerate(sorted_diseases):
             sorted_diseases[i]=score.finalise()
 
-        return sorted_targets, sorted_diseases, counter
+        return sorted_targets, sorted_diseases, counter, list(expanded_efo)
 
 
 

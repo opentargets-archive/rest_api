@@ -855,24 +855,28 @@ class esQuery():
 
                       }
 
+
         res = self.handler.search(index=self._index_data,
                                   body=score_query_body,
                                   timeout = 180,
                                   query_cache = True,
-                                  )
-        expected_datapoints = res['hits']['total']
-        genes_scores, objects_scores, datapoints = self.scorer.score(evs = helpers.scan(self.handler,
-                                                                                        index=self._index_data,
-                                                                                        query=score_query_body,
-                                                                                        size=10000,
-                                                                                        timeout = 180,
-                                                                                        query_cache = True),
-                                                                     stringency=params.stringency,
-                                                                     # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
-                                                                     # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                                                     )
 
-        if datapoints!= expected_datapoints:
+                                  )
+        evs = helpers.scan(self.handler,
+                            index=self._index_data,
+                            query=score_query_body,
+                            size=10000,
+                            timeout = 180,
+                            query_cache = True,
+                           )
+
+        genes_scores, objects_scores, datapoints, expanded_linked_efo = self.scorer.score(evs = evs,
+                                                                         stringency=params.stringency,
+                                                                         # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
+                                                                         # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                                                         )
+        expected_datapoints = res['hits']['total']
+        if datapoints< expected_datapoints:
             raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
         scores = []
         if objects:
@@ -918,11 +922,14 @@ class esQuery():
                       "aggs": {},
 
                       }
+        # if objects:
+        #     agg_query_body['routing']=objects
 
         count_res = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
                                   timeout = 180,
                                   query_cache = True,
+                                  routing=expanded_linked_efo
                                   )
         aggregation_results = {'data_distribution': data_distribution}
 
@@ -946,9 +953,10 @@ class esQuery():
             agg_query_body['aggs']={a:aggs[a]}
             res = self.handler.search(index=self._index_data,
                                       body=agg_query_body,
-                                      timeout=180)
+                                      timeout=180,
+                                      routing=expanded_linked_efo)
 
-            if count_res['hits']['total'] != res['hits']['total']:
+            if count_res['hits']['total'] > res['hits']['total']:
                 logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
                 status = 'partial-facet'
             elif res['hits']['total']:
@@ -1828,7 +1836,7 @@ class esQuery():
                     "data": {
                         "significant_terms": {
                              "field" : "_private.facets.uniprot_keywords",
-                             'size': 10,
+                             'size': 25,
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -1846,6 +1854,27 @@ class esQuery():
                         },
                     },
                 }
+            }
+
+    def _get_uniprot_keywords_facet_aggregation_for_genes(self, filters):
+        return {
+                "aggs":{
+                    "data": {
+                        "significant_terms": {
+                             "field" : "uniprot_keywords",
+                             'size': 25,
+                        },
+                        # "aggs": {
+                        #     "unique_target_count": {
+                        #        "cardinality" : {
+                        #           "field" : "id",
+                        #           "precision_threshold": 1000
+                        #        },
+                        #     },
+                        # },
+                    },
+                }
+
             }
 
     def _get_association_score_scripted_metric_script(self, params):

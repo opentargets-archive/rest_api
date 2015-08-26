@@ -55,8 +55,9 @@ class ScoreDataStructure(OutputDataStructure):
                            "target.id",
                            "target.gene_info.symbol",
                            "disease.efo_info.label",
-                           "disease.id"],
-                "exclude": [ "_private*" ]}
+                           "disease.id",
+                           "_private.efo_codes",
+                           ],}
 
 class OutputDataStructureOptions():
     DEFAULT = 'default'
