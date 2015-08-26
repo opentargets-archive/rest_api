@@ -1384,8 +1384,8 @@ class esQuery():
                     facets = facets)
 
     def _return_association_data_structures_for_genes_as_tree(self,
-                                                              res,
-                                                              agg_key,
+                                                              scores,
+                                                              aggs,
                                                               efo_with_data =[],
                                                               filters = {}):
 
@@ -1415,16 +1415,14 @@ class esQuery():
             return root.to_dict_tree_with_children_as_array()
 
 
-        data = res['aggregations']['data'][agg_key]["buckets"]
         facets = {}
-        data = dict([(i["key"],i) for i in data])
-        if data:
-            efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations(data.keys())
-            new_data = self._return_association_data_structures_for_genes(res,agg_key, efo_labels = efo_labels, efo_tas = efo_tas)
-            tree_data = transform_data_to_tree(new_data['data'],efo_parents, efo_with_data) or new_data['data']
-            facets= new_data['facets']
+        if scores:
+            efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in scores])
+            new_scores = self._return_association_data_structures_for_genes(scores,aggs, efo_labels = efo_labels, efo_tas = efo_tas)
+            tree_data = transform_data_to_tree(new_scores['data'],efo_parents, efo_with_data) or new_scores['data']
+            facets= new_scores['facets']
         else:
-            tree_data = data
+            tree_data = scores
 
         return dict(data = tree_data,
                     facets = facets)
@@ -1522,7 +1520,7 @@ class esQuery():
         #                          (data_point['association_score']<=filters[FilterTypes.ASSOCIATION_SCORE_MAX]) \
         #                     ]
 
-        return dict(data = scores[:200],
+        return dict(data = scores,
                     facets = facets)
 
 
