@@ -891,7 +891,7 @@ class esQuery():
 
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
-        if genes:
+        elif genes:
             conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
         # return CountedResult([],
         #                          params,
