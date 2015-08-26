@@ -84,8 +84,8 @@ class esQuery():
                 handler.setFormatter(formatter)
             es_logger.setLevel(logging.WARNING)
             es_tracer = logging.getLogger('elasticsearch.trace')
-            es_tracer.setLevel(logging.DEBUG)
-            es_tracer.addHandler(logging.FileHandler('es_trace.log'))
+            es_tracer.setLevel(logging.WARNING)
+            # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
             for handler in es_tracer.handlers:
                 handler.setFormatter(formatter)
 
