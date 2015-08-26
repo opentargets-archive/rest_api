@@ -80,13 +80,15 @@ class Score():
                 new_datatypes = []
                 for dt in score['datatypes']:
                     new_dt = {'datatype': dt,
-                              score_name: self._cap_score(score['datatypes'][dt][score_name])}
+                              score_name: self._cap_score(score['datatypes'][dt][score_name]),
+                              'evidence_count': score['datatypes'][dt]['evidence_count']}
                     capped_score['datatypes'][dt][score_name]=self._cap_score(score['datatypes'][dt][score_name])
                     if 'datasources' in score['datatypes'][dt]:
                         new_datasources = []
                         for ds in score['datatypes'][dt]['datasources']:
                             new_ds = {'datasource': ds,
-                                       score_name: self._cap_score(score['datatypes'][dt]['datasources'][ds][score_name])}
+                                       score_name: self._cap_score(score['datatypes'][dt]['datasources'][ds][score_name]),
+                                      'evidence_count': score['datatypes'][dt]['datasources'][ds]['evidence_count']}
                             new_datasources.append(new_ds)
                         new_dt['datasources']=new_datasources
                     new_datatypes.append(new_dt)
