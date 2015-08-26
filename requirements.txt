@@ -1,6 +1,6 @@
 aniso8601==0.92
 dicttoxml==1.6.0
-elasticsearch==1.4.0
+elasticsearch==1.6.0
 Flask==0.10.1
 Flask-Cors==1.10.3
 Flask-RESTful==0.3.2
