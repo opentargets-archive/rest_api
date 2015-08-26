@@ -858,7 +858,7 @@ class esQuery():
         res = self.handler.search(index=self._index_data,
                                   body=score_query_body,
                                   timeout = 180,
-                                  query_cache = False,
+                                  query_cache = True,
                                   )
         expected_datapoints = res['hits']['total']
         genes_scores, objects_scores, datapoints = self.scorer.score(evs = helpers.scan(self.handler,
@@ -893,13 +893,7 @@ class esQuery():
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
             conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
-        # return CountedResult([],
-        #                          params,
-        #                          filtered_scores,
-        #                          total = total,
-        #                          facets = {'data_distribution': data_distribution},
-        #                          available_datatypes = self.datatypes.available_datatypes,
-        #                          )
+
 
         agg_query_body = {
                       #restrict the set of datapoints using the target and disease ids
@@ -928,22 +922,11 @@ class esQuery():
         count_res = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
                                   timeout = 180,
-                                  # terminate_after = 1000000,
-                                  query_cache = False,
+                                  query_cache = True,
                                   )
         aggregation_results = {'data_distribution': data_distribution}
-        for a in aggs:
-            agg_query_body['aggs']={a:aggs[a]}
-            res = self.handler.search(index=self._index_data,
-                                      body=agg_query_body,
-                                      timeout=180)
 
-            if count_res['hits']['total'] != res['hits']['total']:
-                logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
-            elif res['hits']['total']:
-                aggregation_results[a]=res['aggregations'][a]
-
-
+        status = 'ok'
         if total == 0 and genes and objects:
             data = [{"evidence_count": 0,
                      "datatypes": [],
@@ -954,9 +937,24 @@ class esQuery():
                                  params,
                                  data,
                                  total = 0,
-                                 facets = {},
+                                 facets = aggregation_results,
                                  available_datatypes = self.datatypes.available_datatypes,
+                                 status = status,
                                  )
+
+        for a in aggs:
+            agg_query_body['aggs']={a:aggs[a]}
+            res = self.handler.search(index=self._index_data,
+                                      body=agg_query_body,
+                                      timeout=180)
+
+            if count_res['hits']['total'] != res['hits']['total']:
+                logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
+                status = 'partial-facet'
+            elif res['hits']['total']:
+                aggregation_results[a]=res['aggregations'][a]
+
+
         '''build data structure to return'''
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
@@ -973,6 +971,7 @@ class esQuery():
                              total = total,
                              facets=data['facets'],
                              available_datatypes = self.datatypes.available_datatypes,
+                             status = status,
                              )
 
 

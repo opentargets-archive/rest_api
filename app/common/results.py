@@ -19,7 +19,8 @@ class Result(object):
                  params,
                  data=None,
                  facets=None,
-                 available_datatypes = []):
+                 available_datatypes = [],
+                 status = 'ok'):
         '''
 
         :param res: elasticsearch query response
@@ -34,6 +35,7 @@ class Result(object):
         self.format = params.format
         self.facets = facets
         self.available_datatypes = available_datatypes
+        self.status = status
 
 
     def toDict(self):
@@ -140,7 +142,8 @@ class PaginatedResult(Result):
                 'total': self.res['hits']['total'],
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
-                'from': self.params.start_from
+                'from': self.params.start_from,
+                'status' : self.status,
         }
 
 
@@ -151,7 +154,8 @@ class SimpleResult(Result):
     def toDict(self):
         if  self.data is None:
             raise AttributeError('some data is needed to be returned in a SimpleResult')
-        return {'data': self.data}
+        return {'data': self.data,
+                'status' : self.status, }
 
 class CountedResult(Result):
 
@@ -172,9 +176,11 @@ class CountedResult(Result):
             return {'data': self.data,
                     'facets': self.facets,
                     'total': self.total,
-                    'available_datatypes': self.available_datatypes
+                    'available_datatypes': self.available_datatypes,
+                    'status' : self.status,
             }
         return {'data': self.data,
                 'total': self.total,
-                'available_datatypes': self.available_datatypes
+                'available_datatypes': self.available_datatypes,
+                'status' : self.status,
         }
