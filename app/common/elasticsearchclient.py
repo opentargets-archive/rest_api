@@ -859,7 +859,7 @@ class esQuery():
         res = self.handler.search(index=self._index_data,
                                   body=score_query_body,
                                   timeout = 180,
-                                  query_cache = True,
+                                  query_cache = False,
 
                                   )
         evs = helpers.scan(self.handler,
@@ -867,7 +867,7 @@ class esQuery():
                             query=score_query_body,
                             size=10000,
                             timeout = 180,
-                            query_cache = True,
+                            query_cache = False,
                            )
 
         genes_scores, objects_scores, datapoints, expanded_linked_efo = self.scorer.score(evs = evs,
