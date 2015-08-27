@@ -960,7 +960,7 @@ class esQuery():
                                  total = 0,
                                  facets = aggregation_results,
                                  available_datatypes = self.datatypes.available_datatypes,
-                                 status = status,
+                                 status = status.status,
                                  )
 
         for a in aggs:
