@@ -54,12 +54,14 @@ class esQuery():
                  index_genename=None,
                  index_expression=None,
                  index_reactome=None,
+                 index_score=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
                  docname_genename=None,
                  docname_expression=None,
                  docname_reactome=None,
+                 docname_score=None,
                  log_level=logging.DEBUG):
         '''
 
@@ -80,12 +82,14 @@ class esQuery():
         self._index_genename = index_genename
         self._index_expression = index_expression
         self._index_reactome = index_reactome
+        self._index_score = index_score
         self._docname_data = docname_data
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
         self._docname_expression = docname_expression
         self._docname_reactome = docname_reactome
+        self._docname_score = docname_score
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
@@ -870,14 +874,14 @@ class esQuery():
                       }
 
 
-        res = self.handler.search(index=self._index_data,
+        res = self.handler.search(index=self._index_score,
                                   body=score_query_body,
                                   timeout = 180,
                                   query_cache = False,
 
                                   )
         evs = helpers.scan(self.handler,
-                            index=self._index_data,
+                            index=self._index_score,
                             query=score_query_body,
                             size=10000,
                             timeout = 180,
