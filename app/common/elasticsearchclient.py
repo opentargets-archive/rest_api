@@ -10,7 +10,7 @@ from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import OutputDataStructureOptions
-from app.common.results import PaginatedResult, SimpleResult, CountedResult
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult
 from app.common.datatypes import FilterTypes
 from app.common.scoring import Scorer
 
@@ -717,7 +717,15 @@ class esQuery():
         if datasources:
             conditions.append(self._get_complex_datasource_filter(datasources, BooleanFilterOperator.OR))
         if params.pathway:
-            conditions.append(self._get_complex_pathway_filter(params.pathway, BooleanFilterOperator.OR))
+            pathway_filter = self._get_complex_pathway_filter(params.pathway, BooleanFilterOperator.OR)
+            if pathway_filter:
+                conditions.append(pathway_filter)
+        if params.uniprot_kw:
+            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
+            if uniprotkw_filter:
+                conditions.append(uniprotkw_filter)#Proto-oncogene Nucleus
+        if not conditions:
+            return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
@@ -835,7 +843,13 @@ class esQuery():
             # #datasources = '|'.join([".*%s.*"%x for x in requested_datasources])#this will match substrings
             # datasources = '|'.join(["%s"%x for x in requested_datasources])
         if params.filters[FilterTypes.PATHWAY]:
-            filter_data_conditions[FilterTypes.PATHWAY]=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY], BooleanFilterOperator.OR)
+            pathway_filter=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY], BooleanFilterOperator.OR)
+            if pathway_filter:
+                filter_data_conditions[FilterTypes.PATHWAY]=pathway_filter
+        if params.filters[FilterTypes.UNIPROT_KW]:
+            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW], BooleanFilterOperator.OR)
+            if uniprotkw_filter:
+                filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
@@ -2003,7 +2017,42 @@ return scores"""%(self._get_datatype_combine_init_list(params),
 
         return distribution
 
+    def _get_complex_uniprot_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of uniprot kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            genes = self._get_genes_for_uniprot_kw(kw)
+            if genes:
+                return self._get_complex_gene_filter(genes, bol)
+        return dict()
 
+    def _get_genes_for_uniprot_kw(self, kw):
+        data =[]
+        res = self.handler.search(index=self._index_genename,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                   "bool": {
+                                                       "should": [
+                                                           {"terms": {"_private.facets.uniprot_keywords":kw}},
+                                                       ]
+                                                   }
+                                              }
+                                          }
+                                      },
+                                      'size': 100000,
+                                      '_source': ["id"],
+
+
+                                  })
+        if res['hits']['total']:
+            data = [hit['_id'] for hit in res['hits']['hits']]
+        return data
 
 
 class SearchParams():
@@ -2052,13 +2101,16 @@ class SearchParams():
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
+        self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
         if self.filters[FilterTypes.PATHWAY]:
             self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
         self.stringency = kwargs.get('stringency', 2) or 2
 
-        self.pathway= kwargs.get('pathway', [])
-        self.target_class= kwargs.get('target_class')
+        self.pathway= kwargs.get('pathway', []) or []
+        self.target_class= kwargs.get('target_class',[]) or []
+        self.uniprot_kw= kwargs.get('uniprotkw', []) or []
+        self.datatype= kwargs.get('datatype', []) or []
 
         self.expand_efo = kwargs.get('expandefo', False)
         self.facets = kwargs.get('facets', True)

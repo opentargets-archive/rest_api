@@ -146,6 +146,18 @@ class PaginatedResult(Result):
                 'status' : self.status,
         }
 
+class EmptyPaginatedResult(Result):
+    def toDict(self):
+
+        return {'data': [],
+                'facets':[],
+                'total': 0,
+                'took': 0,
+                'size': 0,
+                'from': 0,
+                'status' : self.status,
+        }
+
 
 class SimpleResult(Result):
     ''' just need data to be passed and it will be returned as dict
@@ -156,6 +168,13 @@ class SimpleResult(Result):
             raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data,
                 'status' : self.status, }
+
+class EmptySimpleResult(Result):
+    def toDict(self):
+
+        return {'data':[],
+                'status' : self.status, }
+
 
 class CountedResult(Result):
 

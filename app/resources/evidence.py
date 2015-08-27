@@ -29,6 +29,8 @@ class FilterByQuery:
       'eco': fields.List(fields.String(attribute='efo code', )),
       'pathway': fields.List(fields.String(attribute='pathway', )),
       'datasource': fields.List(fields.String(attribute='datasource', )),
+      'datatype': fields.List(fields.String(attribute='datatype', )),
+      'uniprotkw': fields.List(fields.String(attribute='uniprotkw', )),
       'from': fields.Integer(attribute='paginate from',),
       'size': fields.Integer(attribute='size to return', ),
       'format': fields.String(attribute='format',),
@@ -164,8 +166,24 @@ class FilterBy(restful.Resource, Paginable):
               "paramType": "query"
             },
             {
+              "name": "uniprotkw",
+              "description": "a uniprot keyword (meaning all the genes linked to that pathway)",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
               "name": "datasource",
               "description": "datasource to consider",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "datatype",
+              "description": "datatype to consider",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -233,6 +251,9 @@ class FilterBy(restful.Resource, Paginable):
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
         parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
+        parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
+        parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
+
 
 
 
@@ -245,7 +266,13 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasource =  args.pop('datasource',[]) or []
 
-        if not (genes or objects or evidence_types or datasource or args['pathway']):
+        if not (genes
+                or objects
+                or evidence_types
+                or datasource
+                or args['pathway']
+                or args['uniprotkw']
+                or args['datatype']):
             abort(404, message='Please provide at least one gene, efo, eco or datasource')
         return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
 

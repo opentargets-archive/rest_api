@@ -45,7 +45,8 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 class CustomDataStructure(OutputDataStructure):
     source =  {"include": [ ],
-                "exclude": [ "_private*" ]}
+                "exclude": [ "_private*" ],
+               }
 
 
 class ScoreDataStructure(OutputDataStructure):
