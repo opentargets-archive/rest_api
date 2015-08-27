@@ -947,7 +947,7 @@ class esQuery():
                                   body=agg_query_body,
                                   timeout = 180,
                                   query_cache = True,
-                                  routing=expanded_linked_efo
+                                  # routing=expanded_linked_efo
                                   )
         aggregation_results = {'data_distribution': data_distribution}
 
@@ -972,7 +972,8 @@ class esQuery():
             res = self.handler.search(index=self._index_data,
                                       body=agg_query_body,
                                       timeout=180,
-                                      routing=expanded_linked_efo)
+                                      # routing=expanded_linked_efo,
+                                      )
 
             if count_res['hits']['total'] > res['hits']['total']:
                 logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))

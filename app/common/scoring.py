@@ -157,8 +157,8 @@ class Scorer():
             diseases[disease].add_evidence_score(ev_score,
                                                  ev['type'],
                                                  ev['sourceID'])
-            for efo in ev['_private']['efo_codes']:
-                expanded_efo.add(efo)
+            # for efo in ev['_private']['efo_codes']:
+            #     expanded_efo.add(efo)
 
         sorted_targets = sorted(targets.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
         sorted_diseases = sorted(diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
