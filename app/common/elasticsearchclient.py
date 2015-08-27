@@ -29,6 +29,20 @@ class FreeTextFilterOptions():
     EFO = 'efo'
 
 
+class ESResultStatus(object):
+    def __init__(self):
+        self.reset()
+
+    def add_error(self, error_string):
+        if 'ok' in self.status:
+            self.status = [error_string]
+        else:
+            self.status.append(error_string)
+
+    def reset(self):
+        self.status = ['ok']
+
+
 class esQuery():
     def __init__(self,
                  handler,
@@ -933,7 +947,7 @@ class esQuery():
                                   )
         aggregation_results = {'data_distribution': data_distribution}
 
-        status = 'ok'
+        status = ESResultStatus()
         if total == 0 and genes and objects:
             data = [{"evidence_count": 0,
                      "datatypes": [],
@@ -958,8 +972,9 @@ class esQuery():
 
             if count_res['hits']['total'] > res['hits']['total']:
                 logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
-                status = 'partial-facet'
-            elif res['hits']['total']:
+
+                status.add_error('partial-facet-'+a)
+            if res['hits']['total']:
                 aggregation_results[a]=res['aggregations'][a]
 
 
@@ -979,7 +994,7 @@ class esQuery():
                              total = total,
                              facets=data['facets'],
                              available_datatypes = self.datatypes.available_datatypes,
-                             status = status,
+                             status = status.status,
                              )
 
 

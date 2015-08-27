@@ -20,7 +20,7 @@ class Result(object):
                  data=None,
                  facets=None,
                  available_datatypes = [],
-                 status = 'ok'):
+                 status = ['ok']):
         '''
 
         :param res: elasticsearch query response
