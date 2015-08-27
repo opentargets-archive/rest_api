@@ -132,10 +132,10 @@ class Association(restful.Resource):
             },
             {
               "name": "stringency",
-              "description": "Define the stringency in the association score calculation. The higher the stringency the more evidence is needed to reach a score of 1",
+              "description": "Define the stringency in the association score calculation. The higher the stringency the more evidence is needed to reach a score of 1. default is 2",
               "required": False,
               "allowMultiple": True,
-              "defaultValue": 3,
+              "defaultValue": 2,
               "dataType": "int",
               "paramType": "query"
             },

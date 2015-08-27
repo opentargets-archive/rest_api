@@ -2038,15 +2038,19 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.2) or 0.2
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1) or 1
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.2)
+        if self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] is None:
+            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] =0.2
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1)
+        if self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] is None:
+            self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] =1
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
         if self.filters[FilterTypes.PATHWAY]:
             self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
-        self.stringency = kwargs.get('stringency', 3) or 3
+        self.stringency = kwargs.get('stringency', 2) or 2
 
         self.pathway= kwargs.get('pathway', [])
         self.target_class= kwargs.get('target_class')
