@@ -222,7 +222,33 @@ class FilterBy(restful.Resource, Paginable):
               "defaultValue": "false",
               "paramType": "query"
             },
-
+             {
+              "name": "filterbyscorevalue_max",
+              "description": "the maximum value of association score you want to filter by",
+              "required": False,
+              "allowMultiple": False,
+              "defaultValue": 1,
+              "dataType": "float",
+              "paramType": "query"
+            },
+            {
+              "name": "filterbyscorevalue_min",
+              "description": "the minimum value of association score you want to filter by",
+              "required": False,
+              "allowMultiple": False,
+              "defaultValue": 0.2,
+              "dataType": "float",
+              "paramType": "query"
+            },
+            {
+              "name": "stringency",
+              "description": "Define the stringency in the association score calculation. The higher the stringency the more evidence is needed to reach a score of 1. default is 2",
+              "required": False,
+              "allowMultiple": True,
+              "defaultValue": 2,
+              "dataType": "int",
+              "paramType": "query"
+            }            
           ]
 
     _swagger_parameters.extend(Paginable._swagger_parameters)
@@ -253,9 +279,9 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
-
-
-
+        parser.add_argument('filterbyscorevalue_min', type=float, required=False, help="filter by minimum score value")
+        parser.add_argument('filterbyscorevalue_max', type=float, required=False, help="filter by maximum score value")
+        parser.add_argument('stringency', type=int, required=False, help="Define the stringency in the association score calculation")
 
         args = parser.parse_args()
         genes = args.pop('target',[]) or []
