@@ -236,7 +236,7 @@ class FilterBy(restful.Resource, Paginable):
               "description": "the minimum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "defaultValue": 0.2,
+              "defaultValue": 0,
               "dataType": "float",
               "paramType": "query"
             },
