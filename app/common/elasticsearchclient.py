@@ -5,6 +5,7 @@ import operator
 import logging
 import pprint
 import numpy as np
+import json
 
 from flask import current_app
 from elasticsearch import helpers
@@ -12,7 +13,7 @@ from pythonjsonlogger import jsonlogger
 from app.common.request_templates import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult
 from app.common.datatypes import FilterTypes
-from app.common.scoring import Scorer
+from app.common.scoring import Scorer, Score
 
 __author__ = 'andreap'
 
@@ -894,6 +895,11 @@ class esQuery():
                                   query_cache = False,
 
                                   )
+        #logging.error(json.dumps(score_query_body, indent=4, sort_keys=True))
+        #logging.error("-------------------------------")
+        #logging.error(json.dumps(res, indent=4, sort_keys=True))
+        #logging.error("-------------------------------")
+        
         evs = helpers.scan(self.handler,
                             index=self._index_score,
                             query=score_query_body,
@@ -988,7 +994,6 @@ class esQuery():
                                       timeout=180,
                                       # routing=expanded_linked_efo,
                                       )
-
             if count_res['hits']['total'] > res['hits']['total']:
                 logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
 
@@ -1005,7 +1010,7 @@ class esQuery():
             if params.datastructure == OutputDataStructureOptions.FLAT:
                 data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results,  efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
 
         return CountedResult(res,
@@ -1429,13 +1434,13 @@ class esQuery():
                                                               aggs,
                                                               efo_with_data =[],
                                                               filters = {}):
-
-
-        def transform_data_to_tree(data, efo_parents, efo_with_data=[]):
+            
+        def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
             data = dict([(i["efo_code"],i) for i in data])
             expanded_relations = []
             for code, paths in efo_parents.items():
                 for path in paths:
+                    #logging.error("{0} path {1}".format(code, path))          
                     expanded_relations.append([code,path])
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
@@ -1443,24 +1448,100 @@ class esQuery():
                 efo_with_data= [code for code, parents in efo_tree_relations]
             else:
                 for code, parents in efo_tree_relations:
+                    #logging.error("{0} parents {1} {2}".format(code, parents, len(parents)))
                     if len(parents)==1:
                         if code not in efo_with_data:
                             efo_with_data.append(code)
+                            
+            '''
+            Add TA to tree and create corresponding score
+            This could be moved to the score class
+            tas = {
+            "EFO_0000270": [
+                "EFO_0000684"
+            ],
+            "EFO_0000274": [
+                "EFO_0000540"
+            ],
+            "EFO_0000319": [],
+            "EFO_0000341": [
+                "EFO_0000684"
+            ]
+            }
+            '''
+            
+            ta_keys = []
+            ta_diseases = {}
+            sortby = 'association_score'
+            for code, tas in efo_tas.items():
+                for ta in tas:
+                    if ta not in ta_keys:
+                        ta_keys.append(ta)
+            ta_parents, ta_labels, ta_tas = self._get_efo_data_for_associations(ta_keys)
+            for ta_code in ta_labels:
+                ta_diseases[ta_code] = Score(type = Score.DISEASE,
+                                          key = ta_code,
+                                          name = ta_labels[ta_code])
+                  
+ 
+            ''' 
+              Now cumulate the score from each individual disease associated
+            '''
+            
+            for efo_code in data:
+                if efo_code in ta_keys:
+                    # cumulate
+                    logging.error("TODO " + efo_code)
+                else:
+                    for ta in data[efo_code]['therapeutic_area']:
+                        ta_code = ta["efo_code"]
+                        datatypes = data[efo_code]['datatypes']
+                        for datatype in datatypes:
+                            for datasource in datatype['datasources']:
+                                for i in range(1, datasource['evidence_count']+1):
+                                    ta_diseases[ta_code].add_evidence_score(datasource['association_score'],
+                                                                            datatype['datatype'],
+                                                                            datasource['datasource'])
+            '''
+                We have now a score for each therapeutic area
+                add them to the EFO list.
+            '''       
+            sorted_tas = sorted(ta_diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
+
+            for i,score in enumerate(sorted_tas):
+                sorted_tas[i]=score.finalise()
+                #logging.error("TATATATA {0}".format(i))
+                #logging.error(json.dumps(sorted_tas[i], indent=4, sort_keys=True))
+                root.add_child(AssociationTreeNode(sorted_tas[i]["efo_code"], **sorted_tas[i]))  
+                
+            #for ta_code in ta_keys:
+            #   logging.error("Add child to root node {0}".format(ta_code))
+            #    logging.error(json.dumps(ta_diseases[ta_code], indent=4, sort_keys=True))
+            #    root.add_child(AssociationTreeNode(ta_code, ta_diseases[ta_code]))              
+                         
             for code, parents in efo_tree_relations:
                 if code in efo_with_data:
                     if not parents:
                         root.add_child(AssociationTreeNode(code, **data[code]))
                     else:
                         node = root.get_node_at_path(parents)
+                        #logging.error("Add child to {0} node {1}".format(node, code))
                         node.add_child(AssociationTreeNode(code,**data[code]))
             return root.to_dict_tree_with_children_as_array()
 
 
         facets = {}
         if scores:
-            efo_parents, efo_labels,  efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in scores])
-            new_scores = self._return_association_data_structures_for_genes(scores,aggs, efo_labels = efo_labels, efo_tas = efo_tas)
-            tree_data = transform_data_to_tree(new_scores['data'],efo_parents, efo_with_data) or new_scores['data']
+            
+            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in scores])
+            #logging.error([i["efo_code"] for i in scores])
+            #logging.error("---")
+            #logging.error(json.dumps(scores, indent=4, sort_keys=True))
+            #logging.error("---")
+            new_scores = self._return_association_data_structures_for_genes(scores, aggs, efo_labels = efo_labels, efo_tas = efo_tas)
+            #logging.error(efo_parents)
+            tree_data = transform_data_to_tree(new_scores['data'], efo_parents, efo_tas, efo_with_data)
+            #or new_scores['data']
             facets= new_scores['facets']
         else:
             tree_data = scores
