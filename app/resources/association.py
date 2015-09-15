@@ -94,7 +94,7 @@ class Association(restful.Resource):
               "description": "the minimum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "defaultValue": 0,
+              "defaultValue": 0.2,
               "dataType": "float",
               "paramType": "query"
             },

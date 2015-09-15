@@ -1,25 +1,13 @@
 from collections import Counter
 import logging
 import pprint
+from app.common.scoring_conf import ScoringMethods
+
 
 __author__ = 'andreap'
 
 
-class ScoringMethods():
 
-    SUM='sum'
-    MAX='max'
-    COUNT='count'
-    MIN='min'
-    AVG='avg'
-
-
-
-class DataSourceScoring():
-
-    def __init__(self, app):
-        self.methods = app.config['DATASOURCE_SCORING_METHOD']
-        self.weights = app.config['SCORING_WEIGHTS']
 
 
 class Score():

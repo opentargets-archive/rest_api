@@ -1,5 +1,5 @@
 from collections import defaultdict
-from app.common.scoring import ScoringMethods
+from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
 

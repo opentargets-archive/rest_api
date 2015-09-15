@@ -5,13 +5,16 @@ from flask import Flask, redirect, Blueprint
 import logstash
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
-from app.common.scoring import DataSourceScoring
+from app.common.scoring_conf import DataSourceScoring
 from config import config
 import logging
 from pythonjsonlogger import jsonlogger
 from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery
 from api import create_api
+from flask.ext.cache import Cache
+from werkzeug.contrib.cache import SimpleCache, FileSystemCache
+
 
 
 
@@ -77,6 +80,16 @@ def create_app(config_name):
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
 
+    ''' define cache'''
+    # cache = Cache(config={'CACHE_TYPE': 'simple'})
+    # cache.init_app(latest_blueprint)
+    # latest_blueprint.cache = cache
+    # latest_blueprint.extensions['cache'] = cache
+    app.cache = SimpleCache()
+    app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=1000, default_timeout=300, mode=777)
+
+
+    '''compress http response'''
     compress = Compress()
     compress.init_app(app)
 
@@ -109,6 +122,9 @@ def create_app(config_name):
     #
     # from .api_1_0 import api as api_1_0_blueprint
     # app.register_blueprint(api_1_0_blueprint, url_prefix='/api/v1.0')
+
+
+
 
     create_api(latest_blueprint, api_version, specpath)
 

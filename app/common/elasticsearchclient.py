@@ -895,26 +895,27 @@ class esQuery():
                                   query_cache = False,
 
                                   )
-        #logging.error(json.dumps(score_query_body, indent=4, sort_keys=True))
-        #logging.error("-------------------------------")
-        #logging.error(json.dumps(res, indent=4, sort_keys=True))
-        #logging.error("-------------------------------")
-        
-        evs = helpers.scan(self.handler,
-                            index=self._index_score,
-                            query=score_query_body,
-                            size=10000,
-                            timeout = 180,
-                            query_cache = False,
-                           )
 
-        genes_scores, objects_scores, datapoints, expanded_linked_efo = self.scorer.score(evs = evs,
-                                                                         stringency=params.stringency,
-                                                                         # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
-                                                                         # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                                                         )
+        score_data = current_app.cache.get(str(score_query_body))
+        if score_data is None:
+            evs = helpers.scan(self.handler,
+                                index=self._index_score,
+                                query=score_query_body,
+                                size=10000,
+                                timeout = 180,
+                                query_cache = False,
+                               )
+
+            score_data = self.scorer.score(evs = evs,
+                                                                             stringency=params.stringency,
+                                                                             # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
+                                                                             # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                                                             )
+            current_app.cache.set(str(score_query_body), score_data, timeout=10*60)
+        genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
         expected_datapoints = res['hits']['total']
         if datapoints< expected_datapoints:
+            current_app.cache.delete(str(score_query_body))
             raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
         scores = []
         if objects:
@@ -989,17 +990,21 @@ class esQuery():
 
         for a in aggs:
             agg_query_body['aggs']={a:aggs[a]}
-            res = self.handler.search(index=self._index_data,
-                                      body=agg_query_body,
-                                      timeout=180,
-                                      # routing=expanded_linked_efo,
-                                      )
-            if count_res['hits']['total'] > res['hits']['total']:
-                logging.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
-
-                status.add_error('partial-facet-'+a)
-            if res['hits']['total']:
-                aggregation_results[a]=res['aggregations'][a]
+            agg_data = current_app.cache.get(str(agg_query_body))
+            if agg_data is None:
+                res = self.handler.search(index=self._index_data,
+                                          body=agg_query_body,
+                                          timeout=180,
+                                          # routing=expanded_linked_efo,
+                                          )
+                if count_res['hits']['total'] > res['hits']['total']:
+                    current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
+                    agg_data = res
+                    status.add_error('partial-facet-'+a)
+                elif count_res['hits']['total'] == res['hits']['total']:
+                    current_app.cache.set(str(agg_query_body),res, timeout=10*60)
+            if agg_data and agg_data['hits']['total']:
+                aggregation_results[a]=agg_data['aggregations'][a]
 
 
         '''build data structure to return'''
@@ -1440,7 +1445,6 @@ class esQuery():
             expanded_relations = []
             for code, paths in efo_parents.items():
                 for path in paths:
-                    #logging.error("{0} path {1}".format(code, path))          
                     expanded_relations.append([code,path])
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
@@ -1448,7 +1452,6 @@ class esQuery():
                 efo_with_data= [code for code, parents in efo_tree_relations]
             else:
                 for code, parents in efo_tree_relations:
-                    #logging.error("{0} parents {1} {2}".format(code, parents, len(parents)))
                     if len(parents)==1:
                         if code not in efo_with_data:
                             efo_with_data.append(code)
@@ -1491,7 +1494,7 @@ class esQuery():
             for efo_code in data:
                 if efo_code in ta_keys:
                     # cumulate
-                    logging.error("TODO " + efo_code)
+                    current_app.logger.error("TODO " + efo_code)
                 else:
                     for ta in data[efo_code]['therapeutic_area']:
                         ta_code = ta["efo_code"]
@@ -1510,14 +1513,8 @@ class esQuery():
 
             for i,score in enumerate(sorted_tas):
                 sorted_tas[i]=score.finalise()
-                #logging.error("TATATATA {0}".format(i))
-                #logging.error(json.dumps(sorted_tas[i], indent=4, sort_keys=True))
                 root.add_child(AssociationTreeNode(sorted_tas[i]["efo_code"], **sorted_tas[i]))  
-                
-            #for ta_code in ta_keys:
-            #   logging.error("Add child to root node {0}".format(ta_code))
-            #    logging.error(json.dumps(ta_diseases[ta_code], indent=4, sort_keys=True))
-            #    root.add_child(AssociationTreeNode(ta_code, ta_diseases[ta_code]))              
+
                          
             for code, parents in efo_tree_relations:
                 if code in efo_with_data:
@@ -1525,7 +1522,6 @@ class esQuery():
                         root.add_child(AssociationTreeNode(code, **data[code]))
                     else:
                         node = root.get_node_at_path(parents)
-                        #logging.error("Add child to {0} node {1}".format(node, code))
                         node.add_child(AssociationTreeNode(code,**data[code]))
             return root.to_dict_tree_with_children_as_array()
 
@@ -1534,14 +1530,8 @@ class esQuery():
         if scores:
             
             efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in scores])
-            #logging.error([i["efo_code"] for i in scores])
-            #logging.error("---")
-            #logging.error(json.dumps(scores, indent=4, sort_keys=True))
-            #logging.error("---")
             new_scores = self._return_association_data_structures_for_genes(scores, aggs, efo_labels = efo_labels, efo_tas = efo_tas)
-            #logging.error(efo_parents)
-            tree_data = transform_data_to_tree(new_scores['data'], efo_parents, efo_tas, efo_with_data)
-            #or new_scores['data']
+            tree_data = transform_data_to_tree(new_scores['data'], efo_parents, efo_tas, efo_with_data) or new_scores['data']
             facets= new_scores['facets']
         else:
             tree_data = scores
