@@ -777,6 +777,7 @@ class esQuery():
                           },
                           'size': params.size,
                           'from': params.start_from,
+                          "sort" : [{ "scores.association_score" : {"order" : "desc"}}],
                           '_source': source_filter,
                       }
             res = self.handler.search(index=self._index_data,
