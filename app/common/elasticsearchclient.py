@@ -872,15 +872,15 @@ class esQuery():
         if params.fields:
             source_filter["include"]= params.fields
 
-        all_conditions = copy(conditions)
-        all_conditions.extend(filter_data_conditions.values())
+        # all_conditions = copy(conditions)
+        # all_conditions.extend(filter_data_conditions.values())
         score_query_body = {
                       #restrict the set of datapoints using the target and disease ids
                       "query": {
                           "filtered": {
                               "filter": {
                                   "bool": {
-                                      "must": all_conditions
+                                      "must": conditions
                                   }
                               }
                           }
@@ -897,7 +897,7 @@ class esQuery():
 
                                   )
 
-        score_data = current_app.cache.get(str(score_query_body))
+        score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
             evs = helpers.scan(self.handler,
                                 index=self._index_score,
@@ -912,11 +912,11 @@ class esQuery():
                                                                              # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                                                              # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                                                              )
-            current_app.cache.set(str(score_query_body), score_data, timeout=10*60)
+            current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
         genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
         expected_datapoints = res['hits']['total']
         if datapoints< expected_datapoints:
-            current_app.cache.delete(str(score_query_body))
+            current_app.cache.delete(str(score_query_body)+str(params.stringency))
             raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
         scores = []
         if objects:
@@ -2177,7 +2177,7 @@ class SearchParams():
         if self.filters[FilterTypes.PATHWAY]:
             self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
-        self.stringency = kwargs.get('stringency', 2) or 2
+        self.stringency = kwargs.get('stringency', 1.) or 1. #cannot be zero
 
         self.pathway= kwargs.get('pathway', []) or []
         self.target_class= kwargs.get('target_class',[]) or []

@@ -86,7 +86,7 @@ def create_app(config_name):
     # latest_blueprint.cache = cache
     # latest_blueprint.extensions['cache'] = cache
     app.cache = SimpleCache()
-    app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=1000, default_timeout=300, mode=777)
+    app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=300, mode=777)
 
 
     '''compress http response'''
