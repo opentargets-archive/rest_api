@@ -991,7 +991,7 @@ class esQuery():
 
         for a in aggs:
             agg_query_body['aggs']={a:aggs[a]}
-            agg_data = current_app.cache.get(str(agg_query_body))
+            agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
             if agg_data is None:
                 res = self.handler.search(index=self._index_data,
                                           body=agg_query_body,
@@ -1003,7 +1003,7 @@ class esQuery():
                     agg_data = res
                     status.add_error('partial-facet-'+a)
                 elif count_res['hits']['total'] == res['hits']['total']:
-                    current_app.cache.set(str(agg_query_body),res, timeout=10*60)
+                    current_app.cache.set(str(agg_query_body)+str(params.stringency),res, timeout=10*60)
             if agg_data and agg_data['hits']['total']:
                 aggregation_results[a]=agg_data['aggregations'][a]
 
