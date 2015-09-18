@@ -991,21 +991,22 @@ class esQuery():
 
         for a in aggs:
             agg_query_body['aggs']={a:aggs[a]}
+            print a
             agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
             if agg_data is None:
-                res = self.handler.search(index=self._index_data,
+                agg_data = self.handler.search(index=self._index_data,
                                           body=agg_query_body,
                                           timeout=180,
                                           # routing=expanded_linked_efo,
                                           )
-                if count_res['hits']['total'] > res['hits']['total']:
+                if count_res['hits']['total'] > agg_data['hits']['total']:
                     current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
-                    agg_data = res
                     status.add_error('partial-facet-'+a)
-                elif count_res['hits']['total'] == res['hits']['total']:
-                    current_app.cache.set(str(agg_query_body)+str(params.stringency),res, timeout=10*60)
+                elif count_res['hits']['total'] == agg_data['hits']['total']:
+                    current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
             if agg_data and agg_data['hits']['total']:
                 aggregation_results[a]=agg_data['aggregations'][a]
+
 
 
         '''build data structure to return'''
