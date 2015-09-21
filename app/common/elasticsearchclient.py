@@ -820,6 +820,20 @@ class esQuery():
                       gene_operator='OR',
                       object_operator='OR',
                       **kwargs):
+        """
+        Get the association scores for the provided target and diseases.
+        steps in the process:
+
+        1. get all evidence for matching gene and disease
+
+        2. calculate gene to disease(s) scores
+
+        3. calculate facets limiting for gene and diseases within the selected score range
+
+        4. apply all facets filters to data being returned. (on es use a post_filter)
+
+        5. calculate histogram on filtered data returned
+        """
         params = SearchParams(**kwargs)
         if params.datastructure == OutputDataStructureOptions.DEFAULT:
             params.datastructure = OutputDataStructureOptions.FLAT
@@ -888,14 +902,16 @@ class esQuery():
                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.SCORE),
 
                       }
+        score_query_body_count = copy(score_query_body)
+        score_query_body_count['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
 
-        res = self.handler.search(index=self._index_score,
-                                  body=score_query_body,
+        res_count = self.handler.search(index=self._index_score,
+                                  body=score_query_body_count,
                                   timeout = 180,
                                   query_cache = False,
-
                                   )
+        expected_datapoints = res_count['hits']['total']
 
         score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
@@ -908,13 +924,13 @@ class esQuery():
                                )
 
             score_data = self.scorer.score(evs = evs,
-                                                                             stringency=params.stringency,
-                                                                             # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
-                                                                             # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                                                             )
+                                           stringency=params.stringency,
+                                           # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
+                                           # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                           )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
         genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
-        expected_datapoints = res['hits']['total']
+
         if datapoints< expected_datapoints:
             current_app.cache.delete(str(score_query_body)+str(params.stringency))
             raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
@@ -923,20 +939,16 @@ class esQuery():
             scores = genes_scores
         elif genes:
             scores = objects_scores
-        data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])
-        data_distribution["total"]= len(scores)
-        data_distribution["evidence_count"]= datapoints
 
-        filtered_scores = [score \
+        score_range_filtered_scores = [score \
                            for score in scores \
                            if params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] <= score['association_score'] <= params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]]
 
-        total = len(filtered_scores)
 
         if objects:
-            conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in score_range_filtered_scores], BooleanFilterOperator.OR))
         elif genes:
-            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in score_range_filtered_scores], BooleanFilterOperator.OR))
 
 
         agg_query_body = {
@@ -965,13 +977,13 @@ class esQuery():
         # if objects:
         #     agg_query_body['routing']=objects
 
-        count_res = self.handler.search(index=self._index_data,
+        res_count_agg = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
                                   timeout = 180,
                                   query_cache = True,
                                   # routing=expanded_linked_efo
                                   )
-        aggregation_results = {'data_distribution': data_distribution}
+        aggregation_results = {}
 
         status = ESResultStatus()
         if total == 0 and genes and objects:
@@ -991,7 +1003,6 @@ class esQuery():
 
         for a in aggs:
             agg_query_body['aggs']={a:aggs[a]}
-            print a
             agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
             if agg_data is None:
                 agg_data = self.handler.search(index=self._index_data,
@@ -999,28 +1010,56 @@ class esQuery():
                                           timeout=180,
                                           # routing=expanded_linked_efo,
                                           )
-                if count_res['hits']['total'] > agg_data['hits']['total']:
-                    current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,res['hits']['total'], count_res['hits']['total']))
+                if res_count_agg['hits']['total'] > agg_data['hits']['total']:
+                    current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,agg_data['hits']['total'], res_count_agg['hits']['total']))
                     status.add_error('partial-facet-'+a)
-                elif count_res['hits']['total'] == agg_data['hits']['total']:
+                elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
                     current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
             if agg_data and agg_data['hits']['total']:
                 aggregation_results[a]=agg_data['aggregations'][a]
 
+        '''apply facets conditions to data'''
+        if filter_data_conditions:
+            post_filter_query = copy(score_query_body)
+            post_filter_query['post_filter']= {"must": filter_data_conditions.values()}
+            post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
+            evs = helpers.scan(self.handler,
+                                index=self._index_score,
+                                query=score_query_body,
+                                size=10000,
+                                timeout = 180,
+                                query_cache = False,
+                               )
+            final_target_set = set()
+            final_disease_set = set()
+            for es_result in evs:
+                ev = es_result['_source']
+                final_target_set.add(ev['target']['id'])
+                final_disease_set.add(ev['disease']['id'])
+                if objects:
+                    score_range_filtered_scores = { key: score_range_filtered_scores[key] for key in final_target_set }
+                elif genes:
+                    score_range_filtered_scores = { key: score_range_filtered_scores[key] for key in final_disease_set }
 
+        total = len(score_range_filtered_scores)
+
+        data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be score_range_filtered_scores?
+        data_distribution["total"]= len(scores)
+        data_distribution["evidence_count"]= datapoints
+        aggregation_results ['data_distribution'] = data_distribution
 
         '''build data structure to return'''
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(filtered_scores, aggregation_results,  filters = params.filters)
+                data = self._return_association_data_structures_for_efos(score_range_filtered_scores, aggregation_results,  filters = params.filters)
         elif genes:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data = self._return_association_data_structures_for_genes(score_range_filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(score_range_filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
 
-        return CountedResult(res,
+        return CountedResult(res_count,
                              params, data['data'],
                              total = total,
                              facets=data['facets'],

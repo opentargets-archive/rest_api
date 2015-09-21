@@ -38,6 +38,10 @@ class DiseaseDataStructure(OutputDataStructure):
                "path",
                "definition",
                "synonyms"]
+class GeneAndDiseaseIDDataStructure(OutputDataStructure):
+    source = [ "target.id",
+               "disease.id",
+               ]
 
 class GeneAndDiseaseDataStructure(OutputDataStructure):
     source = ShortGeneDataStructure.source + DiseaseDataStructure.source
@@ -69,6 +73,7 @@ class OutputDataStructureOptions():
     GENE = 'gene'
     DISEASE = 'disease'
     GENE_AND_DISEASE = 'gene_and_disease'
+    GENE_AND_DISEASE_ID = 'gene_and_disease_id'
     CUSTOM = 'custom'
     TREE = 'tree'
     FLAT = 'flat'
@@ -82,6 +87,7 @@ class OutputDataStructureOptions():
         GENE: ShortGeneDataStructure.source,
         DISEASE: DiseaseDataStructure.source,
         GENE_AND_DISEASE: GeneAndDiseaseDataStructure.source,
+        GENE_AND_DISEASE_ID: GeneAndDiseaseIDDataStructure.source,
         COUNT: OutputDataStructure.source,
         SCORE: ScoreDataStructure.source,
         CUSTOM: CustomDataStructure.source,
