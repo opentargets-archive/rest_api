@@ -944,7 +944,7 @@ class esQuery():
                            for score in scores \
                            if params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] <= score['association_score'] <= params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]]
 
-
+        total = len(score_range_filtered_scores)
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in score_range_filtered_scores], BooleanFilterOperator.OR))
         elif genes:
