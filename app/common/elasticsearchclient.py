@@ -1037,10 +1037,13 @@ class esQuery():
                 final_target_set.add(ev['target']['id'])
                 final_disease_set.add(ev['disease']['id'])
                 if objects:
-                    score_range_filtered_scores = { key: score_range_filtered_scores[key] for key in final_target_set }
+                    score_range_filtered_scores = [score \
+                                                   for score in scores \
+                                                   if  score['gene_id'] in final_target_set]
                 elif genes:
-                    score_range_filtered_scores = { key: score_range_filtered_scores[key] for key in final_disease_set }
-
+                    score_range_filtered_scores = [score \
+                                                   for score in scores \
+                                                   if  score['efo_id'] in final_disease_set]
         total = len(score_range_filtered_scores)
 
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be score_range_filtered_scores?
