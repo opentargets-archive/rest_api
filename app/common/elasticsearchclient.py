@@ -928,7 +928,7 @@ class esQuery():
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                            )
-            # current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
+            current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
         genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
 
         if datapoints< expected_datapoints:
