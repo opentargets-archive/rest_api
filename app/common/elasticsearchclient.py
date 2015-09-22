@@ -1043,7 +1043,7 @@ class esQuery():
             elif genes:
                 filtered_scores = [score \
                                    for score in filtered_scores \
-                                   if  score['efo_id'] in final_disease_set]
+                                   if  score['efo_code'] in final_disease_set]
         total = len(filtered_scores)
 
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be filtered_scores?
