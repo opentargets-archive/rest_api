@@ -906,7 +906,7 @@ class esQuery():
         score_query_body_count['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
 
-        res_count = self.handler.search(index=self._index_score,
+        res_count = self.handler.search(index=self._index_data,
                                   body=score_query_body_count,
                                   timeout = 180,
                                   query_cache = False,
@@ -916,7 +916,7 @@ class esQuery():
         score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
             evs = helpers.scan(self.handler,
-                                index=self._index_score,
+                                index=self._index_data,
                                 query=score_query_body,
                                 size=10000,
                                 timeout = 180,
@@ -928,7 +928,7 @@ class esQuery():
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                            )
-            current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
+            # current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
         genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
 
         if datapoints< expected_datapoints:
@@ -1024,7 +1024,7 @@ class esQuery():
             post_filter_query['post_filter']= { "bool": {"must": filter_data_conditions.values()}}
             post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
             evs = helpers.scan(self.handler,
-                                index=self._index_score,
+                                index=self._index_data,
                                 query=post_filter_query,
                                 size=10000,
                                 timeout = 180,
