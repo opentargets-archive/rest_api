@@ -940,15 +940,15 @@ class esQuery():
         elif genes:
             scores = objects_scores
 
-        score_range_filtered_scores = [score \
+        filtered_scores = [score \
                            for score in scores \
                            if params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] <= score['association_score'] <= params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]]
 
-        total = len(score_range_filtered_scores)
+        total = len(filtered_scores)
         if objects:
-            conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in score_range_filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
-            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in score_range_filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
 
 
         agg_query_body = {
@@ -1021,11 +1021,11 @@ class esQuery():
         '''apply facets conditions to data'''
         if filter_data_conditions:
             post_filter_query = copy(score_query_body)
-            post_filter_query['post_filter']= {"must": filter_data_conditions.values()}
+            post_filter_query['post_filter']= { "bool": {"must": filter_data_conditions.values()}}
             post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
             evs = helpers.scan(self.handler,
                                 index=self._index_score,
-                                query=score_query_body,
+                                query=post_filter_query,
                                 size=10000,
                                 timeout = 180,
                                 query_cache = False,
@@ -1036,17 +1036,17 @@ class esQuery():
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
                 final_disease_set.add(ev['disease']['id'])
-                if objects:
-                    score_range_filtered_scores = [score \
-                                                   for score in scores \
-                                                   if  score['gene_id'] in final_target_set]
-                elif genes:
-                    score_range_filtered_scores = [score \
-                                                   for score in scores \
-                                                   if  score['efo_id'] in final_disease_set]
-        total = len(score_range_filtered_scores)
+            if objects:
+                filtered_scores = [score \
+                                   for score in filtered_scores \
+                                   if  score['gene_id'] in final_target_set]
+            elif genes:
+                filtered_scores = [score \
+                                   for score in filtered_scores \
+                                   if  score['efo_id'] in final_disease_set]
+        total = len(filtered_scores)
 
-        data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be score_range_filtered_scores?
+        data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be filtered_scores?
         data_distribution["total"]= len(scores)
         data_distribution["evidence_count"]= datapoints
         aggregation_results ['data_distribution'] = data_distribution
@@ -1054,12 +1054,12 @@ class esQuery():
         '''build data structure to return'''
         if objects:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_efos(score_range_filtered_scores, aggregation_results,  filters = params.filters)
+                data = self._return_association_data_structures_for_efos(filtered_scores, aggregation_results,  filters = params.filters)
         elif genes:
             if params.datastructure == OutputDataStructureOptions.FLAT:
-                data = self._return_association_data_structures_for_genes(score_range_filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(score_range_filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
 
         return CountedResult(res_count,
