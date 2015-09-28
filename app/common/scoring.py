@@ -110,7 +110,8 @@ class Scorer():
     def score(self,
               evs,
               stringency,
-              sortby=None):
+              sortby=None,
+              expand_efo = False):
         '''
         :param evs: an iterator returning the evidencestring documents form an elasticsearch query
         :return: a score object
@@ -120,33 +121,36 @@ class Scorer():
         if sortby is None:
             sortby = self.default_sorting
         counter = 0
-        expanded_efo = set()
 
         for es_result in evs:
             counter+=1
             ev = es_result['_source']
+            ev_score = ev['scores']['association_score'] * \
+                       self.scoring_params.weights[ev['sourceID']] / \
+                       stringency
+            '''target data'''
             target = ev['target']['id']
-            disease = ev['disease']['id']
             if target not in targets:
                 targets[target] = Score(type = Score.TARGET,
                                         key = target,
                                         name = ev['target']['gene_info']['symbol'])
-            if disease not in diseases:
-                diseases[disease] = Score(type = Score.DISEASE,
-                                          key = disease,
-                                          name = ev['disease']['efo_info'][0]['label'])
-            ev_score = ev['scores']['association_score'] * \
-                       self.scoring_params.weights[ev['sourceID']] / \
-                       stringency
-
             targets[target].add_evidence_score(ev_score,
                                                ev['type'],
                                                ev['sourceID'])
-            diseases[disease].add_evidence_score(ev_score,
-                                                 ev['type'],
-                                                 ev['sourceID'])
-            # for efo in ev['_private']['efo_codes']:
-            #     expanded_efo.add(efo)
+            '''disease data'''
+            if expand_efo:
+                linked_diseases = ev['_private']['efo_codes']
+            else:
+                linked_diseases = [ev['disease']['id']]
+            for disease in linked_diseases:
+                if disease not in diseases:
+                    diseases[disease] = Score(type = Score.DISEASE,
+                                              key = disease,
+                                              name = "")
+                diseases[disease].add_evidence_score(ev_score,
+                                                     ev['type'],
+                                                     ev['sourceID'])
+
 
         sorted_targets = sorted(targets.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
         sorted_diseases = sorted(diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
@@ -156,7 +160,7 @@ class Scorer():
         for i,score in enumerate(sorted_diseases):
             sorted_diseases[i]=score.finalise()
 
-        return sorted_targets, sorted_diseases, counter, list(expanded_efo)
+        return sorted_targets, sorted_diseases, counter
 
 
 

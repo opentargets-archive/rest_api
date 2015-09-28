@@ -913,7 +913,7 @@ class esQuery():
                                   )
         expected_datapoints = res_count['hits']['total']
 
-        score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
+        score_data = None #current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
             evs = helpers.scan(self.handler,
                                 index=self._index_data,
@@ -927,9 +927,10 @@ class esQuery():
                                            stringency=params.stringency,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                           expand_efo = params.expand_efo
                                            )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
-        genes_scores, objects_scores, datapoints, expanded_linked_efo = score_data
+        genes_scores, objects_scores, datapoints = score_data
 
         if datapoints< expected_datapoints:
             current_app.cache.delete(str(score_query_body)+str(params.stringency))
@@ -948,7 +949,7 @@ class esQuery():
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
-            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR, expand_efo = params.expand_efo))
 
 
         agg_query_body = {
@@ -1001,6 +1002,7 @@ class esQuery():
                                  status = status.status,
                                  )
 
+        '''multiple facet queries'''
         for a in aggs:
             agg_query_body['aggs']={a:aggs[a]}
             agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
@@ -1017,6 +1019,23 @@ class esQuery():
                     current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
             if agg_data and agg_data['hits']['total']:
                 aggregation_results[a]=agg_data['aggregations'][a]
+
+        '''single facet query'''
+        # agg_query_body['aggs']=aggs
+        # agg_data =None# current_app.cache.get(str(agg_query_body)+str(params.stringency))
+        # if agg_data is None:
+        #     agg_data = self.handler.search(index=self._index_data,
+        #                               body=agg_query_body,
+        #                               timeout=180,
+        #                               # routing=expanded_linked_efo,
+        #                               )
+        #     if res_count_agg['hits']['total'] > agg_data['hits']['total']:
+        #         current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%('all',agg_data['hits']['total'], res_count_agg['hits']['total']))
+        #         status.add_error('partial-facets')
+        #     elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
+        #         current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
+        # if agg_data and agg_data['hits']['total']:
+        #     aggregation_results=agg_data['aggregations']
 
         '''apply facets conditions to data'''
         if filter_data_conditions:
@@ -1460,6 +1479,7 @@ class esQuery():
                 therapeutic_area.append(dict(efo_code = ta,
                                             label = ta_label))
             data_point['therapeutic_area']=therapeutic_area
+            data_point['label']=efo_labels[data_point['efo_code']]
             return data_point
 
 
@@ -1499,66 +1519,6 @@ class esQuery():
                     if len(parents)==1:
                         if code not in efo_with_data:
                             efo_with_data.append(code)
-                            
-            '''
-            Add TA to tree and create corresponding score
-            This could be moved to the score class
-            tas = {
-            "EFO_0000270": [
-                "EFO_0000684"
-            ],
-            "EFO_0000274": [
-                "EFO_0000540"
-            ],
-            "EFO_0000319": [],
-            "EFO_0000341": [
-                "EFO_0000684"
-            ]
-            }
-            '''
-            
-            ta_keys = []
-            ta_diseases = {}
-            sortby = 'association_score'
-            for code, tas in efo_tas.items():
-                for ta in tas:
-                    if ta not in ta_keys:
-                        ta_keys.append(ta)
-            ta_parents, ta_labels, ta_tas = self._get_efo_data_for_associations(ta_keys)
-            for ta_code in ta_labels:
-                ta_diseases[ta_code] = Score(type = Score.DISEASE,
-                                          key = ta_code,
-                                          name = ta_labels[ta_code])
-                  
- 
-            ''' 
-              Now cumulate the score from each individual disease associated
-            '''
-            
-            for efo_code in data:
-                if efo_code in ta_keys:
-                    # cumulate
-                    current_app.logger.error("TODO " + efo_code)
-                else:
-                    for ta in data[efo_code]['therapeutic_area']:
-                        ta_code = ta["efo_code"]
-                        datatypes = data[efo_code]['datatypes']
-                        for datatype in datatypes:
-                            for datasource in datatype['datasources']:
-                                for i in range(1, datasource['evidence_count']+1):
-                                    ta_diseases[ta_code].add_evidence_score(datasource['association_score'],
-                                                                            datatype['datatype'],
-                                                                            datasource['datasource'])
-            '''
-                We have now a score for each therapeutic area
-                add them to the EFO list.
-            '''       
-            sorted_tas = sorted(ta_diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
-
-            for i,score in enumerate(sorted_tas):
-                sorted_tas[i]=score.finalise()
-                root.add_child(AssociationTreeNode(sorted_tas[i]["efo_code"], **sorted_tas[i]))  
-
                          
             for code, parents in efo_tree_relations:
                 if code in efo_with_data:

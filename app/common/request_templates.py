@@ -61,7 +61,7 @@ class ScoreDataStructure(OutputDataStructure):
                            "target.gene_info.symbol",
                            "disease.efo_info.label",
                            "disease.id",
-                           # "_private.efo_codes",
+                           "_private.efo_codes",
                            ],}
 
 class OutputDataStructureOptions():
