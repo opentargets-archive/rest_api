@@ -1063,23 +1063,29 @@ class esQuery():
                 filtered_scores = [score \
                                    for score in filtered_scores \
                                    if  score['efo_code'] in final_disease_set]
-        total = len(filtered_scores)
 
-        data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])# should be filtered_scores?
-        data_distribution["total"]= len(scores)
-        data_distribution["evidence_count"]= datapoints
-        aggregation_results ['data_distribution'] = data_distribution
+
+
+
 
         '''build data structure to return'''
         if objects:
+            data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores])
+            data_distribution["total"]= len(scores)
             if params.datastructure == OutputDataStructureOptions.FLAT:
                 data = self._return_association_data_structures_for_efos(filtered_scores, aggregation_results,  filters = params.filters)
         elif genes:
+            data_distribution = self._get_association_data_distribution([s['association_score'] for s in scores if s['efo_code'] in efo_with_data])
+            data_distribution["total"]= len(efo_with_data)
             if params.datastructure == OutputDataStructureOptions.FLAT:
                 data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
                 data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
+        total = len(filtered_scores)
+
+        data_distribution["evidence_count"]= datapoints
+        aggregation_results ['data_distribution'] = data_distribution
 
         return CountedResult(res_count,
                              params, data['data'],
