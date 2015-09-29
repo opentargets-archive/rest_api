@@ -930,7 +930,7 @@ class esQuery():
                                            expand_efo = params.expand_efo
                                            )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
-        genes_scores, objects_scores, datapoints = score_data
+        genes_scores, objects_scores, datapoints, efo_with_data = score_data
 
         if datapoints< expected_datapoints:
             current_app.cache.delete(str(score_query_body)+str(params.stringency))
