@@ -136,7 +136,7 @@ class Scorer():
                                         key = target,
                                         name = ev['target']['gene_info']['symbol'])
             targets[target].add_evidence_score(ev_score,
-                                               ev['type'],
+                                               ev['_private']['datatype'],
                                                ev['sourceID'])
             '''disease data'''
             disease_with_data.add(ev['disease']['id'])
@@ -150,7 +150,7 @@ class Scorer():
                                               key = disease,
                                               name = "")
                 diseases[disease].add_evidence_score(ev_score,
-                                                     ev['type'],
+                                                     ev['_private']['datatype'],
                                                      ev['sourceID'])
 
 
