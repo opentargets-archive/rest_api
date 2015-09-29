@@ -43,6 +43,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
+    from app.resources.cache import ClearCache
 
 
 
@@ -79,6 +80,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/auth/request_token')
     api.add_resource(ValidateToken,
                      '/auth/validate_token')
+    api.add_resource(ClearCache,
+                     '/cache/clear')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')

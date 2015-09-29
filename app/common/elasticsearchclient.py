@@ -913,7 +913,7 @@ class esQuery():
                                   )
         expected_datapoints = res_count['hits']['total']
 
-        score_data = None #current_app.cache.get(str(score_query_body)+str(params.stringency))
+        score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
             evs = helpers.scan(self.handler,
                                 index=self._index_data,
