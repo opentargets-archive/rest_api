@@ -118,6 +118,7 @@ class Scorer():
         '''
         targets = {}
         diseases = {}
+        disease_with_data = set()
         if sortby is None:
             sortby = self.default_sorting
         counter = 0
@@ -138,6 +139,7 @@ class Scorer():
                                                ev['type'],
                                                ev['sourceID'])
             '''disease data'''
+            disease_with_data.add(ev['disease']['id'])
             if expand_efo:
                 linked_diseases = ev['_private']['efo_codes']
             else:
@@ -160,7 +162,7 @@ class Scorer():
         for i,score in enumerate(sorted_diseases):
             sorted_diseases[i]=score.finalise()
 
-        return sorted_targets, sorted_diseases, counter
+        return sorted_targets, sorted_diseases, counter, list(disease_with_data)
 
 
 
