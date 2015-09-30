@@ -927,9 +927,10 @@ class esQuery():
                                            stringency=params.stringency,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                           expand_efo = params.expand_efo
+                                           expand_efo = params.expand_efo,
+                                           cache_key=str(score_query_body)+'raw_score_cache'
                                            )
-            current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=10*60)
+            current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         genes_scores, objects_scores, datapoints, efo_with_data = score_data
 
         if datapoints< expected_datapoints:
@@ -1016,7 +1017,7 @@ class esQuery():
                     current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,agg_data['hits']['total'], res_count_agg['hits']['total']))
                     status.add_error('partial-facet-'+a)
                 elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-                    current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
+                    current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             if agg_data and agg_data['hits']['total']:
                 aggregation_results[a]=agg_data['aggregations'][a]
 
@@ -1033,7 +1034,7 @@ class esQuery():
         #         current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%('all',agg_data['hits']['total'], res_count_agg['hits']['total']))
         #         status.add_error('partial-facets')
         #     elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-        #         current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=10*60)
+        #         current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         # if agg_data and agg_data['hits']['total']:
         #     aggregation_results=agg_data['aggregations']
 

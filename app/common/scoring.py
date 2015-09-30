@@ -1,6 +1,7 @@
 from collections import Counter
 import logging
 import pprint
+from flask import current_app
 from app.common.scoring_conf import ScoringMethods
 
 
@@ -111,7 +112,8 @@ class Scorer():
               evs,
               stringency,
               sortby=None,
-              expand_efo = False):
+              expand_efo = False,
+              cache_key = None):
         '''
         :param evs: an iterator returning the evidencestring documents form an elasticsearch query
         :return: a score object
@@ -123,39 +125,47 @@ class Scorer():
             sortby = self.default_sorting
         counter = 0
 
-        for es_result in evs:
-            counter+=1
-            ev = es_result['_source']
-            ev_score = ev['scores']['association_score'] * \
-                       self.scoring_params.weights[ev['sourceID']] / \
-                       stringency
-            '''target data'''
-            target = ev['target']['id']
-            if target not in targets:
-                targets[target] = Score(type = Score.TARGET,
-                                        key = target,
-                                        name = ev['target']['gene_info']['symbol'])
-            targets[target].add_evidence_score(ev_score,
-                                               ev['_private']['datatype'],
-                                               ev['sourceID'])
-            '''disease data'''
-            disease_with_data.add(ev['disease']['id'])
-            if expand_efo:
-                linked_diseases = ev['_private']['efo_codes']
-            else:
-                linked_diseases = [ev['disease']['id']]
-            for disease in linked_diseases:
-                if disease not in diseases:
-                    diseases[disease] = Score(type = Score.DISEASE,
-                                              key = disease,
-                                              name = "")
-                diseases[disease].add_evidence_score(ev_score,
-                                                     ev['_private']['datatype'],
-                                                     ev['sourceID'])
+        calculated_scores = current_app.cache.get(cache_key)
+        if not cache_key or (calculated_scores is None):
 
+            for es_result in evs:
+                counter+=1
+                ev = es_result['_source']
+                ev_score = ev['scores']['association_score'] * \
+                           self.scoring_params.weights[ev['sourceID']]
 
-        sorted_targets = sorted(targets.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
-        sorted_diseases = sorted(diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
+                '''target data'''
+                target = ev['target']['id']
+                if target not in targets:
+                    targets[target] = Score(type = Score.TARGET,
+                                            key = target,
+                                            name = ev['target']['gene_info']['symbol'])
+                targets[target].add_evidence_score(ev_score,
+                                                   ev['_private']['datatype'],
+                                                   ev['sourceID'])
+                '''disease data'''
+                disease_with_data.add(ev['disease']['id'])
+                if expand_efo:
+                    linked_diseases = ev['_private']['efo_codes']
+                else:
+                    linked_diseases = [ev['disease']['id']]
+                for disease in linked_diseases:
+                    if disease not in diseases:
+                        diseases[disease] = Score(type = Score.DISEASE,
+                                                  key = disease,
+                                                  name = "")
+                    diseases[disease].add_evidence_score(ev_score,
+                                                         ev['_private']['datatype'],
+                                                         ev['sourceID'])
+            current_app.cache.set(cache_key, (targets, diseases, counter), timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+        else:
+            targets, diseases, counter = calculated_scores
+
+        parametrized_targets = self.apply_scoring_params(targets, stringency)
+        parametrized_diseases = self.apply_scoring_params(diseases, stringency)
+
+        sorted_targets = sorted(parametrized_targets.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
+        sorted_diseases = sorted(parametrized_diseases.values(),key=lambda v: v.scores[sortby][sortby], reverse=True)
 
         for i,score in enumerate(sorted_targets):
             sorted_targets[i] = score.finalise()
@@ -163,6 +173,21 @@ class Scorer():
             sorted_diseases[i]=score.finalise()
 
         return sorted_targets, sorted_diseases, counter, list(disease_with_data)
+
+    def apply_scoring_params(self, score_values, stringency):
+        def recurse(d, score_name, stringency):
+            if isinstance(d, dict):
+                for k,v in d.items():
+                    if (k == score_name) and (isinstance(v, float) or isinstance(v, int)):
+                        d[k]=v/stringency
+                    elif isinstance(v, dict):
+                        recurse(v, score_name, stringency)
+            return d
+
+        for k,v in score_values.items():
+            for score_name in score_values[k].scores:
+                score_values[k].scores[score_name] = recurse(score_values[k].scores[score_name], score_name, stringency)
+        return score_values
 
 
 

@@ -30,7 +30,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.6'
+    API_VERSION = '0.75'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -72,6 +72,7 @@ class DevelopmentConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
     @classmethod
     def init_app(cls, app):
@@ -83,12 +84,14 @@ class DockerLinkedDevConfig(Config):
     ELASTICSEARCH_URL = 'http://elastic:9200'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 class DockerLinkedConfig(Config):
     TESTING = True
     ELASTICSEARCH_URL = 'http://elastic:9200'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 
 class TestingConfig(Config):
@@ -96,11 +99,13 @@ class TestingConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 class StagingConfig(Config):
     ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
     def init_app(cls, app):
@@ -113,6 +118,7 @@ class ProductionConfig(Config):
     ELASTICSEARCH_URL = 'http://elasticsearch-9200.production.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
     def init_app(cls, app):
