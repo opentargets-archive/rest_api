@@ -41,6 +41,7 @@ class DiseaseDataStructure(OutputDataStructure):
 class GeneAndDiseaseIDDataStructure(OutputDataStructure):
     source = [ "target.id",
                "disease.id",
+               "_private.efo_codes",
                ]
 
 class GeneAndDiseaseDataStructure(OutputDataStructure):

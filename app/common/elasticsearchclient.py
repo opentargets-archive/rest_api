@@ -920,7 +920,6 @@ class esQuery():
                                 query=score_query_body,
                                 size=10000,
                                 timeout = "10m",
-                                query_cache = False,
                                )
 
             score_data = self.scorer.score(evs = evs,
@@ -982,7 +981,6 @@ class esQuery():
         res_count_agg = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
                                   timeout = "10m",
-                                  query_cache = True,
                                   # routing=expanded_linked_efo
                                   )
         aggregation_results = {}
@@ -1048,13 +1046,17 @@ class esQuery():
                                 query=post_filter_query,
                                 size=10000,
                                 timeout = "10m",
-                                query_cache = False,
                                )
             final_target_set = set()
             final_disease_set = set()
             for es_result in evs:
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
+                if params.datastructure == OutputDataStructureOptions.TREE:
+                    for efo_code in ev['_private']['efo_codes']:
+                        final_disease_set.add(efo_code)
+                else:
+                    final_disease_set.add(ev['disease']['id'])
                 final_disease_set.add(ev['disease']['id'])
             if objects:
                 filtered_scores = [score \
