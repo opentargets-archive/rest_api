@@ -650,7 +650,7 @@ class esQuery():
                                       'from': params.start_from,
                                       '_source': OutputDataStructureOptions.getSource(params.datastructure)
                                   },
-                                  timeout="1m",
+                                  timeout="10m",
         )
 
         return PaginatedResult(res, params)
@@ -783,7 +783,7 @@ class esQuery():
             res = self.handler.search(index=self._index_data,
                                       # doc_type=self._docname_data,
                                       body=query_body,
-                                      timeout=180,
+                                      timeout="10m",
 
             )
         return PaginatedResult(res, params, )
@@ -908,7 +908,7 @@ class esQuery():
 
         res_count = self.handler.search(index=self._index_data,
                                   body=score_query_body_count,
-                                  timeout = 180,
+                                  timeout = "10m",
                                   query_cache = False,
                                   )
         expected_datapoints = res_count['hits']['total']
@@ -919,7 +919,7 @@ class esQuery():
                                 index=self._index_data,
                                 query=score_query_body,
                                 size=10000,
-                                timeout = 180,
+                                timeout = "10m",
                                 query_cache = False,
                                )
 
@@ -981,7 +981,7 @@ class esQuery():
 
         res_count_agg = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
-                                  timeout = 180,
+                                  timeout = "10m",
                                   query_cache = True,
                                   # routing=expanded_linked_efo
                                   )
@@ -1010,7 +1010,7 @@ class esQuery():
             if agg_data is None:
                 agg_data = self.handler.search(index=self._index_data,
                                           body=agg_query_body,
-                                          timeout=180,
+                                          timeout="10m",
                                           # routing=expanded_linked_efo,
                                           )
                 if res_count_agg['hits']['total'] > agg_data['hits']['total']:
@@ -1027,7 +1027,7 @@ class esQuery():
         # if agg_data is None:
         #     agg_data = self.handler.search(index=self._index_data,
         #                               body=agg_query_body,
-        #                               timeout=180,
+        #                               timeout="10m",
         #                               # routing=expanded_linked_efo,
         #                               )
         #     if res_count_agg['hits']['total'] > agg_data['hits']['total']:
@@ -1047,7 +1047,7 @@ class esQuery():
                                 index=self._index_data,
                                 query=post_filter_query,
                                 size=10000,
-                                timeout = 180,
+                                timeout = "10m",
                                 query_cache = False,
                                )
             final_target_set = set()
