@@ -1085,13 +1085,14 @@ class esQuery():
             elif params.datastructure == OutputDataStructureOptions.TREE:
                 data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
-        total = len(filtered_scores)
+        total = len(data['data'])
 
         data_distribution["evidence_count"]= datapoints
         aggregation_results ['data_distribution'] = data_distribution
 
         return CountedResult(res_count,
-                             params, data['data'],
+                             params,
+                             data['data'],
                              total = total,
                              facets=data['facets'],
                              available_datatypes = self.datatypes.available_datatypes,
