@@ -157,9 +157,9 @@ class Scorer():
                     diseases[disease].add_evidence_score(ev_score,
                                                          ev['_private']['datatype'],
                                                          ev['sourceID'])
-            current_app.cache.set(cache_key, (targets, diseases, counter), timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+            current_app.cache.set(cache_key, (targets, diseases, counter, disease_with_data), timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         else:
-            targets, diseases, counter = calculated_scores
+            targets, diseases, counter, disease_with_data = calculated_scores
 
         parametrized_targets = self.apply_scoring_params(targets, stringency)
         parametrized_diseases = self.apply_scoring_params(diseases, stringency)
