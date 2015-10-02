@@ -1527,6 +1527,7 @@ class esQuery():
             if not efo_with_data:
                 extended_efo_with_data= [code for code, parents in efo_tree_relations]
             else:
+                extended_efo_with_data = copy(efo_with_data)
                 for code, parents in efo_tree_relations:
                     if len(parents)==1:
                         if code not in efo_with_data:
@@ -1542,8 +1543,9 @@ class esQuery():
             '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
             this should not be done if just varying the score range'''
             for ta_child in root.get_children():
-                if (not ta_child.has_children()) and (ta_child.name not in efo_with_data):
+                if (not ta_child.children) and (ta_child.name not in efo_with_data):
                     root.del_child(ta_child)
+
             return root.to_dict_tree_with_children_as_array()
 
 
@@ -2253,10 +2255,6 @@ class AssociationTreeNode(object):
     def get_children(self):
         return self.children.values()
 
-    def has_children(self):
-        if self.children:
-            return True
-        return False
 
     def get_node_at_path(self, path):
         node = self
