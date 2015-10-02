@@ -932,6 +932,8 @@ class esQuery():
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         genes_scores, objects_scores, datapoints, efo_with_data = score_data
 
+
+
         if datapoints< expected_datapoints:
             current_app.cache.delete(str(score_query_body)+str(params.stringency))
             raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
@@ -1057,7 +1059,6 @@ class esQuery():
                         final_disease_set.add(efo_code)
                 else:
                     final_disease_set.add(ev['disease']['id'])
-                final_disease_set.add(ev['disease']['id'])
             if objects:
                 filtered_scores = [score \
                                    for score in filtered_scores \
@@ -1522,21 +1523,27 @@ class esQuery():
                     expanded_relations.append([code,path])
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
+            extended_efo_with_data=[]
             if not efo_with_data:
-                efo_with_data= [code for code, parents in efo_tree_relations]
+                extended_efo_with_data= [code for code, parents in efo_tree_relations]
             else:
                 for code, parents in efo_tree_relations:
                     if len(parents)==1:
                         if code not in efo_with_data:
-                            efo_with_data.append(code)
+                            extended_efo_with_data.append(code)
                          
             for code, parents in efo_tree_relations:
-                if code in efo_with_data:
+                if code in extended_efo_with_data:
                     if not parents:
                         root.add_child(AssociationTreeNode(code, **data[code]))
                     else:
                         node = root.get_node_at_path(parents)
                         node.add_child(AssociationTreeNode(code,**data[code]))
+            '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
+            this should not be done if just varying the score range'''
+            for ta_child in root.get_children():
+                if (not ta_child.has_children()) and (ta_child.name not in efo_with_data):
+                    root.del_child(ta_child)
             return root.to_dict_tree_with_children_as_array()
 
 
@@ -2224,6 +2231,16 @@ class AssociationTreeNode(object):
                 self.children[child.name]=child
         else:
             raise AttributeError("child needs to be an AssociationTreeNode ")
+    def del_child(self, child):
+        if isinstance(child, AssociationTreeNode):
+            if child._is_root():
+                raise AttributeError("child cannot be root ")
+            if child == self:
+                raise AttributeError(" cannot add a node to itself as a child")
+            if self.has_child(child):
+                del self.children[child.name]
+        else:
+            raise AttributeError("child needs to be an AssociationTreeNode ")
 
     def get_child(self, child_name):
         return self.children[child_name]
@@ -2235,6 +2252,11 @@ class AssociationTreeNode(object):
 
     def get_children(self):
         return self.children.values()
+
+    def has_children(self):
+        if self.children:
+            return True
+        return False
 
     def get_node_at_path(self, path):
         node = self

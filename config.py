@@ -72,7 +72,7 @@ class DevelopmentConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
-    APP_CACHE_EXPIRY_TIMEOUT = 60
+    APP_CACHE_EXPIRY_TIMEOUT = 1
 
     @classmethod
     def init_app(cls, app):
