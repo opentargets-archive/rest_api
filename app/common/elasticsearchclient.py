@@ -926,12 +926,11 @@ class esQuery():
                                            stringency=params.stringency,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                           expand_efo = params.expand_efo,
+                                           expand_efo = params.expand_efo or params.datastructure==OutputDataStructureOptions.TREE,
                                            cache_key=str(score_query_body)+'raw_score_cache'
                                            )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         genes_scores, objects_scores, datapoints, efo_with_data = score_data
-
 
 
         if datapoints< expected_datapoints:
@@ -1518,20 +1517,27 @@ class esQuery():
         def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
             data = dict([(i["efo_code"],i) for i in data])
             expanded_relations = []
+            added_tas = []
             for code, paths in efo_parents.items():
                 for path in paths:
                     expanded_relations.append([code,path])
+                    if len(path)>1:
+                        ta_code = path[1]
+                        if ta_code not in added_tas:
+                            expanded_relations.append([ta_code,path[:1]])
+                            added_tas.append(ta_code)
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
-            extended_efo_with_data=[]
             if not efo_with_data:
                 extended_efo_with_data= [code for code, parents in efo_tree_relations]
             else:
                 extended_efo_with_data = copy(efo_with_data)
                 for code, parents in efo_tree_relations:
-                    if len(parents)==1:
-                        if code not in efo_with_data:
-                            extended_efo_with_data.append(code)
+                    if len(parents)>1:
+                        ta_code = parents[1]
+                        if ta_code not in extended_efo_with_data:
+                            extended_efo_with_data.append(ta_code)
+
                          
             for code, parents in efo_tree_relations:
                 if code in extended_efo_with_data:
@@ -1582,6 +1588,8 @@ class esQuery():
         data = self.get_efo_info_from_code(efo_keys)
         for efo in data:
             code = efo['code'].split('/')[-1]
+            if code =='EFO_0000756':
+                pass
             parents = []
             parent_labels = {}
             for i,path in enumerate(efo['path_codes']):
