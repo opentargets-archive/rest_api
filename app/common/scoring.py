@@ -150,13 +150,14 @@ class Scorer():
                 else:
                     linked_diseases = [ev['disease']['id']]
                 for disease in linked_diseases:
-                    if disease not in diseases:
-                        diseases[disease] = Score(type = Score.DISEASE,
-                                                  key = disease,
-                                                  name = "")
-                    diseases[disease].add_evidence_score(ev_score,
-                                                         ev['_private']['datatype'],
-                                                         ev['sourceID'])
+                    if disease != "cttv_root":
+                        if disease not in diseases:
+                            diseases[disease] = Score(type = Score.DISEASE,
+                                                      key = disease,
+                                                      name = "")
+                        diseases[disease].add_evidence_score(ev_score,
+                                                             ev['_private']['datatype'],
+                                                             ev['sourceID'])
             current_app.cache.set(cache_key, (targets, diseases, counter, disease_with_data), timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
         else:
             targets, diseases, counter, disease_with_data = calculated_scores
