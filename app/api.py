@@ -4,6 +4,8 @@ from flask.ext.restful import Api
 # from flask.ext.restful.utils import cors
 from flask.ext.cors import CORS
 from flask_restful_swagger import swagger
+from flask.ext.compress import Compress
+
 
 def create_api(app, api_version = '0.0', specpath = '' ):
     # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
@@ -41,6 +43,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
+    from app.resources.cache import ClearCache
 
 
 
@@ -58,11 +61,11 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/association',
                      )
     api.add_resource(EfoLabelFromCode,
-                     '/efo/<string:code>')
+                     '/disease/<string:code>')
     api.add_resource(EcoLabelFromCode,
                      '/eco/<string:code>')
     api.add_resource(GeneInfo,
-                     '/gene/<string:gene_id>')
+                     '/target/<string:target_id>')
     api.add_resource(Expression,
                      '/expression')
     api.add_resource(FreeTextSearch,
@@ -71,12 +74,14 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/quicksearch')
     api.add_resource(AutoComplete,
                      '/autocomplete')
-    api.add_resource(Echo,
-                     '/echo')
+    # api.add_resource(Echo,
+    #                  '/echo')
     api.add_resource(RequestToken,
                      '/auth/request_token')
     api.add_resource(ValidateToken,
                      '/auth/validate_token')
+    api.add_resource(ClearCache,
+                     '/cache/clear')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')

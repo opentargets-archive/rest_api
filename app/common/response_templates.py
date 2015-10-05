@@ -14,34 +14,40 @@ class ResponseType():
 class CTTVResponse():
 
     @staticmethod
-    def OK(result,type = None):
+    def OK(result,
+           type = None,
+           took = 0):
         '''
         :param result: instance of common.elasticsearchclient.Result
         :param type: value of ResponseType
         :return:
         '''
 
-        if type is None:
-            resp = Response(response=str(result),
-                            status=200,
-                            mimetype="application/json")
-            return resp
+        status = 200
+        if result.status != ['ok']:
+            status = 203
 
         if type == ResponseType.JSON:
             resp = Response(response=result.toJSON(),
-                            status=200,
+                            status=status,
                             mimetype="application/json")
-            return resp
         elif type == ResponseType.XML:
             resp = Response(response=result.toXML(),
-                            status=200,
+                            status=status,
                             mimetype="text/xml")
-            return resp
         elif type == ResponseType.CSV:
             resp = Response(response=result.toCSV(),
-                            status=200,
+                            status=status,
                             mimetype="text/csv")
-            return resp
+        else:
+            resp = Response(response=str(result),
+                            status=status,
+                            mimetype="application/json")
+        if took > 0.5:
+            cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
+            resp.headers.add('X-Accel-Expires', cache_time)
+        resp.headers.add('X-API-Took', int(round(took*1000)))
+        return resp
 
 
 class Results(fields.Raw):

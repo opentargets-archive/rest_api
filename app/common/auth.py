@@ -1,3 +1,6 @@
+from datetime import datetime
+import time
+
 __author__ = 'andreap'
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadData
@@ -45,7 +48,7 @@ class TokenAuthentication():
     def _autenticate(auth_data):
         #TODO: use a proper authentication
         authorized_keys = {
-            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'beta.targetvalidation.org','localhost', '127.0.0.1'],
+            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
             'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [], #Reactome
             'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
             'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
@@ -78,8 +81,12 @@ class TokenAuthentication():
         try:
             data = json.loads(cipher.decrypt(s.loads(token)))
             return data
-        except SignatureExpired:
-            current_app.logger.error('token expired')
+        except SignatureExpired, se:
+            time_offset = (datetime.now()- se.date_signed).total_seconds()
+            current_app.logger.error('token expired: %s. signature date %s. offset with current date = %s'%(se.message,str(se.date_signed),str(time_offset)))
+            if -5<= time_offset < 0:#allow for 5 seconds out of sync machines
+                current_app.logger.info('token time offset within grace period. allowing auth')
+                return json.loads(cipher.decrypt(se.payload))
             return False    # valid token, but expired
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
@@ -125,16 +132,17 @@ def is_authenticated(func):
     def wrapper(*args, **kwargs):
         if not getattr(func, 'authenticated', True):
             return func(*args, **kwargs)
-        authorized =False
+        # authorized =False # set to false to authorise only requests with token
+        authorized =True
 
         # if current_app.config['DEBUG']:
         #     authorized = True
         token = request.headers.get('Auth-Token')
-        if not token:
-            token= request.headers.get('Authorization')
-            if token:
-                token = token.split()[-1].strip()
-                token = base64.b64decode(token)[:-1]
+        # if not token:
+        #     token= request.headers.get('Authorization')
+        #     if token:
+        #         token = token.split()[-1].strip()
+        #         token = base64.b64decode(token)[:-1]
         if token:
             authorized = TokenAuthentication.is_valid(token)
         else:

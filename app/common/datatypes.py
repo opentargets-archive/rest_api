@@ -24,6 +24,7 @@ class DataTypes():
     def __init__(self, app):
         self.datatypes = {}
         self.datasources = {}
+        self.available_datatypes = app.config['DATATYPE_ORDERED']
         for datatype_name,datasources in app.config['DATATYPES'].items():
             self.datatypes[datatype_name] = DataType(datatype_name, datasources)
             for datasource_name in datasources:
@@ -46,3 +47,5 @@ class FilterTypes():
     ASSOCIATION_SCORE_MIN = 'filterbyscorevalue_min'
     ASSOCIATION_SCORE_MAX = 'filterbyscorevalue_max'
     PATHWAY = 'filterbypathway'
+    GO = 'filterbygo'
+    UNIPROT_KW = 'filterbyuniprotkw'

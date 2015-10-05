@@ -29,6 +29,8 @@ class FilterByQuery:
       'eco': fields.List(fields.String(attribute='efo code', )),
       'pathway': fields.List(fields.String(attribute='pathway', )),
       'datasource': fields.List(fields.String(attribute='datasource', )),
+      'datatype': fields.List(fields.String(attribute='datatype', )),
+      'uniprotkw': fields.List(fields.String(attribute='uniprotkw', )),
       'from': fields.Integer(attribute='paginate from',),
       'size': fields.Integer(attribute='size to return', ),
       'format': fields.String(attribute='format',),
@@ -108,8 +110,8 @@ class FilterBy(restful.Resource, Paginable):
 
     _swagger_parameters = [
             {
-              "name": "gene",
-              "description": "a gene identifier listed as biological subject",
+              "name": "target",
+              "description": "a target identifier listed as target.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -124,8 +126,8 @@ class FilterBy(restful.Resource, Paginable):
             #   "paramType": "query"
             # },
             {
-              "name": "efo",
-              "description": "a efo identifier listed as biological object",
+              "name": "disease",
+              "description": "a efo identifier listed as disease.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -164,8 +166,24 @@ class FilterBy(restful.Resource, Paginable):
               "paramType": "query"
             },
             {
+              "name": "uniprotkw",
+              "description": "a uniprot keyword (meaning all the genes linked to that pathway)",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
               "name": "datasource",
               "description": "datasource to consider",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "datatype",
+              "description": "datatype to consider",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -204,7 +222,24 @@ class FilterBy(restful.Resource, Paginable):
               "defaultValue": "false",
               "paramType": "query"
             },
-
+            #  {
+            #   "name": "scorevalue_max",
+            #   "description": "the maximum value of association score you want to filter by",
+            #   "required": False,
+            #   "allowMultiple": False,
+            #   "defaultValue": 1,
+            #   "dataType": "float",
+            #   "paramType": "query"
+            # },
+            # {
+            #   "name": "scorevalue_min",
+            #   "description": "the minimum value of association score you want to filter by",
+            #   "required": False,
+            #   "allowMultiple": False,
+            #   "defaultValue": 0,
+            #   "dataType": "float",
+            #   "paramType": "query"
+            # },
           ]
 
     _swagger_parameters.extend(Paginable._swagger_parameters)
@@ -222,9 +257,9 @@ class FilterBy(restful.Resource, Paginable):
         test with: ENSG00000136997,
         """
         parser = boilerplate.get_parser()
-        parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
+        parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
+        parser.add_argument('disease', type=str, action='append', required=False, help="List of efo code in disease")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('eco', type=str, action='append', required=False, help="List of evidence types as eco code")
         # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
@@ -233,19 +268,27 @@ class FilterBy(restful.Resource, Paginable):
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
         parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
-
-
+        parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
+        parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
+        parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
+        parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
 
         args = parser.parse_args()
-        genes = args.pop('gene',[]) or []
+        genes = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = args.pop('efo',[]) or []
+        objects = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasource =  args.pop('datasource',[]) or []
 
-        if not (genes or objects or evidence_types or datasource or args['pathway']):
+        if not (genes
+                or objects
+                or evidence_types
+                or datasource
+                or args['pathway']
+                or args['uniprotkw']
+                or args['datatype']):
             abort(404, message='Please provide at least one gene, efo, eco or datasource')
         return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
 
@@ -274,12 +317,6 @@ class FilterBy(restful.Resource, Paginable):
         Get a list of evidences filtered by gene, efo and/or eco codes
         test with: {"gene":["ENSG00000136997"]},
         """
-        # parser = reqparse.RequestParser()
-        # parser.add_argument('gene', type=fields.List(fields.String),location='form', required=False, help="List of genes in biological_subject")
-        #
-        # args = parser.parse_args()
-        # print args
-        # print request
         def fix_empty_strings(l):
             new_l=[]
             if l:
@@ -290,9 +327,9 @@ class FilterBy(restful.Resource, Paginable):
 
 
         args = request.get_json()
-        genes = fix_empty_strings(args.pop('gene',[]) or [])
+        genes = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = fix_empty_strings(args.pop('efo',[]) or [])
+        objects = fix_empty_strings(args.pop('disease',[]) or [])
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'

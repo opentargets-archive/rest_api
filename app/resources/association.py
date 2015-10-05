@@ -11,6 +11,7 @@ from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.response_templates import CTTVResponse, PaginatedResponse
 from app.common.utils import get_ordered_filter_list
+import time
 
 
 __author__ = 'andreap'
@@ -19,8 +20,8 @@ __author__ = 'andreap'
 class EvidenceQuery:
   "An object to specify an association query"
   resource_fields = {
-      'gene': fields.List(fields.String(attribute='gene file name', )),
-      'efo': fields.List(fields.String(attribute='efo code', )),
+      'target': fields.List(fields.String(attribute='target id', )),
+      'disease': fields.List(fields.String(attribute='disease efo code', )),
 
 
   }
@@ -40,8 +41,8 @@ class Association(restful.Resource):
 
     _swagger_parameters = [
             {
-              "name": "gene",
-              "description": "a gene identifier listed as biological subject",
+              "name": "target",
+              "description": "a gene identifier listed as target.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -56,8 +57,8 @@ class Association(restful.Resource):
             #   "paramType": "query"
             # },
             {
-              "name": "efo",
-              "description": "a efo identifier listed as biological object",
+              "name": "disease",
+              "description": "a efo identifier listed as disease.id",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -84,7 +85,8 @@ class Association(restful.Resource):
               "description": "the maximum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "dataType": "string",
+              "defaultValue": 1,
+              "dataType": "float",
               "paramType": "query"
             },
             {
@@ -92,7 +94,8 @@ class Association(restful.Resource):
               "description": "the minimum value of association score you want to filter by",
               "required": False,
               "allowMultiple": False,
-              "dataType": "string",
+              "defaultValue": 0.2,
+              "dataType": "float",
               "paramType": "query"
             },
             {
@@ -120,6 +123,23 @@ class Association(restful.Resource):
               "paramType": "query"
             },
             {
+              "name": "filterbyuniprotkw",
+              "description": "Consider just genes with this uniprot keyword. Accepts a list of uniprot keywords.",
+              "required": False,
+              "allowMultiple": True,
+              "dataType": "string",
+              "paramType": "query"
+            },
+            {
+              "name": "stringency",
+              "description": "Define the stringency in the association score calculation. The higher the stringency the more evidence is needed to reach a score of 1. default is 1",
+              "required": False,
+              "allowMultiple": True,
+              "defaultValue": 1,
+              "dataType": "float",
+              "paramType": "query"
+            },
+            {
               "name": "datastructure",
               "description": "Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene). Can be 'flat' or 'tree'",
               "required": False,
@@ -134,6 +154,15 @@ class Association(restful.Resource):
               "allowMultiple": False,
               "dataType": "boolean",
               "defaultValue": "false",
+              "paramType": "query"
+            },
+            {
+              "name": "facets",
+              "description": "return the facets for the call. Default to True",
+              "required": False,
+              "allowMultiple": False,
+              "dataType": "boolean",
+              "defaultValue": "true",
               "paramType": "query"
             },
 
@@ -156,19 +185,21 @@ class Association(restful.Resource):
         Test with ENSG00000136997
         """
         parser = reqparse.RequestParser()
-        parser.add_argument('gene', type=str, action='append', required=False, help="gene in biological_subject")
+        parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('efo', type=str, action='append', required=False, help="List of efo code in biological_object")
+        parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('filterbyscorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('filterbyscorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('filterbydatasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
         parser.add_argument('filterbydatatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('filterbypathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
+        parser.add_argument('filterbyuniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
+        parser.add_argument('stringency', type=float, required=False, help="Define the stringency in the association score calculation.")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('expandefo', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=False)
-
+        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=True)
 
         args = parser.parse_args()
         # filters = args.pop('filter',[]) or []
@@ -178,9 +209,9 @@ class Association(restful.Resource):
         #     filters = get_ordered_filter_list(request.query_string)
         # if filters:
         #     args['filter']=filters
-        genes = args.pop('gene',[]) or []
+        genes = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = args.pop('efo',[]) or []
+        objects = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
 
 
@@ -208,6 +239,7 @@ class Association(restful.Resource):
             },
             ]
         )
+    #TODO: add post method
 
 
     def get_association(self,
@@ -218,17 +250,19 @@ class Association(restful.Resource):
                      params ={}):
 
         es = current_app.extensions['esquery']
+        start_time = time.time()
         res = es.get_associations(genes = genes,
                                  objects = objects,
                                  # gene_operator = gene_operator,
                                  # object_operator = object_operator,
                                  # evidence_type_operator = evidence_type_operator,
                                  **params)
+        took = time.time() - start_time
         # if not res:
         #     abort(404, message='Cannot find associations for  %s'%str([genes,
         #                                                             objects,
         #                                                             # gene_operator,
         #                                                             # object_operator,
         #                                                             ]))
-        return CTTVResponse.OK(res)
+        return CTTVResponse.OK(res, took=took)
 

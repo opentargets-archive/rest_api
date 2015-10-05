@@ -14,7 +14,13 @@ __author__ = 'andreap'
 class Result(object):
     format = ResponseType.JSON
 
-    def __init__(self, res, params, data=None, facets=None):
+    def __init__(self,
+                 res,
+                 params,
+                 data=None,
+                 facets=None,
+                 available_datatypes = [],
+                 status = ['ok']):
         '''
 
         :param res: elasticsearch query response
@@ -28,6 +34,8 @@ class Result(object):
         self.data = data
         self.format = params.format
         self.facets = facets
+        self.available_datatypes = available_datatypes
+        self.status = status
 
 
     def toDict(self):
@@ -134,7 +142,20 @@ class PaginatedResult(Result):
                 'total': self.res['hits']['total'],
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
-                'from': self.params.start_from
+                'from': self.params.start_from,
+                'status' : self.status,
+        }
+
+class EmptyPaginatedResult(Result):
+    def toDict(self):
+
+        return {'data': [],
+                'facets':[],
+                'total': 0,
+                'took': 0,
+                'size': 0,
+                'from': 0,
+                'status' : self.status,
         }
 
 
@@ -145,7 +166,15 @@ class SimpleResult(Result):
     def toDict(self):
         if  self.data is None:
             raise AttributeError('some data is needed to be returned in a SimpleResult')
-        return {'data': self.data}
+        return {'data': self.data,
+                'status' : self.status, }
+
+class EmptySimpleResult(Result):
+    def toDict(self):
+
+        return {'data':[],
+                'status' : self.status, }
+
 
 class CountedResult(Result):
 
@@ -166,7 +195,11 @@ class CountedResult(Result):
             return {'data': self.data,
                     'facets': self.facets,
                     'total': self.total,
+                    'available_datatypes': self.available_datatypes,
+                    'status' : self.status,
             }
         return {'data': self.data,
                 'total': self.total,
+                'available_datatypes': self.available_datatypes,
+                'status' : self.status,
         }

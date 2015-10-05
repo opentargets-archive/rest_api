@@ -1,4 +1,3 @@
-
 __author__ = 'andreap'
 
 import json
@@ -12,13 +11,13 @@ class FullSourceDataStructure(OutputDataStructure):
 
 class SimpleSourceDataStructure(OutputDataStructure):
     source =  {"include": [ "id",
-                           "biological_object.about",
-                           "biological_object.properties.*",
-                           "biological_subject.about",
-                           "biological_subject.gene_info",
+                           "disease.id",
+                           "disease.properties.*",
+                           "target.id",
                            "evidence.evidence_codes",
-                           "evidence.provenance_type.database.id",
-                           "evidence.association_score.probability.value"],
+                           "sourceID",
+                           "type",
+                           "scores.association_score"],
                 "exclude": [ "_private*" ]}
 
 class IdsSourceDataStructure(OutputDataStructure):
@@ -39,6 +38,11 @@ class DiseaseDataStructure(OutputDataStructure):
                "path",
                "definition",
                "synonyms"]
+class GeneAndDiseaseIDDataStructure(OutputDataStructure):
+    source = [ "target.id",
+               "disease.id",
+               "_private.efo_codes",
+               ]
 
 class GeneAndDiseaseDataStructure(OutputDataStructure):
     source = ShortGeneDataStructure.source + DiseaseDataStructure.source
@@ -46,8 +50,21 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 class CustomDataStructure(OutputDataStructure):
     source =  {"include": [ ],
-                "exclude": [ "_private*" ]}
+                "exclude": [ "_private*" ],
+               }
 
+
+class ScoreDataStructure(OutputDataStructure):
+    source =  {"include": ["sourceID",
+                           "scores",
+                           "type",
+                           "target.id",
+                           "target.gene_info.symbol",
+                           "disease.efo_info.label",
+                           "disease.id",
+                           "_private.efo_codes",
+                           "_private.datatype",
+                           ],}
 
 class OutputDataStructureOptions():
     DEFAULT = 'default'
@@ -58,9 +75,11 @@ class OutputDataStructureOptions():
     GENE = 'gene'
     DISEASE = 'disease'
     GENE_AND_DISEASE = 'gene_and_disease'
+    GENE_AND_DISEASE_ID = 'gene_and_disease_id'
     CUSTOM = 'custom'
     TREE = 'tree'
     FLAT = 'flat'
+    SCORE = 'score'
 
 
     options = {
@@ -70,7 +89,9 @@ class OutputDataStructureOptions():
         GENE: ShortGeneDataStructure.source,
         DISEASE: DiseaseDataStructure.source,
         GENE_AND_DISEASE: GeneAndDiseaseDataStructure.source,
+        GENE_AND_DISEASE_ID: GeneAndDiseaseIDDataStructure.source,
         COUNT: OutputDataStructure.source,
+        SCORE: ScoreDataStructure.source,
         CUSTOM: CustomDataStructure.source,
     }
 

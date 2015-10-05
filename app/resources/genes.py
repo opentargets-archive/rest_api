@@ -30,18 +30,18 @@ class GeneInfo(restful.Resource):
 
     @swagger.operation()
     @is_authenticated
-    def get(self, gene_id ):
+    def get(self, target_id ):
         '''
         Get gene information
         Get a gene generic information from an ensembl gene id'''
         es = current_app.extensions['esquery']
-        res = es.get_gene_info([gene_id])
+        res = es.get_gene_info([target_id])
         if res:
             data = res.toDict()['data']
             if data:
                 return data[0]
 
-        abort(404, message="Gene id %s cannot be found"%gene_id)
+        abort(404, message="Gene id %s cannot be found"%target_id)
 
 
 class AvailableGenes(restful.Resource):

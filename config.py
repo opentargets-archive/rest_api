@@ -1,5 +1,5 @@
 from collections import defaultdict
-from app.common.scoring import ScoringMethods
+from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
 
@@ -11,7 +11,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data'
+    ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'efo-data'
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
@@ -23,27 +23,35 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
+    ELASTICSEARCH_DATA_SCORE_INDEX_NAME = 'evidence-score'
+    ELASTICSEARCH_DATA_SCORE_DOC_NAME = 'evidencescore'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.6'
+    API_VERSION = '0.75'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
-    DATATYPES['genetic_association'] = ['uniprot','gwas','eva',]
+    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature']
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
-    DATATYPES['somatic_mutation'] = ['cancer_gene_census',]
+    DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic',]
     DATATYPES['known_drug'] = ['chembl',]
-    DATATYPES['literature'] = ['europmc','disgenet']
+    DATATYPES['literature'] = ['europepmc','disgenet']
+    DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature']
     # DATATYPES['protein_expression'] = ['hpa']
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
-    DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
+    # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
+    SCORING_WEIGHTS = defaultdict(lambda: 1)
+    # SCORING_WEIGHTS['phenodigm'] = 0.5
+    # SCORING_WEIGHTS['expression_atlas'] = 0.5
+    # SCORING_WEIGHTS['disgenet'] = 0.2
+
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
                                         'gxa': 'https://www.ebi.ac.uk/gxa/',
@@ -51,7 +59,7 @@ class Config:
                                         'epmc': 'http://www.ebi.ac.uk/europepmc/',
                                         },
                     'allowed_domains': ['www.ebi.ac.uk'],
-                    'allowed_request_domains' : ['targetvalidation.org', 'beta.targetvalidation.org','localhost', '127.0.0.1'],
+                    'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
 
     @staticmethod
@@ -64,6 +72,7 @@ class DevelopmentConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
+    APP_CACHE_EXPIRY_TIMEOUT = 1
 
     @classmethod
     def init_app(cls, app):
@@ -75,12 +84,14 @@ class DockerLinkedDevConfig(Config):
     ELASTICSEARCH_URL = 'http://elastic:9200'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 class DockerLinkedConfig(Config):
     TESTING = True
     ELASTICSEARCH_URL = 'http://elastic:9200'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 
 class TestingConfig(Config):
@@ -88,12 +99,26 @@ class TestingConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60
+
+class StagingConfig(Config):
+    ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
+    LOGSTASH_HOST = '192.168.0.168'
+    LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+
+        #TODO: handle logs
 
 
 class ProductionConfig(Config):
-    ELASTICSEARCH_URL = 'http://192.168.1.156:9200/'
+    ELASTICSEARCH_URL = 'http://elasticsearch-9200.production.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
+    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
     def init_app(cls, app):
@@ -138,6 +163,7 @@ class UnixConfig(ProductionConfig):
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
+    'staging': StagingConfig,
     'production': ProductionConfig,
     'dockerlink': DockerLinkedConfig,
     'dockerlinkdev': DockerLinkedDevConfig,

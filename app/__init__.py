@@ -1,16 +1,20 @@
+from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask import Flask, redirect, Blueprint
 # from flask.ext.login import LoginManager
 import logstash
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
-from app.common.scoring import DataSourceScoring
+from app.common.scoring_conf import DataSourceScoring
 from config import config
 import logging
 from pythonjsonlogger import jsonlogger
 from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery
 from api import create_api
+from flask.ext.cache import Cache
+from werkzeug.contrib.cache import SimpleCache, FileSystemCache
+
 
 
 
@@ -58,12 +62,14 @@ def create_app(config_name):
                                         index_genename=app.config['ELASTICSEARCH_GENE_NAME_INDEX_NAME'],
                                         index_expression=app.config['ELASTICSEARCH_EXPRESSION_INDEX_NAME'],
                                         index_reactome=app.config['ELASTICSEARCH_REACTOME_INDEX_NAME'],
+                                        index_score=app.config['ELASTICSEARCH_DATA_SCORE_INDEX_NAME'],
                                         docname_data=app.config['ELASTICSEARCH_DATA_DOC_NAME'],
                                         docname_efo=app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
                                         docname_eco=app.config['ELASTICSEARCH_ECO_DOC_NAME'],
                                         docname_genename=app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
                                         docname_expression=app.config['ELASTICSEARCH_EXPRESSION_DOC_NAME'],
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
+                                        docname_score=app.config['ELASTICSEARCH_DATA_SCORE_DOC_NAME'],
                                         log_level=log_level,
 
                                         )
@@ -73,6 +79,19 @@ def create_app(config_name):
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
+
+    ''' define cache'''
+    # cache = Cache(config={'CACHE_TYPE': 'simple'})
+    # cache.init_app(latest_blueprint)
+    # latest_blueprint.cache = cache
+    # latest_blueprint.extensions['cache'] = cache
+    app.cache = SimpleCache()
+    app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=60*60, mode=777)
+
+
+    '''compress http response'''
+    compress = Compress()
+    compress.init_app(app)
 
     latest_blueprint = Blueprint('latest', __name__)
 
@@ -103,6 +122,9 @@ def create_app(config_name):
     #
     # from .api_1_0 import api as api_1_0_blueprint
     # app.register_blueprint(api_1_0_blueprint, url_prefix='/api/v1.0')
+
+
+
 
     create_api(latest_blueprint, api_version, specpath)
 
