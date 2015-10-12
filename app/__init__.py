@@ -10,7 +10,7 @@ from config import config
 import logging
 from pythonjsonlogger import jsonlogger
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery
+from common.elasticsearchclient import EsQuery
 from api import create_api
 from flask.ext.cache import Cache
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache
@@ -53,7 +53,7 @@ def create_app(config_name):
                         # # and also every 60 seconds
                         # sniffer_timeout=60
                         )
-    app.extensions['esquery'] = esQuery(es,
+    app.extensions['esquery'] = EsQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),
                                         index_data=app.config['ELASTICSEARCH_DATA_INDEX_NAME'],
@@ -70,6 +70,7 @@ def create_app(config_name):
                                         docname_expression=app.config['ELASTICSEARCH_EXPRESSION_DOC_NAME'],
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
                                         docname_score=app.config['ELASTICSEARCH_DATA_SCORE_DOC_NAME'],
+                                        query_timeout=app.config['ELASTICSEARCH_QUERY_TIMEOUT'],
                                         log_level=log_level,
 
                                         )

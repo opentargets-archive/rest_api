@@ -7,13 +7,14 @@ import pprint
 import numpy as np
 import json
 
-from flask import current_app
+from flask import current_app, Config
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
+import sys
 from app.common.request_templates import OutputDataStructureOptions
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult
 from app.common.datatypes import FilterTypes
-from app.common.scoring import Scorer, Score
+from app.common.scoring import Scorer, Score, ManualScorer, ESScorer, ScoringModes
 
 __author__ = 'andreap'
 
@@ -30,7 +31,7 @@ class FreeTextFilterOptions():
     EFO = 'efo'
 
 
-class ESResultStatus(object):
+class EsResultStatus(object):
     def __init__(self):
         self.reset()
 
@@ -44,7 +45,7 @@ class ESResultStatus(object):
         self.status = ['ok']
 
 
-class esQuery():
+class EsQuery():
     def __init__(self,
                  handler,
                  datatypes,
@@ -63,6 +64,7 @@ class esQuery():
                  docname_expression=None,
                  docname_reactome=None,
                  docname_score=None,
+                 query_timeout = 60*1000,
                  log_level=logging.DEBUG):
         '''
 
@@ -93,7 +95,8 @@ class esQuery():
         self._docname_score = docname_score
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
-        self.scorer = Scorer(datatource_scoring)
+        self.scorer = ESScorer(datatource_scoring, handler, index_data)
+        self.query_timeout = query_timeout
 
 
         if log_level == logging.DEBUG:
@@ -131,7 +134,8 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                                      '_source': OutputDataStructureOptions.getSource(params.datastructure),
+                                      "timeout": self.query_timeout,
                                   }
         )
 
@@ -159,7 +163,8 @@ class esQuery():
                                               },
                                               'size': params.size,
                                               'from': params.start_from,
-                                              '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                                              '_source': OutputDataStructureOptions.getSource(params.datastructure),
+                                              "timeout": self.query_timeout,
                                           }
                 )
 
@@ -508,58 +513,7 @@ class esQuery():
 
         return SimpleResult(None, params, data)
 
-    def _get_ensemblid_from_gene_name(self, genename, **kwargs):
-        res = self.handler.search(index=self._index_genename,
-                                  doc_type=self._docname_genename,
-                                  body={'query': {
-                                      'match': {"Associated Gene Name": genename}
 
-                                  },
-                                        'size': 1,
-                                        'fields': ['Ensembl Gene ID']
-                                  }
-        )
-        current_app.logger.debug("Got %d gene id  Hits in %ims" % (res['hits']['total'], res['took']))
-        return [hit['fields']['Ensembl Gene ID'][0] for hit in res['hits']['hits']]
-
-    def available_genes(self, **kwargs):
-        params = SearchParams(**kwargs)
-        res = helpers.scan(client=self.handler,
-                           # query = {'filter': {
-                           # 'prefix': {
-                           #                        'target.id': 'ensembl:'},
-                           #                    },
-                           query={"query": {"match_all": {}},
-
-                                  'size': 1000,
-                                  'fields': ['target.id'],
-                           },
-                           scroll='10m',
-                           # doc_type=self._docname_data,
-                           index=self._index_data,
-                           timeout="10m",
-        )
-
-        available_genes = defaultdict(int)
-        for hit in res:
-            gene_name = hit['fields']['target.id'][0]
-            if gene_name.startswith('ensembl:'):
-                gene_name = gene_name.split('ensembl:')[1]
-            available_genes[gene_name] += 1
-        # do this trough es api like this:
-        # "aggs" = {
-        #            "sport_count": {
-        #                "value_count": {
-        #                  "field": "sport"
-        #                      }
-        #                 }
-        #           }
-        available_genes = available_genes.items()
-        available_genes.sort(key=operator.itemgetter(1), reverse=True)
-
-        current_app.logger.debug(
-            "Got a total of %i genes with %i evidences" % (len(available_genes), sum((e for g, e in available_genes))))
-        return available_genes
 
 
     def get_gene_info(self,gene_ids, facets = False, **kwargs):
@@ -594,6 +548,7 @@ class esQuery():
                                            'size': params.size,
                                            'from': params.start_from,
                                            'aggs':  aggs,
+                                           "timeout": self.query_timeout,
 
                                            }
                                       )
@@ -612,7 +567,8 @@ class esQuery():
                                               "values": [efo_codes]
                                                 },
                                             },
-                                            'size' : 100000
+                                          'size' : 100000,
+                                          "timeout": self.query_timeout,
                                       }
             )
             if res['hits']['total']:
@@ -648,7 +604,8 @@ class esQuery():
                                       },
                                       'size': params.size,
                                       'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
+                                      '_source': OutputDataStructureOptions.getSource(params.datastructure),
+                                      "timeout": self.query_timeout,
                                   },
                                   timeout="10m",
         )
@@ -671,7 +628,8 @@ class esQuery():
                                           # "type": self._docname_data,
                                           "values": evidenceid
                                       }
-                                  }
+                                  },
+                                      "timeout": self.query_timeout,
                                   }
         )
         if res['hits']['total']:
@@ -684,8 +642,9 @@ class esQuery():
                                       "ids": {
                                           "type": "eco",
                                           "values": [code]
-                                      }
-                                  }
+                                          }
+                                        },
+                                      "timeout": self.query_timeout,
                                   }
         )
         for hit in res['hits']['hits']:
@@ -760,7 +719,8 @@ class esQuery():
                                              }
 
                                           }
-                                       }
+                                       },
+                                      "timeout": self.query_timeout,
                                   }
             )
         else:
@@ -779,6 +739,7 @@ class esQuery():
                           'from': params.start_from,
                           "sort" : [{ "scores.association_score" : {"order" : "desc"}}],
                           '_source': source_filter,
+                          "timeout": self.query_timeout,
                       }
             res = self.handler.search(index=self._index_data,
                                       # doc_type=self._docname_data,
@@ -886,57 +847,59 @@ class esQuery():
         if params.fields:
             source_filter["include"]= params.fields
 
-        # all_conditions = copy(conditions)
-        # all_conditions.extend(filter_data_conditions.values())
         score_query_body = {
-                      #restrict the set of datapoints using the target and disease ids
-                      "query": {
-                          "filtered": {
-                              "filter": {
-                                  "bool": {
-                                      "must": conditions
+                              #restrict the set of datapoints using the target and disease ids
+                              "query": {
+                                  "filtered": {
+                                      "filter": {
+                                          "bool": {
+                                              "must": conditions
+                                          }
+                                      }
                                   }
+                              },
+                              'size': 0,
+                              '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                              # filter out the results as requested, this will not be applied to the aggregations
+                              "post_filter": {
+                                  "bool": {
+                                      "must": filter_data_conditions.values()
+                                  }
+                               },
+                              # calculate aggregation using proper ad hoc filters
+                              "aggs": {"data":aggs['data']},
+
                               }
-                          }
-                      },
-                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.SCORE),
-
-                      }
-        score_query_body_count = copy(score_query_body)
-        score_query_body_count['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
+        del aggs["data"]
+        score_calculation_cache_key = str(score_query_body)
+        api_cache_key = score_calculation_cache_key+str(params.stringency)
+        score_query_body["timeout"]=self.query_timeout
 
 
-        res_count = self.handler.search(index=self._index_data,
-                                  body=score_query_body_count,
-                                  timeout = "10m",
-                                  query_cache = False,
-                                  )
-        expected_datapoints = res_count['hits']['total']
-
-        score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
+        #TODO: parse into score_data objects and facets data
+        score_data = current_app.cache.get(api_cache_key)
         if score_data is None:
-            evs = helpers.scan(self.handler,
-                                index=self._index_data,
-                                query=score_query_body,
-                                size=10000,
-                                timeout = "10m",
-                               )
 
-            score_data = self.scorer.score(evs = evs,
+            if objects:
+                mode = ScoringModes.TARGET
+            elif genes:
+                mode = ScoringModes.DISEASE
+            score_data = self.scorer.score(query = score_query_body,
                                            stringency=params.stringency,
+                                           mode = mode,
+                                           datatypes = self.datatypes,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                            expand_efo = params.expand_efo or params.datastructure==OutputDataStructureOptions.TREE,
                                            cache_key=str(score_query_body)+'raw_score_cache'
                                            )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-        genes_scores, objects_scores, datapoints, efo_with_data = score_data
+        genes_scores, objects_scores, datapoints, efo_with_data = score_data.target_scores, score_data.disease_scores, score_data.datapoints, score_data.disease_with_data
 
 
-        if datapoints< expected_datapoints:
-            current_app.cache.delete(str(score_query_body)+str(params.stringency))
-            raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
-        scores = []
+
+
+
         if objects:
             scores = genes_scores
         elif genes:
@@ -984,9 +947,10 @@ class esQuery():
                                   timeout = "10m",
                                   # routing=expanded_linked_efo
                                   )
+
         aggregation_results = {}
 
-        status = ESResultStatus()
+        status = EsResultStatus()
         if total == 0 and genes and objects:
             data = [{"evidence_count": 0,
                      "datatypes": [],
@@ -997,75 +961,60 @@ class esQuery():
                                  params,
                                  data,
                                  total = 0,
-                                 facets = aggregation_results,
+                                 facets = aggregation_results,#TODO: add data distrubution here
                                  available_datatypes = self.datatypes.available_datatypes,
                                  status = status.status,
                                  )
 
-        '''multiple facet queries'''
-        for a in aggs:
-            agg_query_body['aggs']={a:aggs[a]}
-            agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
-            if agg_data is None:
-                agg_data = self.handler.search(index=self._index_data,
-                                          body=agg_query_body,
-                                          timeout="10m",
-                                          # routing=expanded_linked_efo,
-                                          )
-                if res_count_agg['hits']['total'] > agg_data['hits']['total']:
-                    current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,agg_data['hits']['total'], res_count_agg['hits']['total']))
-                    status.add_error('partial-facet-'+a)
-                elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-                    current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-            if agg_data and agg_data['hits']['total']:
-                aggregation_results[a]=agg_data['aggregations'][a]
+
 
         '''single facet query'''
-        # agg_query_body['aggs']=aggs
-        # agg_data =None# current_app.cache.get(str(agg_query_body)+str(params.stringency))
-        # if agg_data is None:
-        #     agg_data = self.handler.search(index=self._index_data,
-        #                               body=agg_query_body,
-        #                               timeout="10m",
-        #                               # routing=expanded_linked_efo,
-        #                               )
-        #     if res_count_agg['hits']['total'] > agg_data['hits']['total']:
-        #         current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%('all',agg_data['hits']['total'], res_count_agg['hits']['total']))
-        #         status.add_error('partial-facets')
-        #     elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-        #         current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-        # if agg_data and agg_data['hits']['total']:
-        #     aggregation_results=agg_data['aggregations']
+        agg_query_body['aggs']=aggs
+        agg_data =None# current_app.cache.get(str(agg_query_body)+str(params.stringency))
+        if agg_data is None:
+            agg_data = self.handler.search(index=self._index_data,
+                                      body=agg_query_body,
+                                      timeout="10m",
+                                      # routing=expanded_linked_efo,
+                                      )
+            if res_count_agg['hits']['total'] > agg_data['hits']['total']:
+                current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%('all',agg_data['hits']['total'], res_count_agg['hits']['total']))
+                status.add_error('partial-facets')
+            elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
+                current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+        if agg_data and agg_data['hits']['total']:
+            aggregation_results=agg_data['aggregations']
 
-        '''apply facets conditions to data'''
-        if filter_data_conditions:
-            post_filter_query = copy(score_query_body)
-            post_filter_query['post_filter']= { "bool": {"must": filter_data_conditions.values()}}
-            post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
-            evs = helpers.scan(self.handler,
-                                index=self._index_data,
-                                query=post_filter_query,
-                                size=10000,
-                                timeout = "10m",
-                               )
-            final_target_set = set()
-            final_disease_set = set()
-            for es_result in evs:
-                ev = es_result['_source']
-                final_target_set.add(ev['target']['id'])
-                if params.datastructure == OutputDataStructureOptions.TREE:
-                    for efo_code in ev['_private']['efo_codes']:
-                        final_disease_set.add(efo_code)
-                else:
-                    final_disease_set.add(ev['disease']['id'])
-            if objects:
-                filtered_scores = [score \
-                                   for score in filtered_scores \
-                                   if  score['gene_id'] in final_target_set]
-            elif genes:
-                filtered_scores = [score \
-                                   for score in filtered_scores \
-                                   if  score['efo_code'] in final_disease_set]
+        # '''apply facets conditions to data'''
+        # if filter_data_conditions:
+        #     #todo: make it work
+        #     post_filter_query = copy(score_query_body)
+        #     post_filter_query['post_filter']= { "bool": {"must": filter_data_conditions.values()}}
+        #     post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
+        #     evs = helpers.scan(self.handler,
+        #                         index=self._index_data,
+        #                         query=post_filter_query,
+        #                         size=10000,
+        #                         timeout = "10m",
+        #                        )
+        #     final_target_set = set()
+        #     final_disease_set = set()
+        #     for es_result in evs:
+        #         ev = es_result['_source']
+        #         final_target_set.add(ev['target']['id'])
+        #         if params.datastructure == OutputDataStructureOptions.TREE:
+        #             for efo_code in ev['_private']['efo_codes']:
+        #                 final_disease_set.add(efo_code)
+        #         else:
+        #             final_disease_set.add(ev['disease']['id'])
+        #     if objects:
+        #         filtered_scores = [score \
+        #                            for score in filtered_scores \
+        #                            if  score['gene_id'] in final_target_set]
+        #     elif genes:
+        #         filtered_scores = [score \
+        #                            for score in filtered_scores \
+        #                            if  score['efo_code'] in final_disease_set]
 
 
 
@@ -1090,7 +1039,7 @@ class esQuery():
         data_distribution["evidence_count"]= datapoints
         aggregation_results ['data_distribution'] = data_distribution
 
-        return CountedResult(res_count,
+        return CountedResult([],
                              params,
                              data['data'],
                              total = total,
@@ -1360,37 +1309,44 @@ class esQuery():
             field = "_private.efo_codes"
 
         aggs = {
-            # "data": {
-            #        "filter" :{
-            #            "bool": {
-            #                "must": filters.values(),
-            #             },
-            #        },
-            #        "aggs":{
-            #             "efo_codes": {
-            #                "terms": {
-            #                    "field" : field,
-            #                    'size': 100000,
-            #                    # "order": {
-            #                    #     "association_score_mp.value.all": "desc"
-            #                    # }
-            #                },
-            #                 "aggs":{
-            #
-            #                     "association_score_mp": {
-            #                         "scripted_metric": self._get_association_score_scripted_metric_script(params),
-            #
-            #                     }
-            #
-            #
-            #                   }
-            #
-            #              },
-            #         },
-            #     },
+            "data": {
+                   # Apply other facets conditions to the aggregation evidencestring baseline  selection
+                   "filter" :{
+                       "bool": {
+                           "must": []#filters.values(),
+                        },
+                   },
+                   "aggs":{
+                        "efo_codes": {
+                           "terms": {
+                               "field" : field,
+                               'size': 100000,
+                               # "order": {
+                               #     "association_score_mp.value.all": "desc"
+                               # }
+                           },
+                            "aggs":{
+
+                                "association_score_mp": {
+                                    "scripted_metric": self._get_association_score_scripted_metric_script(params),
+
+                                }
+
+
+                              }
+
+                         },
+                    },
+                },
          }
         if facets:
             aggs["datatypes"] = self._get_datatype_facet_aggregation(filters)
+
+        # print(self._get_association_score_scripted_metric_script(params)['combine_script'])
+        # print(self._get_association_score_scripted_metric_script(params)['init_script'])
+        # print(self._get_association_score_scripted_metric_script(params)['map_script'])
+        # print(self._get_association_score_scripted_metric_script(params)['reduce_script'])
+        # exit(1)
         return aggs
 
     def _get_efo_associations_agg(self, filters = {}, params = None):
@@ -1414,29 +1370,30 @@ class esQuery():
 
 
         aggs = {
-            # "data": {
-            #    "filter" :{
-            #        "bool": {
-            #            "must": filters.values(),
-            #         },
-            #     },
-            #    "aggs":{
-            #        "genes": {
-            #            "terms": {
-            #                "field" : "target.id",
-            #                'size': 100000,
-            #                # "order": {
-            #                #     "association_score.count": "desc"
-            #                # }
-            #            },
-            #            "aggs":{
-            #               "association_score_mp": {
-            #                   "scripted_metric": self._get_association_score_scripted_metric_script(params),
-            #               }
-            #            },
-            #        },
-            #    },
-            # }
+            "data": {
+               # Apply other facets conditions to the aggregation evidencestring baseline  selection
+               "filter" :{
+                   "bool": {
+                       "must":[]# filters.values(),
+                    },
+                },
+               "aggs":{
+                   "genes": {
+                       "terms": {
+                           "field" : "target.id",
+                           'size': 100000,
+                           # "order": {
+                           #     "association_score.count": "desc"
+                           # }
+                       },
+                       "aggs":{
+                          "association_score_mp": {
+                              "scripted_metric": self._get_association_score_scripted_metric_script(params),
+                          }
+                       },
+                   },
+               },
+            }
         }
         if facets:
             aggs['datatypes'] = self._get_datatype_facet_aggregation(filters)
@@ -1693,7 +1650,7 @@ class esQuery():
                                           },
                                           # 'size': params.size,
                                           # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
-
+                                          "timeout": self.query_timeout,
                                           }
                                       )
             if res['hits']['total']:
@@ -1723,7 +1680,8 @@ class esQuery():
 
                                            },
                                          }
-                                      }
+                                      },
+                                      "timeout": self.query_timeout,
                                   })
         if res['hits']['total']:
             data = res['aggregations']["efo_codes"]["buckets"]
@@ -1777,7 +1735,7 @@ class esQuery():
                                       },
                                       'size': 100000,
                                       '_source': ["id"],
-
+                                      "timeout": self.query_timeout,
 
                                   })
         if res['hits']['total']:
@@ -1841,6 +1799,7 @@ class esQuery():
                                            '_source': ['label'],
                                            'size': 100000,
                                            'from': 0,
+                                          "timeout": self.query_timeout,
 
                                            }
                                       )
@@ -2029,32 +1988,47 @@ ev_score_ds = doc['scores.association_score'].value
 %s
 
 //store the score value in the proper category
-//_agg.evs_scores['all'].add(ev_score_dt)
 _agg.evs_scores[ev_sourceID].add(ev_score_ds)
-//_agg.evs_scores[ev_type].add(ev_score_dt)
 """%self._get_datasource_score_calculation_script(params),
                     combine_script = """
-scores = [%s];
+def data = ['scores' : [%s], 'counts' : [%s]];
 // sum all the values coming from a single shard
 _agg.evs_scores.each { key, value ->
     for (v in value) {
-        scores[key] += v;
+        data.scores[key] += v;
+        data.counts[key] += 1;
         };
     };
-return scores"""%self._get_datatype_combine_init_list(params),
+return data"""%(self._get_datatype_combine_init_list(params),
+                  self._get_datatype_combine_init_list(params)),
                     reduce_script = """
 //init scores table with available datasource and datatypes
-scores = [%s];
+def data = ['scores' : [%s], 'counts' : [%s]];
 //generate a datasource to datatype (ds2dt) map
 %s
 
 _aggs.each {
     it.each { key, value ->
-        for (v in value) {
-            scores['all'] += v;
-            scores[key] += v;
-            ds2dt[key].each { dt ->
-                scores[dt] += v;
+        if (key == 'scores'){
+            value.each { s_key, scores ->
+                for (v in scores) {
+                    data.scores['all'] += v;
+                    data.scores[s_key] += v;
+                    ds2dt[s_key].each { dt ->
+                        data.scores[dt] += v;
+                        };
+                    };
+                };
+            };
+        else if (key == 'counts'){
+            value.each { c_key, counts ->
+                for (v in counts) {
+                    data.counts['all'] += 1;
+                    data.counts[c_key] += 1;
+                    ds2dt[c_key].each { dt ->
+                        data.counts[dt] += 1;
+                        };
+                    };
                 };
             };
         };
@@ -2063,13 +2037,14 @@ _aggs.each {
 
 
 // cap each data category sum to 1
-scores.each { key, value ->
-    if (value > 1) {
-        scores[key] = 1;
-        };
-    };
-return scores"""%(self._get_datatype_combine_init_list(params),
-                  self._get_datasource_to_datatype_mapping_script(params)),
+//data.scores.each { key, value ->
+//    if (value > 1) {
+//        data.scores[key] = 1;
+//        };
+//    };
+return data"""%(self._get_datatype_combine_init_list(params),
+                self._get_datatype_combine_init_list(params),
+                self._get_datasource_to_datatype_mapping_script(params)),
                 )
 
 
@@ -2149,6 +2124,7 @@ return scores"""%(self._get_datatype_combine_init_list(params),
                                       },
                                       'size': 100000,
                                       '_source': ["id"],
+                                      "timeout": self.query_timeout,
 
 
                                   })

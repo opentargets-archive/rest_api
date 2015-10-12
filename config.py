@@ -61,6 +61,7 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
+    ELASTICSEARCH_QUERY_TIMEOUT=10*60*1000 # needs to be in milliseconds
 
     @staticmethod
     def init_app(app):
@@ -99,7 +100,7 @@ class TestingConfig(Config):
     ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60
+    APP_CACHE_EXPIRY_TIMEOUT = 180
 
 class StagingConfig(Config):
     ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
