@@ -50,7 +50,7 @@ class Config:
     SCORING_WEIGHTS = defaultdict(lambda: 1)
     # SCORING_WEIGHTS['phenodigm'] = 0.2
     # SCORING_WEIGHTS['expression_atlas'] = 0.2
-    # SCORING_WEIGHTS['europepmc'] = 0.1
+    SCORING_WEIGHTS['europepmc'] = 0.2
     SCORING_WEIGHTS['gwas_catalog'] = 1.5
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
