@@ -48,10 +48,10 @@ class Config:
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
     SCORING_WEIGHTS = defaultdict(lambda: 1)
-    # SCORING_WEIGHTS['phenodigm'] = 0.5
-    # SCORING_WEIGHTS['expression_atlas'] = 0.5
-    # SCORING_WEIGHTS['disgenet'] = 0.2
-
+    SCORING_WEIGHTS['phenodigm'] = 0.2
+    # SCORING_WEIGHTS['expression_atlas'] = 0.2
+    SCORING_WEIGHTS['europepmc'] = 0.1
+    SCORING_WEIGHTS['gwas_catalog'] = 1.5
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
                                         'gxa': 'https://www.ebi.ac.uk/gxa/',
