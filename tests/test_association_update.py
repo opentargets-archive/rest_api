@@ -30,31 +30,33 @@ class FlaskrTestCase(unittest.TestCase):
         # for i,e in enumerate(local):
         #     self.assertDictEqual(local[i],remote[i])
 
-    # def test_simple_target_associations(self):
-    #     local_r = requests.get(self.LOCAL+"api/latest/association?target=ENSG00000096968")
-    #     remote_r = requests.get(self.REMOTE+"api/latest/association?target=ENSG00000096968")
-    #     self.assertResponseOK(local_r, remote_r)
-    #     self.assertAssociationResultEqual(local_r,remote_r )
-
-    def test_simple_disease_associations(self):
-        local_r = requests.get(self.LOCAL+"api/latest/association?disease=EFO_0000270")
-        remote_r = requests.get(self.REMOTE+"api/latest/association?disease=EFO_0000270")
+    def test_simple_target_associations(self):
+        local_r = requests.get(self.LOCAL+"api/latest/association?target=ENSG00000096968&datastructure=flat&expandefo=true&filterbyscorevalue_min=0.0&filterbyscorevalue_max=1.0")
+        remote_r = requests.get(self.REMOTE+"api/latest/association?target=ENSG00000096968&datastructure=flat&expandefo=true&filterbyscorevalue_min=0.0&filterbyscorevalue_max=1.0")
         self.assertResponseOK(local_r, remote_r)
         self.assertAssociationResultEqual(local_r,remote_r )
+
+    # def test_simple_disease_associations(self):
+    #     local_r = requests.get(self.LOCAL+"api/latest/association?disease=EFO_0000270")
+    #     remote_r = requests.get(self.REMOTE+"api/latest/association?disease=EFO_0000270")
+    #     self.assertResponseOK(local_r, remote_r)
+    #     self.assertAssociationResultEqual(local_r,remote_r )
 
 
     def assertAssociationResultEqual(self, local_r, remote_r):
         self.assertResponseOK(local_r,remote_r)
         self.maxDiff = None
-        local_total = local_r.json()['total']
-        remote_total = remote_r.json()['total']
+        local_j = local_r.json()
+        remote_j = remote_r.json()
+        local_total = local_j['total']
+        remote_total = remote_j['total']
         self.assertAlmostEquals(local_total,remote_total)
-        local_data = local_r.json()['data']
-        remote_data = remote_r.json()['data']
+        local_data = local_j['data']
+        remote_data = remote_j['data']
         self.assertListEqual(local_data,
                              remote_data)
-        local_facets = local_r.json()['facets']
-        remote_facets = remote_r.json()['facets']
+        local_facets = local_j['facets']
+        remote_facets = remote_j['facets']
         self.assertListEqual(local_facets,
                              remote_facets)
         # for i,e in enumerate(local):
