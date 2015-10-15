@@ -1,4 +1,5 @@
 from collections import Counter
+from fractions import Fraction
 import logging
 import pprint
 from flask import current_app
@@ -38,17 +39,20 @@ class Score():
             score["evidence_count"]+=1
             if dt not in score['datatypes']:
                  score['datatypes'][dt]={"datasources" : {ds : { score_name: ev_score,
+                                                                 "scores" : [ev_score],
                                                                  "evidence_count" : 1},
                                                           },
                                          score_name : ev_score,
                                          "evidence_count" : 1,}
             elif ds not in score['datatypes'][dt]['datasources']:
                 score['datatypes'][dt]['datasources'][ds] = { score_name: ev_score,
+                                                              "scores" : [ev_score],
                                                               "evidence_count" : 1}
                 score['datatypes'][dt][score_name]+=ev_score
                 score['datatypes'][dt]["evidence_count"]+=1
             else:
                 score['datatypes'][dt]['datasources'][ds][score_name]+=ev_score
+                score['datatypes'][dt]['datasources'][ds]["scores"].append(ev_score)
                 score['datatypes'][dt]['datasources'][ds]["evidence_count"]+=1
                 score['datatypes'][dt][score_name]+=ev_score
                 score['datatypes'][dt]["evidence_count"]+=1
@@ -75,8 +79,12 @@ class Score():
                     if 'datasources' in score['datatypes'][dt]:
                         new_datasources = []
                         for ds in score['datatypes'][dt]['datasources']:
+                            computed_score =score['datatypes'][dt]['datasources'][ds][score_name]
+                            """temporary hack to use harmonic sum for literature and mouse model data"""
+                            if dt in ['literature', 'animal_models']:
+                                computed_score = self._harmonic_sum(score['datatypes'][dt]['datasources'][ds]["scores"] )
                             new_ds = {'datasource': ds,
-                                       score_name: self._cap_score(score['datatypes'][dt]['datasources'][ds][score_name]),
+                                       score_name: self._cap_score(computed_score),
                                       'evidence_count': score['datatypes'][dt]['datasources'][ds]['evidence_count']}
                             new_datasources.append(new_ds)
                         new_dt['datasources']=new_datasources
@@ -92,6 +100,10 @@ class Score():
         elif score<-1:
             return -1
         return score
+
+    def _harmonic_sum(self,scores):
+        scores.sort(reverse=True)
+        return sum(s/(i+1) for i,s in enumerate(scores))
 
 
 
