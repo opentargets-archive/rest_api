@@ -72,26 +72,23 @@ class Score():
         for score_name, score in self.scores.items():
             capped_score.update(score)
             overall_score = 0.
+            datatype_scores = []
 
             if 'datatypes' in score:
                 new_datatypes = []
                 for dt in score['datatypes']:
 
-                    dt_computed_score = score['datatypes'][dt][score_name]
-                    """temporary hack to use harmonic sum for literature and mouse model data"""
-                    if dt in ['literature', 'animal_models']:
-                        dt_computed_score = self._harmonic_sum(score['datatypes'][dt]["scores"] )
+                    """use harmonic sum"""
+                    dt_computed_score = self._harmonic_sum(score['datatypes'][dt]["scores"] )
                     new_dt = {'datatype': dt,
                               score_name: self._cap_score(dt_computed_score),
                               'evidence_count': score['datatypes'][dt]['evidence_count']}
-                    overall_score += dt_computed_score
+                    datatype_scores.append(dt_computed_score)
                     if 'datasources' in score['datatypes'][dt]:
                         new_datasources = []
                         for ds in score['datatypes'][dt]['datasources']:
-                            computed_score =score['datatypes'][dt]['datasources'][ds][score_name]
-                            """temporary hack to use harmonic sum for literature and mouse model data"""
-                            if dt in ['literature', 'animal_models']:
-                                computed_score = self._harmonic_sum(score['datatypes'][dt]['datasources'][ds]["scores"] )
+                            """use harmonic sum"""
+                            computed_score = self._harmonic_sum(score['datatypes'][dt]['datasources'][ds]["scores"] )
                             new_ds = {'datasource': ds,
                                        score_name: self._cap_score(computed_score),
                                       'evidence_count': score['datatypes'][dt]['datasources'][ds]['evidence_count']}
@@ -99,7 +96,7 @@ class Score():
                         new_dt['datasources']=new_datasources
                     new_datatypes.append(new_dt)
                 capped_score['datatypes'] = new_datatypes
-            capped_score[score_name]=self._cap_score(overall_score)
+            capped_score[score_name]=self._cap_score(self._harmonic_sum(datatype_scores))
 
         return capped_score
 
@@ -111,9 +108,11 @@ class Score():
             return -1
         return score
 
-    def _harmonic_sum(self,scores):
+    def _harmonic_sum(self,scores, max_elements = 100 ):
+        if max_elements <=0:
+            max_elements=len(scores)
         scores.sort(reverse=True)
-        return sum(s/(i+1) for i,s in enumerate(scores))
+        return sum(s/(i+1) for i,s in enumerate(scores[:max_elements]))
 
 
 
