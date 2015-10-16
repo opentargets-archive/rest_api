@@ -43,6 +43,7 @@ class Score():
                                                                  "evidence_count" : 1},
                                                           },
                                          score_name : ev_score,
+                                         "scores" : [ev_score],
                                          "evidence_count" : 1,}
             elif ds not in score['datatypes'][dt]['datasources']:
                 score['datatypes'][dt]['datasources'][ds] = { score_name: ev_score,
@@ -56,6 +57,8 @@ class Score():
                 score['datatypes'][dt]['datasources'][ds]["evidence_count"]+=1
                 score['datatypes'][dt][score_name]+=ev_score
                 score['datatypes'][dt]["evidence_count"]+=1
+                score['datatypes'][dt]["scores"].append(ev_score)
+
 
 
 
@@ -68,14 +71,20 @@ class Score():
                             "label": self.name}
         for score_name, score in self.scores.items():
             capped_score.update(score)
-            capped_score[score_name]=self._cap_score(score[score_name])
+            overall_score = 0.
+
             if 'datatypes' in score:
                 new_datatypes = []
                 for dt in score['datatypes']:
+
+                    dt_computed_score = score['datatypes'][dt][score_name]
+                    """temporary hack to use harmonic sum for literature and mouse model data"""
+                    if dt in ['literature', 'animal_models']:
+                        dt_computed_score = self._harmonic_sum(score['datatypes'][dt]["scores"] )
                     new_dt = {'datatype': dt,
-                              score_name: self._cap_score(score['datatypes'][dt][score_name]),
+                              score_name: self._cap_score(dt_computed_score),
                               'evidence_count': score['datatypes'][dt]['evidence_count']}
-                    capped_score['datatypes'][dt][score_name]=self._cap_score(score['datatypes'][dt][score_name])
+                    overall_score += dt_computed_score
                     if 'datasources' in score['datatypes'][dt]:
                         new_datasources = []
                         for ds in score['datatypes'][dt]['datasources']:
@@ -90,6 +99,7 @@ class Score():
                         new_dt['datasources']=new_datasources
                     new_datatypes.append(new_dt)
                 capped_score['datatypes'] = new_datatypes
+            capped_score[score_name]=self._cap_score(overall_score)
 
         return capped_score
 
