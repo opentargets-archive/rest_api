@@ -48,7 +48,7 @@ class TokenAuthentication():
     def _autenticate(auth_data):
         #TODO: use a proper authentication
         authorized_keys = {
-            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
+            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['.targetvalidation.org','locasalhost', '127.0.0.1'],
             'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [], #Reactome
             'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
             'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
@@ -58,8 +58,9 @@ class TokenAuthentication():
         domain = get_domain()
         if auth_data['secret'] in authorized_keys:
             if authorized_keys[auth_data['secret']]:
-                if domain in authorized_keys[auth_data['secret']]:
-                    return True
+                for allowed_domain in authorized_keys[auth_data['secret']]:
+                    if domain.endswith(allowed_domain):
+                        return True
             else:
                 return True
         return False
