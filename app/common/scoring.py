@@ -3,6 +3,7 @@ from fractions import Fraction
 import logging
 import pprint
 from flask import current_app
+from app import DataTypes
 from app.common.scoring_conf import ScoringMethods
 
 
@@ -33,6 +34,23 @@ class Score():
                                                     datatypes = {}
                                                    )
                            )
+
+    def add_precomputed_score(self, precomp, datatypes):
+        for score_name, score in self.scores.items():
+
+            score[score_name] = precomp['overall']
+            score['evidence_count'] = precomp['evidence_count']
+            for dt in precomp['datatypes']:
+                score['datatypes'][dt] = {"datasources" : {},
+                                             score_name : precomp['datatypes'][dt],
+                                             "evidence_count" : precomp['datatype_evidence_count'][dt]}
+                for ds in datatypes.datatypes[dt].datasources:
+                    score['datatypes'][dt]["datasources"][ds]= { score_name:  precomp['datasources'][ds],
+                                                                 "evidence_count" : precomp['datasource_evidence_count'][ds]},
+        return
+
+
+
     def add_evidence_score(self, ev_score, dt, ds):
         for score_name, score in self.scores.items():
             score[score_name]+=ev_score
@@ -69,44 +87,37 @@ class Score():
         elif self.type == self.TARGET:
             capped_score = {"gene_id": self.key,
                             "label": self.name}
-        for score_name, score in self.scores.items():
-            capped_score.update(score)
-            overall_score = 0.
-            datatype_scores = []
+        score_name = 'association_score'
+        score = self.scores[score_name]
+        capped_score.update(score)
 
-            if 'datatypes' in score:
-                new_datatypes = []
-                for dt in score['datatypes']:
-
-                    """use harmonic sum"""
-                    dt_computed_score = self._harmonic_sum(score['datatypes'][dt]["scores"] )
-                    new_dt = {'datatype': dt,
-                              score_name: self._cap_score(dt_computed_score),
-                              'evidence_count': score['datatypes'][dt]['evidence_count']}
-                    datatype_scores.append(dt_computed_score)
-                    if 'datasources' in score['datatypes'][dt]:
-                        new_datasources = []
-                        for ds in score['datatypes'][dt]['datasources']:
-                            """use harmonic sum"""
-                            computed_score = self._harmonic_sum(score['datatypes'][dt]['datasources'][ds]["scores"] )
-                            new_ds = {'datasource': ds,
-                                       score_name: self._cap_score(computed_score),
-                                      'evidence_count': score['datatypes'][dt]['datasources'][ds]['evidence_count']}
-                            new_datasources.append(new_ds)
-                        new_dt['datasources']=new_datasources
-                    new_datatypes.append(new_dt)
-                capped_score['datatypes'] = new_datatypes
-            capped_score[score_name]=self._cap_score(self._harmonic_sum(datatype_scores))
-
-        return capped_score
+        return self._cap_all(capped_score, score_name)
 
 
-    def _cap_score(self, score):
+
+
+
+    @staticmethod
+    def _cap_score(score):
         if score>1:
             return 1
         elif score<-1:
             return -1
         return score
+
+    def _cap_all(self, score_values, score_name):
+        def recurse(d, score_name):
+            if isinstance(d, dict):
+                for k,v in d.items():
+                    if (k == score_name) and (isinstance(v, float) or isinstance(v, int)):
+                        d[k]=self._cap_score(v)
+                    elif isinstance(v, dict):
+                        recurse(v, score_name)
+            return d
+
+
+        return recurse(score_values, score_name)
+
 
     def _harmonic_sum(self,scores, max_elements = 100 ):
         if max_elements <=0:
@@ -132,9 +143,11 @@ class Scorer():
     def score(self,
               evs,
               stringency,
+              datatypes,
               sortby=None,
               expand_efo = False,
-              cache_key = None):
+              cache_key = None
+              ):
         '''
         :param evs: an iterator returning the evidencestring documents form an elasticsearch query
         :return: a score object
@@ -146,42 +159,36 @@ class Scorer():
             sortby = self.default_sorting
         counter = 0
 
-        calculated_scores = current_app.cache.get(cache_key)
-        if not cache_key or (calculated_scores is None):
 
-            for es_result in evs:
-                counter+=1
-                ev = es_result['_source']
-                ev_score = ev['scores']['association_score'] * \
-                           self.scoring_params.weights[ev['sourceID']]
 
-                '''target data'''
-                target = ev['target']['id']
-                if target not in targets:
-                    targets[target] = Score(type = Score.TARGET,
-                                            key = target,
-                                            name = ev['target']['gene_info']['symbol'])
-                targets[target].add_evidence_score(ev_score,
-                                                   ev['_private']['datatype'],
-                                                   ev['sourceID'])
-                '''disease data'''
-                disease_with_data.add(ev['disease']['id'])
+        for es_result in evs:
+            counter+=1
+            ev = es_result['_source']
+
+            ev_score = ev['harmonic-sum']
+
+            '''target data'''
+            target = ev['target']['id']
+            if target not in targets:
+                targets[target] = Score(type = Score.TARGET,
+                                        key = target,
+                                        name = "")
+            targets[target].add_precomputed_score(ev_score, datatypes)
+            '''disease data'''
+            disease = ev['disease']['id']
+            if disease != "cttv_root":
                 if expand_efo:
-                    linked_diseases = ev['_private']['efo_codes']
+                    disease_with_data.add(disease)
                 else:
-                    linked_diseases = [ev['disease']['id']]
-                for disease in linked_diseases:
-                    if disease != "cttv_root":
-                        if disease not in diseases:
-                            diseases[disease] = Score(type = Score.DISEASE,
-                                                      key = disease,
-                                                      name = "")
-                        diseases[disease].add_evidence_score(ev_score,
-                                                             ev['_private']['datatype'],
-                                                             ev['sourceID'])
-            current_app.cache.set(cache_key, (targets, diseases, counter, disease_with_data), timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-        else:
-            targets, diseases, counter, disease_with_data = calculated_scores
+                    if ev['is_direct']:
+                        disease_with_data.add(disease)
+
+                diseases[disease] = Score(type = Score.DISEASE,
+                                              key = disease,
+                                              name = "")
+                diseases[disease].add_precomputed_score(ev_score, datatypes)
+
+
 
         parametrized_targets = self.apply_scoring_params(targets, stringency)
         parametrized_diseases = self.apply_scoring_params(diseases, stringency)

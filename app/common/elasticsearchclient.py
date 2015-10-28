@@ -101,9 +101,9 @@ class esQuery():
             es_logger = logging.getLogger('elasticsearch')
             for handler in es_logger.handlers:
                 handler.setFormatter(formatter)
-            es_logger.setLevel(logging.WARNING)
+            es_logger.setLevel(logging.INFO)
             es_tracer = logging.getLogger('elasticsearch.trace')
-            es_tracer.setLevel(logging.WARNING)
+            es_tracer.setLevel(logging.INFO)
             # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
             for handler in es_tracer.handlers:
                 handler.setFormatter(formatter)
@@ -845,6 +845,7 @@ class esQuery():
         efo_with_data = []
         conditions = []
         filter_data_conditions = dict()
+        score_data_conditions = []
 
         if params.filters[FilterTypes.DATASOURCE] or \
                  params.filters[FilterTypes.DATATYPE]:
@@ -869,16 +870,17 @@ class esQuery():
 
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
+            score_data_conditions = self._get_score_data_object_filter(objects)
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+            score_data_conditions = self._get_score_data_gene_filter(genes)
             if not aggs:
                 aggs = self._get_gene_associations_agg(filters = filter_data_conditions, params = params)
             if not params.expand_efo:
                 full_conditions = copy(conditions)
                 full_conditions.extend(filter_data_conditions.values())
-                efo_with_data = self._get_efo_with_data(conditions = full_conditions)
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -886,44 +888,48 @@ class esQuery():
         if params.fields:
             source_filter["include"]= params.fields
 
-        # all_conditions = copy(conditions)
-        # all_conditions.extend(filter_data_conditions.values())
-        score_query_body = {
+        score_query_body =  {
                       #restrict the set of datapoints using the target and disease ids
-                      "query": {
-                          "filtered": {
-                              "filter": {
-                                  "bool": {
-                                      "must": conditions
-                                  }
-                              }
-                          }
-                      },
-                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.SCORE),
+                      "query": self._get_temp_query_string(genes, objects),
 
+                          # "filtered": {
+                          #
+                          #     "filter": {
+                          #         "bool": {
+                          #
+                          #             "must": conditions
+                          #         }
+                          #     }
+                          # }
+
+                      # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                       "size": 50000
+                      #   }
                       }
-        score_query_body_count = copy(score_query_body)
-        score_query_body_count['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
+
+        # res_score = self.handler.search(self._index_score,
+        #                           doc_type = self._docname_score,
+        #                           body=score_query_body,
+        #                           timeout = "10m",
+        #                           query_cache = True,
+        #                           )
+        #
 
 
-        res_count = self.handler.search(index=self._index_data,
-                                  body=score_query_body_count,
-                                  timeout = "10m",
-                                  query_cache = False,
-                                  )
-        expected_datapoints = res_count['hits']['total']
+
 
         score_data = current_app.cache.get(str(score_query_body)+str(params.stringency))
         if score_data is None:
             evs = helpers.scan(self.handler,
-                                index=self._index_data,
+                                index=self._index_score,
                                 query=score_query_body,
-                                size=10000,
+                                size=100000,
                                 timeout = "10m",
                                )
 
             score_data = self.scorer.score(evs = evs,
                                            stringency=params.stringency,
+                                           datatypes=self.datatypes,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                            expand_efo = params.expand_efo or params.datastructure==OutputDataStructureOptions.TREE,
@@ -933,9 +939,6 @@ class esQuery():
         genes_scores, objects_scores, datapoints, efo_with_data = score_data
 
 
-        if datapoints< expected_datapoints:
-            current_app.cache.delete(str(score_query_body)+str(params.stringency))
-            raise Exception("not able to retrieve all the data to compute the score: got %i datapoints and was expecting %i"%(datapoints, expected_datapoints))
         scores = []
         if objects:
             scores = genes_scores
@@ -1010,6 +1013,7 @@ class esQuery():
                 agg_data = self.handler.search(index=self._index_data,
                                           body=agg_query_body,
                                           timeout="10m",
+                                          query_cache = True,
                                           # routing=expanded_linked_efo,
                                           )
                 if res_count_agg['hits']['total'] > agg_data['hits']['total']:
@@ -1054,10 +1058,10 @@ class esQuery():
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
                 if params.datastructure == OutputDataStructureOptions.TREE:
-                    for efo_code in ev['_private']['efo_codes']:
-                        final_disease_set.add(efo_code)
-                else:
                     final_disease_set.add(ev['disease']['id'])
+                else:
+                    if ev['is_direct']:
+                         final_disease_set.add(ev['disease']['id'])
             if objects:
                 filtered_scores = [score \
                                    for score in filtered_scores \
@@ -1090,7 +1094,7 @@ class esQuery():
         data_distribution["evidence_count"]= datapoints
         aggregation_results ['data_distribution'] = data_distribution
 
-        return CountedResult(res_count,
+        return CountedResult([],
                              params,
                              data['data'],
                              total = total,
@@ -1170,6 +1174,16 @@ class esQuery():
                         }
 
                     }
+        return dict()
+
+    def _get_score_data_object_filter(self, objects):
+        if objects:
+            return {"terms": {"disease": objects}}
+        return dict()
+
+    def _get_score_data_gene_filter(self, genes):
+        if genes:
+            return {"terms": {"target": genes}}
         return dict()
 
 
@@ -1588,8 +1602,6 @@ class esQuery():
         data = self.get_efo_info_from_code(efo_keys)
         for efo in data:
             code = efo['code'].split('/')[-1]
-            if code =='EFO_0000756':
-                pass
             parents = []
             parent_labels = {}
             for i,path in enumerate(efo['path_codes']):
@@ -1624,22 +1636,24 @@ class esQuery():
         #                 association_score = score,
         #                 datatypes = datatypes,
         #                     )
-        # aggs
-        # gene_ids = [d['key'] for d in data]
-        # if gene_ids:
-        #     gene_info = self.get_gene_info(gene_ids,
-        #                                    size = len(gene_ids),
-        #                                    fields =['ensembl_gene_id',
-        #                                            'approved_symbol',
-        #                                            'ensembl_external_name',
-        #                                            'reactome.*',
-        #                                            ],
-        #                                    ).toDict()
-        #     gene_names = defaultdict(str)
-        #     for gene in gene_info['data']:
-        #         gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
-        # else:
-        #     gene_info = []
+        gene_ids = [i['gene_id'] for i in scores]
+        gene_names = defaultdict(str)
+        if gene_ids:
+            gene_info = self.get_gene_info(gene_ids,
+                                           size = len(gene_ids),
+                                           fields =['ensembl_gene_id',
+                                                   'approved_symbol',
+                                                   'ensembl_external_name',
+                                                   'reactome.*',
+                                                   ],
+                                           ).toDict()
+            gene_names = defaultdict(str)
+            for gene in gene_info['data']:
+                gene_names[gene['ensembl_gene_id']] = gene['approved_symbol'] or gene['ensembl_external_name']
+
+
+        for i in scores:
+            i["label"]=gene_names[i['gene_id']]
         facets =  aggs
         if 'datatypes' in aggs:
             facets['datatypes'] = aggs['datatypes']['data']
@@ -1649,19 +1663,6 @@ class esQuery():
             facets['uniprot_keywords'] = aggs['uniprot_keywords']['data']
         facets = self._extend_facets(facets)
 
-        # new_data = map(transform_data_point, data)
-        # if facets:
-        #     scores =np.array([i['association_score'] for i in new_data])
-        #     facets['data_distribution'] = self._get_association_data_distribution(scores)
-        # if filters and (
-        #         (filters[FilterTypes.ASSOCIATION_SCORE_MIN] is not None) or
-        #         (filters[FilterTypes.ASSOCIATION_SCORE_MAX] is not None)
-        #         ):
-        #         new_data = [data_point \
-        #                     for data_point in new_data \
-        #                     if (data_point['association_score']>filters[FilterTypes.ASSOCIATION_SCORE_MIN]) and \
-        #                          (data_point['association_score']<=filters[FilterTypes.ASSOCIATION_SCORE_MAX]) \
-        #                     ]
 
         return dict(data = scores,
                     facets = facets)
@@ -2155,6 +2156,19 @@ return scores"""%(self._get_datatype_combine_init_list(params),
         if res['hits']['total']:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
+
+    def _get_temp_query_string(self, genes, objects):
+
+        query_string =[]
+        for gene in genes:
+            query_string.append("target.id:%s"%gene.split(' ')[0])
+        for object in objects:
+            query_string.append("disease.id:%s"%object.split(' ')[0])
+
+        return {"query_string": {
+                              "query": ' OR '.join(query_string),
+                            }
+        }
 
 
 class SearchParams():
