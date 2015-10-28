@@ -31,7 +31,7 @@ class Score():
         self.name = name
         self.scores = dict(association_score = dict(association_score = 0.,
                                                     evidence_count = 0,
-                                                    datatypes = {}
+                                                    datatypes = []
                                                    )
                            )
 
@@ -41,12 +41,20 @@ class Score():
             score[score_name] = precomp['overall']
             score['evidence_count'] = precomp['evidence_count']
             for dt in precomp['datatypes']:
-                score['datatypes'][dt] = {"datasources" : {},
-                                             score_name : precomp['datatypes'][dt],
-                                             "evidence_count" : precomp['datatype_evidence_count'][dt]}
+                datasources = []
                 for ds in datatypes.datatypes[dt].datasources:
-                    score['datatypes'][dt]["datasources"][ds]= { score_name:  precomp['datasources'][ds],
-                                                                 "evidence_count" : precomp['datasource_evidence_count'][ds]},
+                    datasources.append({ 'datasource': ds,
+                                         score_name:  precomp['datasources'][ds],
+                                         "evidence_count" : precomp['datasource_evidence_count'][ds]}
+                                         )
+
+                score['datatypes'].append( {"datatype":dt,
+                                            "datasources" : datasources,
+                                             score_name : precomp['datatypes'][dt],
+                                             "evidence_count" : precomp['datatype_evidence_count'][dt]
+                                            })
+
+
         return
 
 
@@ -107,11 +115,11 @@ class Score():
 
     def _cap_all(self, score_values, score_name):
         def recurse(d, score_name):
-            if isinstance(d, dict):
+            if isinstance(d, list):
                 for k,v in d.items():
                     if (k == score_name) and (isinstance(v, float) or isinstance(v, int)):
                         d[k]=self._cap_score(v)
-                    elif isinstance(v, dict):
+                    elif isinstance(v, list):
                         recurse(v, score_name)
             return d
 

@@ -901,10 +901,12 @@ class esQuery():
                           #         }
                           #     }
                           # }
-
-                      # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
-                       "size": 50000
                       #   }
+                      # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                       "size": 50000,
+
+                       "sort" : {"harmonic-sum.overall" : {"order" : "desc"}}
+
                       }
 
         # res_score = self.handler.search(self._index_score,
