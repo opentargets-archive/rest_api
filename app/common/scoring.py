@@ -99,7 +99,8 @@ class Score():
         score = self.scores[score_name]
         capped_score.update(score)
 
-        return self._cap_all(capped_score, score_name)
+        final_score =  self._cap_all(capped_score, score_name)
+        return final_score
 
 
 
@@ -115,12 +116,13 @@ class Score():
 
     def _cap_all(self, score_values, score_name):
         def recurse(d, score_name):
-            if isinstance(d, list):
+            if isinstance(d, dict):
                 for k,v in d.items():
                     if (k == score_name) and (isinstance(v, float) or isinstance(v, int)):
                         d[k]=self._cap_score(v)
                     elif isinstance(v, list):
-                        recurse(v, score_name)
+                        for i in v:
+                            recurse(i, score_name)
             return d
 
 
@@ -195,7 +197,6 @@ class Scorer():
                                               key = disease,
                                               name = "")
                 diseases[disease].add_precomputed_score(ev_score, datatypes)
-
 
 
         parametrized_targets = self.apply_scoring_params(targets, stringency)
