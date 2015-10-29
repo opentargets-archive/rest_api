@@ -41,18 +41,20 @@ class Score():
             score[score_name] = precomp['overall']
             score['evidence_count'] = precomp['evidence_count']
             for dt in precomp['datatypes']:
-                datasources = []
-                for ds in datatypes.datatypes[dt].datasources:
-                    datasources.append({ 'datasource': ds,
-                                         score_name:  precomp['datasources'][ds],
-                                         "evidence_count" : precomp['datasource_evidence_count'][ds]}
-                                         )
+                if precomp['datatype_evidence_count'][dt]:
+                    datasources = []
+                    for ds in datatypes.datatypes[dt].datasources:
+                        if  precomp['datasource_evidence_count'][ds]:
+                            datasources.append({ 'datasource': ds,
+                                                 score_name:  precomp['datasources'][ds],
+                                                 "evidence_count" : precomp['datasource_evidence_count'][ds]}
+                                                 )
 
-                score['datatypes'].append( {"datatype":dt,
-                                            "datasources" : datasources,
-                                             score_name : precomp['datatypes'][dt],
-                                             "evidence_count" : precomp['datatype_evidence_count'][dt]
-                                            })
+                    score['datatypes'].append( {"datatype":dt,
+                                                "datasources" : datasources,
+                                                 score_name : precomp['datatypes'][dt],
+                                                 "evidence_count" : precomp['datatype_evidence_count'][dt]
+                                                })
 
 
         return

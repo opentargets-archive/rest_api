@@ -945,7 +945,12 @@ class esQuery():
         if objects:
             scores = genes_scores
         elif genes:
-            scores = objects_scores
+            # if params.expand_efo:
+            #     scores = [score \
+            #               for score in objects_scores \
+            #               if  score['efo_code'] in efo_with_data]
+            # else:
+                scores = objects_scores
 
         filtered_scores = [score \
                            for score in scores \
@@ -969,7 +974,7 @@ class esQuery():
                               }
                           }
                       },
-                      'size':50000,
+                      'size':5e6,
                       '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.SIMPLE),
                       # filter out the results as requested, this will not be applied to the aggregation
                       "post_filter": {
@@ -1844,7 +1849,7 @@ class esQuery():
                 "aggs":{
                     "data": {
                         "terms": {
-                             "field" : "_private.datatype",
+                             "field" : "type",
                              'size': 10,
                            },
                         "aggs":{
