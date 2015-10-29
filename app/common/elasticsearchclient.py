@@ -925,7 +925,7 @@ class esQuery():
             evs = helpers.scan(self.handler,
                                 index=self._index_score,
                                 query=score_query_body,
-                                size=100000,
+                                size=1000,
                                 timeout = "10m",
                                )
 
@@ -969,25 +969,26 @@ class esQuery():
                               }
                           }
                       },
-                      'size': 0,
-                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+                      'size':50000,
+                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.SIMPLE),
                       # filter out the results as requested, this will not be applied to the aggregation
-                      # "post_filter": {
-                      #     "bool": {
-                      #         "must": filter_data_conditions.values()
-                      #     }
-                      #  },
+                      "post_filter": {
+                          "bool": {
+                              "must": filter_data_conditions.values()
+                          }
+                       },
                       # calculate aggregation using proper ad hoc filters
-                      "aggs": {},
+                      "aggs": aggs,
 
                       }
         # if objects:
         #     agg_query_body['routing']=objects
 
-        res_count_agg = self.handler.search(index=self._index_data,
+        agg_data = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
                                   timeout = "10m",
                                   # routing=expanded_linked_efo
+                                  query_cache = True,
                                   )
         aggregation_results = {}
 
@@ -1007,56 +1008,19 @@ class esQuery():
                                  status = status.status,
                                  )
 
-        '''multiple facet queries'''
-        for a in aggs:
-            agg_query_body['aggs']={a:aggs[a]}
-            agg_data = current_app.cache.get(str(agg_query_body)+str(params.stringency))
-            if agg_data is None:
-                agg_data = self.handler.search(index=self._index_data,
-                                          body=agg_query_body,
-                                          timeout="10m",
-                                          query_cache = True,
-                                          # routing=expanded_linked_efo,
-                                          )
-                if res_count_agg['hits']['total'] > agg_data['hits']['total']:
-                    current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%(a,agg_data['hits']['total'], res_count_agg['hits']['total']))
-                    status.add_error('partial-facet-'+a)
-                elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-                    current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-            if agg_data and agg_data['hits']['total']:
-                aggregation_results[a]=agg_data['aggregations'][a]
 
         '''single facet query'''
-        # agg_query_body['aggs']=aggs
         # agg_data =None# current_app.cache.get(str(agg_query_body)+str(params.stringency))
-        # if agg_data is None:
-        #     agg_data = self.handler.search(index=self._index_data,
-        #                               body=agg_query_body,
-        #                               timeout="10m",
-        #                               # routing=expanded_linked_efo,
-        #                               )
-        #     if res_count_agg['hits']['total'] > agg_data['hits']['total']:
-        #         current_app.logger.error("not able to retrieve all the data to compute the %s facet: got %i datapoints and was expecting %i"%('all',agg_data['hits']['total'], res_count_agg['hits']['total']))
-        #         status.add_error('partial-facets')
-        #     elif res_count_agg['hits']['total'] == agg_data['hits']['total']:
-        #         current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-        # if agg_data and agg_data['hits']['total']:
-        #     aggregation_results=agg_data['aggregations']
+        if agg_data and agg_data['hits']['total']:
+            aggregation_results=agg_data['aggregations']
+            # current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+
 
         '''apply facets conditions to data'''
         if filter_data_conditions:
-            post_filter_query = copy(score_query_body)
-            post_filter_query['post_filter']= { "bool": {"must": filter_data_conditions.values()}}
-            post_filter_query['_source']= OutputDataStructureOptions.getSource(OutputDataStructureOptions.GENE_AND_DISEASE_ID)
-            evs = helpers.scan(self.handler,
-                                index=self._index_data,
-                                query=post_filter_query,
-                                size=10000,
-                                timeout = "10m",
-                               )
             final_target_set = set()
             final_disease_set = set()
-            for es_result in evs:
+            for es_result in agg_data['hits']['hits']:
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
                 if params.datastructure == OutputDataStructureOptions.TREE:
@@ -1089,7 +1053,7 @@ class esQuery():
             if params.datastructure == OutputDataStructureOptions.FLAT:
                 data = self._return_association_data_structures_for_genes(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
             elif params.datastructure == OutputDataStructureOptions.TREE:
-                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
+                data= self._return_association_data_structures_for_genes_as_tree(filtered_scores, objects_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
 
         total = len(data['data'])
 
@@ -1526,6 +1490,7 @@ class esQuery():
 
     def _return_association_data_structures_for_genes_as_tree(self,
                                                               scores,
+                                                              unfiltered_scores,
                                                               aggs,
                                                               efo_with_data =[],
                                                               filters = {}):
@@ -1535,13 +1500,14 @@ class esQuery():
             expanded_relations = []
             added_tas = []
             for code, paths in efo_parents.items():
-                for path in paths:
-                    expanded_relations.append([code,path])
-                    if len(path)>1:
-                        ta_code = path[1]
-                        if ta_code not in added_tas:
-                            expanded_relations.append([ta_code,path[:1]])
-                            added_tas.append(ta_code)
+                if code in data:
+                    for path in paths:
+                        expanded_relations.append([code,path])
+                        if len(path)>1:
+                            ta_code = path[1]
+                            if ta_code not in added_tas:
+                                expanded_relations.append([ta_code,path[:1]])
+                                added_tas.append(ta_code)
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
             if not efo_with_data:
@@ -1570,12 +1536,26 @@ class esQuery():
 
             return root.to_dict_tree_with_children_as_array()
 
+        def inject_missing_ta(efo_parents, unfiltered_scores, scores):
+            tas = set()
+            for code, paths in efo_parents.items():
+                for path in paths:
+                    if len(path)>1:
+                        tas.add(path[1])
+            available_scores = [i["efo_code"] for i in scores]
+            for i in unfiltered_scores:
+                if (i["efo_code"] in tas) and (i["efo_code"] not in available_scores):
+                    scores.append(i)
+            return scores
+
+
 
         facets = {}
         if scores:
             
-            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in scores])
-            new_scores = self._return_association_data_structures_for_genes(scores, aggs, efo_labels = efo_labels, efo_tas = efo_tas)
+            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in unfiltered_scores])
+            scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
+            new_scores = self._return_association_data_structures_for_genes(scores_with_ta, aggs, efo_labels = efo_labels, efo_tas = efo_tas)
             tree_data = transform_data_to_tree(new_scores['data'], efo_parents, efo_tas, efo_with_data) or new_scores['data']
             facets= new_scores['facets']
         else:
