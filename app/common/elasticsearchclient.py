@@ -1026,8 +1026,8 @@ class esQuery():
                 if params.datastructure == OutputDataStructureOptions.TREE:
                     final_disease_set.add(ev['disease']['id'])
                 else:
-                    if ev['is_direct']:
-                         final_disease_set.add(ev['disease']['id'])
+                    if ev['disease']['id'] in efo_with_data:
+                        final_disease_set.add(ev['disease']['id'])
             if objects:
                 filtered_scores = [score \
                                    for score in filtered_scores \
