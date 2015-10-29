@@ -1012,7 +1012,8 @@ class esQuery():
         '''single facet query'''
         # agg_data =None# current_app.cache.get(str(agg_query_body)+str(params.stringency))
         if agg_data and agg_data['hits']['total']:
-            aggregation_results=agg_data['aggregations']
+            if 'aggregations' in agg_data:
+                aggregation_results=agg_data['aggregations']
             # current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
 
 
@@ -1023,7 +1024,7 @@ class esQuery():
             for es_result in agg_data['hits']['hits']:
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
-                if params.datastructure == OutputDataStructureOptions.TREE:
+                if params.expand_efo:
                     final_disease_set.add(ev['disease']['id'])
                 else:
                     if ev['disease']['id'] in efo_with_data:
