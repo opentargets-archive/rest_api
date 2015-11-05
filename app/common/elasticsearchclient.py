@@ -835,6 +835,7 @@ class esQuery():
         5. calculate histogram on filtered data returned
         """
         params = SearchParams(**kwargs)
+
         if params.datastructure == OutputDataStructureOptions.DEFAULT:
             params.datastructure = OutputDataStructureOptions.FLAT
         '''convert boolean to elasticsearch syntax'''
@@ -842,10 +843,8 @@ class esQuery():
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
         '''create multiple condition boolean query'''
         aggs = None
-        efo_with_data = []
         conditions = []
         filter_data_conditions = dict()
-        score_data_conditions = []
 
         if params.filters[FilterTypes.DATASOURCE] or \
                  params.filters[FilterTypes.DATATYPE]:
@@ -869,18 +868,15 @@ class esQuery():
                 filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
 
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo = params.expand_efo))
-            score_data_conditions = self._get_score_data_object_filter(objects)
+            conditions.append(self._get_complex_object_filter(objects, object_operator))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
-            score_data_conditions = self._get_score_data_gene_filter(genes)
             if not aggs:
                 aggs = self._get_gene_associations_agg(filters = filter_data_conditions, params = params)
-            if not params.expand_efo:
-                full_conditions = copy(conditions)
-                full_conditions.extend(filter_data_conditions.values())
+            full_conditions = copy(conditions)
+            full_conditions.extend(filter_data_conditions.values())
 
 
         '''boolean query joining multiple conditions with an AND'''
@@ -925,8 +921,9 @@ class esQuery():
             evs = helpers.scan(self.handler,
                                 index=self._index_score,
                                 query=score_query_body,
-                                size=1000,
-                                timeout = "10m",
+                                size=10000,
+                                timeout = 60*20,
+                                request_timeout = 60*20,
                                )
 
             score_data = self.scorer.score(evs = evs,
@@ -934,7 +931,6 @@ class esQuery():
                                            datatypes=self.datatypes,
                                            # max_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MAX],
                                            # min_score_filter = params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                           expand_efo = params.expand_efo or params.datastructure==OutputDataStructureOptions.TREE,
                                            cache_key=str(score_query_body)+'raw_score_cache'
                                            )
             current_app.cache.set(str(score_query_body)+str(params.stringency), score_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
@@ -945,11 +941,6 @@ class esQuery():
         if objects:
             scores = genes_scores
         elif genes:
-            # if params.expand_efo:
-            #     scores = [score \
-            #               for score in objects_scores \
-            #               if  score['efo_code'] in efo_with_data]
-            # else:
                 scores = objects_scores
 
         filtered_scores = [score \
@@ -960,7 +951,7 @@ class esQuery():
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
-            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR, expand_efo = params.expand_efo))
+            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
 
 
         agg_query_body = {
@@ -991,7 +982,8 @@ class esQuery():
 
         agg_data = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
-                                  timeout = "10m",
+                                  timeout = "20m",
+                                  request_timeout  = 60*20,
                                   # routing=expanded_linked_efo
                                   query_cache = True,
                                   )
@@ -1029,10 +1021,7 @@ class esQuery():
             for es_result in agg_data['hits']['hits']:
                 ev = es_result['_source']
                 final_target_set.add(ev['target']['id'])
-                if params.expand_efo:
-                    final_disease_set.add(ev['disease']['id'])
-                else:
-                    if ev['disease']['id'] in efo_with_data:
+                if ev['disease']['id'] in efo_with_data:
                         final_disease_set.add(ev['disease']['id'])
             if objects:
                 filtered_scores = [score \
@@ -1107,8 +1096,7 @@ class esQuery():
 
     def _get_complex_object_filter(self,
                                    objects,
-                                   bol=BooleanFilterOperator.OR,
-                                   expand_efo = False):
+                                   bol=BooleanFilterOperator.OR):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
@@ -1118,25 +1106,10 @@ class esQuery():
         '''
         if objects:
             if bol==BooleanFilterOperator.OR:
-                if expand_efo:
-                    return {"terms": {"_private.efo_codes":objects}}
-                else:
-                    return {"terms": {"disease.id": objects}}
+                return {"terms": {"disease.id": objects}}
 
             else:
-                if expand_efo:
-                    return {
-                        "bool": {
-                            bol : [{
-                                  "terms": {
-                                    "_private.efo_codes":[object]}
-                              }
-                              for object in objects]
-                        }
-
-                    }
-                else:
-                    return {
+                return {
                         "bool": {
                             bol : [{
                                   "terms": {

@@ -157,7 +157,6 @@ class Scorer():
               stringency,
               datatypes,
               sortby=None,
-              expand_efo = False,
               cache_key = None
               ):
         '''
@@ -189,10 +188,7 @@ class Scorer():
             '''disease data'''
             disease = ev['disease']['id']
             if disease != "cttv_root":
-                if expand_efo:
-                    disease_with_data.add(disease)
-                else:
-                    if ev['is_direct']:
+                if ev['is_direct']:
                         disease_with_data.add(disease)
 
                 diseases[disease] = Score(type = Score.DISEASE,
