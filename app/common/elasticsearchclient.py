@@ -951,7 +951,7 @@ class esQuery():
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
-            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR))
+            conditions.append(self._get_complex_object_filter([score['efo_code'] for score in filtered_scores], BooleanFilterOperator.OR, expand_efo=True))
 
 
         agg_query_body = {
@@ -1096,7 +1096,8 @@ class esQuery():
 
     def _get_complex_object_filter(self,
                                    objects,
-                                   bol=BooleanFilterOperator.OR):
+                                   bol=BooleanFilterOperator.OR,
+                                   expand_efo=False):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
@@ -1106,10 +1107,25 @@ class esQuery():
         '''
         if objects:
             if bol==BooleanFilterOperator.OR:
-                return {"terms": {"disease.id": objects}}
+                if expand_efo:
+                    return {"terms": {"_private.efo_codes":objects}}
+                else:
+                    return {"terms": {"disease.id": objects}}
 
             else:
-                return {
+                if expand_efo:
+                    return {
+                        "bool": {
+                            bol : [{
+                                  "terms": {
+                                    "_private.efo_codes":[object]}
+                              }
+                              for object in objects]
+                        }
+
+                    }
+                else:
+                    return {
                         "bool": {
                             bol : [{
                                   "terms": {
@@ -1763,7 +1779,7 @@ class esQuery():
                                     for sub_bucket in sub_facet_buckets:
                                         reactome_ids.append(sub_bucket['key'])
 
-        reactome_ids= [i.upper() for i in list(set(reactome_ids))]
+        reactome_ids= list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
 
         '''alter data'''
@@ -1783,7 +1799,6 @@ class esQuery():
     def _get_labels_for_reactome_ids(self, reactome_ids):
         labels = defaultdict(str)
         if reactome_ids:
-            reactome_ids = [i.upper() for i in reactome_ids]
             res = self.handler.search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
