@@ -52,6 +52,7 @@ def create_app(config_name):
                         # sniff_on_connection_fail=True,
                         # # and also every 60 seconds
                         # sniffer_timeout=60
+                       timeout=60*20,
                         )
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
