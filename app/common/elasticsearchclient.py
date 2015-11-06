@@ -853,13 +853,11 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW], BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
-
+        conditions = self._get_base_association_conditions( objects, genes, object_operator, gene_operator)
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator))
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
         if genes:
-            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
             if not aggs:
                 aggs = self._get_gene_associations_agg(filters = filter_data_conditions, params = params)
             full_conditions = copy(conditions)
@@ -935,6 +933,8 @@ class esQuery():
                            if params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] <= score['association_score'] <= params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]]
 
         total = len(filtered_scores)
+        conditions = self._get_facet_association_conditions( objects, genes, object_operator, gene_operator)
+
         if objects:
             conditions.append(self._get_complex_gene_filter([score['gene_id'] for score in filtered_scores], BooleanFilterOperator.OR))
         elif genes:
@@ -966,6 +966,8 @@ class esQuery():
                       }
         # if objects:
         #     agg_query_body['routing']=objects
+
+        pprint.pprint(agg_query_body, open('query.log','w'))
 
         agg_data = self.handler.search(index=self._index_data,
                                   body=agg_query_body,
@@ -999,7 +1001,8 @@ class esQuery():
             if 'aggregations' in agg_data:
                 aggregation_results=agg_data['aggregations']
             # current_app.cache.set(str(agg_query_body)+str(params.stringency),agg_data, timeout=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-
+        if agg_data['timed_out']:
+            status.add_error('facets query timed out')
 
         '''apply facets conditions to data'''
         if filter_data_conditions:
@@ -2140,6 +2143,17 @@ return scores"""%(self._get_datatype_combine_init_list(params),
                               "query": ' AND '.join(query_string),
                             }
         }
+    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo = False):
+        conditions = []
+        if objects:
+            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=expand_efo))
+        if genes:
+            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+
+        return conditions
+
+    def _get_facet_association_conditions(self, objects, genes, object_operator, gene_operator):
+        return self._get_base_association_conditions(objects, genes, object_operator, gene_operator, expand_efo = True)
 
 
 class SearchParams():
