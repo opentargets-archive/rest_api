@@ -2131,8 +2131,10 @@ return scores"""%(self._get_datatype_combine_init_list(params),
         for object in objects:
             object_query_string.append("disease.id:%s"%object.split(' ')[0])
 
-        query_string.append(' OR '.join(gene_query_string))
-        query_string.append(' OR '.join(object_query_string))
+        if gene_query_string:
+            query_string.append(' OR '.join(gene_query_string))
+        if object_query_string:
+            query_string.append(' OR '.join(object_query_string))
 
         return {"query_string": {
                               "query": ' AND '.join(query_string),
