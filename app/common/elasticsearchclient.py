@@ -508,19 +508,6 @@ class esQuery():
 
         return SimpleResult(None, params, data)
 
-    def _get_ensemblid_from_gene_name(self, genename, **kwargs):
-        res = self.handler.search(index=self._index_genename,
-                                  doc_type=self._docname_genename,
-                                  body={'query': {
-                                      'match': {"Associated Gene Name": genename}
-
-                                  },
-                                        'size': 1,
-                                        'fields': ['Ensembl Gene ID']
-                                  }
-        )
-        current_app.logger.debug("Got %d gene id  Hits in %ims" % (res['hits']['total'], res['took']))
-        return [hit['fields']['Ensembl Gene ID'][0] for hit in res['hits']['hits']]
 
     def available_genes(self, **kwargs):
         params = SearchParams(**kwargs)
@@ -2136,13 +2123,19 @@ return scores"""%(self._get_datatype_combine_init_list(params),
     def _get_temp_query_string(self, genes, objects):
 
         query_string =[]
+        gene_query_string=[]
+        object_query_string=[]
+
         for gene in genes:
-            query_string.append("target.id:%s"%gene.split(' ')[0])
+            gene_query_string.append("target.id:%s"%gene.split(' ')[0])
         for object in objects:
-            query_string.append("disease.id:%s"%object.split(' ')[0])
+            object_query_string.append("disease.id:%s"%object.split(' ')[0])
+
+        query_string.append(' OR '.join(gene_query_string))
+        query_string.append(' OR '.join(object_query_string))
 
         return {"query_string": {
-                              "query": ' OR '.join(query_string),
+                              "query": ' AND '.join(query_string),
                             }
         }
 
