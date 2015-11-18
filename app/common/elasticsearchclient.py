@@ -1684,6 +1684,7 @@ class esQuery():
                                           "field" : "disease.id",
                                           "precision_threshold": 1000},
                                     },
+                                }
                             },
                             "unique_target_count": {
                                "cardinality" : {
@@ -1699,7 +1700,7 @@ class esQuery():
                     },
                 }
             }
-        }
+
 
 
     def _get_gene_related_aggs(self, filters):
