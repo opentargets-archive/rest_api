@@ -35,25 +35,25 @@ class Score():
                                                    )
                            )
 
-    def add_precomputed_score(self, precomp, datatypes):
+    def add_precomputed_score(self, precomp, datatypes, counts):
         for score_name, score in self.scores.items():
 
             score[score_name] = precomp['overall']
-            score['evidence_count'] = precomp['evidence_count']
+            score['evidence_count'] = counts['total']
             for dt in precomp['datatypes']:
-                if precomp['datatype_evidence_count'][dt]:
+                if counts['datatype'][dt]:
                     datasources = []
                     for ds in datatypes.datatypes[dt].datasources:
-                        if  precomp['datasource_evidence_count'][ds]:
+                        if  counts['datasource'][ds]:
                             datasources.append({ 'datasource': ds,
                                                  score_name:  precomp['datasources'][ds],
-                                                 "evidence_count" : precomp['datasource_evidence_count'][ds]}
+                                                 "evidence_count" : counts['datasource'][ds]}
                                                  )
 
                     score['datatypes'].append( {"datatype":dt,
                                                 "datasources" : datasources,
                                                  score_name : precomp['datatypes'][dt],
-                                                 "evidence_count" : precomp['datatype_evidence_count'][dt]
+                                                 "evidence_count" : counts['datatype'][dt]
                                                 })
 
 
@@ -177,6 +177,7 @@ class Scorer():
             ev = es_result['_source']
 
             ev_score = ev['harmonic-sum']
+            ev_counts = ev['evidence_count']
 
             '''target data'''
             target = ev['target']['id']
@@ -184,7 +185,7 @@ class Scorer():
                 targets[target] = Score(type = Score.TARGET,
                                         key = target,
                                         name = "")
-            targets[target].add_precomputed_score(ev_score, datatypes)
+            targets[target].add_precomputed_score(ev_score, datatypes, ev_counts)
             '''disease data'''
             disease = ev['disease']['id']
             if disease != "cttv_root":
@@ -194,7 +195,7 @@ class Scorer():
                 diseases[disease] = Score(type = Score.DISEASE,
                                               key = disease,
                                               name = "")
-                diseases[disease].add_precomputed_score(ev_score, datatypes)
+                diseases[disease].add_precomputed_score(ev_score, datatypes, ev_counts)
 
 
         parametrized_targets = self.apply_scoring_params(targets, stringency)

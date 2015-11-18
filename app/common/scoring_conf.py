@@ -11,6 +11,6 @@ class ScoringMethods():
 
     SUM='sum'
     MAX='max'
-    COUNT='count'
-    MIN='min'
-    AVG='avg'
+    HARMONIC_SUM='harmonic-sum'
+
+    DEFAULT = HARMONIC_SUM
