@@ -102,7 +102,9 @@ class Association(object):
         self.data['disease'] = {}
         self.data['disease']['id'] = self.hit['disease']['id']
         self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
+        # self.data['label'] = self.hit['disease']['efo_info']['label']
         self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+        self.data['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
 
         self.data['id'] = self.hit['id']
 

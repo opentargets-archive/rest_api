@@ -707,13 +707,14 @@ class esQuery():
         if datasources:
             conditions.append(self._get_complex_datasource_filter(datasources, BooleanFilterOperator.OR))
         if params.pathway:
-            pathway_filter = self._get_complex_pathway_filter(params.pathway, BooleanFilterOperator.OR)
+            pathway_filter = self._get_complex_pathway_filter(params.pathway)
             if pathway_filter:
                 conditions.append(pathway_filter)
         if params.uniprot_kw:
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)#Proto-oncogene Nucleus
+        print conditions
         if not conditions:
             return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
@@ -846,7 +847,7 @@ class esQuery():
             requested_datasources = list(set(requested_datasources))
             filter_data_conditions[FilterTypes.DATASOURCE]=self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR)
         if params.filters[FilterTypes.PATHWAY]:
-            pathway_filter=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY], BooleanFilterOperator.OR)
+            pathway_filter=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY])
             if pathway_filter:
                 filter_data_conditions[FilterTypes.PATHWAY]=pathway_filter
         if params.filters[FilterTypes.UNIPROT_KW]:
@@ -932,16 +933,14 @@ class esQuery():
                 aggregation_results=agg_data['aggregations']
 
         '''build data structure to return'''
-        if params.datastructure == OutputDataStructureOptions.FLAT:
-            data = self._return_association_flat_data_structures(scores, aggregation_results)
-            "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters"
-            data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
-            data_distribution["total"]= len(data['data'])
-        elif params.datastructure == OutputDataStructureOptions.TREE:
-            data = self._return_association_tree_data_structures(scores, aggregation_results)
-            "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters"
-            data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
-            data_distribution["total"]= len(data['data'])
+        # if params.datastructure == OutputDataStructureOptions.FLAT:
+        data = self._return_association_flat_data_structures(scores, aggregation_results)
+        "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters"
+        data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
+        data_distribution["total"]= len(data['data'])
+        if params.datastructure == OutputDataStructureOptions.TREE:
+            data = self._return_association_tree_data_structures(scores, data, efo_with_data)
+
 
 
         #
@@ -1017,24 +1016,24 @@ class esQuery():
         '''
         if objects:
             if bol==BooleanFilterOperator.OR:
-                # if expand_efo:
-                #     return {"terms": {"_private.efo_codes":objects}}
-                # else:
+                if expand_efo:
+                    return {"terms": {"private.efo_codes":objects}}
+                else:
                     return {"terms": {"disease.id": objects}}
 
             else:
-                # if expand_efo:
-                #     return {
-                #         "bool": {
-                #             bol : [{
-                #                   "terms": {
-                #                     "_private.efo_codes":[object]}
-                #               }
-                #               for object in objects]
-                #         }
-                #
-                #     }
-                # else:
+                if expand_efo:
+                    return {
+                        "bool": {
+                            bol : [{
+                                  "terms": {
+                                    "private.efo_codes":[object]}
+                              }
+                              for object in objects]
+                        }
+
+                    }
+                else:
                     return {
                         "bool": {
                             bol : [{
@@ -1072,7 +1071,7 @@ class esQuery():
                 "bool": {
                     bol: [{
                               "terms": {
-                                  "evidence.evidence_codes": [evidence_type]}
+                                  "private.facets.datatype": [evidence_type]}
                           }
                           for evidence_type in evidence_types]
                 }
@@ -1088,22 +1087,19 @@ class esQuery():
         :return: boolean filter
         '''
         if datasources:
-            filters = []
-            for datasource in datasources:
-                # filters.append({ "terms": {"_private.datasource": [datasource]}})
-                # filters.append({ "terms": {"sourceID": [datasource]}})
-                filters.append({ "range": {"harmonic-sum.datasource_evidence_count.%s"%datasource: {"gt":0}}})
-
-
             return {
                 "bool": {
-                    bol:filters
+                    bol: [{
+                              "terms": {
+                                  "private.facets.datasource": [datasource]}
+                          }
+                          for datasource in datasources]
                 }
             }
         return dict()
 
 
-    def _get_complex_pathway_filter(self, pathway_codes, bol):
+    def _get_complex_pathway_filter(self, pathway_codes):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param pathway_codes: list of pathway_codes strings
@@ -1112,8 +1108,17 @@ class esQuery():
         '''
         if pathway_codes:
             genes = self._get_genes_for_pathway_code(pathway_codes)
-            if genes:
-                return self._get_complex_gene_filter(genes, bol)
+            # if genes:
+            #     return self._get_complex_gene_filter(genes, bol)
+            return {"bool": {
+                            "should": [
+                                           {"terms": {"private.facets.reactome.pathway_code":pathway_codes}},
+                                           {"terms": {"private.facets.reactome.pathway_type_code":pathway_codes}},
+                                       ]
+
+                           }
+                }
+
         return dict()
 
     def _get_free_text_query(self, searchphrase):
@@ -1300,30 +1305,66 @@ class esQuery():
             facets['pathway_type'] = facets['pathway_type']['data']
         if 'uniprot_keywords' in facets:
             facets['uniprot_keywords'] = facets['uniprot_keywords']['data']
-        facets = self._extend_facets(facets)
+        facets = self._process_facets(facets)
         return dict(data = scores,
                     facets = facets)
 
     def _return_association_tree_data_structures(self,
                                                   scores,
-                                                  unfiltered_scores,
-                                                  aggs,
+                                                  flat_scores,
                                                   efo_with_data =[],
                                                  ):
             
+        # def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
+        #     data = dict([(i["efo_code"],i) for i in data])
+        #     expanded_relations = []
+        #     added_tas = []
+        #     for code, paths in efo_parents.items():
+        #         if code in data:
+        #             for path in paths:
+        #                 expanded_relations.append([code,path])
+        #                 if len(path)>1:
+        #                     ta_code = path[1]
+        #                     if ta_code not in added_tas:
+        #                         expanded_relations.append([ta_code,path[:1]])
+        #                         added_tas.append(ta_code)
+        #     efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
+        #     root=AssociationTreeNode()
+        #     if not efo_with_data:
+        #         extended_efo_with_data= [code for code, parents in efo_tree_relations]
+        #     else:
+        #         extended_efo_with_data = copy(efo_with_data)
+        #         for code, parents in efo_tree_relations:
+        #             if len(parents)>1:
+        #                 ta_code = parents[1]
+        #                 if ta_code not in extended_efo_with_data:
+        #                     extended_efo_with_data.append(ta_code)
+        #
+        #
+        #     for code, parents in efo_tree_relations:
+        #         if code in extended_efo_with_data:
+        #             if not parents:
+        #                 root.add_child(AssociationTreeNode(code, **data[code]))
+        #             else:
+        #                 node = root.get_node_at_path(parents)
+        #                 node.add_child(AssociationTreeNode(code,**data[code]))
+        #     '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
+        #     this should not be done if just varying the score range'''
+        #     for ta_child in root.get_children():
+        #         if (not ta_child.children) and (ta_child.name not in efo_with_data):
+        #             root.del_child(ta_child)
+        #
+        #     return root.to_dict_tree_with_children_as_array()
+        #
+
         def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
-            data = dict([(i["efo_code"],i) for i in data])
+            data = dict([(i["disease"]['id'],i) for i in data])
             expanded_relations = []
-            added_tas = []
             for code, paths in efo_parents.items():
                 if code in data:
                     for path in paths:
                         expanded_relations.append([code,path])
-                        if len(path)>1:
-                            ta_code = path[1]
-                            if ta_code not in added_tas:
-                                expanded_relations.append([ta_code,path[:1]])
-                                added_tas.append(ta_code)
+
             efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
             root=AssociationTreeNode()
             if not efo_with_data:
@@ -1336,7 +1377,7 @@ class esQuery():
                         if ta_code not in extended_efo_with_data:
                             extended_efo_with_data.append(ta_code)
 
-                         
+
             for code, parents in efo_tree_relations:
                 if code in extended_efo_with_data:
                     if not parents:
@@ -1344,36 +1385,34 @@ class esQuery():
                     else:
                         node = root.get_node_at_path(parents)
                         node.add_child(AssociationTreeNode(code,**data[code]))
-            '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
-            this should not be done if just varying the score range'''
-            for ta_child in root.get_children():
-                if (not ta_child.children) and (ta_child.name not in efo_with_data):
-                    root.del_child(ta_child)
+            # '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
+            # this should not be done if just varying the score range'''
+            # for ta_child in root.get_children():
+            #     if (not ta_child.children) and (ta_child.name not in efo_with_data):
+            #         root.del_child(ta_child)
 
             return root.to_dict_tree_with_children_as_array()
-
-        def inject_missing_ta(efo_parents, unfiltered_scores, scores):
-            tas = set()
-            for code, paths in efo_parents.items():
-                for path in paths:
-                    if len(path)>1:
-                        tas.add(path[1])
-            available_scores = [i["efo_code"] for i in scores]
-            for i in unfiltered_scores:
-                if (i["efo_code"] in tas) and (i["efo_code"] not in available_scores):
-                    scores.append(i)
-            return scores
+        # def inject_missing_ta(efo_parents, unfiltered_scores, scores):
+        #     tas = set()
+        #     for code, paths in efo_parents.items():
+        #         for path in paths:
+        #             if len(path)>1:
+        #                 tas.add(path[1])
+        #     available_scores = [i["efo_code"] for i in scores]
+        #     for i in unfiltered_scores:
+        #         if (i["efo_code"] in tas) and (i["efo_code"] not in available_scores):
+        #             scores.append(i)
+        #     return scores
 
 
 
         facets = {}
         if scores:
             
-            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["efo_code"] for i in unfiltered_scores])
-            scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
-            new_scores = self._return_association_data_structures_for_genes(scores_with_ta, aggs, efo_labels = efo_labels, efo_tas = efo_tas)
-            tree_data = transform_data_to_tree(new_scores['data'], efo_parents, efo_tas, efo_with_data) or new_scores['data']
-            facets= new_scores['facets']
+            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["disease"]['id'] for i in scores])
+            # scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
+            tree_data = transform_data_to_tree(flat_scores['data'], efo_parents, efo_tas, efo_with_data) or flat_scores['data']
+            facets= flat_scores['facets']
         else:
             tree_data = scores
 
@@ -1539,7 +1578,7 @@ class esQuery():
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
 
-    def _extend_facets(self, facets):
+    def _process_facets(self, facets):
 
         reactome_ids = []
 
@@ -1564,13 +1603,25 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet=='pathway_type':
-                        bucket['label']=reactome_labels[bucket['key'].upper()]#TODO: fix the data so there is no need for upper
+                    if facet=='pathway_type':#reactome data
+                        bucket['label']=reactome_labels[bucket['key'].upper()]
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()]
+                    elif facet == 'datatypes':# need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
+                        dt = bucket["key"]
+                        if 'datasources' in bucket:
+                            if 'buckets' in bucket['datasources']:
+                                new_sub_buckets = []
+                                sub_facet_buckets = bucket['datasources']['buckets']
+                                for sub_bucket in sub_facet_buckets:
+                                    if sub_bucket['key'] in self.datatypes.get_datasources(dt):
+                                        new_sub_buckets.append(sub_bucket)
+                                bucket['datasources']['buckets'] = new_sub_buckets
+
+
         return facets
 
     def _get_labels_for_reactome_ids(self, reactome_ids):
@@ -1891,7 +1942,7 @@ return scores"""%(self._get_datatype_combine_init_list(params),
                                               "filter": {
                                                    "bool": {
                                                        "should": [
-                                                           {"terms": {"_private.facets.uniprot_keywords":kw}},
+                                                           {"terms": {"private.facets.uniprot_keywords":kw}},
                                                        ]
                                                    }
                                               }

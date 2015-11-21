@@ -23,14 +23,14 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_SCORE_INDEX_NAME = 'evidence-score'
-    ELASTICSEARCH_DATA_SCORE_DOC_NAME = 'evidencescore'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = 'association-data_1'
+    ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.76'
+    API_VERSION = '1.0'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
