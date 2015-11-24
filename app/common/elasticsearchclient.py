@@ -685,6 +685,7 @@ class esQuery():
                       objects=[],
                       evidence_types=[],
                       datasources = [],
+                      datatypes = [],
                       gene_operator='OR',
                       object_operator='OR',
                       evidence_type_operator='OR',
@@ -704,8 +705,15 @@ class esQuery():
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=params.expand_efo))
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
-        if datasources:
-            conditions.append(self._get_complex_datasource_filter(datasources, BooleanFilterOperator.OR))
+        if datasources or datatypes:
+            requested_datasources = []
+            if datasources:
+                requested_datasources.extend(datasources)
+            if datatypes:
+                for datatype in datatypes:
+                    requested_datasources.extend(self.datatypes.get_datasources(datatype))
+            requested_datasources = list(set(requested_datasources))
+            conditions.append(self._get_complex_datasource_filter_evidencestring(requested_datasources, BooleanFilterOperator.OR))
         if params.pathway:
             pathway_filter = self._get_complex_pathway_filter(params.pathway)
             if pathway_filter:
@@ -1092,6 +1100,25 @@ class esQuery():
                     bol: [{
                               "terms": {
                                   "private.facets.datasource": [datasource]}
+                          }
+                          for datasource in datasources]
+                }
+            }
+        return dict()
+
+    def _get_complex_datasource_filter_evidencestring(self, datasources, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param evidence_types: list of dataasource strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if datasources:
+            return {
+                "bool": {
+                    bol: [{
+                              "terms": {
+                                  "sourceID": [datasource]}
                           }
                           for datasource in datasources]
                 }
