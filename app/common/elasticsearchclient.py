@@ -934,8 +934,8 @@ class esQuery():
         else:
             associations = [Association(h['_source'], params.association_score_method, self.datatypes)
                         for h in  agg_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-            scores = [a.data for a in associations]
-            therapeutic_areas =list(set([ i for s in scores for i in s['disease']['therapeutic_area']['labels']]))
+            scores = [a.data for a in associations if a._is_direct]
+            therapeutic_areas =list(set([ i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
             efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
             if 'aggregations' in agg_data:
                 aggregation_results=agg_data['aggregations']
@@ -947,7 +947,21 @@ class esQuery():
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"]= len(data['data'])
         if params.datastructure == OutputDataStructureOptions.TREE:
-            data = self._return_association_tree_data_structures(scores, data, efo_with_data)
+            extended_query_body = agg_query_body
+            extended_query_body['aggs'] ={}
+            extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions( therapeutic_areas, genes, object_operator, gene_operator, expand_efo=True)
+            ta_data = self.handler.search(index=self._index_score,
+                                  body=extended_query_body,
+                                  timeout = "20m",
+                                  request_timeout  = 60*20,
+                                  # routing=use gene here
+                                  query_cache = True,
+                                  )
+            ta_associations = [Association(h['_source'], params.association_score_method, self.datatypes)
+                        for h in  ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+            ta_scores = [a.data for a in ta_associations]
+            ta_scores.extend(scores)
+            data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
 
 
 
@@ -1341,48 +1355,6 @@ class esQuery():
                                                   flat_scores,
                                                   efo_with_data =[],
                                                  ):
-            
-        # def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
-        #     data = dict([(i["efo_code"],i) for i in data])
-        #     expanded_relations = []
-        #     added_tas = []
-        #     for code, paths in efo_parents.items():
-        #         if code in data:
-        #             for path in paths:
-        #                 expanded_relations.append([code,path])
-        #                 if len(path)>1:
-        #                     ta_code = path[1]
-        #                     if ta_code not in added_tas:
-        #                         expanded_relations.append([ta_code,path[:1]])
-        #                         added_tas.append(ta_code)
-        #     efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
-        #     root=AssociationTreeNode()
-        #     if not efo_with_data:
-        #         extended_efo_with_data= [code for code, parents in efo_tree_relations]
-        #     else:
-        #         extended_efo_with_data = copy(efo_with_data)
-        #         for code, parents in efo_tree_relations:
-        #             if len(parents)>1:
-        #                 ta_code = parents[1]
-        #                 if ta_code not in extended_efo_with_data:
-        #                     extended_efo_with_data.append(ta_code)
-        #
-        #
-        #     for code, parents in efo_tree_relations:
-        #         if code in extended_efo_with_data:
-        #             if not parents:
-        #                 root.add_child(AssociationTreeNode(code, **data[code]))
-        #             else:
-        #                 node = root.get_node_at_path(parents)
-        #                 node.add_child(AssociationTreeNode(code,**data[code]))
-        #     '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
-        #     this should not be done if just varying the score range'''
-        #     for ta_child in root.get_children():
-        #         if (not ta_child.children) and (ta_child.name not in efo_with_data):
-        #             root.del_child(ta_child)
-        #
-        #     return root.to_dict_tree_with_children_as_array()
-        #
 
         def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
             data = dict([(i["disease"]['id'],i) for i in data])
@@ -1412,24 +1384,9 @@ class esQuery():
                     else:
                         node = root.get_node_at_path(parents)
                         node.add_child(AssociationTreeNode(code,**data[code]))
-            # '''remove ta with no children and no data attached. acceptable in the current workflow since the stringency is changed with the score_range.
-            # this should not be done if just varying the score range'''
-            # for ta_child in root.get_children():
-            #     if (not ta_child.children) and (ta_child.name not in efo_with_data):
-            #         root.del_child(ta_child)
+
 
             return root.to_dict_tree_with_children_as_array()
-        # def inject_missing_ta(efo_parents, unfiltered_scores, scores):
-        #     tas = set()
-        #     for code, paths in efo_parents.items():
-        #         for path in paths:
-        #             if len(path)>1:
-        #                 tas.add(path[1])
-        #     available_scores = [i["efo_code"] for i in scores]
-        #     for i in unfiltered_scores:
-        #         if (i["efo_code"] in tas) and (i["efo_code"] not in available_scores):
-        #             scores.append(i)
-        #     return scores
 
 
 
@@ -1438,7 +1395,7 @@ class esQuery():
             
             efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["disease"]['id'] for i in scores])
             # scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
-            tree_data = transform_data_to_tree(flat_scores['data'], efo_parents, efo_tas, efo_with_data) or flat_scores['data']
+            tree_data = transform_data_to_tree(scores, efo_parents, efo_tas, efo_with_data) or flat_scores['data']
             facets= flat_scores['facets']
         else:
             tree_data = scores
@@ -1987,14 +1944,23 @@ return scores"""%(self._get_datatype_combine_init_list(params),
     def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo = False):
         conditions = []
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=expand_efo))
+            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=False))
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+        if not expand_efo:
+            conditions.append(self._get_is_direct_filter())
 
         return conditions
 
     def _get_facet_association_conditions(self, objects, genes, object_operator, gene_operator):
         return self._get_base_association_conditions(objects, genes, object_operator, gene_operator, expand_efo = True)
+
+    def _get_is_direct_filter(self):
+
+        return {
+            "term": {"is_direct": True}
+        }
+
 
 
 class SearchParams():
