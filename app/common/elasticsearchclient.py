@@ -862,7 +862,7 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW], BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
-        conditions = self._get_base_association_conditions( objects, genes, object_operator, gene_operator)
+        conditions = self._get_base_association_conditions( objects, genes, object_operator, gene_operator, expand_efo=len(genes)==0)
         if objects:
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
@@ -934,7 +934,7 @@ class esQuery():
         else:
             associations = [Association(h['_source'], params.association_score_method, self.datatypes)
                         for h in  agg_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-            scores = [a.data for a in associations if a._is_direct]
+            scores = [a.data for a in associations]
             therapeutic_areas =list(set([ i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
             efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
             if 'aggregations' in agg_data:
