@@ -862,7 +862,11 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW], BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
-        conditions = self._get_base_association_conditions( objects, genes, object_operator, gene_operator, expand_efo=len(genes)==0)
+        conditions = self._get_base_association_conditions(objects,
+                                                           genes,
+                                                           object_operator,
+                                                           gene_operator,
+                                                           expand_efo=(len(genes)==0) or (len(genes)==1 and len(objects)==1))# temporary handle here special cases for the ui. it should always be true.
         if objects:
             params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
@@ -943,7 +947,7 @@ class esQuery():
         '''build data structure to return'''
         # if params.datastructure == OutputDataStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
-        "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters"
+        "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"]= len(data['data'])
         if params.datastructure == OutputDataStructureOptions.TREE:
@@ -962,24 +966,6 @@ class esQuery():
             ta_scores = [a.data for a in ta_associations]
             ta_scores.extend(scores)
             data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
-
-
-
-        #
-        # if objects:
-        #     "TODO: use elasticsearch histogram to get this"
-        #     data_distribution["total"]= len(scores)
-        #     if params.datastructure == OutputDataStructureOptions.FLAT:
-        #         data = self._return_association_data_structures_for_efos(scores, aggregation_results,  filters = params.filters)
-        # elif genes:
-        #     "TODO: use elasticsearch histogram to get this"
-        #     data_distribution = self._get_association_data_distribution([s['association_score']  for s in scores if s['is_direct']])
-        #     data_distribution["total"]= len(efo_with_data)
-        #     if params.datastructure == OutputDataStructureOptions.FLAT:
-        #         data = self._return_association_data_structures_for_genes(scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
-        #     elif params.datastructure == OutputDataStructureOptions.TREE:
-        #         data= self._return_association_data_structures_for_genes_as_tree(scores, objects_scores, aggregation_results, efo_with_data=efo_with_data, filters = params.filters)
-
 
         total = len(data['data'])
 
