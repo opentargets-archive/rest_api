@@ -24,9 +24,9 @@ class GetByIdQuery:
 class FilterByQuery:
   "An object to specify a filterby query"
   resource_fields = {
-      'gene': fields.List(fields.String(attribute='gene file name', )),
-      'efo': fields.List(fields.String(attribute='efo code', )),
-      'eco': fields.List(fields.String(attribute='efo code', )),
+      'target': fields.List(fields.String(attribute='target gene id', )),
+      'disease': fields.List(fields.String(attribute='diseaseefo code', )),
+      'eco': fields.List(fields.String(attribute='eco code', )),
       'pathway': fields.List(fields.String(attribute='pathway', )),
       'datasource': fields.List(fields.String(attribute='datasource', )),
       'datatype': fields.List(fields.String(attribute='datatype', )),
