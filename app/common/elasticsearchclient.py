@@ -1995,8 +1995,8 @@ class SearchParams():
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
         self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
-        if self.filters[FilterTypes.PATHWAY]:
-            self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
+        # if self.filters[FilterTypes.PATHWAY]:
+        #     self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
         self.stringency = kwargs.get('stringency', 1.) or 1. #cannot be zero
 
@@ -2077,7 +2077,6 @@ class AssociationTreeNode(object):
 
     def __unicode__(self):
         return unicode(self.name)
-
     def children_as_array(self):
         return self.children.values()
 

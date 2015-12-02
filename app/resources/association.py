@@ -17,12 +17,21 @@ import time
 __author__ = 'andreap'
 
 @swagger.model
-class EvidenceQuery:
+class AssociationQuery:
   "An object to specify an association query"
   resource_fields = {
       'target': fields.List(fields.String(attribute='target id', )),
       'disease': fields.List(fields.String(attribute='disease efo code', )),
-
+      'filterbyscorevalue_min': fields.Float(attribute='filterbyscorevalue_min',),
+      'filterbyscorevalue_max': fields.Float(attribute='filterbyscorevalue_max',),
+      'filterbydatasource': fields.List(fields.String(attribute='filterbydatasource', )),
+      'filterbydatatype': fields.List(fields.String(attribute='filterbydatatype', )),
+      'filterbypathway': fields.List(fields.String(attribute='filterbypathway', )),
+      'filterbyuniprotkw': fields.List(fields.String(attribute='filterbyuniprotkw', )),
+      'stringency': fields.Float(attribute='filterbydatasource', ),
+      'datastructure': fields.String(attribute='filterbydatasource', ),
+      'expandefo': fields.Boolean(attribute='expandefo', ),
+      'facets': fields.Boolean(attribute='facets', ),
 
   }
 
@@ -180,8 +189,8 @@ class Association(restful.Resource):
     @is_authenticated
     def get(self):
         """
-        Get association scores
-        Get association scores for a gene, an efo or a combination of them
+        Get association objects
+        Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         """
         parser = reqparse.RequestParser()
@@ -216,15 +225,15 @@ class Association(restful.Resource):
 
 
         if not (genes or objects ):
-            abort(404, message='Please provide at least one gene or efo')
+            abort(404, message='Please provide at least one target or disease')
         return self.get_association(genes, objects,params=args)
 
 
     @swagger.operation(
-        summary='''get a list of evidences filtered by gene, efo and/or eco codes.''',
-        notes='test with: {"gene":["ENSG00000136997"]}',
-        nickname='evidences',
-        resourcePath ='/evidences',
+        summary='''get a list of association objects by target and/or disease .''',
+        notes='test with: {"target":["ENSG00000136997"]}',
+        nickname='association',
+        resourcePath ='/association',
         produces = ["application/json", "text/xml", "text/csv"],
         responseClass=PaginatedResponse.__name__,
         parameters=[
@@ -235,11 +244,45 @@ class Association(restful.Resource):
               "allowMultiple": True,
               "dataType": "string",
               "paramType": "body",
-              "type": "EvidenceQuery"
+              "type": "AssociationQuery"
             },
             ]
         )
-    #TODO: add post method
+    @is_authenticated
+    def post(self ):
+        """
+        Get association objects
+        Get association objects for a gene, an efo or a combination of them
+        Test with ENSG00000136997
+        test with: {"target":["ENSG00000136997"]},
+        """
+        def fix_empty_strings(l):
+            new_l=[]
+            if l:
+                for i in l:
+                    if i:
+                        new_l.append(i)
+            return new_l
+
+
+        args = request.get_json()
+        genes = fix_empty_strings(args.pop('target',[]) or [])
+        # gene_operator = args.pop('gene-bool','OR') or 'OR'
+        objects = fix_empty_strings(args.pop('disease',[]) or [])
+        # object_operator = args.pop('efo-bool','OR') or 'OR'
+        for k,v in args.items():
+            if isinstance(v, list):
+                if len(v)>0:
+                    drop = True
+                    for i in v:
+                        if i != '':
+                            drop =False
+                    if drop:
+                        del args[k]
+
+        if not (genes or objects ):
+            abort(404, message='Please provide at least one target or disease')
+        return self.get_association(genes, objects,params=args)
 
 
     def get_association(self,

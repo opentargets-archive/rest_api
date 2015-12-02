@@ -339,8 +339,8 @@ class FilterBy(restful.Resource, Paginable):
         datasources =  args.pop('datasource',[]) or []
         datatypes=  args.pop('datatype',[]) or []
 
-        if not (genes or objects or evidence_types or datasource):
-            abort(404, message='Please provide at least one gene, efo, eco or datasource')
+        if not (genes or objects or evidence_types or datasources or datatypes):
+            abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
         return self.get_evidence(genes, objects, evidence_types, datasources, datatypes, params=args)
 
 
