@@ -722,7 +722,6 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)#Proto-oncogene Nucleus
-        print conditions
         if not conditions:
             return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''

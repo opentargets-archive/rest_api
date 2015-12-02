@@ -23,11 +23,17 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = 'association-data_1'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = '2_association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
+    AUTORISED_KEYS = {'2J23T20O31UyepRj7754pEA2osMOYfFK' :['.targetvalidation.org','localhost', '127.0.0.1'],#webapp
+                      'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [],
+                      'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
+                      'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
+                      '6gvkuMBFuP4Rd%SD9NK6NH4aACz-Augm':[],
+                     }
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.0'
