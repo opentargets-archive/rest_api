@@ -1573,12 +1573,12 @@ class esQuery():
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
                     if facet=='pathway_type':#reactome data
-                        bucket['label']=reactome_labels[bucket['key'].upper()]
+                        bucket['label']=reactome_labels[bucket['key'].upper()] or bucket['key']
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
-                                    sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()]
+                                    sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()]  or sub_bucket['key']
                     elif facet == 'datatypes':# need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
                         if 'datasources' in bucket:
