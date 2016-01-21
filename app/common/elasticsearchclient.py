@@ -28,8 +28,13 @@ class BooleanFilterOperator():
 
 class FreeTextFilterOptions():
     ALL = 'all'
-    GENE = 'gene'
-    EFO = 'efo'
+    TARGET = 'target'
+    DISEASE = 'disease'
+    GO_TERM = 'go'
+    PROTEIN_FEATURE = 'protein_feature'
+    PUBLICATION = 'pub'
+    SNP = 'snp'
+    GENERIC = 'generic'
 
 
 class ESResultStatus(object):
@@ -57,14 +62,16 @@ class esQuery():
                  index_genename=None,
                  index_expression=None,
                  index_reactome=None,
-                 index_score=None,
+                 index_association=None,
+                 index_search=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
                  docname_genename=None,
                  docname_expression=None,
                  docname_reactome=None,
-                 docname_score=None,
+                 docname_association=None,
+                 docname_search=None,
                  log_level=logging.DEBUG):
         '''
 
@@ -85,18 +92,20 @@ class esQuery():
         self._index_genename = index_genename
         self._index_expression = index_expression
         self._index_reactome = index_reactome
-        self._index_score = index_score
+        self._index_association = index_association
+        self._index_search = index_search
+
         self._docname_data = docname_data
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
         self._docname_expression = docname_expression
         self._docname_reactome = docname_reactome
-        self._docname_score = docname_score
+        self._docname_association = docname_association
+        self._docname_search = docname_search
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
-
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
@@ -110,67 +119,8 @@ class esQuery():
             for handler in es_tracer.handlers:
                 handler.setFormatter(formatter)
 
-
-    def get_evidences_for_gene(self, gene, **kwargs):
-        params = SearchParams(**kwargs)
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FULL
-        res = self.handler.search(index=self._index_data,
-                                  # doc_type=self._docname_data,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "query": {
-                                                  "match_all": {}
-                                              },
-                                              "filter": {
-                                                  "terms": {
-                                                      "target.id": self._get_gene_filter(gene)
-
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': params.size,
-                                      'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                                  }
-        )
-
-        if res['hits']['total'] == 0:  # search by name
-            ensemblid = self._get_ensemblid_from_gene_name(gene)
-            if ensemblid:
-                ensemblid = ensemblid[0]
-                res = self.handler.search(index=self._index_data,
-                                          # doc_type=self._docname_data,
-                                          body={
-                                              "query": {
-                                                  "filtered": {
-                                                      "query": {
-                                                          "match_all": {}
-                                                      },
-                                                      "filter": {
-                                                          "term": {
-                                                              "target.id":
-                                                                  "http://identifiers.org/ensembl/" + ensemblid,
-
-
-                                                          }
-                                                      }
-                                                  }
-                                              },
-                                              'size': params.size,
-                                              'from': params.start_from,
-                                              '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                                          }
-                )
-
-        current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
-
-        return PaginatedResult(res, params)
-
     def free_text_search(self, searchphrase,
-                         filter=FreeTextFilterOptions.ALL,
+                         doc_filter=[FreeTextFilterOptions.ALL],
                          **kwargs):
         '''
         Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list
@@ -187,76 +137,20 @@ class esQuery():
         great for 'did you mean' style functionality.
 
         :param searchphrase:
-        :param filter:
+        :param doc_filter:
         :param kwargs:
         :return:
         '''
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
-        if filter.lower() == FreeTextFilterOptions.ALL:
-            doc_types = [self._docname_efo, self._docname_genename]
-        elif filter.lower() == FreeTextFilterOptions.GENE:
-            doc_types = [self._docname_genename]
-        elif filter.lower() == FreeTextFilterOptions.EFO:
-            doc_types = [self._docname_efo]
-        res = self.handler.search(index=[self._index_efo,
-                                         self._index_genename],
-                                  doc_type=doc_types,
-                                  body={'query':{
-                                           'filtered': {
-                                               'query': self._get_free_text_query(searchphrase),
-                                               'filter': {
-                                                   # "not":{ "term": { "biotype": 'processed_pseudogene' }},
-                                                   # "not":{ "term": { "biotype": 'antisense' }},
-                                                   # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                   # "not":{ "term": { "biotype": 'lincRNA' }},
-                                                   # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                   # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                   # "not":{ "term": { "biotype": 'sense_intronic' }},
-                                                   # "not":{ "term": { "biotype": 'processed_transcript' }},
-                                                   # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
-                                                   # "not":{ "term": { "biotype": 'miRNA' }},
-                                                  }
-                                               }
-                                           },
-                                        'size': params.size,
-                                        'from': params.start_from,
-                                        '_source': OutputDataStructureOptions.getSource(
-                                            OutputDataStructureOptions.GENE_AND_DISEASE),
-                                        # "min_score": 0.,
-                                        "highlight": {
-                                            "fields": {
-                                                "label": {},
-                                                "symbol_synonyms": {},
-                                                "efo_synonyms": {},
-                                                "biotype": {},
-                                                "id": {},
-                                                "approved_symbol": {},
-                                                "approved_name": {},
-                                                "name_synonyms": {},
-                                                "gene_family_description": {},
-                                                "uniprot_accessions": {},
-                                                "hgnc_id": {},
-                                                "ensembl_gene_id": {},
-                                                }
-#                                              },
-#                                         "script_fields" : {
-#                                             "gene_synonyms" : {
-#                                                 "script" : """
-# if (len(doc['ensembl_gene_id']) > 0){
-#     return doc['synonyms'].value
-#     }
-# return ""
-# """
-#                                                 }
-                                            },
-                                        },
-
-                                )
+        if doc_filter is None:
+            doc_filter = [FreeTextFilterOptions.ALL]
+        doc_filter = self._get_search_doc_types(doc_filter)
+        res = self._free_text_query(searchphrase, doc_filter, params)
         current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
-            highlight=''
+            highlight = ''
             if 'highlight' in hit:
                 highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
@@ -264,19 +158,12 @@ class esQuery():
                              id=hit['_id'],
                              score=hit['_score'],
                              highlight=highlight)
-            if hit['_type'] == self._docname_genename:
-                datapoint['title'] = hit['_source']['approved_symbol']
-                datapoint['description'] = hit['_source']['approved_name'].split('[')[0]
-            elif hit['_type'] == self._docname_efo:
-                datapoint['title'] = hit['_source']['label']
-                datapoint['description'] = hit['_source']['definition']
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
-
-    def quick_search(self, searchphrase,
-                            filter=FreeTextFilterOptions.ALL,
-                            **kwargs):
+    def quick_search(self,
+                     searchphrase,
+                     **kwargs):
         '''
         Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list
         below attempts to disambiguate these various types.
@@ -292,7 +179,7 @@ class esQuery():
         great for 'did you mean' style functionality.
 
         :param searchphrase:
-        :param filter:
+        :param doc_filter:
         :param kwargs:
         :return:
         '''
@@ -300,81 +187,29 @@ class esQuery():
         def format_datapoint(hit):
             highlight = ''
             if 'highlight' in hit:
-                highlight=hit['highlight']
+                highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
                              id=hit['_id'],
                              score=hit['_score'],
-                             highlight = highlight)
-            datapoint.update(hit['_source'])
-            if hit['_type'] == self._docname_genename:
-                returned_ids['genes'].append(hit['_id'])
-            elif hit['_type'] == self._docname_efo:
-                returned_ids['efo'].append(hit['_id'])
-
+                             highlight=highlight,
+                             data=hit['_source'])
+            for opt in active_options:
+                returned_ids[opt].append(hit['_id'])
             return datapoint
-
 
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
 
-        data = dict(besthit=None,
-                    genes=[],
-                    efo=[])
-        returned_ids = dict(genes=[],
-                            efo=[])
+        active_options = [FreeTextFilterOptions.TARGET,
+                          FreeTextFilterOptions.DISEASE]
 
-        res = self.handler.search(index=[self._index_efo,
-                                         self._index_genename],
-                                  doc_type=[self._docname_efo, self._docname_genename],
-                                  body={'query':{
-                                           'filtered': {
-                                               'query': self._get_free_text_query(searchphrase),
-                                               'filter': {
-                                                   # "bool": {
-                                                   #      # "must": { "range": { "created": { "gte": "now - 1d / d" }}},
-                                                   #      # "should": [
-                                                   #      #   { "term": { "featured": true }},
-                                                   #      #   { "term": { "starred":  true }}
-                                                   #      # ],
-                                                   #      "must_not": [
-                                                   #          { "term": { "biotype": 'processed_pseudogene' }},
-                                                   #          { "term": { "biotype": 'antisense' }},
-                                                   #          { "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                   #          { "term": { "biotype": 'lincRNA' }},
-                                                   #          { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                   #          { "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                   #          { "term": { "biotype": 'sense_intronic' }},
-                                                   #          { "term": { "biotype": 'processed_transcript' }},
-                                                   #          { "term": { "biotype": 'IG_V_pseudogene' }},
-                                                   #          { "term": { "biotype": 'miRNA' }},
-                                                   #      ],
-                                                   #    },
-                                                   }
-                                               }
-                                           },
-                                        'size': 30,
-                                        '_source': OutputDataStructureOptions.getSource(
-                                            OutputDataStructureOptions.GENE_AND_DISEASE),
-                                        # "min_score": 0.,
-                                         "highlight": {
-                                            "fields": {
-                                                "label": {},
-                                                "symbol_synonyms": {},
-                                                "efo_synonyms": {},
-                                                "biotype": {},
-                                                "id": {},
-                                                "approved_symbol": {},
-                                                "approved_name": {},
-                                                "name_synonyms": {},
-                                                "gene_family_description": {},
-                                                "uniprot_accessions": {},
-                                                "hgnc_id": {},
-                                                "ensembl_gene_id": {},
+        data = {'besthit': None}
+        returned_ids = {}
+        for opt in active_options:
+            data[opt] = []
+            returned_ids[opt] = []
 
-                                            }
-                                         }
-                                  }
-        )
+        res = self._free_text_query(searchphrase, [], params)
 
         if ('hits' in res) and res['hits']['total']:
             '''handle best hit'''
@@ -383,93 +218,22 @@ class esQuery():
 
             ''' store the other results in the corresponding object'''
             for hit in res['hits']['hits'][1:]:
-                if hit['_type'] == self._docname_genename:
-                    if len(data['genes']) < params.size:
-                        data['genes'].append(format_datapoint(hit))
-                elif hit['_type'] == self._docname_efo:
-                    if len(data['efo']) < params.size:
-                        data['efo'].append(format_datapoint(hit))
-            '''if there are not enough fill the results for both the categories'''
+                for opt in active_options:
+                    if hit['_type'] == self._get_search_doc_name(opt):
+                        if len(data[opt]) < params.size:
+                            data[opt].append(format_datapoint(hit))
 
-            if len(data['genes']) < params.size:
-                res_genes = self.handler.search(index=self._index_genename,
-                                                doc_type=self._docname_genename,
-                                                body={'query':{
-                                                         'filtered': {
-                                                             'query': self._get_free_text_gene_query(searchphrase),
-                                                             # 'filter': {
-                                                             #
-                                                             #            "not":{ "term": { "biotype": 'processed_pseudogene' }},
-                                                             #                { "term": { "biotype": 'antisense' }},
-                                                             #                { "term": { "biotype": 'unprocessed_pseudogene' }},
-                                                             #                { "term": { "biotype": 'lincRNA' }},
-                                                             #                { "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                                                             #                { "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                                                             #                { "term": { "biotype": 'sense_intronic' }},
-                                                             #                { "term": { "biotype": 'processed_transcript' }},
-                                                             #                { "term": { "biotype": 'IG_V_pseudogene' }},
-                                                             #                { "term": { "biotype": 'miRNA' }},
-                                                             #                                                                                        ],
-                                                             #
-                                                             #       }
-                                                             }
-                                                         },
-                                                      'size': params.size + 1,
-                                                      '_source': OutputDataStructureOptions.getSource(
-                                                          OutputDataStructureOptions.GENE),
-                                                      # "min_score": 0.,
-                                                      "highlight": {
-                                                        "fields": {
-                                                            "symbol_synonyms": {},
-                                                            "biotype": {},
-                                                            "id": {},
-                                                            "approved_symbol": {},
-                                                            "approved_name": {},
-                                                            "name_synonyms": {},
-                                                            "gene_family_description": {},
-                                                            "uniprot_accessions": {},
-                                                            "hgnc_id": {},
-                                                            "enselbl_gene_id": {},
-                                                        }
-                                                     }
-                                                }
-                )
-                current_app.logger.debug(
-                    "Got %d additional Gene Hits in %ims" % (res_genes['hits']['total'], res['took']))
-                for hit in res_genes['hits']['hits']:
-                    if len(data['genes']) < params.size:
-                        if hit['_id'] not in returned_ids['genes']:
-                            data['genes'].append(format_datapoint(hit))
+            '''if there are not enough fill the results for all the categories'''
+            for opt in active_options:
 
-            if len(data['efo']) < params.size:
-                res_efo = self.handler.search(index=self._index_efo,
-                                              doc_type=self._docname_efo,
-                                              body={'query': self._get_free_text_efo_query(searchphrase),
-                                                    'size': params.size + 1,
-                                                    '_source': OutputDataStructureOptions.getSource(
-                                                        OutputDataStructureOptions.DISEASE),
-                                                    # "min_score": 0.,
-                                                    "highlight": {
-                                                        "fields": {
-                                                            "label": {},
-                                                            "efo_synonyms": {},
-                                                            "biotype": {},
-                                                            "id": {},
-                                                            "approved_symbol": {},
-                                                            "approved_name": {},
-                                                            "gene_family_description": {},
-                                                            "uniprot_accessions": {},
-                                                            "hgnc_id": {},
-                                                            "enselbl_gene_id": {},
-                                                        }
-                                                     }
-                                              }
-                )
-                current_app.logger.debug("Got %d additional EFO Hits in %ims" % (res_efo['hits']['total'], res['took']))
-                for hit in res_efo['hits']['hits']:
-                    if len(data['efo']) < params.size:
-                        if hit['_id'] not in returned_ids['efo']:
-                            data['efo'].append(format_datapoint(hit))
+                if len(data[opt]) < params.size:
+                    res_opt = self._free_text_query(searchphrase, [opt], params)
+                    current_app.logger.debug(
+                            "Got %d additional %s Hits in %ims" % (res_opt['hits']['total'], opt, res['took']))
+                    for hit in res_opt['hits']['hits']:
+                        if len(data[opt]) < params.size:
+                            if hit['_id'] not in returned_ids[opt]:
+                                data[opt].append(format_datapoint(hit))
 
         return SimpleResult(None, params, data)
 
@@ -480,84 +244,29 @@ class esQuery():
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
 
+        res = self.handler.suggest(index=[self._index_search],
+                                   body={"suggest": {
+                                       "text": searchphrase,
+                                       "completion": {
+                                           "field": "_private.suggestions"
+                                       }
+                                   }
+                                   }
 
-        res_gene = self.handler.suggest(index=[self._index_genename],
-                                  body={"suggest":{
-                                            "text" : searchphrase,
-                                              "completion" : {
-                                                "field" : "_private.suggestions"
-                                              }
-                                            }
-                                        }
-        )
-
-        res_efo = self.handler.suggest(index=[self._index_efo],
-                                  body={"suggest":{
-                                            "text" : searchphrase,
-                                              "completion" : {
-                                                "field" : "_private.suggestions"
-                                              }
-
-                                            }
-                                        }
-        )
+                                   )
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
-        data = dict(gene =[], efo=[])
-        if 'suggest' in res_gene:
-            data['gene'] = res_gene['suggest'][0]['options']
-        if 'suggest' in res_efo:
-            data['efo'] = res_efo['suggest'][0]['options']
-
+        data = []
+        if 'suggest' in res:
+            data = res['suggest'][0]['options']
         return SimpleResult(None, params, data)
 
-
-    def available_genes(self, **kwargs):
-        params = SearchParams(**kwargs)
-        res = helpers.scan(client=self.handler,
-                           # query = {'filter': {
-                           # 'prefix': {
-                           #                        'target.id': 'ensembl:'},
-                           #                    },
-                           query={"query": {"match_all": {}},
-
-                                  'size': 1000,
-                                  'fields': ['target.id'],
-                           },
-                           scroll='10m',
-                           # doc_type=self._docname_data,
-                           index=self._index_data,
-                           timeout="10m",
-        )
-
-        available_genes = defaultdict(int)
-        for hit in res:
-            gene_name = hit['fields']['target.id'][0]
-            if gene_name.startswith('ensembl:'):
-                gene_name = gene_name.split('ensembl:')[1]
-            available_genes[gene_name] += 1
-        # do this trough es api like this:
-        # "aggs" = {
-        #            "sport_count": {
-        #                "value_count": {
-        #                  "field": "sport"
-        #                      }
-        #                 }
-        #           }
-        available_genes = available_genes.items()
-        available_genes.sort(key=operator.itemgetter(1), reverse=True)
-
-        current_app.logger.debug(
-            "Got a total of %i genes with %i evidences" % (len(available_genes), sum((e for g, e in available_genes))))
-        return available_genes
-
-
-    def get_gene_info(self,gene_ids, facets = False, **kwargs):
+    def get_gene_info(self, gene_ids, facets=False, **kwargs):
         params = SearchParams(**kwargs)
         if params.datastructure == OutputDataStructureOptions.DEFAULT:
             params.datastructure = OutputDataStructureOptions.FULL
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"]= params.fields
+            source_filter["include"] = params.fields
         aggs = {}
         if facets:
             aggs = self._get_gene_info_agg()
@@ -566,30 +275,27 @@ class esQuery():
             res = self.handler.search(index=self._index_genename,
                                       doc_type=self._docname_genename,
                                       body={"query": {
-                                              "filtered": {
-                                                  # "query": {
-                                                  #     "match_all": {}
-                                                  # },
-                                                  "filter": {
-                                                      "ids": {
-                                                          "values": gene_ids
+                                          "filtered": {
+                                              # "query": {
+                                              #     "match_all": {}
+                                              # },
+                                              "filter": {
+                                                  "ids": {
+                                                      "values": gene_ids
 
-                                                         }
-                                                    }
-                                                }
-                                            },
+                                                  }
+                                              }
+                                          }
+                                      },
 
-                                           '_source': source_filter,
-                                           'size': params.size,
-                                           'from': params.start_from,
-                                           'aggs':  aggs,
+                                          '_source': source_filter,
+                                          'size': params.size,
+                                          'from': params.start_from,
+                                          'aggs': aggs,
 
-                                           }
+                                      }
                                       )
             return PaginatedResult(res, params)
-
-
-
 
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
@@ -599,50 +305,16 @@ class esQuery():
                                       body={'filter': {
                                           "ids": {
                                               "values": [efo_codes]
-                                                },
-                                            },
-                                            'size' : 100000
+                                          },
+                                      },
+                                          'size': 100000
                                       }
-            )
+                                      )
             if res['hits']['total']:
-                if res['hits']['total']==1:
+                if res['hits']['total'] == 1:
                     return [res['hits']['hits'][0]['_source']]
                 else:
                     return [hit['_source'] for hit in res['hits']['hits']]
-
-
-    def get_evidences_with_efo_code_as_object(self, efocode, **kwargs):
-        if not efocode.startswith('efo:'):  # temporary workaround
-            efocode = 'efo:' + efocode
-
-        params = SearchParams(**kwargs)
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FULL
-
-        res = self.handler.search(index=self._index_data,
-                                  # doc_type=self._docname_data,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "query": {
-                                                  "match_all": {}
-                                              },
-                                              "filter": {
-                                                  "term": {
-                                                      "disease.id": efocode
-
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': params.size,
-                                      'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(params.datastructure)
-                                  },
-                                  timeout="10m",
-        )
-
-        return PaginatedResult(res, params)
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
 
@@ -662,7 +334,7 @@ class esQuery():
                                       }
                                   }
                                   }
-        )
+                                  )
         if res['hits']['total']:
             return [hit['_source'] for hit in res['hits']['hits']]
 
@@ -676,20 +348,20 @@ class esQuery():
                                       }
                                   }
                                   }
-        )
+                                  )
         for hit in res['hits']['hits']:
             return hit['_source']
 
-    def get_evidences(self,
-                      genes=[],
-                      objects=[],
-                      evidence_types=[],
-                      datasources = [],
-                      datatypes = [],
-                      gene_operator='OR',
-                      object_operator='OR',
-                      evidence_type_operator='OR',
-                      **kwargs):
+    def get_evidence(self,
+                     genes=[],
+                     objects=[],
+                     evidence_types=[],
+                     datasources=[],
+                     datatypes=[],
+                     gene_operator='OR',
+                     object_operator='OR',
+                     evidence_type_operator='OR',
+                     **kwargs):
         params = SearchParams(**kwargs)
         if params.datastructure == OutputDataStructureOptions.DEFAULT:
             params.datastructure = OutputDataStructureOptions.FULL
@@ -713,7 +385,8 @@ class esQuery():
                 for datatype in datatypes:
                     requested_datasources.extend(self.datatypes.get_datasources(datatype))
             requested_datasources = list(set(requested_datasources))
-            conditions.append(self._get_complex_datasource_filter_evidencestring(requested_datasources, BooleanFilterOperator.OR))
+            conditions.append(
+                self._get_complex_datasource_filter_evidencestring(requested_datasources, BooleanFilterOperator.OR))
         if params.pathway:
             pathway_filter = self._get_complex_pathway_filter(params.pathway)
             if pathway_filter:
@@ -721,68 +394,70 @@ class esQuery():
         if params.uniprot_kw:
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
-                conditions.append(uniprotkw_filter)#Proto-oncogene Nucleus
+                conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
         if not conditions:
             return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"]= params.fields
+            source_filter["include"] = params.fields
         if params.groupby:
             res = self.handler.search(index=self._index_data,
-                                  # doc_type=self._docname_data,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "must": conditions
+                                      # doc_type=self._docname_data,
+                                      body={
+                                          "query": {
+                                              "filtered": {
+                                                  "filter": {
+                                                      "bool": {
+                                                          "must": conditions
+                                                      }
                                                   }
+
                                               }
+                                          },
+                                          'size': params.size,
+                                          'from': params.start_from,
+                                          '_source': OutputDataStructureOptions.getSource(
+                                              OutputDataStructureOptions.COUNT),
+                                          "aggs": {
+                                              params.groupby[0]: {
+                                                  "terms": {
+                                                      "field": "disease.id",
+                                                      'size': params.size,
 
+                                                  },
+                                                  "aggs": {
+                                                      "evidencestring": {
+                                                          "top_hits": {"_source": source_filter, "size": params.size}}
+                                                  }
+
+                                              }
                                           }
-                                      },
-                                      'size': params.size,
-                                      'from': params.start_from,
-                                      '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
-                                      "aggs":{
-                                          params.groupby[0]: {
-                                             "terms": {
-                                                 "field" : "disease.id",
-                                                 'size': params.size,
-
-                                             },
-                                             "aggs": {
-                                                "evidencestring": { "top_hits": { "_source": source_filter, "size": params.size }}
-                                             }
-
-                                          }
-                                       }
-                                  }
-            )
+                                      }
+                                      )
         else:
             query_body = {
-                          "query": {
-                              "filtered": {
-                                  "filter": {
-                                      "bool": {
-                                          "must": conditions
-                                      }
-                                  }
+                "query": {
+                    "filtered": {
+                        "filter": {
+                            "bool": {
+                                "must": conditions
+                            }
+                        }
 
-                              }
-                          },
-                          'size': params.size,
-                          'from': params.start_from,
-                          "sort" : [{ "scores.association_score" : {"order" : "desc"}}],
-                          '_source': source_filter,
-                      }
+                    }
+                },
+                'size': params.size,
+                'from': params.start_from,
+                "sort": [{"scores.association_score": {"order": "desc"}}],
+                '_source': source_filter,
+            }
             res = self.handler.search(index=self._index_data,
                                       # doc_type=self._docname_data,
                                       body=query_body,
                                       timeout="10m",
 
-            )
+                                      )
         return PaginatedResult(res, params, )
 
         #     res = helpers.scan(client= self.handler,
@@ -812,11 +487,11 @@ class esQuery():
         # return PaginatedResult(None, params, data = [i for i in res])
 
     def get_associations(self,
-                      genes=[],
-                      objects=[],
-                      gene_operator='OR',
-                      object_operator='OR',
-                      **kwargs):
+                         genes=[],
+                         objects=[],
+                         gene_operator='OR',
+                         object_operator='OR',
+                         **kwargs):
         """
         Get the association scores for the provided target and diseases.
         steps in the process:
@@ -844,7 +519,7 @@ class esQuery():
         filter_data_conditions = dict()
 
         if params.filters[FilterTypes.DATASOURCE] or \
-                 params.filters[FilterTypes.DATATYPE]:
+                params.filters[FilterTypes.DATATYPE]:
             requested_datasources = []
             if params.filters[FilterTypes.DATASOURCE]:
                 requested_datasources.extend(params.filters[FilterTypes.DATASOURCE])
@@ -852,68 +527,69 @@ class esQuery():
                 for datatype in params.filters[FilterTypes.DATATYPE]:
                     requested_datasources.extend(self.datatypes.get_datasources(datatype))
             requested_datasources = list(set(requested_datasources))
-            filter_data_conditions[FilterTypes.DATASOURCE]=self._get_complex_datasource_filter(requested_datasources, BooleanFilterOperator.OR)
+            filter_data_conditions[FilterTypes.DATASOURCE] = self._get_complex_datasource_filter(requested_datasources,
+                                                                                                 BooleanFilterOperator.OR)
         if params.filters[FilterTypes.PATHWAY]:
-            pathway_filter=self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY])
+            pathway_filter = self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY])
             if pathway_filter:
-                filter_data_conditions[FilterTypes.PATHWAY]=pathway_filter
+                filter_data_conditions[FilterTypes.PATHWAY] = pathway_filter
         if params.filters[FilterTypes.UNIPROT_KW]:
-            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW], BooleanFilterOperator.OR)
+            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW],
+                                                                   BooleanFilterOperator.OR)
             if uniprotkw_filter:
-                filter_data_conditions[FilterTypes.UNIPROT_KW]=uniprotkw_filter
+                filter_data_conditions[FilterTypes.UNIPROT_KW] = uniprotkw_filter
         conditions = self._get_base_association_conditions(objects,
                                                            genes,
                                                            object_operator,
                                                            gene_operator,
-                                                           expand_efo=(len(genes)==0) or (len(genes)==1 and len(objects)==1))# temporary handle here special cases for the ui. it should always be true.
+                                                           expand_efo=(len(genes) == 0) or (len(genes) == 1 and len(
+                                                               objects) == 1))  # temporary handle here special cases for the ui. it should always be true.
         if objects:
-            params.datastructure = OutputDataStructureOptions.FLAT#override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg(filters = filter_data_conditions,  params = params)
+            params.datastructure = OutputDataStructureOptions.FLAT  # override datastructure as only flat is available
+            aggs = self._get_efo_associations_agg(filters=filter_data_conditions, params=params)
         if genes:
             if not aggs:
-                aggs = self._get_gene_associations_agg(filters = filter_data_conditions, params = params)
+                aggs = self._get_gene_associations_agg(filters=filter_data_conditions, params=params)
             full_conditions = copy(conditions)
             full_conditions.extend(filter_data_conditions.values())
-
 
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"]= params.fields
+            source_filter["include"] = params.fields
 
         agg_query_body = {
-                      #restrict the set of datapoints using the target and disease ids
-                      "query": {
-                          "filtered": {
-                              "filter": {
-                                  "bool": {
-                                      "must": conditions
-                                  }
-                              }
-                          }
-                      },
-                      'size':60000,
-                      '_source': OutputDataStructureOptions.getSource(params.association_score_method),
-                      # filter out the results as requested, this will not be applied to the aggregation
-                      "post_filter": {
-                          "bool": {
-                              "must": filter_data_conditions.values()
-                          }
-                       },
-                      # calculate aggregation using proper ad hoc filters
-                      "aggs": aggs,
-                      "sort" : {params.association_score_method+".overall" : {"order" : "desc"}}
+            # restrict the set of datapoints using the target and disease ids
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must": conditions
+                        }
+                    }
+                }
+            },
+            'size': 60000,
+            '_source': OutputDataStructureOptions.getSource(params.association_score_method),
+            # filter out the results as requested, this will not be applied to the aggregation
+            "post_filter": {
+                "bool": {
+                    "must": filter_data_conditions.values()
+                }
+            },
+            # calculate aggregation using proper ad hoc filters
+            "aggs": aggs,
+            "sort": {params.association_score_method + ".overall": {"order": "desc"}}
 
-                      }
+        }
 
-
-        agg_data = self.handler.search(index=self._index_score,
-                                  body=agg_query_body,
-                                  timeout = "20m",
-                                  request_timeout  = 60*20,
-                                  # routing=use gene here
-                                  query_cache = True,
-                                  )
+        agg_data = self.handler.search(index=self._index_association,
+                                       body=agg_query_body,
+                                       timeout="20m",
+                                       request_timeout=60 * 20,
+                                       # routing=use gene here
+                                       query_cache=True,
+                                       )
         total = agg_data['hits']['total']
         aggregation_results = {}
 
@@ -925,43 +601,44 @@ class esQuery():
                      "datatypes": [],
                      "association_score": 0,
                      "gene_id": genes[0],
-                    }]
+                     }]
             return CountedResult([],
                                  params,
                                  data,
-                                 total = 0,
-                                 facets = aggregation_results,
-                                 available_datatypes = self.datatypes.available_datatypes,
-                                 status = status.status,
+                                 total=0,
+                                 facets=aggregation_results,
+                                 available_datatypes=self.datatypes.available_datatypes,
+                                 status=status.status,
                                  )
         else:
             associations = [Association(h['_source'], params.association_score_method, self.datatypes)
-                        for h in  agg_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+                            for h in agg_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
             scores = [a.data for a in associations]
-            therapeutic_areas =list(set([ i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
+            therapeutic_areas = list(set([i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
             efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
             if 'aggregations' in agg_data:
-                aggregation_results=agg_data['aggregations']
+                aggregation_results = agg_data['aggregations']
 
         '''build data structure to return'''
         # if params.datastructure == OutputDataStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
         "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
-        data_distribution["total"]= len(data['data'])
+        data_distribution["total"] = len(data['data'])
         if params.datastructure == OutputDataStructureOptions.TREE:
             extended_query_body = agg_query_body
-            extended_query_body['aggs'] ={}
-            extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions( therapeutic_areas, genes, object_operator, gene_operator, expand_efo=True)
-            ta_data = self.handler.search(index=self._index_score,
-                                  body=extended_query_body,
-                                  timeout = "20m",
-                                  request_timeout  = 60*20,
-                                  # routing=use gene here
-                                  query_cache = True,
-                                  )
+            extended_query_body['aggs'] = {}
+            extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
+                therapeutic_areas, genes, object_operator, gene_operator, expand_efo=True)
+            ta_data = self.handler.search(index=self._index_association,
+                                          body=extended_query_body,
+                                          timeout="20m",
+                                          request_timeout=60 * 20,
+                                          # routing=use gene here
+                                          query_cache=True,
+                                          )
             ta_associations = [Association(h['_source'], params.association_score_method, self.datatypes)
-                        for h in  ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
             ta_scores = [a.data for a in ta_associations]
             ta_scores.extend(scores)
             data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
@@ -969,23 +646,21 @@ class esQuery():
         total = len(data['data'])
 
         # data_distribution["evidence_count"]= datapoints
-        aggregation_results ['data_distribution'] = data_distribution
+        aggregation_results['data_distribution'] = data_distribution
 
         return CountedResult([],
                              params,
                              data['data'],
-                             total = total,
+                             total=total,
                              facets=data['facets'],
-                             available_datatypes = self.datatypes.available_datatypes,
-                             status = status.status,
+                             available_datatypes=self.datatypes.available_datatypes,
+                             status=status.status,
                              )
 
-
-
-    def  _get_complex_gene_filter(self,
-                                  genes,
-                                  bol=BooleanFilterOperator.OR,
-                                  ):
+    def _get_complex_gene_filter(self,
+                                 genes,
+                                 bol=BooleanFilterOperator.OR,
+                                 ):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param genes: list of genes
@@ -993,7 +668,7 @@ class esQuery():
         :return: boolean filter
         '''
         if genes:
-            if bol==BooleanFilterOperator.OR:
+            if bol == BooleanFilterOperator.OR:
                 return {
                     "terms": {"target.id": genes}
                 }
@@ -1009,7 +684,6 @@ class esQuery():
                 }
         return dict()
 
-
     def _get_complex_object_filter(self,
                                    objects,
                                    bol=BooleanFilterOperator.OR,
@@ -1022,9 +696,9 @@ class esQuery():
         :return: boolean filter
         '''
         if objects:
-            if bol==BooleanFilterOperator.OR:
+            if bol == BooleanFilterOperator.OR:
                 if expand_efo:
-                    return {"terms": {"private.efo_codes":objects}}
+                    return {"terms": {"private.efo_codes": objects}}
                 else:
                     return {"terms": {"disease.id": objects}}
 
@@ -1032,22 +706,22 @@ class esQuery():
                 if expand_efo:
                     return {
                         "bool": {
-                            bol : [{
-                                  "terms": {
-                                    "private.efo_codes":[object]}
-                              }
-                              for object in objects]
+                            bol: [{
+                                      "terms": {
+                                          "private.efo_codes": [object]}
+                                  }
+                                  for object in objects]
                         }
 
                     }
                 else:
                     return {
                         "bool": {
-                            bol : [{
-                                  "terms": {
-                                     "disease.id": [object]}
-                              }
-                              for object in objects]
+                            bol: [{
+                                      "terms": {
+                                          "disease.id": [object]}
+                                  }
+                                  for object in objects]
                         }
 
                     }
@@ -1062,7 +736,6 @@ class esQuery():
         if genes:
             return {"terms": {"target": genes}}
         return dict()
-
 
     def _get_complex_evidence_type_filter(self,
                                           evidence_types,
@@ -1084,7 +757,6 @@ class esQuery():
                 }
             }
         return dict()
-
 
     def _get_complex_datasource_filter(self, datasources, bol):
         '''
@@ -1124,7 +796,6 @@ class esQuery():
             }
         return dict()
 
-
     def _get_complex_pathway_filter(self, pathway_codes):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
@@ -1137,152 +808,125 @@ class esQuery():
             # if genes:
             #     return self._get_complex_gene_filter(genes, bol)
             return {"bool": {
-                            "should": [
-                                           {"terms": {"private.facets.reactome.pathway_code":pathway_codes}},
-                                           {"terms": {"private.facets.reactome.pathway_type_code":pathway_codes}},
-                                       ]
+                "should": [
+                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
+                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
 
-                           }
-                }
+            }
+            }
 
         return dict()
 
     def _get_free_text_query(self, searchphrase):
-        return {"bool": {
-                    "should": [
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "label^5",
-                                        "efo_synonyms",
-                                        "symbol_synonyms",
-                                        "approved_symbol",
-                                        "approved_name",
-                                        "name_synonyms",
-                                        "gene_family_description",
-                                        ],
-                            "analyzer" : 'standard',
-                            # "fuzziness": "AUTO",
-                            "tie_breaker": 0.1,
-                            "type": "phrase_prefix",
-                          }
-                        },
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "label",
-                                        "id",
-                                        "approved_symbol^2",
-                                        "symbol_synonyms^2",
-                                        "name_synonyms",
-                                        "uniprot_id",
-                                        "uniprot_accessions",
-                                        "hgnc_id",
-                                        "ensembl_gene_id",
-                                        ],
-                            "analyzer" : 'keyword',
-                            # "fuzziness": "AUTO",
-                            # "tie_breaker": 0.1,
-                            "type": "best_fields",
-                          }
-                        },
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "id",
-                                        "approved_symbol",
-                                        ],
-                            "analyzer" : 'keyword',
-                            "fuzziness": "AUTO",
-                            # "tie_breaker": 0.1,
-                            "type": "best_fields",
-                          }
-                        },
-                    ]
-                }
-            }
-
-
-
-
-    def _get_free_text_gene_query(self, searchphrase):
-        return {"bool": {
-                    "should": [
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "symbol_synonyms",
-                                        "approved_name",
-                                        "name_synonyms",
-                                        "gene_family_description",
-                                        ],
-                            "analyzer" : 'standard',
-                            # "fuzziness": "AUTO",
-                            "tie_breaker": 0.1,
-                            "type": "phrase_prefix",
-                          }
-                        },
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "id",
-                                        "approved_symbol^2",
-                                        "name_synonyms",
-                                        "uniprot_id",
-                                        "uniprot_accessions",
-                                        "hgnc_id",
-                                        "ensembl_gene_id",
-                                        ],
-                            "analyzer" : 'keyword',
-                            # "fuzziness": "AUTO",
-                            # "tie_breaker": 0.1,
-                            "type": "best_fields",
-                          }
+        query_body = {"function_score": {
+            'query': {
+                'filtered': {
+                    'query': {
+                        "bool": {
+                            "should": [
+                                {"multi_match": {
+                                    "query": searchphrase,
+                                    "fields": ["title^3",
+                                               "description^3",
+                                               "efo_synonyms",
+                                               "symbol_synonyms",
+                                               "approved_symbol",
+                                               "approved_name",
+                                               "name_synonyms",
+                                               "gene_family_description",
+                                               "efo_path_labels",
+                                               ],
+                                    "analyzer": 'standard',
+                                    # "fuzziness": "AUTO",
+                                    "tie_breaker": 0.1,
+                                    "type": "phrase_prefix",
+                                }
+                                },
+                                {"multi_match": {
+                                    "query": searchphrase,
+                                    "fields": ["title^2",
+                                               "id",
+                                               "approved_symbol^2",
+                                               "symbol_synonyms^2",
+                                               "name_synonyms",
+                                               "uniprot_accessions",
+                                               "hgnc_id",
+                                               "ensembl_gene_id",
+                                               "efo_path_codes^0.3",
+                                               "efo_url",
+                                               "efo_synonyms^2",
+                                               ],
+                                    "analyzer": 'keyword',
+                                    # "fuzziness": "AUTO",
+                                    # "tie_breaker": 0.1,
+                                    "type": "best_fields",
+                                }
+                                },
+                            ]
                         }
-                    ]
-                }
-            }
+                    },
+                    'filter': {
+                        # "not":{ "term": { "biotype": 'processed_pseudogene' }},
+                        # "not":{ "term": { "biotype": 'antisense' }},
+                        # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
+                        # "not":{ "term": { "biotype": 'lincRNA' }},
+                        # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+                        # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
+                        # "not":{ "term": { "biotype": 'sense_intronic' }},
+                        # "not":{ "term": { "biotype": 'processed_transcript' }},
+                        # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
+                        # "not":{ "term": { "biotype": 'miRNA' }},
+                    }
+                },
+            },
 
+            # "script_score": {
+               # "script" : "_score *1"
+               #  "script" : "if (doc['total_associations'].value >0) { _score * 1+(doc['total_associations'].value/100)}"
+               # "script" : "if (!doc['min_path_len'].empty) { _score *10/doc['min_path_len'].value}"
+            # }
+        }
 
-    def _get_free_text_efo_query(self, searchphrase):
-         return {"bool": {
-                    "should": [
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "label^5",
-                                        "efo_synonyms",
-                                        ],
-                            "analyzer" : 'standard',
-                            # "fuzziness": "AUTO",
-                            "tie_breaker": 0.1,
-                            "type": "phrase_prefix",
-                          }
-                        },
-                        {"multi_match" : {
-                            "query":    searchphrase,
-                            "fields": [ "label",
-                                        "id",
-                                      ],
-                            "analyzer" : 'keyword',
-                            # "fuzziness": "AUTO",
-                            # "tie_breaker": 0.1,
-                            "type": "best_fields",
-                          }
-                        }
-                    ]
-                }
-            }
+        }
 
+        return query_body
 
+    def _get_free_text_highlight(self):
+        return {"fields": {
+            "id": {},
+            "title": {},
+            "description": {},
+            "label": {},
+            "symbol_synonyms": {},
+            "efo_synonyms": {},
+            "biotype": {},
+            "id": {},
+            "approved_symbol": {},
+            "approved_name": {},
+            "name_synonyms": {},
+            "gene_family_description": {},
+            "uniprot_accessions": {},
+            "hgnc_id": {},
+            "ensembl_gene_id": {},
+            "efo_path_codes": {},
+            "efo_url": {},
+            "efo_path_labels": {},
+        }
+        }
 
-    def _get_gene_associations_agg(self, expand_efo = True, filters = {}, params = None):
+    def _get_gene_associations_agg(self, expand_efo=True, filters={}, params=None):
         facets = params.facets
-        aggs ={}
+        aggs = {}
         if facets:
             aggs["datatypes"] = self._get_datatype_facet_aggregation(filters)
         return aggs
 
-    def _get_efo_associations_agg(self, filters = {}, params = None):
+    def _get_efo_associations_agg(self, filters={}, params=None):
 
         facets = params.facets
 
         gene_related_aggs = self._get_gene_related_aggs(filters)
-
 
         aggs = {
         }
@@ -1291,25 +935,23 @@ class esQuery():
             aggs['pathway_type'] = gene_related_aggs["pathway_type"]
             aggs['uniprot_keywords'] = gene_related_aggs["uniprot_keywords"]
 
-
         return aggs
 
-    def _get_datasource_init_list(self, params = None):
-        datatype_list = []#["'all':[]"]
+    def _get_datasource_init_list(self, params=None):
+        datatype_list = []  # ["'all':[]"]
         for datatype in self.datatypes.available_datatypes:
             # datatype_list.append("'%s': []"%datatype)
-            for datasource in  self.datatypes.get_datasources(datatype):
-                datatype_list.append("'%s': []"%datasource)
+            for datasource in self.datatypes.get_datasources(datatype):
+                datatype_list.append("'%s': []" % datasource)
         return ',\n'.join(datatype_list)
 
-    def _get_datatype_combine_init_list(self, params = None):
+    def _get_datatype_combine_init_list(self, params=None):
         datatype_list = ["'all':0"]
         for datatype in self.datatypes.available_datatypes:
-            datatype_list.append("'%s': 0"%datatype)
-            for datasource in  self.datatypes.get_datasources(datatype):
-                datatype_list.append("'%s': 0"%datasource)
+            datatype_list.append("'%s': 0" % datatype)
+            for datasource in self.datatypes.get_datasources(datatype):
+                datatype_list.append("'%s': 0" % datasource)
         return ',\n'.join(datatype_list)
-
 
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
@@ -1318,12 +960,9 @@ class esQuery():
                 conditions.append(filter_value)
         return conditions
 
-
     def _return_association_flat_data_structures(self,
-                                                      scores,
-                                                      facets):
-
-
+                                                 scores,
+                                                 facets):
 
         if 'datatypes' in facets:
             facets['datatypes'] = facets['datatypes']['data']
@@ -1332,35 +971,34 @@ class esQuery():
         if 'uniprot_keywords' in facets:
             facets['uniprot_keywords'] = facets['uniprot_keywords']['data']
         facets = self._process_facets(facets)
-        return dict(data = scores,
-                    facets = facets)
+        return dict(data=scores,
+                    facets=facets)
 
     def _return_association_tree_data_structures(self,
-                                                  scores,
-                                                  flat_scores,
-                                                  efo_with_data =[],
+                                                 scores,
+                                                 flat_scores,
+                                                 efo_with_data=[],
                                                  ):
 
         def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
-            data = dict([(i["disease"]['id'],i) for i in data])
+            data = dict([(i["disease"]['id'], i) for i in data])
             expanded_relations = []
             for code, paths in efo_parents.items():
                 if code in data:
                     for path in paths:
-                        expanded_relations.append([code,path])
+                        expanded_relations.append([code, path])
 
-            efo_tree_relations = sorted(expanded_relations,key=lambda items: len(items[1]))
-            root=AssociationTreeNode()
+            efo_tree_relations = sorted(expanded_relations, key=lambda items: len(items[1]))
+            root = AssociationTreeNode()
             if not efo_with_data:
-                extended_efo_with_data= [code for code, parents in efo_tree_relations]
+                extended_efo_with_data = [code for code, parents in efo_tree_relations]
             else:
                 extended_efo_with_data = copy(efo_with_data)
                 for code, parents in efo_tree_relations:
-                    if len(parents)>1:
+                    if len(parents) > 1:
                         ta_code = parents[1]
                         if ta_code not in extended_efo_with_data:
                             extended_efo_with_data.append(ta_code)
-
 
             for code, parents in efo_tree_relations:
                 if code in extended_efo_with_data:
@@ -1368,27 +1006,24 @@ class esQuery():
                         root.add_child(AssociationTreeNode(code, **data[code]))
                     else:
                         node = root.get_node_at_path(parents)
-                        node.add_child(AssociationTreeNode(code,**data[code]))
-
+                        node.add_child(AssociationTreeNode(code, **data[code]))
 
             return root.to_dict_tree_with_children_as_array()
 
-
-
         facets = {}
         if scores:
-            
+
             efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["disease"]['id'] for i in scores])
             # scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
             tree_data = transform_data_to_tree(scores, efo_parents, efo_tas, efo_with_data) or flat_scores['data']
-            facets= flat_scores['facets']
+            facets = flat_scores['facets']
         else:
             tree_data = scores
 
-        return dict(data = tree_data,
-                    facets = facets)
+        return dict(data=tree_data,
+                    facets=facets)
 
-    def  _get_efo_data_for_associations(self,efo_keys):
+    def _get_efo_data_for_associations(self, efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
         #     all_tas = []
         #     for tas in efo_therapeutic_area.values():
@@ -1410,29 +1045,27 @@ class esQuery():
             code = efo['code'].split('/')[-1]
             parents = []
             parent_labels = {}
-            for i,path in enumerate(efo['path_codes']):
+            for i, path in enumerate(efo['path_codes']):
                 parents.append(path[:-1])
                 parent_labels.update(dict(zip(efo['path_codes'][i], efo['path_labels'][i])))
-            efo_parents[code]=parents
-            efo_labels[code]=efo['label']
+            efo_parents[code] = parents
+            efo_labels[code] = efo['label']
             ta = []
             for path in parents:
-                if len(path)>1:
+                if len(path) > 1:
                     if path[1] not in ta:
                         ta.append(path[1])
-                        efo_labels[path[1]]=parent_labels[path[1]]
-            efo_therapeutic_area[code]= ta
+                        efo_labels[path[1]] = parent_labels[path[1]]
+            efo_therapeutic_area[code] = ta
             # if len(efo['path_codes'])>2:
         # efo_labels = get_missing_ta_labels(efo_labels,efo_therapeutic_area)
 
 
         return efo_parents, efo_labels, efo_therapeutic_area
 
-
-
     def get_expression(self,
-                              genes,
-                              **kwargs):
+                       genes,
+                       **kwargs):
         '''
         returns the expression data for a list of genes
         :param genes: list of genes
@@ -1442,10 +1075,9 @@ class esQuery():
         params = SearchParams(**kwargs)
         if genes:
 
-
             source_filter = OutputDataStructureOptions.getSource(params.datastructure)
             if params.fields:
-                source_filter["include"]= params.fields
+                source_filter["include"] = params.fields
 
             res = self.handler.search(index=self._index_expression,
                                       body={
@@ -1457,14 +1089,14 @@ class esQuery():
                                           # 'size': params.size,
                                           # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
 
-                                          }
+                                      }
                                       )
             if res['hits']['total']:
-                data = dict([(hit['_id'],hit['_source']) for hit in res['hits']['hits']])
+                data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
                 return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
-        efo_with_data =[]
+        efo_with_data = []
         res = self.handler.search(index=self._index_data,
                                   body={
                                       "query": {
@@ -1478,69 +1110,70 @@ class esQuery():
                                           }
                                       },
                                       'size': 100000,
-                                      '_source': [ "disease.id"],
-                                       "aggs": {"efo_codes": {
-                                           "terms": {
-                                               "field" : "disease.id",
-                                               'size': 100000,
+                                      '_source': ["disease.id"],
+                                      "aggs": {"efo_codes": {
+                                          "terms": {
+                                              "field": "disease.id",
+                                              'size': 100000,
 
-                                           },
-                                         }
+                                          },
+                                      }
                                       }
                                   })
         if res['hits']['total']:
             data = res['aggregations']["efo_codes"]["buckets"]
-            efo_with_data=list(set([i['key'] for i in data]))
+            efo_with_data = list(set([i['key'] for i in data]))
         return efo_with_data
 
-    def _get_gene_info_agg(self, filters = {}):
+    def _get_gene_info_agg(self, filters={}):
 
         return {
             "pathway_type": {
                 "filter": {
                     "bool": {
                         "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
-                        }
-                    },
-                    "aggs":{
-                        "data": {
-                            "terms": {
-                                 "field" : "private.facets.reactome.pathway_type_code",
-                                 'size': 10,
-                                },
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.reactome.pathway_type_code",
+                            'size': 10,
+                        },
 
-                            "aggs": {
-                                "pathway": {
-                                    "terms": {
-                                         "field" : "private.facets.reactome.pathway_code",
-                                         'size': 10,
-                                    },
+                        "aggs": {
+                            "pathway": {
+                                "terms": {
+                                    "field": "private.facets.reactome.pathway_code",
+                                    'size': 10,
+                                },
                             }
                         },
                     }
                 }
-             }
+            }
         }
 
     def _get_genes_for_pathway_code(self, pathway_codes):
-        data =[]
+        data = []
         res = self.handler.search(index=self._index_genename,
                                   body={
                                       "query": {
                                           "filtered": {
                                               "filter": {
-                                                   "bool": {
-                                                       "should": [
-                                                           {"terms": {"private.facets.reactome.pathway_code":pathway_codes}},
-                                                           {"terms": {"private.facets.reactome.pathway_type_code":pathway_codes}},
-                                                       ]
-                                                   }
+                                                  "bool": {
+                                                      "should": [
+                                                          {"terms": {
+                                                              "private.facets.reactome.pathway_code": pathway_codes}},
+                                                          {"terms": {
+                                                              "private.facets.reactome.pathway_type_code": pathway_codes}},
+                                                      ]
+                                                  }
                                               }
                                           }
                                       },
                                       'size': 100000,
                                       '_source': ["id"],
-
 
                                   })
         if res['hits']['total']:
@@ -1554,17 +1187,17 @@ class esQuery():
         '''get data'''
         for facet in facets:
             if 'buckets' in facets[facet]:
-                    facet_buckets = facets[facet]['buckets']
-                    for bucket in facet_buckets:
-                        if facet=='pathway_type':
-                            reactome_ids.append(bucket['key'])
-                            if 'pathway' in bucket:
-                                if 'buckets' in bucket['pathway']:
-                                    sub_facet_buckets = bucket['pathway']['buckets']
-                                    for sub_bucket in sub_facet_buckets:
-                                        reactome_ids.append(sub_bucket['key'])
+                facet_buckets = facets[facet]['buckets']
+                for bucket in facet_buckets:
+                    if facet == 'pathway_type':
+                        reactome_ids.append(bucket['key'])
+                        if 'pathway' in bucket:
+                            if 'buckets' in bucket['pathway']:
+                                sub_facet_buckets = bucket['pathway']['buckets']
+                                for sub_bucket in sub_facet_buckets:
+                                    reactome_ids.append(sub_bucket['key'])
 
-        reactome_ids= list(set(reactome_ids))
+        reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
 
         '''alter data'''
@@ -1572,14 +1205,15 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet=='pathway_type':#reactome data
-                        bucket['label']=reactome_labels[bucket['key'].upper()] or bucket['key']
+                    if facet == 'pathway_type':  # reactome data
+                        bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key']
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
-                                    sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()]  or sub_bucket['key']
-                    elif facet == 'datatypes':# need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
+                                    sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()] or sub_bucket[
+                                        'key']
+                    elif facet == 'datatypes':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
                         if 'datasources' in bucket:
                             if 'buckets' in bucket['datasources']:
@@ -1590,7 +1224,6 @@ class esQuery():
                                         new_sub_buckets.append(sub_bucket)
                                 bucket['datasources']['buckets'] = new_sub_buckets
 
-
         return facets
 
     def _get_labels_for_reactome_ids(self, reactome_ids):
@@ -1599,135 +1232,132 @@ class esQuery():
             res = self.handler.search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
-                                              "filtered": {
-                                                  # "query": {
-                                                  #     "match_all": {}
-                                                  # },
-                                                  "filter": {
-                                                      "ids": {
-                                                          "values": reactome_ids
+                                          "filtered": {
+                                              # "query": {
+                                              #     "match_all": {}
+                                              # },
+                                              "filter": {
+                                                  "ids": {
+                                                      "values": reactome_ids
 
-                                                         }
-                                                    }
-                                                }
-                                            },
+                                                  }
+                                              }
+                                          }
+                                      },
 
-                                           '_source': ['label'],
-                                           'size': 100000,
-                                           'from': 0,
+                                          '_source': ['label'],
+                                          'size': 100000,
+                                          'from': 0,
 
-                                           }
+                                      }
                                       )
             if res['hits']['total']:
                 for hit in res['hits']['hits']:
-                    labels[hit['_id']]= hit['_source']['label']
+                    labels[hit['_id']] = hit['_source']['label']
         return labels
 
     def _get_datatype_facet_aggregation(self, filters):
 
-        return  {
+        return {
             "filter": {
                 "bool": {
                     "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
-                    }
-                },
-                "aggs":{
-                    "data": {
-                        "terms": {
-                             "field" : "private.facets.datatype",
-                             'size': 10,
-                           },
-                        "aggs":{
-                            "datasources": {
-                                "terms": {
-                                    "field" :  "private.facets.datasource",
-                                },
-                            "aggs":{
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.datatype",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "datasources": {
+                            "terms": {
+                                "field": "private.facets.datasource",
+                            },
+                            "aggs": {
                                 "unique_target_count": {
-                                   "cardinality" : {
-                                      "field" : "target.id",
-                                      "precision_threshold": 1000},
-                                  },
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
                                 "unique_disease_count": {
-                                   "cardinality" : {
-                                      "field" : "disease.id",
-                                      "precision_threshold": 1000},
-                                    },
-                                }
-                            },
-                            "unique_target_count": {
-                               "cardinality" : {
-                                  "field" : "target.id",
-                                  "precision_threshold": 1000},
-                              },
-                            "unique_disease_count": {
-                               "cardinality" : {
-                                  "field" : "disease.id",
-                                  "precision_threshold": 1000},
-                            },
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
 
-                        }
                     }
                 }
+            }
         }
 
-
-    def _get_pathway_facet_aggregation(self, filters = {}):
+    def _get_pathway_facet_aggregation(self, filters={}):
 
         return {
             "filter": {
                 "bool": {
                     "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.reactome.pathway_type_code",
+                        'size': 100,
+                    },
+
+                    "aggs": {
+                        "pathway": {
+                            "terms": {
+                                "field": "private.facets.reactome.pathway_code",
+                                'size': 10,
+                            },
+                            "aggs": {
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
                     }
                 },
-                "aggs":{
-                    "data": {
-                        "terms": {
-                             "field" : "private.facets.reactome.pathway_type_code",
-                             'size': 100,
-                            },
-
-                        "aggs": {
-                            "pathway": {
-                                "terms": {
-                                     "field" : "private.facets.reactome.pathway_code",
-                                     'size': 10,
-                                },
-                                "aggs":{
-                                    "unique_target_count": {
-                                       "cardinality" : {
-                                          "field" : "target.id",
-                                          "precision_threshold": 1000},
-                                      },
-                                    "unique_disease_count": {
-                                       "cardinality" : {
-                                          "field" : "disease.id",
-                                          "precision_threshold": 1000},
-                                    },
-                                }
-                            },
-                            "unique_target_count": {
-                               "cardinality" : {
-                                  "field" : "target.id",
-                                  "precision_threshold": 1000},
-                              },
-                            "unique_disease_count": {
-                               "cardinality" : {
-                                  "field" : "disease.id",
-                                  "precision_threshold": 1000},
-                            },
-                        }
-                    },
-                }
             }
-
-
+        }
 
     def _get_gene_related_aggs(self, filters):
         return dict(
-            pathway_type = self._get_pathway_facet_aggregation(filters),
-            go = self._get_go_facet_aggregation(filters),
-            uniprot_keywords = self._get_uniprot_keywords_facet_aggregation(filters),
+                pathway_type=self._get_pathway_facet_aggregation(filters),
+                go=self._get_go_facet_aggregation(filters),
+                uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
 
         )
 
@@ -1739,57 +1369,57 @@ class esQuery():
             "filter": {
                 "bool": {
                     "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
-                    }
-                },
-                "aggs":{
-                    "data": {
-                        "significant_terms": {
-                             "field" : "private.facets.uniprot_keywords",
-                             'size': 25,
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.uniprot_keywords",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
                         },
-                        "aggs": {
-                            "unique_target_count": {
-                               "cardinality" : {
-                                  "field" : "target.id",
-                                  "precision_threshold": 1000},
-                              },
-                            "unique_disease_count": {
-                               "cardinality" : {
-                                  "field" : "disease.id",
-                                  "precision_threshold": 1000},
-                            },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
                         },
                     },
-                }
+                },
             }
+        }
 
     def _get_uniprot_keywords_facet_aggregation_for_genes(self, filters):
         return {
-                "aggs":{
-                    "data": {
-                        "significant_terms": {
-                             "field" : "uniprot_keywords",
-                             'size': 25,
-                        },
-                        # "aggs": {
-                        #     "unique_target_count": {
-                        #        "value_count" : {
-                        #           "field" : "id",
-                        #        },
-                        #     },
-                        # },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "uniprot_keywords",
+                        'size': 25,
                     },
-                }
-
+                    # "aggs": {
+                    #     "unique_target_count": {
+                    #        "value_count" : {
+                    #           "field" : "id",
+                    #        },
+                    #     },
+                    # },
+                },
             }
 
+        }
+
     def _get_association_score_scripted_metric_script(self, params):
-        #TODO:  use the scripted metric to calculate association score.
-        #TODO: Use script parameters to pass the weights from request.
-        #TODO: implement using the max for datatype and overall score in combine and reduce
+        # TODO:  use the scripted metric to calculate association score.
+        # TODO: Use script parameters to pass the weights from request.
+        # TODO: implement using the max for datatype and overall score in combine and reduce
         return dict(
-                    init_script = "_agg['evs_scores'] = [%s];"%self._get_datasource_init_list(params),
-                    map_script = """
+                init_script="_agg['evs_scores'] = [%s];" % self._get_datasource_init_list(params),
+                map_script="""
 //get values from entry
 ev_type = doc['type'].value;
 ev_sourceID = doc['sourceID'].value
@@ -1802,8 +1432,8 @@ ev_score_ds = doc['scores.association_score'].value
 //_agg.evs_scores['all'].add(ev_score_dt)
 _agg.evs_scores[ev_sourceID].add(ev_score_ds)
 //_agg.evs_scores[ev_type].add(ev_score_dt)
-"""%self._get_datasource_score_calculation_script(params),
-                    combine_script = """
+""" % self._get_datasource_score_calculation_script(params),
+                combine_script="""
 scores = [%s];
 // sum all the values coming from a single shard
 _agg.evs_scores.each { key, value ->
@@ -1811,8 +1441,8 @@ _agg.evs_scores.each { key, value ->
         scores[key] += v;
         };
     };
-return scores"""%self._get_datatype_combine_init_list(params),
-                    reduce_script = """
+return scores""" % self._get_datatype_combine_init_list(params),
+                reduce_script="""
 //init scores table with available datasource and datatypes
 scores = [%s];
 //generate a datasource to datatype (ds2dt) map
@@ -1838,25 +1468,24 @@ scores.each { key, value ->
         scores[key] = 1;
         };
     };
-return scores"""%(self._get_datatype_combine_init_list(params),
-                  self._get_datasource_to_datatype_mapping_script(params)),
-                )
+return scores""" % (self._get_datatype_combine_init_list(params),
+                    self._get_datasource_to_datatype_mapping_script(params)),
+        )
 
-
-    def _get_datasource_score_calculation_script(self, params = None):
+    def _get_datasource_score_calculation_script(self, params=None):
         template_ds = """if (ev_sourceID == '%s') {
   ev_score_ds = doc['scores.association_score'].value * %f / %f;
   }"""
         script = []
         for ds in self.datatypes.datasources:
-            script.append(template_ds%(ds,self.datatource_scoring.weights[ds],params.stringency))
+            script.append(template_ds % (ds, self.datatource_scoring.weights[ds], params.stringency))
 
         return '\n'.join(script)
 
-    def _get_datasource_to_datatype_mapping_script(self, params = None):
+    def _get_datasource_to_datatype_mapping_script(self, params=None):
         script = ['ds2dt = [']
         for ds in self.datatypes.datasources.values():
-            script.append("'%s' : %s,"%(ds.name, str(ds.datatypes)))
+            script.append("'%s' : %s," % (ds.name, str(ds.datatypes)))
 
         script.append(']')
         script = '\n'.join(script)
@@ -1867,25 +1496,25 @@ return scores"""%(self._get_datatype_combine_init_list(params),
         for dt in self.datatypes.datatypes.values():
             dt_score = scores[dt.name]
             if dt_score != 0:
-                dt_data = dict(datatype = dt.name,
-                               association_score = dt_score,
-                               datasources = []
-                              )
+                dt_data = dict(datatype=dt.name,
+                               association_score=dt_score,
+                               datasources=[]
+                               )
                 for ds in dt.datasources:
                     ds_score = scores[ds]
                     if ds_score != 0:
-                        dt_data['datasources'].append(dict(datasource = ds,
-                                                           association_score = ds_score,
-                                                            ))
+                        dt_data['datasources'].append(dict(datasource=ds,
+                                                           association_score=ds_score,
+                                                           ))
                 datatype_data.append(dt_data)
 
         return datatype_data
 
     def _get_association_data_distribution(self, scores):
-        histogram, bin_edges = np.histogram(scores,5,(0.,1.))
+        histogram, bin_edges = np.histogram(scores, 5, (0., 1.))
         distribution = dict(buckets={})
-        for i in range(len(bin_edges)-1):
-            distribution['buckets'][round(bin_edges[i],1)]={'value':histogram[i]}
+        for i in range(len(bin_edges) - 1):
+            distribution['buckets'][round(bin_edges[i], 1)] = {'value': histogram[i]}
 
         return distribution
 
@@ -1903,30 +1532,29 @@ return scores"""%(self._get_datatype_combine_init_list(params),
         return dict()
 
     def _get_genes_for_uniprot_kw(self, kw):
-        data =[]
+        data = []
         res = self.handler.search(index=self._index_genename,
                                   body={
                                       "query": {
                                           "filtered": {
                                               "filter": {
-                                                   "bool": {
-                                                       "should": [
-                                                           {"terms": {"private.facets.uniprot_keywords":kw}},
-                                                       ]
-                                                   }
+                                                  "bool": {
+                                                      "should": [
+                                                          {"terms": {"private.facets.uniprot_keywords": kw}},
+                                                      ]
+                                                  }
                                               }
                                           }
                                       },
                                       'size': 100000,
                                       '_source': ["id"],
 
-
                                   })
         if res['hits']['total']:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
 
-    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo = False):
+    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo=False):
         conditions = []
         if objects:
             conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=False))
@@ -1938,7 +1566,7 @@ return scores"""%(self._get_datatype_combine_init_list(params),
         return conditions
 
     def _get_facet_association_conditions(self, objects, genes, object_operator, gene_operator):
-        return self._get_base_association_conditions(objects, genes, object_operator, gene_operator, expand_efo = True)
+        return self._get_base_association_conditions(objects, genes, object_operator, gene_operator, expand_efo=True)
 
     def _get_is_direct_filter(self):
 
@@ -1946,13 +1574,39 @@ return scores"""%(self._get_datatype_combine_init_list(params),
             "term": {"is_direct": True}
         }
 
+    def _get_search_doc_types(self, filter):
+        doc_types = []
+        for t in filter:
+            if t.lower() == FreeTextFilterOptions.ALL:
+                return []
+            elif t.lower() in FreeTextFilterOptions.__dict__.values():
+                doc_types.append(self._docname_search + '*' + FreeTextFilterOptions.__dict__[t.lower()])
+        return doc_types
+
+    def _free_text_query(self, searchphrase, doc_types, params):
+        return self.handler.search(index=self._index_search,
+                                   doc_type=doc_types,
+                                   body={'query': self._get_free_text_query(searchphrase),
+                                         'size': params.size,
+                                         'from': params.start_from,
+                                         '_source': OutputDataStructureOptions.getSource(
+                                                 OutputDataStructureOptions.FULL),
+                                         # "min_score": 0.,
+                                         "highlight": self._get_free_text_highlight(),
+
+
+                                         },
+
+                                   )
+
+    def _get_search_doc_name(self, doc_type):
+        return self._docname_search + '-' + doc_type
 
 
 class SearchParams():
     _max_search_result_limit = 100000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
-
 
     def __init__(self, **kwargs):
 
@@ -1977,7 +1631,8 @@ class SearchParams():
 
         self.format = kwargs.get('format', 'json') or 'json'
 
-        self.datastructure = kwargs.get('datastructure', OutputDataStructureOptions.DEFAULT) or OutputDataStructureOptions.DEFAULT
+        self.datastructure = kwargs.get('datastructure',
+                                        OutputDataStructureOptions.DEFAULT) or OutputDataStructureOptions.DEFAULT
 
         self.fields = kwargs.get('fields')
 
@@ -1985,12 +1640,12 @@ class SearchParams():
             self.datastructure = OutputDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN,0.2)
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.2)
         if self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] is None:
-            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] =0.2
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX,1)
+            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = 0.2
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
         if self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] is None:
-            self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] =1
+            self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = 1
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
@@ -1998,23 +1653,22 @@ class SearchParams():
         # if self.filters[FilterTypes.PATHWAY]:
         #     self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
 
-        self.stringency = kwargs.get('stringency', 1.) or 1. #cannot be zero
+        self.stringency = kwargs.get('stringency', 1.) or 1.  # cannot be zero
 
-        self.pathway= kwargs.get('pathway', []) or []
-        self.target_class= kwargs.get('target_class',[]) or []
-        self.uniprot_kw= kwargs.get('uniprotkw', []) or []
-        self.datatype= kwargs.get('datatype', []) or []
+        self.pathway = kwargs.get('pathway', []) or []
+        self.target_class = kwargs.get('target_class', []) or []
+        self.uniprot_kw = kwargs.get('uniprotkw', []) or []
+        self.datatype = kwargs.get('datatype', []) or []
 
         self.expand_efo = kwargs.get('expandefo', False)
         self.facets = kwargs.get('facets', True)
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
 
-
 class AssociationTreeNode(object):
     ROOT = 'cttv_disease'
 
-    def __init__(self, name = None, **kwargs):
+    def __init__(self, name=None, **kwargs):
         self.name = name or self.ROOT
         self.children = {}
         for key, value in kwargs.items():
@@ -2030,9 +1684,10 @@ class AssociationTreeNode(object):
             if child == self:
                 raise AttributeError(" cannot add a node to itself as a child")
             if not self.has_child(child):
-                self.children[child.name]=child
+                self.children[child.name] = child
         else:
             raise AttributeError("child needs to be an AssociationTreeNode ")
+
     def del_child(self, child):
         if isinstance(child, AssociationTreeNode):
             if child._is_root():
@@ -2055,7 +1710,6 @@ class AssociationTreeNode(object):
     def get_children(self):
         return self.children.values()
 
-
     def get_node_at_path(self, path):
         node = self
         for p in path:
@@ -2077,32 +1731,28 @@ class AssociationTreeNode(object):
 
     def __unicode__(self):
         return unicode(self.name)
+
     def children_as_array(self):
         return self.children.values()
 
     def single_node_to_dict(self):
         out = self.__dict__
         if self.children:
-            out['children']= self.children_as_array()
+            out['children'] = self.children_as_array()
         else:
             del out['children']
         return out
-
 
     def recursive_node_to_dict(self, node):
         if isinstance(node, AssociationTreeNode):
             out = node.single_node_to_dict()
             if 'children' in out:
-                for i,child in enumerate(out['children']):
+                for i, child in enumerate(out['children']):
                     if isinstance(child, AssociationTreeNode):
                         child = child.recursive_node_to_dict(child)
                     out['children'][i] = child
             return out
 
-
     def to_dict_tree_with_children_as_array(self):
         out = self.recursive_node_to_dict(self)
         return out
-
-
-

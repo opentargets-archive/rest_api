@@ -63,14 +63,16 @@ def create_app(config_name):
                                         index_genename=app.config['ELASTICSEARCH_GENE_NAME_INDEX_NAME'],
                                         index_expression=app.config['ELASTICSEARCH_EXPRESSION_INDEX_NAME'],
                                         index_reactome=app.config['ELASTICSEARCH_REACTOME_INDEX_NAME'],
-                                        index_score=app.config['ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME'],
+                                        index_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME'],
+                                        index_search=app.config['ELASTICSEARCH_DATA_SEARCH_INDEX_NAME'],
                                         docname_data=app.config['ELASTICSEARCH_DATA_DOC_NAME'],
                                         docname_efo=app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
                                         docname_eco=app.config['ELASTICSEARCH_ECO_DOC_NAME'],
                                         docname_genename=app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
                                         docname_expression=app.config['ELASTICSEARCH_EXPRESSION_DOC_NAME'],
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
-                                        docname_score=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
+                                        docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
+                                        docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         log_level=log_level,
 
                                         )

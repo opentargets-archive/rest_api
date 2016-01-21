@@ -25,6 +25,8 @@ class Config:
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
     ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = 'association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = 'search-data'
+    ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
@@ -36,7 +38,7 @@ class Config:
                      }
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '1.0'
+    API_VERSION = '1.1'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''

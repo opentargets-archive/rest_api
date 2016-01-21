@@ -357,12 +357,12 @@ class FilterBy(restful.Resource, Paginable):
 
         es = current_app.extensions['esquery']
 
-        res = es.get_evidences(genes = genes,
-                               objects = objects,
-                               evidence_types = evidence_types,
-                               datasources = datasources,
-                               datatypes = datatype,
-                               # gene_operator = gene_operator,
+        res = es.get_evidence(genes = genes,
+                              objects = objects,
+                              evidence_types = evidence_types,
+                              datasources = datasources,
+                              datatypes = datatype,
+                              # gene_operator = gene_operator,
                                # object_operator = object_operator,
                                # evidence_type_operator = evidence_type_operator,
                                **params)

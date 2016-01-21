@@ -17,7 +17,7 @@ __author__ = 'andreap'
 class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
-    parser.add_argument('filter', type=str, required=False, help="filter by gene or efo")
+    parser.add_argument('filter', type=str, required=False,  action='append', help="filter by gene or efo")
     _swagger_params = [
             {
               "name": "q",
@@ -30,7 +30,7 @@ class FreeTextSearch(restful.Resource, Paginable):
             {"name": "filter",
               "description": "restrict the search to return just genes or efo. Available options are 'gene' and 'efo'",
               "required": False,
-              "allowMultiple": False,
+              "allowMultiple": True,
               "dataType": "string",
               "paramType": "query"
             }]
@@ -52,9 +52,9 @@ class FreeTextSearch(restful.Resource, Paginable):
         """
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
-        filter = kwargs.pop('filter') or 'all'
+        filter = kwargs.pop('filter') or ['all']
         if len(searchphrase)>1:
-            res = current_app.extensions['esquery'].free_text_search(searchphrase, filter = filter,**kwargs)
+            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
             return CTTVResponse.OK(res)
         else:
             abort(404, message = "Query is too short")
