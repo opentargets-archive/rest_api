@@ -28,7 +28,7 @@ class FreeTextSearch(restful.Resource, Paginable):
               "paramType": "query"
             },
             {"name": "filter",
-              "description": "restrict the search to return just genes or efo. Available options are 'gene' and 'efo'",
+              "description": "restrict the search to return just genes or efo. Available options are 'target' and 'disease'",
               "required": False,
               "allowMultiple": True,
               "dataType": "string",
@@ -112,7 +112,7 @@ class QuickSearch(restful.Resource):
 class AutoComplete(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
-    parser.add_argument('size', type=int, required=False, help="number of genes or efo to be returned.")
+    parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")
     _swagger_params = [
             {
               "name": "q",

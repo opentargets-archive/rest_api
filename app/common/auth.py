@@ -97,14 +97,14 @@ class TokenAuthentication():
 
 
     @classmethod
-    def get_auth_token(cls, api_name='', expiration=600, salt='', auth_data ={}):
+    def get_auth_token(cls, api_name='', expiry=600, salt='', auth_data ={}):
         """
 
         :rtype : str token
         """
         if cls._autenticate(auth_data):
             payload = cls._prepare_payload(api_name,auth_data)
-            s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
+            s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiry, )
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))

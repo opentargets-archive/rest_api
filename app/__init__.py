@@ -1,23 +1,18 @@
+from flask import Flask, redirect, Blueprint
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
-from flask import Flask, redirect, Blueprint
+from flask_limiter import Limiter
+
 # from flask.ext.login import LoginManager
-import logstash
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.scoring_conf import DataSourceScoring
 from config import config
 import logging
-from pythonjsonlogger import jsonlogger
 from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery
 from api import create_api
-from flask.ext.cache import Cache
-from werkzeug.contrib.cache import SimpleCache, FileSystemCache
-
-
-
-
+from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 
 # login_manager = LoginManager()
 # login_manager.session_protection = 'strong'
@@ -88,8 +83,12 @@ def create_app(config_name):
     # cache.init_app(latest_blueprint)
     # latest_blueprint.cache = cache
     # latest_blueprint.extensions['cache'] = cache
-    app.cache = SimpleCache()
+    # app.cache = SimpleCache()
     app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=60*60, mode=777)
+
+    '''Set usage limiter '''
+    limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
+    limiter.init_app(app)# use redis to store limits
 
 
     '''compress http response'''
@@ -97,6 +96,7 @@ def create_app(config_name):
     compress.init_app(app)
 
     latest_blueprint = Blueprint('latest', __name__)
+    current_version_blueprint = Blueprint(str(api_version), __name__)
 
 
     specpath = '/cttv'
@@ -130,8 +130,15 @@ def create_app(config_name):
 
 
     create_api(latest_blueprint, api_version, specpath)
+    create_api(current_version_blueprint, api_version, specpath)
 
     app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
+    app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
+
+
+    @app.route('/api-docs/%s'%str(api_version))
+    def docs_current_version():
+      return redirect('/api/%s/cttv.html'%str(api_version))
 
     @app.route('/api-docs')
     def docs():
@@ -139,8 +146,6 @@ def create_app(config_name):
 
 
     return app
-
-
 
 
 

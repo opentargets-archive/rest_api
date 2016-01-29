@@ -1577,10 +1577,11 @@ return scores""" % (self._get_datatype_combine_init_list(params),
     def _get_search_doc_types(self, filter):
         doc_types = []
         for t in filter:
-            if t.lower() == FreeTextFilterOptions.ALL:
+            t = t.lower()
+            if t == FreeTextFilterOptions.ALL:
                 return []
-            elif t.lower() in FreeTextFilterOptions.__dict__.values():
-                doc_types.append(self._docname_search + '*' + FreeTextFilterOptions.__dict__[t.lower()])
+            elif t in FreeTextFilterOptions.__dict__.values():
+                doc_types.append(self._docname_search + '-' + t)
         return doc_types
 
     def _free_text_query(self, searchphrase, doc_types, params):
