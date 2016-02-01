@@ -109,15 +109,15 @@ class esQuery():
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
-            es_logger = logging.getLogger('elasticsearch')
-            for handler in es_logger.handlers:
-                handler.setFormatter(formatter)
-            es_logger.setLevel(logging.INFO)
-            es_tracer = logging.getLogger('elasticsearch.trace')
-            es_tracer.setLevel(logging.INFO)
-            # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
-            for handler in es_tracer.handlers:
-                handler.setFormatter(formatter)
+            # es_logger = logging.getLogger('elasticsearch')
+            # for handler in es_logger.handlers:
+            #     handler.setFormatter(formatter)
+            # es_logger.setLevel(log_level)
+            # es_tracer = logging.getLogger('elasticsearch.trace')
+            # es_tracer.setLevel(log_level)
+            # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
+            # for handler in es_tracer.handlers:
+            #     handler.setFormatter(formatter)
 
     def free_text_search(self, searchphrase,
                          doc_filter=[FreeTextFilterOptions.ALL],
@@ -147,7 +147,7 @@ class esQuery():
             doc_filter = [FreeTextFilterOptions.ALL]
         doc_filter = self._get_search_doc_types(doc_filter)
         res = self._free_text_query(searchphrase, doc_filter, params)
-        current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
+        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
             highlight = ''
@@ -820,6 +820,7 @@ class esQuery():
 
     def _get_free_text_query(self, searchphrase):
         query_body = {"function_score": {
+            "score_mode": "multiply",
             'query': {
                 'filtered': {
                     'query': {
@@ -827,35 +828,35 @@ class esQuery():
                             "should": [
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^3",
-                                               "description^3",
+                                    "fields": ["title^5",
+                                               "description^2",
                                                "efo_synonyms",
                                                "symbol_synonyms",
                                                "approved_symbol",
                                                "approved_name",
                                                "name_synonyms",
                                                "gene_family_description",
-                                               "efo_path_labels",
+                                               "efo_path_labels^0.1",
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
-                                    "tie_breaker": 0.1,
+                                    "tie_breaker": 0.0,
                                     "type": "phrase_prefix",
                                 }
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^2",
+                                    "fields": ["title^3",
                                                "id",
-                                               "approved_symbol^2",
-                                               "symbol_synonyms^2",
+                                               "approved_symbol",
+                                               "symbol_synonyms",
                                                "name_synonyms",
                                                "uniprot_accessions",
                                                "hgnc_id",
                                                "ensembl_gene_id",
-                                               "efo_path_codes^0.3",
+                                               "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms^2",
+                                               "efo_synonyms^0.1",
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -880,13 +881,42 @@ class esQuery():
                     }
                 },
             },
+            "functions": [
+                # "path_score": {
+                  #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
+                  #   "lang": "groovy",
+                  # },
+                  # "script_score": {
+                  #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
+                  #   "lang": "groovy",
+                  # }
+                {
+                "field_value_factor":{
+                    "field": "total_associations",
+                    "factor": 0.01,
+                    "modifier": "sqrt",
+                    "missing": 1,
+                    # "weight": 0.01,
+                    }
+                },
+                {
+                "field_value_factor":{
+                    "field": "min_path_len",
+                    "factor": 0.5,
+                    "modifier": "reciprocal",
+                    "missing": 1,
+                    # "weight": 0.5,
+                    }
+                }
+              ],
+            # "filter": {
+            #     "exists": {
+            #       "field": "min_path_len"
+            #     }
+            #   }
 
-            # "script_score": {
-               # "script" : "_score *1"
-               #  "script" : "if (doc['total_associations'].value >0) { _score * 1+(doc['total_associations'].value/100)}"
-               # "script" : "if (!doc['min_path_len'].empty) { _score *10/doc['min_path_len'].value}"
-            # }
-        }
+
+            }
 
         }
 
@@ -1594,7 +1624,7 @@ return scores""" % (self._get_datatype_combine_init_list(params),
                                                  OutputDataStructureOptions.FULL),
                                          # "min_score": 0.,
                                          "highlight": self._get_free_text_highlight(),
-
+                                         "explain": current_app.config['DEBUG'],
 
                                          },
 

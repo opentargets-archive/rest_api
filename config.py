@@ -85,7 +85,6 @@ class DevelopmentConfig(Config):
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
-        print cls.ELASTICSEARCH_URL
 
 class DockerLinkedDevConfig(Config):
     DEBUG = True
@@ -104,10 +103,11 @@ class DockerLinkedConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
+    SERVER_NAME = 'localhost:5000'
 
 class StagingConfig(Config):
     ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
