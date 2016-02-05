@@ -23,14 +23,22 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_SCORE_INDEX_NAME = 'evidence-score'
-    ELASTICSEARCH_DATA_SCORE_DOC_NAME = 'evidencescore'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = 'association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = 'search-data'
+    ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
+    AUTORISED_KEYS = {'2J23T20O31UyepRj7754pEA2osMOYfFK' :['.targetvalidation.org','localhost', '127.0.0.1'],#webapp
+                      'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [],
+                      'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
+                      'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
+                      '6gvkuMBFuP4Rd%SD9NK6NH4aACz-Augm':[],
+                     }
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '0.75'
+    API_VERSION = '1.1'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -48,10 +56,10 @@ class Config:
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
     SCORING_WEIGHTS = defaultdict(lambda: 1)
-    # SCORING_WEIGHTS['phenodigm'] = 0.5
-    # SCORING_WEIGHTS['expression_atlas'] = 0.5
-    # SCORING_WEIGHTS['disgenet'] = 0.2
-
+    SCORING_WEIGHTS['phenodigm'] = 0.33333333
+    # SCORING_WEIGHTS['expression_atlas'] = 0.2
+    SCORING_WEIGHTS['europepmc'] = 0.2
+    SCORING_WEIGHTS['gwas_catalog'] = 1.5
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
                                         'gxa': 'https://www.ebi.ac.uk/gxa/',
@@ -61,7 +69,6 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
-    ELASTICSEARCH_QUERY_TIMEOUT=10*60*1000 # needs to be in milliseconds
 
     @staticmethod
     def init_app(app):
@@ -70,7 +77,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -78,7 +85,6 @@ class DevelopmentConfig(Config):
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
-        print cls.ELASTICSEARCH_URL
 
 class DockerLinkedDevConfig(Config):
     DEBUG = True
@@ -97,10 +103,11 @@ class DockerLinkedConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:8080/es-prod/'
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 180
+    APP_CACHE_EXPIRY_TIMEOUT = 60
+    SERVER_NAME = 'localhost:5000'
 
 class StagingConfig(Config):
     ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'

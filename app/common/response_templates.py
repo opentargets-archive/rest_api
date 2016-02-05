@@ -1,6 +1,9 @@
+from app import DataTypes
+from app.common.scoring_conf import ScoringMethods
+
 __author__ = 'andreap'
 
-from flask import Flask, Response
+from flask import Flask, Response, current_app
 from flask.ext.restful import fields
 from flask_restful_swagger import swagger
 
@@ -64,3 +67,70 @@ class PaginatedResponse():
       'size': fields.Integer(attribute='size to return', ),
 
   }
+
+
+
+class Association(object):
+
+    def __init__(self,
+                 hit,
+                 scoring_method=ScoringMethods.DEFAULT,
+                 datatypes = None,
+                 cap_scores = True):
+        '''
+
+        :param hit: association object coming from elasticsearch
+        :param scoring_method: association object coming from elasticsearch
+        :return:
+        '''
+
+        self.data ={}
+        self._scoring_method = scoring_method
+        if datatypes is None:
+            datatypes = DataTypes(current_app)
+        self._datatypes = datatypes
+        self.hit = hit
+        self.cap_scores = cap_scores
+        self.parse_hit()
+
+    def parse_hit(self):
+        self.data['target'] = {}
+        self.data['target']['id'] = self.hit['target']['id']
+        self.data['target']['name'] = self.hit['target']['gene_info']['name']
+        self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
+
+        self.data['disease'] = {}
+        self.data['disease']['id'] = self.hit['disease']['id']
+        self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
+        # self.data['label'] = self.hit['disease']['efo_info']['label']
+        self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+        self.data['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+
+        self.data['id'] = self.hit['id']
+
+        self.data['is_direct'] = self.hit['is_direct']
+        self._is_direct = self.hit['is_direct']
+
+        evidence_count = self.hit['evidence_count']
+        self.data['evidence_count'] = evidence_count['total']
+        score = self.hit[self._scoring_method]
+        self.data['association_score'] = self._cap_score(score['overall'])
+        self.data['datatypes']=[]
+        for dt in score['datatypes']:
+            datasources = []
+            for ds in self._datatypes.get_datasources(dt):
+                datasources.append(dict(datasource = ds,
+                                        association_score = self._cap_score(score['datasources'][ds]),
+                                        evidence_count = evidence_count['datasource'][ds],))
+
+            self.data['datatypes'].append(dict(datatype = dt,
+                                               association_score = self._cap_score(score['datatypes'][dt]),
+                                               evidence_count = evidence_count['datatype'][dt],
+                                               datasources =datasources))
+
+    def _cap_score(self, score):
+        if self.cap_scores:
+            if score >1:
+                return 1.
+        return score
+

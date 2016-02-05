@@ -1,23 +1,18 @@
+from flask import Flask, redirect, Blueprint
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
-from flask import Flask, redirect, Blueprint
+from flask_limiter import Limiter
+
 # from flask.ext.login import LoginManager
-import logstash
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.scoring_conf import DataSourceScoring
 from config import config
 import logging
-from pythonjsonlogger import jsonlogger
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import EsQuery
+from common.elasticsearchclient import esQuery
 from api import create_api
-from flask.ext.cache import Cache
-from werkzeug.contrib.cache import SimpleCache, FileSystemCache
-
-
-
-
+from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 
 # login_manager = LoginManager()
 # login_manager.session_protection = 'strong'
@@ -52,8 +47,9 @@ def create_app(config_name):
                         # sniff_on_connection_fail=True,
                         # # and also every 60 seconds
                         # sniffer_timeout=60
+                       timeout=60*20,
                         )
-    app.extensions['esquery'] = EsQuery(es,
+    app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),
                                         index_data=app.config['ELASTICSEARCH_DATA_INDEX_NAME'],
@@ -62,15 +58,16 @@ def create_app(config_name):
                                         index_genename=app.config['ELASTICSEARCH_GENE_NAME_INDEX_NAME'],
                                         index_expression=app.config['ELASTICSEARCH_EXPRESSION_INDEX_NAME'],
                                         index_reactome=app.config['ELASTICSEARCH_REACTOME_INDEX_NAME'],
-                                        index_score=app.config['ELASTICSEARCH_DATA_SCORE_INDEX_NAME'],
+                                        index_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME'],
+                                        index_search=app.config['ELASTICSEARCH_DATA_SEARCH_INDEX_NAME'],
                                         docname_data=app.config['ELASTICSEARCH_DATA_DOC_NAME'],
                                         docname_efo=app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
                                         docname_eco=app.config['ELASTICSEARCH_ECO_DOC_NAME'],
                                         docname_genename=app.config['ELASTICSEARCH_GENE_NAME_DOC_NAME'],
                                         docname_expression=app.config['ELASTICSEARCH_EXPRESSION_DOC_NAME'],
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
-                                        docname_score=app.config['ELASTICSEARCH_DATA_SCORE_DOC_NAME'],
-                                        query_timeout=app.config['ELASTICSEARCH_QUERY_TIMEOUT'],
+                                        docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
+                                        docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         log_level=log_level,
 
                                         )
@@ -86,8 +83,12 @@ def create_app(config_name):
     # cache.init_app(latest_blueprint)
     # latest_blueprint.cache = cache
     # latest_blueprint.extensions['cache'] = cache
-    app.cache = SimpleCache()
+    # app.cache = SimpleCache()
     app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=60*60, mode=777)
+
+    '''Set usage limiter '''
+    limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
+    limiter.init_app(app)# use redis to store limits
 
 
     '''compress http response'''
@@ -95,6 +96,7 @@ def create_app(config_name):
     compress.init_app(app)
 
     latest_blueprint = Blueprint('latest', __name__)
+    current_version_blueprint = Blueprint(str(api_version), __name__)
 
 
     specpath = '/cttv'
@@ -128,8 +130,15 @@ def create_app(config_name):
 
 
     create_api(latest_blueprint, api_version, specpath)
+    create_api(current_version_blueprint, api_version, specpath)
 
     app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
+    app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
+
+
+    @app.route('/api-docs/%s'%str(api_version))
+    def docs_current_version():
+      return redirect('/api/%s/cttv.html'%str(api_version))
 
     @app.route('/api-docs')
     def docs():
@@ -137,8 +146,6 @@ def create_app(config_name):
 
 
     return app
-
-
 
 
 

@@ -47,19 +47,14 @@ class TokenAuthentication():
     @staticmethod
     def _autenticate(auth_data):
         #TODO: use a proper authentication
-        authorized_keys = {
-            '2J23T20O31UyepRj7754pEA2osMOYfFK' :['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
-            'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [], #Reactome
-            'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
-            'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
-            '6gvkuMBFuP4Rd%SD9NK6NH4aACz-Augm':[],
-        }
+        authorized_keys = current_app.config['AUTORISED_KEYS']
 
         domain = get_domain()
         if auth_data['secret'] in authorized_keys:
             if authorized_keys[auth_data['secret']]:
-                if domain in authorized_keys[auth_data['secret']]:
-                    return True
+                for allowed_domain in authorized_keys[auth_data['secret']]:
+                    if domain.endswith(allowed_domain):
+                        return True
             else:
                 return True
         return False
@@ -102,14 +97,14 @@ class TokenAuthentication():
 
 
     @classmethod
-    def get_auth_token(cls, api_name='', expiration=600, salt='', auth_data ={}):
+    def get_auth_token(cls, api_name='', expiry=600, salt='', auth_data ={}):
         """
 
         :rtype : str token
         """
         if cls._autenticate(auth_data):
             payload = cls._prepare_payload(api_name,auth_data)
-            s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration,)
+            s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiry, )
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))

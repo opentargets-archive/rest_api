@@ -17,6 +17,7 @@ class RequestToken(restful.Resource):
     parser.add_argument('secret', type=str, required=True, help="app secret [secret] is required")
     parser.add_argument('uid', type=str, required=False, help="user id [uid] ")
     parser.add_argument('password', type=str, required=False, help="password [password] ")
+    parser.add_argument('expiry', type=int, required=False, help="seconds before the token expires")
 
     _swagger_parameters = [
                 {
@@ -50,6 +51,14 @@ class RequestToken(restful.Resource):
                   "paramType": "query"
 
                 },
+ {
+                  "name": "expiry",
+                  "description": "seconds before the token expires",
+                  "required": False,
+                  "dataType": "integer",
+                  "paramType": "query"
+
+                },
 
               ]
 
@@ -60,7 +69,9 @@ class RequestToken(restful.Resource):
         )
     def get(self, ):
         args = self.parser.parse_args()
-        return TokenAuthentication.get_auth_token('cttv_api',auth_data=args)
+        if args['expiry'] is None:
+            args['expiry']=600
+        return TokenAuthentication.get_auth_token('cttv_api', auth_data=args, expiry=args['expiry'])
 
 
 class ValidateToken(restful.Resource):

@@ -1,3 +1,5 @@
+from app.common.scoring_conf import ScoringMethods
+
 __author__ = 'andreap'
 
 import json
@@ -7,7 +9,8 @@ class OutputDataStructure():
 
 
 class FullSourceDataStructure(OutputDataStructure):
-    source = {"exclude": [ "_private*" ]}
+    source = {"exclude": [ "_private*",
+                           "private*"]}
 
 class SimpleSourceDataStructure(OutputDataStructure):
     source =  {"include": [ "id",
@@ -18,7 +21,8 @@ class SimpleSourceDataStructure(OutputDataStructure):
                            "sourceID",
                            "type",
                            "scores.association_score"],
-                "exclude": [ "_private*" ]}
+                "exclude": [ "_private*" ,
+                           "private*"]}
 
 class IdsSourceDataStructure(OutputDataStructure):
     source = ["id"]
@@ -50,21 +54,31 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 class CustomDataStructure(OutputDataStructure):
     source =  {"include": [ ],
-                "exclude": [ "_private*" ],
+                "exclude": [ "_private*" ,
+                           "private*"],
                }
 
 
 class ScoreDataStructure(OutputDataStructure):
-    source =  {"include": ["sourceID",
-                           "scores",
-                           "type",
-                           "target.id",
+    source =  {"include": ["target.id",
                            "target.gene_info.symbol",
-                           "disease.efo_info.label",
+                           "target.gene_info.name",
                            "disease.id",
-                           "_private.efo_codes",
-                           "_private.datatype",
+                           "disease.efo_info.label",
+                           "disease.efo_info.therapeutic_area",
+                           "is_direct",
+                           "evidence_count",
+                           "id",
                            ],}
+
+class ScoreDataStructureHarmonicSum(OutputDataStructure):
+    source =  {"include": ScoreDataStructure.source["include"]+["harmonic-sum"],}
+
+class ScoreDataStructureMax(OutputDataStructure):
+    source =  {"include": ScoreDataStructure.source["include"]+["sum"],}
+
+class ScoreDataStructureSum(OutputDataStructure):
+    source =  {"include": ScoreDataStructure.source["include"]+["max"],}
 
 class OutputDataStructureOptions():
     DEFAULT = 'default'
@@ -80,6 +94,9 @@ class OutputDataStructureOptions():
     TREE = 'tree'
     FLAT = 'flat'
     SCORE = 'score'
+    SCORE_SUM = ScoringMethods.SUM
+    SCORE_MAX = ScoringMethods.MAX
+    SCORE_HARMONIC_SUM = ScoringMethods.HARMONIC_SUM
 
 
     options = {
@@ -92,6 +109,9 @@ class OutputDataStructureOptions():
         GENE_AND_DISEASE_ID: GeneAndDiseaseIDDataStructure.source,
         COUNT: OutputDataStructure.source,
         SCORE: ScoreDataStructure.source,
+        SCORE_SUM: ScoreDataStructureSum.source,
+        SCORE_MAX: ScoreDataStructureMax.source,
+        SCORE_HARMONIC_SUM: ScoreDataStructureHarmonicSum.source,
         CUSTOM: CustomDataStructure.source,
     }
 

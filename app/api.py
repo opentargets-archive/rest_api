@@ -52,36 +52,39 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
     api.add_resource(Evidence,
-                     '/getbyid',
+                     '/public/evidence/getbyid',
                      )
     api.add_resource(FilterBy,
-                     '/filterby',
+                     '/public/evidence/filterby',
                      )
+    # api.add_resource(Association,
+    #                  '/public/association/getbyid',
+    #                  )
     api.add_resource(Association,
-                     '/association',
+                     '/public/association/filterby',
                      )
     api.add_resource(EfoLabelFromCode,
-                     '/disease/<string:code>')
+                     '/private/disease/<string:code>')
     api.add_resource(EcoLabelFromCode,
-                     '/eco/<string:code>')
+                     '/private/eco/<string:code>')
     api.add_resource(GeneInfo,
-                     '/target/<string:target_id>')
+                     '/private/target/<string:target_id>')
     api.add_resource(Expression,
-                     '/expression')
+                     '/private/expression')
     api.add_resource(FreeTextSearch,
-                     '/search')
+                     '/public/search')
     api.add_resource(QuickSearch,
-                     '/quicksearch')
+                     '/private/quicksearch')
     api.add_resource(AutoComplete,
-                     '/autocomplete')
+                     '/private/autocomplete')
     # api.add_resource(Echo,
     #                  '/echo')
     api.add_resource(RequestToken,
-                     '/auth/request_token')
+                     '/public/auth/request_token')
     api.add_resource(ValidateToken,
-                     '/auth/validate_token')
+                     '/public/auth/validate_token')
     api.add_resource(ClearCache,
-                     '/cache/clear')
+                     '/private/cache/clear')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')

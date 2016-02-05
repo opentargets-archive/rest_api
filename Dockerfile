@@ -15,7 +15,7 @@ RUN \
     ca-certificates \
     openssh-server \
     git
-RUN wget --no-check-certificate https://raw.github.com/pypa/pip/master/contrib/get-pip.py && \
+RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
   python get-pip.py && \
   pip install uWSGI==2.0.9 Flask==0.10.1
 

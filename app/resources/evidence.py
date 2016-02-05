@@ -24,9 +24,9 @@ class GetByIdQuery:
 class FilterByQuery:
   "An object to specify a filterby query"
   resource_fields = {
-      'gene': fields.List(fields.String(attribute='gene file name', )),
-      'efo': fields.List(fields.String(attribute='efo code', )),
-      'eco': fields.List(fields.String(attribute='efo code', )),
+      'target': fields.List(fields.String(attribute='target gene id', )),
+      'disease': fields.List(fields.String(attribute='diseaseefo code', )),
+      'eco': fields.List(fields.String(attribute='eco code', )),
       'pathway': fields.List(fields.String(attribute='pathway', )),
       'datasource': fields.List(fields.String(attribute='datasource', )),
       'datatype': fields.List(fields.String(attribute='datatype', )),
@@ -265,6 +265,7 @@ class FilterBy(restful.Resource, Paginable):
         # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
         # parser.add_argument('body', type=str, action='store', required=False, location='form', help="json object with query parameter")
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
+        parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
         parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
@@ -280,17 +281,19 @@ class FilterBy(restful.Resource, Paginable):
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        datasource =  args.pop('datasource',[]) or []
+        datasources =  args.pop('datasource',[]) or []
+        datatypes =  args.pop('datatype',[]) or []
 
         if not (genes
                 or objects
                 or evidence_types
-                or datasource
+                or datasources
+                or datatypes
                 or args['pathway']
                 or args['uniprotkw']
                 or args['datatype']):
             abort(404, message='Please provide at least one gene, efo, eco or datasource')
-        return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
+        return self.get_evidence(genes, objects, evidence_types, datasources,  datatypes, params=args)
 
 
     @swagger.operation(
@@ -333,11 +336,12 @@ class FilterBy(restful.Resource, Paginable):
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        datasource =  args.pop('datasource',[]) or []
+        datasources =  args.pop('datasource',[]) or []
+        datatypes=  args.pop('datatype',[]) or []
 
-        if not (genes or objects or evidence_types or datasource):
-            abort(404, message='Please provide at least one gene, efo, eco or datasource')
-        return self.get_evidence(genes, objects, evidence_types, datasource, params=args)
+        if not (genes or objects or evidence_types or datasources or datatypes):
+            abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
+        return self.get_evidence(genes, objects, evidence_types, datasources, datatypes, params=args)
 
 
     def get_evidence(self,
@@ -345,6 +349,7 @@ class FilterBy(restful.Resource, Paginable):
                      objects,
                      evidence_types,
                      datasources,
+                     datatype,
                      gene_operator='OR',
                      object_operator='OR',
                      evidence_type_operator='OR',
@@ -352,11 +357,12 @@ class FilterBy(restful.Resource, Paginable):
 
         es = current_app.extensions['esquery']
 
-        res = es.get_evidences(genes = genes,
-                               objects = objects,
-                               evidence_types = evidence_types,
-                               datasources = datasources,
-                               # gene_operator = gene_operator,
+        res = es.get_evidence(genes = genes,
+                              objects = objects,
+                              evidence_types = evidence_types,
+                              datasources = datasources,
+                              datatypes = datatype,
+                              # gene_operator = gene_operator,
                                # object_operator = object_operator,
                                # evidence_type_operator = evidence_type_operator,
                                **params)
