@@ -892,7 +892,7 @@ class esQuery():
                   # }
                 {
                 "field_value_factor":{
-                    "field": "total_associations",
+                    "field": "association_counts.total",
                     "factor": 0.01,
                     "modifier": "sqrt",
                     "missing": 1,
