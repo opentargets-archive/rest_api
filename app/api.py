@@ -9,6 +9,12 @@ from flask.ext.compress import Compress
 
 def create_api(app, api_version = '0.0', specpath = '' ):
     # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
+
+    'custom errors for flask-restful'
+    errors = {'SignatureExpired': {
+        'message': "Authentication expired.",
+        'status': 419},
+    }
     api = Api(app)
     api = swagger.docs(api,
                            # decorators=[cors.crossdomain(origin='*',

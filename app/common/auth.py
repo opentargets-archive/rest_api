@@ -43,6 +43,7 @@ def get_domain():
 class TokenAuthentication():
 
     app_name='cttv-rest-api'
+    EXPIRED = 'expired'
 
     @staticmethod
     def _autenticate(auth_data):
@@ -79,10 +80,11 @@ class TokenAuthentication():
         except SignatureExpired, se:
             time_offset = (datetime.now()- se.date_signed).total_seconds()
             current_app.logger.error('token expired: %s. signature date %s. offset with current date = %s'%(se.message,str(se.date_signed),str(time_offset)))
-            if -5<= time_offset < 0:#allow for 5 seconds out of sync machines
+            if -1<= time_offset < 0:#allow for 5 seconds out of sync machines
                 current_app.logger.info('token time offset within grace period. allowing auth')
                 return json.loads(cipher.decrypt(se.payload))
-            return False    # valid token, but expired
+            else:
+                raise SignatureExpired(se)
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
             # encoded_payload = e.payload
@@ -129,23 +131,14 @@ def is_authenticated(func):
             return func(*args, **kwargs)
         # authorized =False # set to false to authorise only requests with token
         authorized =True
-
-        # if current_app.config['DEBUG']:
-        #     authorized = True
         token = request.headers.get('Auth-Token')
-        # if not token:
-        #     token= request.headers.get('Authorization')
-        #     if token:
-        #         token = token.split()[-1].strip()
-        #         token = base64.b64decode(token)[:-1]
         if token:
             authorized = TokenAuthentication.is_valid(token)
         else:
-            try:
-                 call_args = args[0].parser.parse_args()
-                 if 'auth_token' in call_args:
-                     authorized = TokenAuthentication.is_valid(call_args['auth_token'])
-            except:pass
+             call_args = args[0].parser.parse_args()
+             if 'auth_token' in call_args:
+                 authorized = TokenAuthentication.is_valid(call_args['auth_token'])
+
         if authorized:
             return func(*args, **kwargs)
 
