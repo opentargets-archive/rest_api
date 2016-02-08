@@ -1,23 +1,20 @@
 # base image
-FROM debian:jessie
+FROM jeethu/pypy:4.0.1
 MAINTAINER Andrea Pierleoni <andreap@ebi.ac.uk>
 
 # Install required packages
-RUN \
-  apt-get update && apt-get install -y --no-install-recommends \
-    python-software-properties \
-    python-setuptools \
-    build-essential \
-    supervisor \
-    python-dev \
-    python \
-    wget \
-    ca-certificates \
-    openssh-server \
-    git
-RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
-  python get-pip.py && \
-  pip install uWSGI==2.0.9 Flask==0.10.1
+RUN set -e && \
+    apt-get update && \
+    apt-get -yq install wget supervisor python-setuptools gcc ca-certificates openssh-server git libssl-dev && \
+    cd /tmp/ && \
+    pip install --upgrade pip && \
+    pip install uwsgi==2.0.11.2 uwsgitop==0.9 Flask==0.10.1  pyOpenSSL && \
+    ln -s /usr/local/pypy-4.0.1-linux_x86_64-portable/bin/uwsgi* /usr/local/bin/ && \
+    chmod +x /usr/local/bin/uwsgi && \
+    apt-get -yq autoremove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 
 
 # Create directories
@@ -39,4 +36,4 @@ RUN pip install -r /var/www/app/requirements.txt && \
 EXPOSE 8008
 
 #run supervisor to run uwsgi to run the flask app
-CMD ["supervisord"]
+CMD ["/usr/bin/supervisord"]
