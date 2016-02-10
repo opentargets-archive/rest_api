@@ -87,8 +87,8 @@ def create_app(config_name):
     app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=60*60, mode=777)
 
     '''Set usage limiter '''
-    limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
-    limiter.init_app(app)# use redis to store limits
+    # limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
+    # limiter.init_app(app)# use redis to store limits
 
 
     '''compress http response'''

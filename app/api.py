@@ -1,3 +1,5 @@
+
+
 __author__ = 'andreap'
 
 from flask.ext.restful import Api
@@ -50,6 +52,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.expression import Expression
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
+    from app.resources.utils import Ping, Version
 
 
 
@@ -91,6 +94,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/auth/validate_token')
     api.add_resource(ClearCache,
                      '/private/cache/clear')
+    api.add_resource(Ping,
+                     '/public/utils/ping')
+    api.add_resource(Version,
+                     '/public/utils/version')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')

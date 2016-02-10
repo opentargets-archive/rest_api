@@ -22,12 +22,12 @@ RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
 
 
 # setup
-RUN mkdir -p /var/www/app  /var/www/app-conf /var/log/supervisor
-RUN rm /etc/nginx/sites-enabled/default && \
-    ln -sf /dev/stdout /var/log/nginx/access.log && \
-    ln -sf /dev/stderr /var/log/nginx/error.log
-WORKDIR /var/www/app
+RUN mkdir -p /var/www/app  /var/www/app-conf /var/log/supervisor && \
+ rm /etc/nginx/sites-enabled/default && \
+ ln -sf /dev/stdout /var/log/nginx/access.log && \
+ ln -sf /dev/stderr /var/log/nginx/error.log
 
+WORKDIR /var/www/app
 #copy code
 COPY . /var/www/app
 
