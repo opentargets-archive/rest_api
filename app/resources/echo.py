@@ -1,3 +1,5 @@
+from app.common.rate_limit import rate_limit
+
 __author__ = 'andreap'
 
 from flask.ext import restful
@@ -35,6 +37,7 @@ class Echo(restful.Resource):
     #         },
     #
     #       ],)
+    @rate_limit
     def get(self, ):
         args = self.parser.parse_args()
         value = args['echo']

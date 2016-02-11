@@ -7,6 +7,7 @@ from flask.ext.restful import reqparse
 from app.common import boilerplate
 from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
+from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 
 
@@ -15,6 +16,7 @@ class GeneInfo(restful.Resource):
 
     @swagger.operation()
     @is_authenticated
+    @rate_limit
     def get(self, target_id ):
         '''
         Get gene information

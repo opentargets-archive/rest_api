@@ -1,4 +1,5 @@
 from app.common.auth import is_authenticated
+from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 from flask import current_app
@@ -12,6 +13,7 @@ class EcoLabelFromCode(restful.Resource):
 
     @swagger.operation()
     @is_authenticated
+    @rate_limit
     def get(self, code ):
         '''
         get ECO information from a code

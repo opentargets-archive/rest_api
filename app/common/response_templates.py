@@ -1,4 +1,8 @@
+import time
+from datetime import datetime
+
 from app import DataTypes
+from app.common.rate_limit import increment_call_rate, RateLimiter, ceil_dt_to_future_time
 from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
@@ -19,7 +23,7 @@ class CTTVResponse():
     @staticmethod
     def OK(result,
            type = None,
-           took = 0):
+           took =0.):
         '''
         :param result: instance of common.elasticsearchclient.Result
         :param type: value of ResponseType
@@ -27,8 +31,11 @@ class CTTVResponse():
         '''
 
         status = 200
-        if result.status != ['ok']:
-            status = 203
+        try:
+            if result.status != ['ok']:
+                status = 203
+        except:
+            pass
 
         if type == ResponseType.JSON:
             resp = Response(response=result.toJSON(),
@@ -49,7 +56,17 @@ class CTTVResponse():
         if took > 0.5:
             cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
             resp.headers.add('X-Accel-Expires', cache_time)
-        resp.headers.add('X-API-Took', int(round(took*1000)))
+        msec = int(round(took*1000))
+        current_values = increment_call_rate(msec)
+        rate_limiter = RateLimiter()
+        now = datetime.now()
+        resp.headers.add('X-API-Took', int(round(msec)))
+        resp.headers.add('X-RateLimit-Limit-10s', rate_limiter.short_window_rate)
+        resp.headers.add('X-RateLimit-Limit-1h', rate_limiter.long_window_rate)
+        resp.headers.add('X-RateLimit-Remaining-10s', rate_limiter.short_window_rate-current_values['short'])
+        resp.headers.add('X-RateLimit-Remaining-1h', rate_limiter.long_window_rate-current_values['long'])
+        resp.headers.add('X-RateLimit-Reset-10s', round(ceil_dt_to_future_time(now, 10),2))
+        resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
         return resp
 
 

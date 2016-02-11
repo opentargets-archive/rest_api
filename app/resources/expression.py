@@ -7,6 +7,7 @@ from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
+from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse, PaginatedResponse
 
 
@@ -46,6 +47,7 @@ class Expression(restful.Resource):
         parameters=_swagger_parameters,
         )
     @is_authenticated
+    @rate_limit
     def get(self):
         """
         Get expression data for a gene
@@ -78,6 +80,7 @@ class Expression(restful.Resource):
         )
 
     @is_authenticated
+    @rate_limit
     def post(self ):
         """
         Get expression data for a gene

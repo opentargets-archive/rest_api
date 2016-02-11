@@ -1,3 +1,5 @@
+from app.common.auth import is_authenticated
+from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 from flask import current_app
@@ -11,6 +13,7 @@ class Uniprot(restful.Resource):
     @swagger.operation(
         notes='''get evidences for uniprot id''',)
     @is_authenticated
+    @rate_limit
     def get(self, uniprotid):
 
         es = current_app.extensions['esquery']
@@ -27,6 +30,7 @@ class UniprotFromEnsembl(restful.Resource):
     @swagger.operation(
         notes='''get uniprot ID from ensembl ID, test with  ENSG00000136997 ''',)
     @is_authenticated
+    @rate_limit
     def get(self, ensemblid):
         es = current_app.extensions['esquery']
         uniprotid = es.get_uniprotid_from_ensemblid(ensemblid)
@@ -42,6 +46,7 @@ class EnsemblFromUniprot(restful.Resource):
     @swagger.operation(
         notes='''get ensembl ID from uniprot ID,  test with P01106''',)
     @is_authenticated
+    @rate_limit
     def get(self, uniprotid):
         es = current_app.extensions['esquery']
         ensemblid = es.get_ensemblid_from_uniprotid(uniprotid)

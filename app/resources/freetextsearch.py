@@ -1,4 +1,5 @@
 import flask
+import time
 from flask import current_app
 from flask.ext import restful
 from flask.ext.restful import abort,reqparse
@@ -6,6 +7,7 @@ from flask_restful_swagger import swagger
 from app.common import boilerplate
 from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
+from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse, PaginatedResponse
 
 
@@ -45,6 +47,7 @@ class FreeTextSearch(restful.Resource, Paginable):
         parameters=_swagger_params,
         )
     @is_authenticated
+    @rate_limit
     def get(self ):
         """
         Search for gene and disease
@@ -54,8 +57,11 @@ class FreeTextSearch(restful.Resource, Paginable):
         searchphrase = kwargs.pop('q')
         filter = kwargs.pop('filter') or ['all']
         if len(searchphrase)>1:
+            start_time = time.time()
             res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
-            return CTTVResponse.OK(res)
+
+            return CTTVResponse.OK(res,
+                                   took = time.time() - start_time)
         else:
             abort(404, message = "Query is too short")
 
@@ -91,6 +97,7 @@ class QuickSearch(restful.Resource):
         parameters=_swagger_params,
         )
     @is_authenticated
+    @rate_limit
     def get(self ):
         """
         Suggest best terms for gene and disease
@@ -139,6 +146,7 @@ class AutoComplete(restful.Resource):
         parameters=_swagger_params,
         )
     @is_authenticated
+    @rate_limit
     def get(self ):
         """
         Suggest best terms for gene and disease

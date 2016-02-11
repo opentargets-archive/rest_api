@@ -1,5 +1,6 @@
 from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
+from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 from flask import current_app, request
@@ -63,6 +64,7 @@ class Evidence(restful.Resource):
           ],
         )
     @is_authenticated
+    @rate_limit
     def get(self):
         """
         Get an evidence from its id
@@ -94,6 +96,7 @@ class Evidence(restful.Resource):
             ]
         )
     @is_authenticated
+    @rate_limit
     def post(self):
 
         args = request.get_json()
@@ -251,6 +254,7 @@ class FilterBy(restful.Resource, Paginable):
         parameters=_swagger_parameters,
         )
     @is_authenticated
+    @rate_limit
     def get(self):
         """
         Get a list of evidences filtered by gene, efo and/or eco codes
@@ -315,6 +319,7 @@ class FilterBy(restful.Resource, Paginable):
         )
    # @marshal_with(EvidenceQuery.resource_fields)
     @is_authenticated
+    @rate_limit
     def post(self ):
         """
         Get a list of evidences filtered by gene, efo and/or eco codes
