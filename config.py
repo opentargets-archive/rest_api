@@ -1,4 +1,7 @@
+import csv
 from collections import defaultdict
+
+from app.common.auth import AuthKey
 from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
@@ -30,12 +33,11 @@ class Config:
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
-    AUTORISED_KEYS = {'2J23T20O31UyepRj7754pEA2osMOYfFK' :['.targetvalidation.org','localhost', '127.0.0.1'],#webapp
-                      'n9050:0W*350M7m63qT5F0awyZ33t=-Y' : [],
-                      'K5AYtjIlwdB7!nwLqhXfIu3hF2Ip3boL' :[],
-                      'B93y0|x2c5529Yx92j3Z2Jun3s689v4D': [],
-                      '6gvkuMBFuP4Rd%SD9NK6NH4aACz-Augm':[],
-                     }
+    AUTORISED_KEYS = {}
+    with open('rate_limit.csv') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            AUTORISED_KEYS[row['secret']]=AuthKey(**row) #TODO:store this in redis
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.1'
@@ -69,6 +71,7 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
+    REDIS_SERVER ='/tmp/api_redis.db'
 
     @staticmethod
     def init_app(app):

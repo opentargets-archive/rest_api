@@ -6,6 +6,7 @@ from flask_restful_swagger import swagger
 from app.common import boilerplate
 from app.common.boilerplate import Paginable
 from app.common.auth import TokenAuthentication, is_authenticated
+from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 
@@ -67,6 +68,7 @@ class RequestToken(restful.Resource):
         produces = ["application/json"],
         parameters=_swagger_parameters,
         )
+    @rate_limit
     def get(self, ):
         args = self.parser.parse_args()
         if args['expiry'] is None:
@@ -77,7 +79,7 @@ class RequestToken(restful.Resource):
 class ValidateToken(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
-
+    @rate_limit
     def get(self, ):
         args = self.parser.parse_args()
         auth_token = args['auth_token']

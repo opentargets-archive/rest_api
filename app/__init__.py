@@ -4,6 +4,8 @@ from flask.ext.cors import CORS
 from flask_limiter import Limiter
 
 # from flask.ext.login import LoginManager
+from redislite import Redis
+
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.scoring_conf import DataSourceScoring
@@ -71,6 +73,9 @@ def create_app(config_name):
                                         log_level=log_level,
 
                                         )
+
+    app.extensions['redis'] = Redis(app.config['REDIS_SERVER'])
+
     app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],
                                            allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
                                            allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])

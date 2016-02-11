@@ -9,6 +9,7 @@ from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
+from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse, PaginatedResponse
 from app.common.utils import get_ordered_filter_list
 import time
@@ -187,6 +188,7 @@ class Association(restful.Resource):
         parameters=_swagger_parameters,
         )
     @is_authenticated
+    @rate_limit
     def get(self):
         """
         Get association objects
@@ -249,6 +251,7 @@ class Association(restful.Resource):
             ]
         )
     @is_authenticated
+    @rate_limit
     def post(self ):
         """
         Get association objects

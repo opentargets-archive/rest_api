@@ -14,6 +14,28 @@ from Crypto import Random
 from Crypto.Cipher import AES
 import json
 
+
+class AuthKey(object):
+
+    def __init__(self,
+                 appname='',
+                 secret='',
+                 domain='',
+                 short_window_rate=100,
+                 long_window_rate=60000,
+                 users_allowed="False",
+                 reference=''):
+        self.appname=appname
+        self.secret=secret
+        self.domain=domain.split('|')
+        self.short_window_rate=int(short_window_rate)
+        self.long_window_rate=int(long_window_rate)
+        self.users_allowed=users_allowed.lower()=='true'
+        self.reference=reference
+        self.id = secret+'-'+appname
+
+
+
 class AESCipher:
     def __init__(self, key):
         self.bs = 16
@@ -52,8 +74,8 @@ class TokenAuthentication():
 
         domain = get_domain()
         if auth_data['secret'] in authorized_keys:
-            if authorized_keys[auth_data['secret']]:
-                for allowed_domain in authorized_keys[auth_data['secret']]:
+            if authorized_keys[auth_data['secret']].domain:
+                for allowed_domain in authorized_keys[auth_data['secret']].domain:
                     if domain.endswith(allowed_domain):
                         return True
             else:
@@ -65,13 +87,14 @@ class TokenAuthentication():
     def _prepare_payload(api_name, auth_data):
         payload = {'api_name': api_name,
                    'app_name': auth_data['appname'],
+                   'secret': auth_data['secret'],
                    'domain': get_domain()}
         if 'uid' in auth_data:
             payload['uid'] = auth_data['uid']
         return payload
 
     @staticmethod
-    def _get_payload_from_token(token):
+    def get_payload_from_token(token):
         s = Serializer(current_app.config['SECRET_KEY'])
         cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
         try:
@@ -115,7 +138,7 @@ class TokenAuthentication():
 
     @classmethod
     def is_valid(cls,token):
-        payload = cls._get_payload_from_token(token)
+        payload = cls.get_payload_from_token(token)
         if payload:
             if payload['domain'] != get_domain():
                 current_app.logger.error("bad domain in token: got %s expecting %s"%(payload['domain'],get_domain()))
@@ -153,4 +176,4 @@ def get_token_payload():
             token = token.split()[-1].strip()
             token = base64.b64decode(token)[:-1]
     if token:
-        return TokenAuthentication._get_payload_from_token(token)
+        return TokenAuthentication.get_payload_from_token(token)
