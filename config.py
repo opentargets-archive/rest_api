@@ -1,7 +1,7 @@
 import csv
 from collections import defaultdict
 
-from app.common.auth import AuthKey
+#from app.common.auth import AuthKey
 from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
@@ -33,11 +33,6 @@ class Config:
     DEBUG = True
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
-    AUTORISED_KEYS = {}
-    with open('rate_limit.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            AUTORISED_KEYS[row['secret']]=AuthKey(**row) #TODO:store this in redis
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.1'

@@ -21,7 +21,7 @@ an higher throughput is allowed
 
 class RateLimiter(object):
 
-    RATE_LIMIT_NAMESPACE='REST_API_RATE_LIMIT_v'+Config.API_VERSION
+    _RATE_LIMIT_NAMESPACE= 'REST_API_RATE_LIMIT_v' + Config.API_VERSION
     SHORT_WINDOW_SIZE = 10 #10 seconds
     LONG_WINDOW_SIZE = 60*60 #1 hour
     DEFAULT_CALL_WEIGHT = 10
@@ -29,26 +29,24 @@ class RateLimiter(object):
     def __init__(self,
                  r_server= None):
 
-        self.get_payload()
+        self.get_auth_token_payload()
         self.set_limits()
         self.set_unique_requester_id()
         self.set_short_window_key()
         self.set_long_window_key()
 
     def set_limits(self):
-        if self.payload:
-            #TODO:retrieve this in redis
-            if self.payload['secret']  in current_app.config['AUTORISED_KEYS']:
-                auth_key =  current_app.config['AUTORISED_KEYS'][self.payload['secret']]
-        else:
-            auth_key = AuthKey()
+        auth_key = AuthKey()
+        if self.auth_token_payload:
+            auth_key.load(secret=self.auth_token_payload['secret'],
+                          appname=self.auth_token_payload['appname'])
         self.short_window_rate = auth_key.short_window_rate
         self.long_window_rate = auth_key.long_window_rate
 
 
 
     def set_short_window_key(self):
-        self.short_window_key =  '|'.join((self.RATE_LIMIT_NAMESPACE,
+        self.short_window_key =  '|'.join((self._RATE_LIMIT_NAMESPACE,
                                            request.environ.get('REMOTE_ADDR'),
                                            self.unique_id,
                                            time.strftime("%H%M%S")[:-1],
@@ -57,7 +55,7 @@ class RateLimiter(object):
 
 
     def set_long_window_key(self):
-        self.long_window_key ='|'.join((self.RATE_LIMIT_NAMESPACE,
+        self.long_window_key ='|'.join((self._RATE_LIMIT_NAMESPACE,
                                         request.environ.get('REMOTE_ADDR'),
                                         self.unique_id,
                                         time.strftime("%d%H"),
@@ -67,8 +65,8 @@ class RateLimiter(object):
     def set_unique_requester_id(self):
         self.unique_id = ''
 
-    def get_payload(self):
-        self.payload = get_token_payload()
+    def get_auth_token_payload(self):
+        self.auth_token_payload = get_token_payload()
 
 
 
@@ -76,7 +74,7 @@ class RateLimiter(object):
 def increment_call_rate(value=RateLimiter.DEFAULT_CALL_WEIGHT, rate_limiter = None):
     if rate_limiter is None:
         rate_limiter = RateLimiter()
-    r_server = current_app.extensions['redis']
+    r_server = current_app.extensions['redis-service']
     pipe = r_server.pipeline()
     current_app.logger.info('ratelimit increase for key %s value: %i'%(rate_limiter.short_window_key, value))
     pipe.incr(rate_limiter.short_window_key, value)
