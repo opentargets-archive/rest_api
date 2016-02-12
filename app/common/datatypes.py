@@ -35,10 +35,15 @@ class DataTypes():
 
 
     def get_datasources(self, datatype):
-        return self.datatypes[datatype].datasources
-
+        try:
+            return self.datatypes[datatype].datasources
+        except KeyError:
+            return []
     def get_datatypes(self, datasource):
-        return self.datasources[datasource].datatypes
+        try:
+            return self.datasources[datasource].datatypes
+        except KeyError:
+            return []
 
 
 class FilterTypes():
