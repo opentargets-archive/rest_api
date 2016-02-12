@@ -1,3 +1,5 @@
+import csv
+
 from flask import Flask, redirect, Blueprint
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
@@ -6,6 +8,7 @@ from flask_limiter import Limiter
 # from flask.ext.login import LoginManager
 from redislite import Redis
 
+from app.common.auth import AuthKey
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.scoring_conf import DataSourceScoring
@@ -74,7 +77,10 @@ def create_app(config_name):
 
                                         )
 
-    app.extensions['redis'] = Redis(app.config['REDIS_SERVER'])
+    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0)
+    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1)
+    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)
+
 
     app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],
                                            allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
@@ -94,6 +100,13 @@ def create_app(config_name):
     '''Set usage limiter '''
     # limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
     # limiter.init_app(app)# use redis to store limits
+
+    '''Load api keys in redis'''
+    with open('rate_limit.csv') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            auth_key = AuthKey(**row)
+            app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
 
 
     '''compress http response'''

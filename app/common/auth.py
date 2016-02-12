@@ -13,9 +13,10 @@ import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
 import json
-
+from config import Config
 
 class AuthKey(object):
+    _AUTH_KEY_NAMESPACE='REST_API_AUTH_KEY_v'+Config.API_VERSION
 
     def __init__(self,
                  appname='',
@@ -32,7 +33,16 @@ class AuthKey(object):
         self.long_window_rate=int(long_window_rate)
         self.users_allowed=users_allowed.lower()=='true'
         self.reference=reference
-        self.id = secret+'-'+appname
+        self.id = '-'.join((secret,appname))
+
+    def get_key(self, ):
+        return '|'.join((self._AUTH_KEY_NAMESPACE,self.id))
+
+    def load(self,secret, appname):
+        data = current_app.extensions['redis-user'].hmset(self.get_key())
+        if data:
+            self.__dict__.update(data)
+
 
 
 
