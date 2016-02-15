@@ -1,3 +1,4 @@
+import time
 from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
 from app.common.rate_limit import rate_limit
@@ -70,6 +71,7 @@ class Evidence(restful.Resource):
         Get an evidence from its id
         Can be used to request in batch if multiple ids are passed
         """
+        start_time = time.time()
         args = self.parser.parse_args()
         evidenceids = args['id']
         es = current_app.extensions['esquery']
@@ -77,7 +79,8 @@ class Evidence(restful.Resource):
         res = es.get_evidences_by_id(evidenceids)
         if not res:
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
-        return res
+        return CTTVResponse.OK(res,
+                               took=time.time() - start_time)
 
     @swagger.operation(
         nickname='evidence',
@@ -99,6 +102,7 @@ class Evidence(restful.Resource):
     @rate_limit
     def post(self):
 
+        start_time = time.time()
         args = request.get_json()
         evidenceids = args['id']
         es = current_app.extensions['esquery']
@@ -106,7 +110,8 @@ class Evidence(restful.Resource):
         res = es.get_evidences_by_id(evidenceids)
         if not res:
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
-        return res
+        return CTTVResponse.OK(res,
+                               took=time.time() - start_time)
 
 
 class FilterBy(restful.Resource, Paginable):
@@ -260,6 +265,7 @@ class FilterBy(restful.Resource, Paginable):
         Get a list of evidences filtered by gene, efo and/or eco codes
         test with: ENSG00000136997,
         """
+        start_time = time.time()
         parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -297,7 +303,9 @@ class FilterBy(restful.Resource, Paginable):
                 or args['uniprotkw']
                 or args['datatype']):
             abort(404, message='Please provide at least one gene, efo, eco or datasource')
-        return self.get_evidence(genes, objects, evidence_types, datasources,  datatypes, params=args)
+        data = self.get_evidence(genes, objects, evidence_types, datasources,  datatypes, params=args)
+        return CTTVResponse.OK(data,
+                               took=time.time() - start_time)
 
 
     @swagger.operation(
@@ -333,7 +341,7 @@ class FilterBy(restful.Resource, Paginable):
                         new_l.append(i)
             return new_l
 
-
+        start_time = time.time()
         args = request.get_json()
         genes = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
@@ -346,7 +354,9 @@ class FilterBy(restful.Resource, Paginable):
 
         if not (genes or objects or evidence_types or datasources or datatypes):
             abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
-        return self.get_evidence(genes, objects, evidence_types, datasources, datatypes, params=args)
+        data=self.get_evidence(genes, objects, evidence_types, datasources, datatypes, params=args)
+        return CTTVResponse.OK(data,
+                               took=time.time() - start_time)
 
 
     def get_evidence(self,
@@ -380,6 +390,6 @@ class FilterBy(restful.Resource, Paginable):
                                                                     # object_operator,
                                                                     # evidence_type_operator,
                                                                     ]))
-        return CTTVResponse.OK(res)
+        return res
 
 

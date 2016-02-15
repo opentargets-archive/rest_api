@@ -19,5 +19,6 @@ class Ping(restful.Resource):
 class Version(restful.Resource):
     parser = reqparse.RequestParser()
 
+    @rate_limit
     def get(self ):
         return CTTVResponse.OK(current_app.config['API_VERSION'])

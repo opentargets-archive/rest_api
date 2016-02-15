@@ -1,4 +1,5 @@
 from app.common.auth import is_authenticated, get_token_payload
+from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 from flask import current_app, request
@@ -12,7 +13,8 @@ from flask_restful_swagger import swagger
 class ProxyEnsembl(restful.Resource):
 
     @swagger.operation()
-    # @is_authenticated
+    @is_authenticated
+    @rate_limit
     def get(self, url ):
         '''
         proxy for the ensembl rest api
@@ -53,7 +55,8 @@ class ProxyEnsembl(restful.Resource):
 class ProxyGXA(restful.Resource):
 
     @swagger.operation()
-    # @is_authenticated
+    @is_authenticated
+    @rate_limit
     def get(self, url ):
         '''
         proxy for the gxa rest api
@@ -68,7 +71,8 @@ class ProxyGXA(restful.Resource):
 class ProxyPDB(restful.Resource):
 
     @swagger.operation()
-    # @is_authenticated
+    @is_authenticated
+    @rate_limit
     def get(self, url ):
         '''
         proxy for the pdbe rest api
@@ -83,7 +87,8 @@ class ProxyPDB(restful.Resource):
 class ProxyEPMC(restful.Resource):
 
     @swagger.operation()
-    # @is_authenticated
+    @is_authenticated
+    @rate_limit
     def get(self, url ):
         '''
         proxy for the pdbe rest api
@@ -99,7 +104,8 @@ class ProxyEPMC(restful.Resource):
 class ProxyGeneric(restful.Resource):
 
     @swagger.operation()
-    # @is_authenticated
+    @is_authenticated
+    @rate_limit
     def get(self, url ):
         '''
         proxy for the ensembl rest api

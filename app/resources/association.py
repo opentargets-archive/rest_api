@@ -48,6 +48,9 @@ class AssociationQuery:
 
 
 class Association(restful.Resource):
+    pass
+
+class FilterBy(restful.Resource):
 
     _swagger_parameters = [
             {
@@ -195,6 +198,7 @@ class Association(restful.Resource):
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         """
+        start_time = time.time()
         parser = reqparse.RequestParser()
         parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -228,7 +232,9 @@ class Association(restful.Resource):
 
         if not (genes or objects ):
             abort(404, message='Please provide at least one target or disease')
-        return self.get_association(genes, objects,params=args)
+        data = self.get_association(genes, objects,params=args)
+        return CTTVResponse.OK(data,
+                               took=time.time() - start_time)
 
 
     @swagger.operation(
@@ -267,7 +273,7 @@ class Association(restful.Resource):
                         new_l.append(i)
             return new_l
 
-
+        start_time = time.time()
         args = request.get_json()
         genes = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
@@ -285,7 +291,9 @@ class Association(restful.Resource):
 
         if not (genes or objects ):
             abort(404, message='Please provide at least one target or disease')
-        return self.get_association(genes, objects,params=args)
+        data = self.get_association(genes, objects,params=args)
+        return CTTVResponse.OK(data,
+                               took=time.time() - start_time)
 
 
     def get_association(self,
@@ -296,19 +304,12 @@ class Association(restful.Resource):
                      params ={}):
 
         es = current_app.extensions['esquery']
-        start_time = time.time()
         res = es.get_associations(genes = genes,
                                  objects = objects,
                                  # gene_operator = gene_operator,
                                  # object_operator = object_operator,
                                  # evidence_type_operator = evidence_type_operator,
                                  **params)
-        took = time.time() - start_time
-        # if not res:
-        #     abort(404, message='Cannot find associations for  %s'%str([genes,
-        #                                                             objects,
-        #                                                             # gene_operator,
-        #                                                             # object_operator,
-        #                                                             ]))
-        return CTTVResponse.OK(res, took=took)
+
+        return res
 
