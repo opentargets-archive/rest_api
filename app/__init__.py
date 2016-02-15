@@ -1,6 +1,6 @@
 import csv
 
-from flask import Flask, redirect, Blueprint
+from flask import Flask, redirect, Blueprint, send_from_directory
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask_limiter import Limiter
@@ -28,7 +28,7 @@ from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 __author__ = 'andreap'
 
 def create_app(config_name):
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path='')
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
@@ -161,6 +161,10 @@ def create_app(config_name):
     @app.route('/api-docs')
     def docs():
       return redirect('/api/latest/cttv.html')
+
+    @app.route('/api/docs/swagger.yaml')
+    def send_swagger():
+        return app.send_static_file('docs/swagger/swagger.yaml')
 
 
     return app

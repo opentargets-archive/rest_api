@@ -48,7 +48,9 @@ class AssociationQuery:
 
 
 class Association(restful.Resource):
-    pass
+
+    def get(self):
+        pass
 
 class FilterBy(restful.Resource):
 

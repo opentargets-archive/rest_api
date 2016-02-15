@@ -1,0 +1,171 @@
+
+swagger: '2.0'
+
+info:
+  version: "1.1"
+  title: targetvalidation.org REST API DOCS
+  description: |
+    Documentation for the REST API served at www.targetvalidation.org.
+    More info [here](https://about.targetvalidation.org).
+  license: Apache 2.0
+  contact: support@targetvalidation.org
+  termsOfService: fair usage is enforced with limits to the api calls
+tags:
+      - name: public
+        description: Publicly supported stable API
+      - name: private
+        description: Unstable API methods, subject to change at any time without prior notice. Use at your own risk.
+      - name: auth
+        description: Authentication methods
+      - name: utils
+        description: Utiliy methods
+basePath: /api
+consumes:
+  - text/plain; charset=utf-8
+  - application/json
+# Describe your paths here
+paths:
+  # This is a path endpoint. Change it.
+  /public/evidence/id:
+    get:
+      tags:
+        - public
+      description: |
+        Gets `evidencestring` object by id
+      parameters:
+        - name: id
+          in: query
+          description: id of the evidencestring to retrieve
+          required: true
+          type: string
+          format: string
+      responses:
+        200:
+          description: Successful response
+          schema:
+            title: ArrayOfPersons
+            type: array
+            items:
+              title: EvidenceString
+              type: object
+              properties:
+                name:
+                  type: string
+                single:
+                  type: boolean
+    post:
+      tags:
+        - public
+      description: |
+        Gets `evidencestring` object by id
+      parameters:
+        -
+          name: id
+          in: query
+          description: id of the evidencestring to retrieve
+          required: true
+          type: string
+          format: string
+      responses:
+        200:
+          description: Successful response
+          schema:
+            title: ArrayOfPersons
+            type: array
+            items:
+              title: EvidenceString
+              type: object
+              properties:
+                name:
+                  type: string
+                single:
+                  type: boolean
+  /public/evidence/filter:
+    get:
+      tags:
+        - public
+      description: |
+        Gets `evidencestring` objects by applying a range of filters
+  /public/association/id:
+    get:
+      tags:
+        - public
+      description: |
+        Gets `association` object by id
+  /public/association/filter:
+    get:
+      tags:
+        - public
+      description: |
+        Gets `association` objects by applying a range of filters
+  /private/disease:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `disease` objects
+  /private/eco:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `eco` objects
+  /private/target:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `target` objects
+  /private/target/expression:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `target` objects
+  /public/search:
+    get:
+      tags:
+        - public
+      description: |
+        Gets `search-result` objects
+  /private/quicksearch:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `search-result` objects
+  /private/autocomplete:
+    get:
+      tags:
+        - private
+      description: |
+        Gets `autocomplete` objects
+  /public/auth/request_token:
+    get:
+      tags:
+        - public
+        - auth
+      description: |
+        Gets an authentication token in the form of [JWT](https://jwt.io/).
+  /public/auth/validate_token:
+    get:
+      tags:
+        - public
+        - utils
+        - auth
+      description: |
+        Succed if token is valid
+  /public/utils/ping:
+    get:
+      tags:
+        - public
+        - utils
+      description: |
+        Ping service
+  /public/utils/version:
+    get:
+      tags:
+        - public
+        - utils
+      description: |
+        Get current API version

@@ -60,16 +60,19 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
     api.add_resource(evidence.Evidence,
-                     '/public/evidence/getbyid',
+                     '/public/evidence/id/<string:evidence_id>',
                      )
     api.add_resource(evidence.FilterBy,
-                     '/public/evidence/filterby',
+                     '/public/evidence/filter',
+                      endpoint="evidence-filter"
+
                      )
     api.add_resource(association.Association,
-                     '/public/association/getbyid',
+                     '/public/association/id/<string:association_id>',
                      )
     api.add_resource(association.FilterBy,
-                     '/public/association/filterby',
+                     '/public/association/filter',
+                     endpoint="association-filter"
                      )
     api.add_resource(EfoLabelFromCode,
                      '/private/disease/<string:disease_id>')
@@ -78,7 +81,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     api.add_resource(GeneInfo,
                      '/private/target/<string:target_id>')
     api.add_resource(Expression,
-                     '/private/expression')
+                     '/private/target/expression')
     api.add_resource(FreeTextSearch,
                      '/public/search')
     api.add_resource(QuickSearch,
