@@ -47,7 +47,7 @@ class RateLimiter(object):
 
     def set_short_window_key(self):
         self.short_window_key =  '|'.join((self._RATE_LIMIT_NAMESPACE,
-                                           request.environ.get('REMOTE_ADDR'),
+                                           str(request.environ.get('REMOTE_ADDR')),
                                            self.unique_id,
                                            time.strftime("%H%M%S")[:-1],
                                            #r.environ.get('HTTP_USER_AGENT')
@@ -56,7 +56,7 @@ class RateLimiter(object):
 
     def set_long_window_key(self):
         self.long_window_key ='|'.join((self._RATE_LIMIT_NAMESPACE,
-                                        request.environ.get('REMOTE_ADDR'),
+                                        str(request.environ.get('REMOTE_ADDR')),
                                         self.unique_id,
                                         time.strftime("%d%H"),
                                         #r.environ.get('HTTP_USER_AGENT')
