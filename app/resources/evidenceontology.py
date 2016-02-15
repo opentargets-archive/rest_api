@@ -1,5 +1,8 @@
+import time
+
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
+from app.common.response_templates import CTTVResponse
 
 __author__ = 'andreap'
 from flask import current_app
@@ -18,8 +21,10 @@ class EcoLabelFromCode(restful.Resource):
         '''
         get ECO information from a code
         '''
+        start_time = time.time()
         es = current_app.extensions['esquery']
         res = es.get_label_for_eco_code(code)
         if not res:
             abort(404, message="ECO ID %s cannot be found"%code)
-        return res
+        return CTTVResponse.OK(res,
+                               took=time.time() - start_time)

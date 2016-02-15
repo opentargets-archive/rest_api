@@ -42,12 +42,11 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # Wrap the Api with swagger.docs. It is a thin wrapper around the Api class that adds some swagger smarts
 
     from app.resources.genes import GeneInfo
-    from app.resources.evidence import Evidence, FilterBy
+    from app.resources import evidence
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, AutoComplete, QuickSearch
-    from app.resources.echo import Echo
-    from app.resources.association import Association
+    from app.resources import association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
@@ -60,20 +59,20 @@ def create_api(app, api_version = '0.0', specpath = '' ):
 
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
-    api.add_resource(Evidence,
+    api.add_resource(evidence.Evidence,
                      '/public/evidence/getbyid',
                      )
-    api.add_resource(FilterBy,
+    api.add_resource(evidence.FilterBy,
                      '/public/evidence/filterby',
                      )
-    # api.add_resource(Association,
-    #                  '/public/association/getbyid',
-    #                  )
-    api.add_resource(Association,
+    api.add_resource(association.Association,
+                     '/public/association/getbyid',
+                     )
+    api.add_resource(association.FilterBy,
                      '/public/association/filterby',
                      )
     api.add_resource(EfoLabelFromCode,
-                     '/private/disease/<string:code>')
+                     '/private/disease/<string:disease_id>')
     api.add_resource(EcoLabelFromCode,
                      '/private/eco/<string:code>')
     api.add_resource(GeneInfo,
@@ -86,8 +85,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/quicksearch')
     api.add_resource(AutoComplete,
                      '/private/autocomplete')
-    # api.add_resource(Echo,
-    #                  '/echo')
     api.add_resource(RequestToken,
                      '/public/auth/request_token')
     api.add_resource(ValidateToken,

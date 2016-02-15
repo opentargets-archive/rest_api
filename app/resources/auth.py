@@ -1,4 +1,4 @@
-
+import time
 from flask import current_app
 from flask.ext import restful
 from flask.ext.restful import abort,reqparse
@@ -7,12 +7,14 @@ from app.common import boilerplate
 from app.common.boilerplate import Paginable
 from app.common.auth import TokenAuthentication, is_authenticated
 from app.common.rate_limit import rate_limit
+from app.common.response_templates import CTTVResponse
 
 __author__ = 'andreap'
 
 
 
 class RequestToken(restful.Resource):
+
     parser = reqparse.RequestParser()
     parser.add_argument('appname', type=str, required=True, help="app name [appname] is required")
     parser.add_argument('secret', type=str, required=True, help="app secret [secret] is required")
@@ -70,10 +72,12 @@ class RequestToken(restful.Resource):
         )
     @rate_limit
     def get(self, ):
+        start_time = time.time()
         args = self.parser.parse_args()
         if args['expiry'] is None:
             args['expiry']=600
-        return TokenAuthentication.get_auth_token('cttv_api', auth_data=args, expiry=args['expiry'])
+        token_data = TokenAuthentication.get_auth_token('cttv_api', auth_data=args, expiry=args['expiry'])
+        return CTTVResponse.OK(token_data, took=time.time() - start_time)
 
 
 class ValidateToken(restful.Resource):

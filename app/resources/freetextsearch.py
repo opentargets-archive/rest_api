@@ -53,15 +53,15 @@ class FreeTextSearch(restful.Resource, Paginable):
         Search for gene and disease
         Search with a parameter q = 'your query'
         """
+        start_time = time.time()
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         filter = kwargs.pop('filter') or ['all']
         if len(searchphrase)>1:
-            start_time = time.time()
             res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
 
             return CTTVResponse.OK(res,
-                                   took = time.time() - start_time)
+                                   took=time.time() - start_time)
         else:
             abort(404, message = "Query is too short")
 
@@ -103,6 +103,7 @@ class QuickSearch(restful.Resource):
         Suggest best terms for gene and disease
         Search with a parameter q = 'your query'
         """
+        start_time = time.time()
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         size = kwargs.pop('size') or 5
@@ -110,7 +111,9 @@ class QuickSearch(restful.Resource):
             size = 10
         if len(searchphrase)>1:
             res = current_app.extensions['esquery'].quick_search(searchphrase, size = size,**kwargs)
-            return CTTVResponse.OK(res)
+            expression_data = self.get_expression(genes,params=args)
+            took = time.time() - start_time
+            return CTTVResponse.OK(res, took=took)
         else:
             abort(404, message = "Query is too short")
 

@@ -12,6 +12,7 @@ from flask import current_app
 class ClearCache(restful.Resource):
     ''' clear the aplication cache
     '''
+
     @rate_limit
     def get(self ):
         return current_app.cache.clear()

@@ -9,8 +9,7 @@ from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse, PaginatedResponse
-
-
+import time
 
 __author__ = 'andreap'
 
@@ -53,6 +52,7 @@ class Expression(restful.Resource):
         Get expression data for a gene
         Test with ENSG00000136997
         """
+        start_time = time.time()
         parser = reqparse.RequestParser()
         parser.add_argument('gene', type=str, action='append', required=False, help="gene identifier")
 
@@ -61,7 +61,8 @@ class Expression(restful.Resource):
         genes = args.pop('gene',[]) or []
         if not (genes ):
             abort(404, message='Please provide at least one gene')
-        return self.get_expression(genes,params=args)
+        expression_data = self.get_expression(genes,params=args)
+        return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
     @swagger.operation(
         nickname='expression',
@@ -94,13 +95,14 @@ class Expression(restful.Resource):
                         new_l.append(i)
             return new_l
 
-
+        start_time = time.time()
         args = request.get_json()
         genes = fix_empty_strings(args.pop('gene',[]) or [])
 
         if not genes:
             abort(404, message='Please provide at least one gene')
-        return self.get_expression(genes,params=args)
+        expression_data = self.get_expression(genes,params=args)
+        return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
     def get_expression(self,
                      genes,
