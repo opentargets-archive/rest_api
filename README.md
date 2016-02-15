@@ -10,11 +10,11 @@ To test locally
 - ```python manage.py runserver``` runs the server
 - ```python manage.py test``` runs the tests
 
-Will run the rest api on: `http://localhost:5000`
+Will run the rest api on: [http://localhost:5000](http://localhost:5000)
 
-Swagger is available at: `http://localhost:5000/api-docs`
+Swagger is available at: [http://localhost:5000/api-docs](http://localhost:5000/api-docs)
 
-It expects to have an elasticsearch instance on `http://localhost:9200`. Alternative configurations are available using the `CTTV_API_CONFIG` environment variable
+It expects to have an elasticsearch instance on [http://localhost:9200](http://localhost:9200). Alternative configurations are available using the `CTTV_API_CONFIG` environment variable
 
 
 
