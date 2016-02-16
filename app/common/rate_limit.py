@@ -99,8 +99,9 @@ def rate_limit(func):
         current_values = increment_call_rate(rate_limiter=rate_limiter)
         
 
-        if current_values['short'] <= rate_limiter.short_window_rate and \
-            current_values['long'] <= rate_limiter.long_window_rate:
+        if (current_values['short'] <= rate_limiter.short_window_rate and \
+            current_values['long'] <= rate_limiter.long_window_rate) or \
+                 current_app.config['DEBUG']:
             current_app.logger.info('Rate Limit PASSED')
             return func(*args, **kwargs)
         current_app.logger.info('Rate Limit NOT PASSED')

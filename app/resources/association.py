@@ -306,12 +306,15 @@ class FilterBy(restful.Resource):
                      params ={}):
 
         es = current_app.extensions['esquery']
-        res = es.get_associations(genes = genes,
-                                 objects = objects,
-                                 # gene_operator = gene_operator,
-                                 # object_operator = object_operator,
-                                 # evidence_type_operator = evidence_type_operator,
-                                 **params)
+        try:
+            res = es.get_associations(genes = genes,
+                                     objects = objects,
+                                     # gene_operator = gene_operator,
+                                     # object_operator = object_operator,
+                                     # evidence_type_operator = evidence_type_operator,
+                                     **params)
+        except AttributeError,e:
+            abort(404, message=e.message)
 
         return res
 

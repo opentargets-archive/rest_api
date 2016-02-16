@@ -18,7 +18,7 @@ tags:
       - name: auth
         description: Authentication methods
       - name: utils
-        description: Utiliy methods
+        description: Utility methods
 basePath: /api/latest
 consumes:
   - text/plain; charset=utf-8
@@ -26,7 +26,7 @@ consumes:
 # Describe your paths here
 paths:
   # This is a path endpoint. Change it.
-  /public/evidence/id:
+  /public/evidence:
     get:
       tags:
         - public
@@ -86,7 +86,7 @@ paths:
         - public
       description: |
         Gets `evidencestring` objects by applying a range of filters
-  /public/association/id:
+  /public/association:
     get:
       tags:
         - public
