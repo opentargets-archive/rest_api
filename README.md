@@ -36,14 +36,15 @@ build the container from source
 docker build -t rest_api:local .
 ```
 
-or get it from [quay.io](https://quay.io/repository/cttv/rest_api)
-```bash
-docker pull quay.io/cttv/rest_api
-```
-
 run the container. Please use the correct link for the hostname `elastic`, either with the `--link` or the `--ad-host` option
 ```bash
 docker run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "CTTV_API_CONFIG=dockerlink" rest_api:local
+```
+
+or get it from [quay.io](https://quay.io/repository/cttv/rest_api)
+```bash
+docker run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "CTTV_API_CONFIG=dockerlink" quay.io/cttv/rest_api
+
 ```
 
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
