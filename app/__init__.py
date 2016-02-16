@@ -156,15 +156,26 @@ def create_app(config_name):
 
     @app.route('/api-docs/%s'%str(api_version))
     def docs_current_version():
-      return redirect('/api/%s/cttv.html'%str(api_version))
+      return redirect('/api/swagger/index.html')
 
     @app.route('/api-docs')
     def docs():
-      return redirect('/api/latest/cttv.html')
+      return redirect('/api/swagger/index.html')
+
+    def serve_swagger():
+        return app.send_static_file('docs/swagger/swagger.yaml')
 
     @app.route('/api/docs/swagger.yaml')
     def send_swagger():
-        return app.send_static_file('docs/swagger/swagger.yaml')
+        return serve_swagger()
+
+    @app.route('/api/latest/docs/swagger.yaml')
+    def send_swagger_latest():
+        return serve_swagger()
+
+    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
+    def send_swagger_current_cersion():
+        return serve_swagger()
 
 
     return app
