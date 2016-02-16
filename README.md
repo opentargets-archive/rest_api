@@ -23,7 +23,7 @@ Run Docker Container
 
 build the container
 ```bash
-docker build -t cttv_rest_api:local.
+docker build -t cttv_rest_api:local .
 ```
 
 run the container. Please use the correct link for 'elastic', either with the  `--link` or the `--ad-host` option
