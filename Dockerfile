@@ -48,7 +48,7 @@ RUN cd /var/www &&  \
     mv swagger-ui-master swagger-ui
 
 #declare app port
-EXPOSE 8008
+EXPOSE 80 8008
 
 #run supervisor to run uwsgi to run the flask app
 CMD ["supervisord"]

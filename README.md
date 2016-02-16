@@ -12,7 +12,7 @@ To test locally
 
 By default the rest api is available at [http://localhost:5000](http://localhost:5000)
 
-Swagger YAML documentation is exposed at  http://localhost:5000/api/docs/swagger.yaml](http://localhost:5000/api/docs/swagger.yaml)
+Swagger YAML documentation is exposed at  [http://localhost:5000/api/docs/swagger.yaml](http://localhost:5000/api/docs/swagger.yaml)
 
 It expects to have an Elasticsearch instance on [http://localhost:9200](http://localhost:9200). Alternative configurations are available using the `CTTV_API_CONFIG` environment variable
 Valid `CTTV_API_CONFIG` options:
@@ -41,9 +41,9 @@ or get it from [quay.io](https://quay.io/repository/cttv/rest_api)
 docker pull quay.io/cttv/rest_api
 ```
 
-run the container. Please use the correct link for the hostname 'elastic', either with the `--link` or the `--ad-host` option
+run the container. Please use the correct link for the hostname `elastic`, either with the `--link` or the `--ad-host` option
 ```bash
-run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "CTTV_API_CONFIG=dockerlink" rest_api:local
+docker run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "CTTV_API_CONFIG=dockerlink" rest_api:local
 ```
 
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
