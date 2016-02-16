@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import datetime
 
@@ -7,7 +8,7 @@ from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
 
-from flask import Flask, Response, current_app
+from flask import Flask, Response, current_app, request
 from flask.ext.restful import fields
 from flask_restful_swagger import swagger
 
@@ -25,7 +26,7 @@ class CTTVResponse():
            type = None,
            took =0.):
         '''
-        :param result: instance of common.elasticsearchclient.Result
+        :param result: instance of common.results.Result
         :param type: value of ResponseType
         :return:
         '''
@@ -36,6 +37,16 @@ class CTTVResponse():
                 status = 203
         except:
             pass
+
+        accept_header = request.headers.get('Accept')
+        if type is None and accept_header:
+            if 'application/json' in accept_header:
+                type = ResponseType.JSON
+            elif "text/xml"in accept_header:
+                type = ResponseType.XML
+            elif "text/csv"in accept_header:
+                type = ResponseType.CSV
+
 
         if type == ResponseType.JSON:
             resp = Response(response=result.toJSON(),
