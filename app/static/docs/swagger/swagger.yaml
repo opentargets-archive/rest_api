@@ -19,7 +19,7 @@ tags:
         description: Authentication methods
       - name: utils
         description: Utiliy methods
-basePath: /api
+basePath: /api/latest
 consumes:
   - text/plain; charset=utf-8
   - application/json
@@ -121,7 +121,7 @@ paths:
       tags:
         - private
       description: |
-        Gets `target` objects
+        Gets `target-expression` objects
   /public/search:
     get:
       tags:

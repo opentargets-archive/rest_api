@@ -10,6 +10,7 @@ RUN apt-get update && \
     python-dev \
     python \
     wget \
+    curl \
     ca-certificates \
     openssh-server \
     git \
@@ -22,7 +23,7 @@ RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
 
 
 # setup
-RUN mkdir -p /var/www/app  /var/www/app-conf /var/log/supervisor && \
+RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor && \
  rm /etc/nginx/sites-enabled/default && \
  ln -sf /dev/stdout /var/log/nginx/access.log && \
  ln -sf /dev/stderr /var/log/nginx/error.log
@@ -40,6 +41,11 @@ COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
 #install app requirements
 RUN pip install -r /var/www/app/requirements.txt && \
   pip install -e git+https://github.com/CTTV/flask-restful-swagger.git@657faa7377f5dcf7718f4e094d50aa2dd86999cf#egg=flask_restful_swagger
+
+#install swagger ui
+RUN cd /var/www &&  \
+    curl -sL https://github.com/CTTV/swagger-ui/archive/master.tar.gz | tar xz && \
+    mv swagger-ui-master swagger-ui
 
 #declare app port
 EXPOSE 8008
