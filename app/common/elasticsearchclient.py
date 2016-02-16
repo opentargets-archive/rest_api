@@ -336,7 +336,9 @@ class esQuery():
                                   }
                                   )
         if res['hits']['total']:
-            return SimpleResult([hit['_source'] for hit in res['hits']['hits']])
+            return SimpleResult(res,
+                                params,
+                                data = [hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
         res = self.handler.search(index=self._index_eco,

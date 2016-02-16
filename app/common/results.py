@@ -16,7 +16,7 @@ class Result(object):
 
     def __init__(self,
                  res,
-                 params,
+                 params = None,
                  data=None,
                  facets=None,
                  available_datatypes = [],
@@ -32,7 +32,8 @@ class Result(object):
         self.res = res
         self.params = params
         self.data = data
-        self.format = params.format
+        if params is not None:
+            self.format = params.format
         self.facets = facets
         self.available_datatypes = available_datatypes
         self.status = status
@@ -143,7 +144,7 @@ class PaginatedResult(Result):
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
-                'status' : self.status,
+                # 'status' : self.status,
         }
 
 class EmptyPaginatedResult(Result):
@@ -155,7 +156,7 @@ class EmptyPaginatedResult(Result):
                 'took': 0,
                 'size': 0,
                 'from': 0,
-                'status' : self.status,
+                # 'status' : self.status,
         }
 
 
@@ -167,13 +168,22 @@ class SimpleResult(Result):
         if  self.data is None:
             raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data,
-                'status' : self.status, }
+                # 'status' : self.status,
+                }
+
+class RawResult(Result):
+    ''' just need res to be passed and it will be returned as it is
+    '''
+
+    def toDict(self):
+        return self.res
 
 class EmptySimpleResult(Result):
     def toDict(self):
 
         return {'data':[],
-                'status' : self.status, }
+                # 'status' : self.status,
+                }
 
 
 class CountedResult(Result):
@@ -196,10 +206,10 @@ class CountedResult(Result):
                     'facets': self.facets,
                     'total': self.total,
                     'available_datatypes': self.available_datatypes,
-                    'status' : self.status,
+                    # 'status' : self.status,
             }
         return {'data': self.data,
                 'total': self.total,
                 'available_datatypes': self.available_datatypes,
-                'status' : self.status,
+                # 'status' : self.status,
         }
