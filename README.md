@@ -21,7 +21,7 @@ Valid `CTTV_API_CONFIG` options:
 - `staging`: to be used in staging area
 - `production`: to be used in production area
 - `dockerlink`: to be used in docker container
-- `dockerlinkdev`: to be used in docker container with a different set of parameters
+- `dockerlinkdev`: to be used in docker container with a set of  development parameters
 - `testing`: to be used for tests
 
 see the `config.py` file for details

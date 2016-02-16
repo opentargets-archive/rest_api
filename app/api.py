@@ -18,28 +18,9 @@ def create_api(app, api_version = '0.0', specpath = '' ):
         'status': 419},
     }
     api = Api(app)
-    api = swagger.docs(api,
-                           # decorators=[cors.crossdomain(origin='*',
-                           #                              headers=["Auth-Token",
-                           #                                       "Content-Type",
-                           #                                       "Authentication"],
-                           #                              methods=["GET",
-                           #                                       "POST",
-                           #                                       "OPTIONS",
-                           #                                       "OPTIONS"])],
-                           # ),
-                           # resources=r'/api/*', allow_headers='Content-Type, Auth-Token'),
-                       basePath='http://localhost:8080',
-                       resourcePath='/',
-                       produces=["application/json", "text/xml"],
-                       api_spec_url=specpath,
-                       description='CTTV REST API',
-                       apiVersion=api_version,
-                       swaggerVersion=1.2,
-                   )
+
     '''define api'''
-    # api = restful.Api(app)
-    # Wrap the Api with swagger.docs. It is a thin wrapper around the Api class that adds some swagger smarts
+
 
     from app.resources.genes import GeneInfo
     from app.resources import evidence
@@ -60,7 +41,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
     api.add_resource(evidence.Evidence,
-                     '/public/evidence/id/<string:evidence_id>',
+                     '/public/evidence',
                      )
     api.add_resource(evidence.FilterBy,
                      '/public/evidence/filter',
@@ -68,7 +49,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
 
                      )
     api.add_resource(association.Association,
-                     '/public/association/id/<string:association_id>',
+                     '/public/association',
                      )
     api.add_resource(association.FilterBy,
                      '/public/association/filter',

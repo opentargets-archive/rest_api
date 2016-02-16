@@ -395,67 +395,33 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
-        if not conditions:
-            return EmptyPaginatedResult([], params, )
+        # if not conditions:
+        #     return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
         source_filter = OutputDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
-        if params.groupby:
-            res = self.handler.search(index=self._index_data,
-                                      # doc_type=self._docname_data,
-                                      body={
-                                          "query": {
-                                              "filtered": {
-                                                  "filter": {
-                                                      "bool": {
-                                                          "must": conditions
-                                                      }
-                                                  }
 
-                                              }
-                                          },
-                                          'size': params.size,
-                                          'from': params.start_from,
-                                          '_source': OutputDataStructureOptions.getSource(
-                                              OutputDataStructureOptions.COUNT),
-                                          "aggs": {
-                                              params.groupby[0]: {
-                                                  "terms": {
-                                                      "field": "disease.id",
-                                                      'size': params.size,
-
-                                                  },
-                                                  "aggs": {
-                                                      "evidencestring": {
-                                                          "top_hits": {"_source": source_filter, "size": params.size}}
-                                                  }
-
-                                              }
-                                          }
-                                      }
-                                      )
-        else:
-            query_body = {
-                "query": {
-                    "filtered": {
-                        "filter": {
-                            "bool": {
-                                "must": conditions
-                            }
+        query_body = {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must": conditions
                         }
-
                     }
-                },
-                'size': params.size,
-                'from': params.start_from,
-                "sort": [{"scores.association_score": {"order": "desc"}}],
-                '_source': source_filter,
-            }
-            res = self.handler.search(index=self._index_data,
-                                      # doc_type=self._docname_data,
-                                      body=query_body,
-                                      timeout="10m",
+
+                }
+            },
+            'size': params.size,
+            'from': params.start_from,
+            "sort": [{"scores.association_score": {"order": "desc"}}],
+            '_source': source_filter,
+        }
+        res = self.handler.search(index=self._index_data,
+                                  # doc_type=self._docname_data,
+                                  body=query_body,
+                                  timeout="10m",
 
                                       )
         return PaginatedResult(res, params, )
@@ -1635,7 +1601,7 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
 
 class SearchParams():
-    _max_search_result_limit = 100000
+    _max_search_result_limit = 1000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
 
@@ -1643,7 +1609,7 @@ class SearchParams():
 
         self.size = kwargs.get('size', self._default_return_size) or self._default_return_size
         if (self.size > self._max_search_result_limit):
-            self.size = self._max_search_result_limit
+            raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or 0
 

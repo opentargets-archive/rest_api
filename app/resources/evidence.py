@@ -294,15 +294,15 @@ class FilterBy(restful.Resource, Paginable):
         datasources =  args.pop('datasource',[]) or []
         datatypes =  args.pop('datatype',[]) or []
 
-        if not (genes
-                or objects
-                or evidence_types
-                or datasources
-                or datatypes
-                or args['pathway']
-                or args['uniprotkw']
-                or args['datatype']):
-            abort(404, message='Please provide at least one gene, efo, eco or datasource')
+        # if not (genes
+        #         or objects
+        #         or evidence_types
+        #         or datasources
+        #         or datatypes
+        #         or args['pathway']
+        #         or args['uniprotkw']
+        #         or args['datatype']):
+        #     abort(404, message='Please provide at least one gene, efo, eco or datasource')
         data = self.get_evidence(genes, objects, evidence_types, datasources,  datatypes, params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
@@ -372,24 +372,19 @@ class FilterBy(restful.Resource, Paginable):
 
         es = current_app.extensions['esquery']
 
-        res = es.get_evidence(genes = genes,
-                              objects = objects,
-                              evidence_types = evidence_types,
-                              datasources = datasources,
-                              datatypes = datatype,
-                              # gene_operator = gene_operator,
-                               # object_operator = object_operator,
-                               # evidence_type_operator = evidence_type_operator,
-                               **params)
-        if not res:
-            abort(404, message='Cannot find evidences for  %s'%str([genes,
-                                                                    objects,
-                                                                    evidence_types,
-                                                                    datasources,
-                                                                    # gene_operator,
-                                                                    # object_operator,
-                                                                    # evidence_type_operator,
-                                                                    ]))
+        try:
+            res = es.get_evidence(genes = genes,
+                                  objects = objects,
+                                  evidence_types = evidence_types,
+                                  datasources = datasources,
+                                  datatypes = datatype,
+                                  # gene_operator = gene_operator,
+                                   # object_operator = object_operator,
+                                   # evidence_type_operator = evidence_type_operator,
+                                   **params)
+        except AttributeError,e:
+            abort(404, message=e.message)
+
         return res
 
 
