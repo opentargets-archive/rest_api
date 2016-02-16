@@ -167,11 +167,6 @@ def is_authenticated(func):
         token = request.headers.get('Auth-Token')
         if token:
             authorized = TokenAuthentication.is_valid(token)
-        else:
-             call_args = args[0].parser.parse_args()
-             if 'auth_token' in call_args and call_args['auth_token']:
-                 authorized = TokenAuthentication.is_valid(call_args['auth_token'])
-
         if authorized:
             return func(*args, **kwargs)
 
