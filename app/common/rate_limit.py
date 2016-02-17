@@ -76,7 +76,7 @@ def increment_call_rate(value=RateLimiter.DEFAULT_CALL_WEIGHT, rate_limiter = No
         rate_limiter = RateLimiter()
     r_server = current_app.extensions['redis-service']
     pipe = r_server.pipeline()
-    current_app.logger.debug('ratelimit increase for key %s value: %i'%(rate_limiter.short_window_key, value))
+    # current_app.logger.debug/('ratelimit increase for key %s value: %i'%(rate_limiter.short_window_key, value))
     pipe.incr(rate_limiter.short_window_key, value)
     pipe.expire(rate_limiter.short_window_key, RateLimiter.SHORT_WINDOW_SIZE)
     pipe.incr(rate_limiter.long_window_key, value)
@@ -84,7 +84,7 @@ def increment_call_rate(value=RateLimiter.DEFAULT_CALL_WEIGHT, rate_limiter = No
     result=pipe.execute()
     current_values = dict(short=result[0],
                          long=result[2])
-    current_app.logger.debug('current values: %(short)i, %(long)i '%current_values)
+    # current_app.logger.debug('current values: %(short)i, %(long)i '%current_values)
     return current_values
 
 def ceil_dt_to_future_time(dt, ceil = 10):
@@ -97,12 +97,10 @@ def rate_limit(func):
     def wrapper(*args, **kwargs):
         rate_limiter = RateLimiter()
         current_values = increment_call_rate(rate_limiter=rate_limiter)
-        
-
         if (current_values['short'] <= rate_limiter.short_window_rate and \
             current_values['long'] <= rate_limiter.long_window_rate) or \
                  current_app.config['DEBUG']:
-            current_app.logger.debug('Rate Limit PASSED')
+            # current_app.logger.debug('Rate Limit PASSED')
             return func(*args, **kwargs)
         current_app.logger.info('Rate Limit NOT PASSED')
         restful.abort(429)

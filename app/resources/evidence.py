@@ -285,9 +285,9 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
 
         args = parser.parse_args()
-        genes = args.pop('target',[]) or []
+        targets = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = args.pop('disease',[]) or []
+        diseases = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
@@ -303,7 +303,7 @@ class FilterBy(restful.Resource, Paginable):
         #         or args['uniprotkw']
         #         or args['datatype']):
         #     abort(404, message='Please provide at least one gene, efo, eco or datasource')
-        data = self.get_evidence(genes, objects, evidence_types, datasources,  datatypes, params=args)
+        data = self.get_evidence(targets, diseases, evidence_types, datasources,  datatypes, params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
@@ -325,13 +325,12 @@ class FilterBy(restful.Resource, Paginable):
             },
             ]
         )
-   # @marshal_with(EvidenceQuery.resource_fields)
     @is_authenticated
     @rate_limit
     def post(self ):
         """
         Get a list of evidences filtered by gene, efo and/or eco codes
-        test with: {"gene":["ENSG00000136997"]},
+        test with: {"target":["ENSG00000136997"]},
         """
         def fix_empty_strings(l):
             new_l=[]
@@ -343,25 +342,27 @@ class FilterBy(restful.Resource, Paginable):
 
         start_time = time.time()
         args = request.get_json()
-        genes = fix_empty_strings(args.pop('target',[]) or [])
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        objects = fix_empty_strings(args.pop('disease',[]) or [])
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
-        evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
-        # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        datasources =  args.pop('datasource',[]) or []
-        datatypes=  args.pop('datatype',[]) or []
+        if args:
+            targets = fix_empty_strings(args.pop('target',[]) or [])
+            # gene_operator = args.pop('gene-bool','OR') or 'OR'
+            diseases = fix_empty_strings(args.pop('disease',[]) or [])
+            # object_operator = args.pop('efo-bool','OR') or 'OR'
+            evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
+            # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
+            datasources =  args.pop('datasource',[]) or []
+            datatypes=  args.pop('datatype',[]) or []
 
-        if not (genes or objects or evidence_types or datasources or datatypes):
-            abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
-        data=self.get_evidence(genes, objects, evidence_types, datasources, datatypes, params=args)
-        return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
+            if not (targets or diseases or evidence_types or datasources or datatypes):
+                abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
+            data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)
+            return CTTVResponse.OK(data,
+                                   took=time.time() - start_time)
+        abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
 
 
     def get_evidence(self,
-                     genes,
-                     objects,
+                     targets,
+                     diseases,
                      evidence_types,
                      datasources,
                      datatype,
@@ -373,8 +374,8 @@ class FilterBy(restful.Resource, Paginable):
         es = current_app.extensions['esquery']
 
         try:
-            res = es.get_evidence(genes = genes,
-                                  objects = objects,
+            res = es.get_evidence(targets= targets,
+                                  diseases= diseases,
                                   evidence_types = evidence_types,
                                   datasources = datasources,
                                   datatypes = datatype,

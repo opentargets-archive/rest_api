@@ -355,8 +355,8 @@ class esQuery():
             return hit['_source']
 
     def get_evidence(self,
-                     genes=[],
-                     objects=[],
+                     targets=[],
+                     diseases=[],
                      evidence_types=[],
                      datasources=[],
                      datatypes=[],
@@ -373,10 +373,10 @@ class esQuery():
         evidence_type_operator = getattr(BooleanFilterOperator, evidence_type_operator.upper())
         '''create multiple condition boolean query'''
         conditions = []
-        if genes:
-            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
-        if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=params.expand_efo))
+        if targets:
+            conditions.append(self._get_complex_gene_filter(targets, gene_operator))
+        if diseases:
+            conditions.append(self._get_complex_object_filter(diseases, object_operator, expand_efo=params.expand_efo))
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources or datatypes:
