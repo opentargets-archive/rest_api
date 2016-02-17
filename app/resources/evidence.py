@@ -50,20 +50,6 @@ class Evidence(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to request")
 
-    @swagger.operation(
-        nickname='evidence',
-        produces = ["application/json"],
-        parameters=[
-            {
-              "name": "id",
-              "description": "an evidence id you want to retrieve",
-              "required": True,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            }
-          ],
-        )
     @is_authenticated
     @rate_limit
     def get(self):
@@ -82,22 +68,7 @@ class Evidence(restful.Resource):
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
-    @swagger.operation(
-        nickname='evidence',
-        resourcePath ='/evidence',
-        produces = ["application/json",],
-        parameters=[
-            {
-              "name": "body",
-              "description": "an evidence id you want to retrieve",
-              "required": True,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "body",
-              "type": "GetByIdQuery"
-            },
-            ]
-        )
+
     @is_authenticated
     @rate_limit
     def post(self):
@@ -117,119 +88,9 @@ class Evidence(restful.Resource):
 class FilterBy(restful.Resource, Paginable):
 
     _swagger_parameters = [
-            {
-              "name": "target",
-              "description": "a target identifier listed as target.id",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            # {
-            #   "name": "gene-bool",
-            #   "description": "a boolean operator to combine the list of genes. Can be 'AND' or 'OR'. Default is 'OR'.",
-            #   "required": False,
-            #   "allowMultiple": True,
-            #   "dataType": "string",
-            #   "paramType": "query"
-            # },
-            {
-              "name": "disease",
-              "description": "a efo identifier listed as disease.id",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            #  {
-            #   "name": "efo-bool",
-            #   "description": "a boolean operator to combine the list of efo codes. Can be 'AND' or 'OR'. Default is 'OR'.",
-            #   "required": False,
-            #   "allowMultiple": True,
-            #   "dataType": "string",
-            #   "paramType": "query"
-            # },
-            {
-              "name": "eco",
-              "description": "a eco identifier listed in the evidence",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            # {
-            #   "name": "eco-bool",
-            #   "description": "a boolean operator to combine the list of eco codes. Can be 'AND' or 'OR'. Default is 'OR'.",
-            #   "required": False,
-            #   "allowMultiple": True,
-            #   "dataType": "string",
-            #   "paramType": "query"
-            # },
-            {
-              "name": "pathway",
-              "description": "a pathway identifier (meaning all the genes linked to that pathway",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "uniprotkw",
-              "description": "a uniprot keyword (meaning all the genes linked to that pathway)",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "datasource",
-              "description": "datasource to consider",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "datatype",
-              "description": "datatype to consider",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "datastructure",
-              "description": "Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count' ",
-              "required": False,
-              "allowMultiple": False,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {
-              "name": "fields",
-              "description": "fields you want to retrieve. this will get priority over the datastructure requested",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            # {
-            #   "name": "groupby",
-            #   "description": "group returned elements by the indicated value",
-            #   "required": False,
-            #   "allowMultiple": True,
-            #   "dataType": "string",
-            #   "paramType": "query"
-            # },
-            {
-              "name": "expandefo",
-              "description": "return only evidence directly associated with the efo term if false or to all its children if true",
-              "required": False,
-              "allowMultiple": False,
-              "dataType": "boolean",
-              "defaultValue": "false",
-              "paramType": "query"
-            },
+
+
+
             #  {
             #   "name": "scorevalue_max",
             #   "description": "the maximum value of association score you want to filter by",
@@ -277,7 +138,7 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
-        parser.add_argument('expandefo', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
+        parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
