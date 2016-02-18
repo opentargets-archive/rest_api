@@ -376,7 +376,7 @@ class esQuery():
         if targets:
             conditions.append(self._get_complex_gene_filter(targets, gene_operator))
         if diseases:
-            conditions.append(self._get_complex_object_filter(diseases, object_operator, expand_efo=params.is_direct))
+            conditions.append(self._get_complex_object_filter(diseases, object_operator, is_direct=params.is_direct))
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources or datatypes:
@@ -655,28 +655,29 @@ class esQuery():
     def _get_complex_object_filter(self,
                                    objects,
                                    bol=BooleanFilterOperator.OR,
-                                   expand_efo=False):
+                                   is_direct=False):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param objects: list of objects
         :param bol: boolean operator to use for combining filters
-        :param expand_efo: search in the full efo parent list (True) or just direct links (False)
+        :param is_direct: search in the full efo parent list (True) or just direct links (False)
         :return: boolean filter
         '''
         if objects:
             if bol == BooleanFilterOperator.OR:
-                if expand_efo:
-                    return {"terms": {"private.efo_codes": objects}}
-                else:
+                if is_direct:
                     return {"terms": {"disease.id": objects}}
+                else:
+                    return {"terms": {"private.efo_codes": objects}}
+
 
             else:
-                if expand_efo:
+                if is_direct:
                     return {
                         "bool": {
                             bol: [{
                                       "terms": {
-                                          "private.efo_codes": [object]}
+                                          "disease.id": [object]}
                                   }
                                   for object in objects]
                         }
@@ -687,7 +688,7 @@ class esQuery():
                         "bool": {
                             bol: [{
                                       "terms": {
-                                          "disease.id": [object]}
+                                          "private.efo_codes": [object]}
                                   }
                                   for object in objects]
                         }
@@ -1555,7 +1556,7 @@ return scores""" % (self._get_datatype_combine_init_list(params),
     def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo=False):
         conditions = []
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, expand_efo=False))
+            conditions.append(self._get_complex_object_filter(objects, object_operator, is_direct=False))
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
         if not expand_efo:

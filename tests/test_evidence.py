@@ -81,7 +81,9 @@ class EvidenceTestCase(unittest.TestCase):
         disease = 'EFO_0000311'
         status_code = 429
         while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease})
+            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
+                                                                                  'direct':True,
+                                                                                  })
             status_code = response.status_code
             if status_code == 429:
                 time.sleep(10)
@@ -96,7 +98,9 @@ class EvidenceTestCase(unittest.TestCase):
         status_code = 429
         while status_code == 429:
             response= self.client.post('/api/latest/public/evidence/filter',
-                                       data=json.dumps({'disease':[disease]}),
+                                       data=json.dumps({'disease':[disease],
+                                                        'direct':True,
+                                                        }),
                                        content_type='application/json')
             status_code = response.status_code
             if status_code == 429:
@@ -109,6 +113,52 @@ class EvidenceTestCase(unittest.TestCase):
 
 
 
+    def testEvidenceFilterDirect(self):
+        disease = 'EFO_0000311'
+        'indirect call'
+        status_code = 429
+        while status_code == 429:
+            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
+                                                                                  'direct':False,
+                                                                                  'fields':['disease.efo_info.path',
+                                                                                            'disease.id'
+                                                                                            ],
+                                                                                  'size':10})
+            status_code = response.status_code
+            if status_code == 429:
+                time.sleep(10)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']),0, 'evidence retrieved')
+        indirect_found = False
+        for i in range(len(json_response['data'])):
+            entry_disease_id = json_response['data'][i]['disease']['id']
+            paths = json_response['data'][i]['disease']['efo_info']['path']
+            all_codes = []
+            for p in paths:
+                all_codes.extend(p)
+            if entry_disease_id != disease:
+                self.assertIn(disease, all_codes,'disease in path')
+                indirect_found = True
+        self.assertTrue(indirect_found, 'indirect evidence found')
+        'direct call'
+        status_code = 429
+        while status_code == 429:
+            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
+                                                                                  'direct':True,
+                                                                                  'fields':['disease.efo_info.path',
+                                                                                            'disease.id'
+                                                                                            ],
+                                                                                  'size':100})
+            status_code = response.status_code
+            if status_code == 429:
+                time.sleep(10)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']),0, 'evidence retrieved')
+        for i in range(len(json_response['data'])):
+            entry_disease_id = json_response['data'][i]['disease']['id']
+            self.assertEqual(entry_disease_id, disease, 'entry is direct')
 
 
 
