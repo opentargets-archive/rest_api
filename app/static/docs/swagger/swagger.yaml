@@ -137,6 +137,7 @@ paths:
           description: return only evidence directly associated with the disease efo term if true or all the evidence associaated with its children in the EFO ontology if false
           required: false
           type: boolean
+          default: false
         - name: scorevalue_min
           in: query
           description: filter by minimum score value
