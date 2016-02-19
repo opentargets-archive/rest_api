@@ -48,7 +48,7 @@ class FilterByQuery:
 
 class Evidence(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to request")
+    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
 
     @is_authenticated
     @rate_limit
@@ -59,7 +59,7 @@ class Evidence(restful.Resource):
         """
         start_time = time.time()
         args = self.parser.parse_args()
-        evidenceids = args['id']
+        evidenceids = args['id'][:1000]
         es = current_app.extensions['esquery']
 
         res = es.get_evidences_by_id(evidenceids)

@@ -327,13 +327,11 @@ class esQuery():
 
         res = self.handler.search(index=self._index_data,
                                   # doc_type=self._docname_data,
-                                  body={'filter': {
-                                      "ids": {
-                                          # "type": self._docname_data,
-                                          "values": evidenceid
-                                      }
-                                  }
-                                  }
+                                  body={"filter": {
+                                            "ids": {"values": evidenceid},
+                                            },
+                                        "size" : len(evidenceid),
+                                        }
                                   )
         if res['hits']['total']:
             return SimpleResult(res,
@@ -453,6 +451,29 @@ class esQuery():
         #
         #
         # return PaginatedResult(None, params, data = [i for i in res])
+
+
+    def get_associations_by_id(self, associationid, **kwargs):
+
+        if isinstance(associationid, str):
+            associationid = [associationid]
+
+        params = params = SearchParams(**kwargs)
+        if params.datastructure == SourceDataStructureOptions.DEFAULT:
+            params.datastructure = SourceDataStructureOptions.FULL
+
+        res = self.handler.search(index=self._index_association,
+                                  body={"filter": {
+                                            "ids": {"values": associationid},
+                                            },
+                                        "size" : len(associationid),
+                                        }
+                                  )
+        if res['hits']['total']:
+            return SimpleResult(res,
+                                params,
+                                data = [hit['_source'] for hit in res['hits']['hits']])
+
 
     def get_associations(self,
                          genes=[],
