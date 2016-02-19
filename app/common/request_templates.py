@@ -80,7 +80,7 @@ class ScoreDataStructureMax(OutputDataStructure):
 class ScoreDataStructureSum(OutputDataStructure):
     source =  {"include": ScoreDataStructure.source["include"]+["max"],}
 
-class OutputDataStructureOptions():
+class SourceDataStructureOptions():
     DEFAULT = 'default'
     FULL = 'full'
     SIMPLE = 'simple'
@@ -91,8 +91,6 @@ class OutputDataStructureOptions():
     GENE_AND_DISEASE = 'gene_and_disease'
     GENE_AND_DISEASE_ID = 'gene_and_disease_id'
     CUSTOM = 'custom'
-    TREE = 'tree'
-    FLAT = 'flat'
     SCORE = 'score'
     SCORE_SUM = ScoringMethods.SUM
     SCORE_MAX = ScoringMethods.MAX
@@ -100,6 +98,7 @@ class OutputDataStructureOptions():
 
 
     options = {
+        DEFAULT: FullSourceDataStructure.source,
         FULL: FullSourceDataStructure.source,
         SIMPLE: SimpleSourceDataStructure.source,
         IDS: IdsSourceDataStructure.source,
@@ -122,6 +121,10 @@ class OutputDataStructureOptions():
         else:
             return OutputDataStructure.source
 
+
+class OutputStructureOptions():
+    TREE = 'tree'
+    FLAT = 'flat'
 
 def json_type(data):
     try:

@@ -267,6 +267,11 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
+         - name: outputstructure
+          in: query
+          description: Type of output structure to return. Can be 'flat', or 'tree'.
+          required: false
+          type: string
         - name: direct
           in: query
           description: return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false

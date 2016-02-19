@@ -121,10 +121,10 @@ class AssociationTestCase(unittest.TestCase):
         while status_code == 429:
             response= self.client.open('/api/latest/public/association/filter',data={'disease':disease,
                                                                                   'direct':False,
-                                                                                  'fields':['disease.efo_info.path',
+                                                                                  'fields':['is_direct',
                                                                                             'disease.id'
                                                                                             ],
-                                                                                  'size':10})
+                                                                                  'size':1000})
             status_code = response.status_code
             if status_code == 429:
                 time.sleep(10)
@@ -133,24 +133,20 @@ class AssociationTestCase(unittest.TestCase):
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         indirect_found = False
         for i in range(len(json_response['data'])):
-            entry_disease_id = json_response['data'][i]['disease']['id']
-            paths = json_response['data'][i]['disease']['efo_info']['path']
-            all_codes = []
-            for p in paths:
-                all_codes.extend(p)
-            if entry_disease_id != disease:
-                self.assertIn(disease, all_codes,'disease in path')
-                indirect_found = True
+            d = json_response['data'][i]['is_direct']
+            indirect_found = not d
+            if indirect_found:
+                break
         self.assertTrue(indirect_found, 'indirect association found')
         'direct call'
         status_code = 429
         while status_code == 429:
             response= self.client.open('/api/latest/public/association/filter',data={'disease':disease,
                                                                                   'direct':True,
-                                                                                  'fields':['disease.efo_info.path',
+                                                                                  'fields':['is_direct',
                                                                                             'disease.id'
                                                                                             ],
-                                                                                  'size':100})
+                                                                                  'size':1000})
             status_code = response.status_code
             if status_code == 429:
                 time.sleep(10)

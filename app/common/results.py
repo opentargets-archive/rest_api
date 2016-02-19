@@ -1,5 +1,5 @@
 import collections
-from app.common.request_templates import OutputDataStructureOptions
+from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
 from dicttoxml import dicttoxml
 import collections
@@ -66,7 +66,7 @@ class Result(object):
             flattened_data = []
             for row in self.data:
                 flat = self.flatten(row,
-                                    simplify=self.params.datastructure == OutputDataStructureOptions.SIMPLE)
+                                    simplify=self.params.datastructure == SourceDataStructureOptions.SIMPLE)
                 for field in NOT_ALLOWED_FIELDS:
                     flat.pop(field, None)
                 flattened_data.append(flat)
@@ -122,17 +122,17 @@ class Result(object):
 class PaginatedResult(Result):
     def toDict(self):
         if self.data is None:
-            if self.params.datastructure == OutputDataStructureOptions.COUNT:
+            if self.params.datastructure == SourceDataStructureOptions.COUNT:
                 return {'total': self.res['hits']['total'],
                         'took': self.res['took']
                 }
-            elif self.params.datastructure == OutputDataStructureOptions.SIMPLE:
+            elif self.params.datastructure == SourceDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
 
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
         else:
-            if self.params.datastructure == OutputDataStructureOptions.SIMPLE:
+            if self.params.datastructure == SourceDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
         if self.facets is None:
             if 'aggregations' in self.res:
