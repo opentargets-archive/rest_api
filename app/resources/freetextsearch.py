@@ -111,7 +111,6 @@ class QuickSearch(restful.Resource):
             size = 10
         if len(searchphrase)>1:
             res = current_app.extensions['esquery'].quick_search(searchphrase, size = size,**kwargs)
-            expression_data = self.get_expression(genes,params=args)
             took = time.time() - start_time
             return CTTVResponse.OK(res, took=took)
         else:
