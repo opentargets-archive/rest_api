@@ -26,6 +26,10 @@ basePath: /api/latest
 consumes:
   - text/plain; charset=utf-8
   - application/json
+produces:
+  - application/json
+  - text/xml
+  - text/csv
 # Describe your paths here
 paths:
   # This is a path endpoint. Change it.
@@ -61,11 +65,14 @@ paths:
       description: |
         Gets `evidencestring` object by id
       parameters:
-        - name: id
-          in: query
-          description: id of the evidencestring to retrieve
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {["id1", "id2"]}
+          description: ids of the evidencestring to retrieve
           required: true
-          type: string
       responses:
         200:
           description: Successful response
@@ -134,7 +141,7 @@ paths:
           type: string
         - name: direct
           in: query
-          description: return only evidence directly associated with the disease efo term if true or all the evidence associaated with its children in the EFO ontology if false
+          description: return only evidence directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
           required: false
           type: boolean
           default: false
@@ -144,6 +151,7 @@ paths:
           required: false
           type: number
           format: float
+          default: 0.2
         - name: scorevalue_max
           in: query
           description: filter by maximum score value
@@ -170,6 +178,34 @@ paths:
       responses:
         200:
           description: Successful response
+    post:
+      tags:
+        - public
+      description: |
+        Gets `evidencestring` objects by applying a range of filters
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"]}
+          description: filters to apply when retrieving evidencestring objects
+          required: true
+      responses:
+        200:
+          description: Successful response
+          schema:
+            title: ArrayOfEvidenceStrings
+            type: array
+            items:
+              title: EvidenceString
+              type: object
+              properties:
+                name:
+                  type: string
+                single:
+                  type: boolean
   /public/association:
     get:
       tags:
@@ -185,9 +221,125 @@ paths:
         - public
       description: |
         Gets `association` objects by applying a range of filters
+      parameters:
+        - name: target
+          in: query
+          description: a target identifier listed as target.id
+          required: false
+          type: string
+        - name: disease
+          in: query
+          description: a EFO code listed as disease.id
+          required: false
+          type: string
+        - name: datasource
+          in: query
+          description: datasource to consider
+          required: false
+          type: string
+        - name: datatype
+          in: query
+          description: datatype to consider
+          required: false
+          type: string
+        - name: pathway
+          in: query
+          description: a pathway identifier (meaning all the targets linked to that pathway)
+          required: false
+          type: string
+        - name: uniprotkw
+          in: query
+          description: a uniprot keyword (meaning all the targets linked to that kw)
+          required: false
+          type: string
+        - name: eco
+          in: query
+          description: a ECO identifier listed in the evidence
+          required: false
+          type: string
+        - name: datastructure
+          in: query
+          description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
+          required: false
+          type: string
+        - name: fields
+          in: query
+          description: fields you want to retrieve. this will get priority over the datastructure requested
+          required: false
+          type: string
+        - name: direct
+          in: query
+          description: return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
+          required: false
+          type: boolean
+          default: false
+        - name: facets
+          in: query
+          description: returns facets
+          required: false
+          type: boolean
+          default: false
+        - name: scorevalue_min
+          in: query
+          description: filter by minimum score value
+          required: false
+          type: number
+          format: float
+          default: 0.2
+        - name: scorevalue_max
+          in: query
+          description: filter by maximum score value
+          required: false
+          type: number
+          format: float
+        - name: size
+          in: query
+          description: maximum amount of results to return. Defaults to 10, max is 1000
+          required: false
+          type: number
+          format: integer
+        - name: from
+          in: query
+          description: How many initial results should be skipped. Defaults to 0
+          required: false
+          type: number
+          format: integer
+        - name: format
+          in: query
+          description: Format to get data back. Can be 'json', 'xml' or 'table'
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
+    post:
+      tags:
+        - public
+      description: |
+        Gets `association` objects by applying a range of filters
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"]}
+          description: filters to apply when retrieving association objects
+          required: true
+      responses:
+        200:
+          description: Successful response
+          schema:
+            title: ArrayOfAssociations
+            type: array
+            items:
+              title: Associations
+              type: object
+              properties:
+                name:
+                  type: string
+                single:
+                  type: boolean
   /private/disease:
     get:
       tags:

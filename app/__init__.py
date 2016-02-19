@@ -1,4 +1,5 @@
 import csv
+import os
 
 from flask import Flask, redirect, Blueprint, send_from_directory
 from flask.ext.compress import Compress
@@ -102,11 +103,17 @@ def create_app(config_name):
     # limiter.init_app(app)# use redis to store limits
 
     '''Load api keys in redis'''
-    with open('rate_limit.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            auth_key = AuthKey(**row)
-            app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+    rate_limit_file = 'rate_limit.csv'
+    if not os.path.exists(rate_limit_file):
+        rate_limit_file = '../rate_limit.csv'
+    if os.path.exists(rate_limit_file):
+        with open(rate_limit_file) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                auth_key = AuthKey(**row)
+                app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+    else:
+        app.logger.error('cannot file rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
 
     '''compress http response'''
