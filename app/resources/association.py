@@ -14,16 +14,30 @@ from app.common.response_templates import CTTVResponse, PaginatedResponse
 from app.common.utils import get_ordered_filter_list
 import time
 
-
 __author__ = 'andreap'
-
-
-
 
 class Association(restful.Resource):
 
+    parser = reqparse.RequestParser()
+    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
+
+    @is_authenticated
+    @rate_limit
     def get(self):
-        pass
+        """
+        Get an associations from its id
+        Can be used to request in batch if multiple ids are passed
+        """
+        start_time = time.time()
+        args = self.parser.parse_args()
+        evidenceids = args['id'][:1000]
+        es = current_app.extensions['esquery']
+
+        res = es.get_associations_by_id(evidenceids)
+        if not res:
+            abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
+        return CTTVResponse.OK(res,
+                               took=time.time() - start_time)
 
 class FilterBy(restful.Resource):
 
