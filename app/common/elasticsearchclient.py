@@ -10,7 +10,7 @@ import json
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import OutputDataStructureOptions
+from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions
 from app.common.response_templates import Association
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult
 from app.common.datatypes import FilterTypes
@@ -262,9 +262,9 @@ class esQuery():
 
     def get_gene_info(self, gene_ids, facets=False, **kwargs):
         params = SearchParams(**kwargs)
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FULL
-        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        if params.datastructure == SourceDataStructureOptions.DEFAULT:
+            params.datastructure = SourceDataStructureOptions.FULL
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
         aggs = {}
@@ -322,8 +322,8 @@ class esQuery():
             evidenceid = [evidenceid]
 
         params = params = SearchParams(**kwargs)
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FULL
+        if params.datastructure == SourceDataStructureOptions.DEFAULT:
+            params.datastructure = SourceDataStructureOptions.FULL
 
         res = self.handler.search(index=self._index_data,
                                   # doc_type=self._docname_data,
@@ -365,8 +365,8 @@ class esQuery():
                      evidence_type_operator='OR',
                      **kwargs):
         params = SearchParams(**kwargs)
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FULL
+        if params.datastructure == SourceDataStructureOptions.DEFAULT:
+            params.datastructure = SourceDataStructureOptions.FULL
         '''convert boolean to elasticsearch syntax'''
         gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
@@ -400,7 +400,7 @@ class esQuery():
         # if not conditions:
         #     return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
-        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
 
@@ -476,8 +476,7 @@ class esQuery():
         """
         params = SearchParams(**kwargs)
 
-        if params.datastructure == OutputDataStructureOptions.DEFAULT:
-            params.datastructure = OutputDataStructureOptions.FLAT
+
         '''convert boolean to elasticsearch syntax'''
         gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
@@ -515,7 +514,7 @@ class esQuery():
                                                            #     objects) == 1)  # temporary handle here special cases for the ui. it should always be true.
                                                            )
         if objects:
-            params.datastructure = OutputDataStructureOptions.FLAT  # override datastructure as only flat is available
+            params.outputstructure = OutputStructureOptions.FLAT  # override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters=filter_data_conditions, params=params)
         if genes:
             if not aggs:
@@ -524,7 +523,7 @@ class esQuery():
             full_conditions.extend(filter_data_conditions.values())
 
         '''boolean query joining multiple conditions with an AND'''
-        source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
 
@@ -540,7 +539,7 @@ class esQuery():
                 }
             },
             'size': params.size,
-            '_source': OutputDataStructureOptions.getSource(params.association_score_method),
+            '_source': SourceDataStructureOptions.getSource(params.association_score_method),
 
             "sort": {params.association_score_method + ".overall": {"order": "desc"}}
 
@@ -578,12 +577,12 @@ class esQuery():
             aggregation_results = ass_data['aggregations']
 
         '''build data structure to return'''
-        # if params.datastructure == OutputDataStructureOptions.FLAT:
+        # if params.datastructure == OutputStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
         "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"] = len(data['data'])
-        if params.datastructure == OutputDataStructureOptions.TREE:
+        if params.datastructure == OutputStructureOptions.TREE:
             extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
@@ -1063,7 +1062,7 @@ class esQuery():
         params = SearchParams(**kwargs)
         if genes:
 
-            source_filter = OutputDataStructureOptions.getSource(params.datastructure)
+            source_filter = SourceDataStructureOptions.getSource(params.datastructure)
             if params.fields:
                 source_filter["include"] = params.fields
 
@@ -1576,8 +1575,8 @@ return scores""" % (self._get_datatype_combine_init_list(params),
                                    body={'query': self._get_free_text_query(searchphrase),
                                          'size': params.size,
                                          'from': params.start_from,
-                                         '_source': OutputDataStructureOptions.getSource(
-                                                 OutputDataStructureOptions.FULL),
+                                         '_source': SourceDataStructureOptions.getSource(
+                                                 SourceDataStructureOptions.FULL),
                                          # "min_score": 0.,
                                          "highlight": self._get_free_text_highlight(),
                                          "explain": current_app.config['DEBUG'],
@@ -1620,12 +1619,15 @@ class SearchParams():
         self.format = kwargs.get('format', 'json') or 'json'
 
         self.datastructure = kwargs.get('datastructure',
-                                        OutputDataStructureOptions.DEFAULT) or OutputDataStructureOptions.DEFAULT
+                                        SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
+
+        self.outputstructure =  kwargs.get('outputstructure',
+                                        OutputStructureOptions.FLAT) or OutputStructureOptions.FLAT
 
         self.fields = kwargs.get('fields')
 
         if self.fields:
-            self.datastructure = OutputDataStructureOptions.CUSTOM
+            self.datastructure = SourceDataStructureOptions.CUSTOM
 
         self.filters = dict()
         self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.2)

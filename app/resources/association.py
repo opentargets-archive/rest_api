@@ -36,7 +36,7 @@ class FilterBy(restful.Resource):
         Test with ENSG00000136997
         """
         start_time = time.time()
-        parser = reqparse.RequestParser()
+        parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
@@ -49,7 +49,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('filterbyuniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
         parser.add_argument('stringency', type=float, required=False, help="Define the stringency in the association score calculation.")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
-        parser.add_argument('datastructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
+        parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=True)
         parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
 
