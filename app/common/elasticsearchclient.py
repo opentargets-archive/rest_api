@@ -510,8 +510,10 @@ class esQuery():
                                                            genes,
                                                            object_operator,
                                                            gene_operator,
-                                                           expand_efo=(len(genes) == 0) or (len(genes) == 1 and len(
-                                                               objects) == 1))  # temporary handle here special cases for the ui. it should always be true.
+                                                           is_direct = params.is_direct,
+                                                           # is_direct=(len(genes) == 0) or (len(genes) == 1 and len(
+                                                           #     objects) == 1)  # temporary handle here special cases for the ui. it should always be true.
+                                                           )
         if objects:
             params.datastructure = OutputDataStructureOptions.FLAT  # override datastructure as only flat is available
             aggs = self._get_efo_associations_agg(filters=filter_data_conditions, params=params)
@@ -526,7 +528,7 @@ class esQuery():
         if params.fields:
             source_filter["include"] = params.fields
 
-        agg_query_body = {
+        ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {
                 "filtered": {
@@ -537,55 +539,43 @@ class esQuery():
                     }
                 }
             },
-            'size': 60000,
+            'size': params.size,
             '_source': OutputDataStructureOptions.getSource(params.association_score_method),
-            # filter out the results as requested, this will not be applied to the aggregation
-            "post_filter": {
-                "bool": {
-                    "must": filter_data_conditions.values()
-                }
-            },
-            # calculate aggregation using proper ad hoc filters
-            "aggs": aggs,
+
             "sort": {params.association_score_method + ".overall": {"order": "desc"}}
 
         }
+        # calculate aggregation using proper ad hoc filters
+        if aggs:
+            ass_query_body['aggs'] =  aggs
+        # filter out the results as requested, this will not be applied to the aggregation
+        if filter_data_conditions:
+            ass_query_body['post_filter'] = {
+                "bool": {
+                    "must": filter_data_conditions.values()
+                }
+            }
 
-        agg_data = self.handler.search(index=self._index_association,
-                                       body=agg_query_body,
+        ass_data = self.handler.search(index=self._index_association,
+                                       body=ass_query_body,
                                        timeout="20m",
                                        request_timeout=60 * 20,
                                        # routing=use gene here
                                        query_cache=True,
                                        )
-        total = agg_data['hits']['total']
         aggregation_results = {}
 
-        status = ESResultStatus()
-        if agg_data['timed_out']:
-            status.add_error('elasticsearch query timed out')
-        if total == 0 and genes and objects:
-            data = [{"evidence_count": 0,
-                     "datatypes": [],
-                     "association_score": 0,
-                     "gene_id": genes[0],
-                     }]
-            return CountedResult([],
-                                 params,
-                                 data,
-                                 total=0,
-                                 facets=aggregation_results,
-                                 available_datatypes=self.datatypes.available_datatypes,
-                                 status=status.status,
-                                 )
-        else:
-            associations = [Association(h['_source'], params.association_score_method, self.datatypes)
-                            for h in agg_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-            scores = [a.data for a in associations]
-            therapeutic_areas = list(set([i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
-            efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
-            if 'aggregations' in agg_data:
-                aggregation_results = agg_data['aggregations']
+        if ass_data['timed_out']:
+            raise Exception('elasticsearch query timed out')
+
+        associations = [Association(h['_source'], params.association_score_method, self.datatypes)
+                        for h in ass_data['hits']['hits']]
+                        # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+        scores = [a.data for a in associations]
+        therapeutic_areas = list(set([i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
+        efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
+        if 'aggregations' in ass_data:
+            aggregation_results = ass_data['aggregations']
 
         '''build data structure to return'''
         # if params.datastructure == OutputDataStructureOptions.FLAT:
@@ -594,10 +584,10 @@ class esQuery():
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"] = len(data['data'])
         if params.datastructure == OutputDataStructureOptions.TREE:
-            extended_query_body = agg_query_body
+            extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
-                therapeutic_areas, genes, object_operator, gene_operator, expand_efo=True)
+                therapeutic_areas, genes, object_operator, gene_operator, is_direct=True)
             ta_data = self.handler.search(index=self._index_association,
                                           body=extended_query_body,
                                           timeout="20m",
@@ -622,7 +612,6 @@ class esQuery():
                              total=total,
                              facets=data['facets'],
                              available_datatypes=self.datatypes.available_datatypes,
-                             status=status.status,
                              )
 
     def _get_complex_gene_filter(self,
@@ -1553,19 +1542,17 @@ return scores""" % (self._get_datatype_combine_init_list(params),
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
 
-    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, expand_efo=False):
+    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, is_direct=False):
         conditions = []
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, is_direct=False))
+            conditions.append(self._get_complex_object_filter(objects, object_operator, is_direct=True))
         if genes:
             conditions.append(self._get_complex_gene_filter(genes, gene_operator))
-        if not expand_efo:
+        if is_direct:
             conditions.append(self._get_is_direct_filter())
 
         return conditions
 
-    def _get_facet_association_conditions(self, objects, genes, object_operator, gene_operator):
-        return self._get_base_association_conditions(objects, genes, object_operator, gene_operator, expand_efo=True)
 
     def _get_is_direct_filter(self):
 
@@ -1601,6 +1588,7 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
+
 
 
 class SearchParams():

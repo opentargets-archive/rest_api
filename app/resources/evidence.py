@@ -169,23 +169,7 @@ class FilterBy(restful.Resource, Paginable):
                                took=time.time() - start_time)
 
 
-    @swagger.operation(
-        nickname='filterby',
-        resourcePath ='/filterby',
-        produces = ["application/json", "text/xml", "text/csv"],
-        responseClass=PaginatedResponse.__name__,
-        parameters=[
-            {
-              "name": "body",
-              "description": "a json object with a query",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "body",
-              "type": "FilterByQuery"
-            },
-            ]
-        )
+
     @is_authenticated
     @rate_limit
     def post(self ):
@@ -203,22 +187,19 @@ class FilterBy(restful.Resource, Paginable):
 
         start_time = time.time()
         args = request.get_json()
-        if args:
-            targets = fix_empty_strings(args.pop('target',[]) or [])
-            # gene_operator = args.pop('gene-bool','OR') or 'OR'
-            diseases = fix_empty_strings(args.pop('disease',[]) or [])
-            # object_operator = args.pop('efo-bool','OR') or 'OR'
-            evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
-            # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-            datasources =  args.pop('datasource',[]) or []
-            datatypes=  args.pop('datatype',[]) or []
+        targets = fix_empty_strings(args.pop('target',[]) or [])
+        # gene_operator = args.pop('gene-bool','OR') or 'OR'
+        diseases = fix_empty_strings(args.pop('disease',[]) or [])
+        # object_operator = args.pop('efo-bool','OR') or 'OR'
+        evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
+        # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
+        datasources =  args.pop('datasource',[]) or []
+        datatypes=  args.pop('datatype',[]) or []
 
-            if not (targets or diseases or evidence_types or datasources or datatypes):
-                abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
-            data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)
-            return CTTVResponse.OK(data,
-                                   took=time.time() - start_time)
-        abort(404, message='Please provide at least one target, disease, eco, datasource or datatype')
+
+        data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)
+        return CTTVResponse.OK(data,
+                               took=time.time() - start_time)
 
 
     def get_evidence(self,

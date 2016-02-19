@@ -14,9 +14,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    ELASTICSEARCH_DATA_INDEX_NAME = 'evidence-data*'
+    DATA_VERSION = '3_'
+    ELASTICSEARCH_DATA_INDEX_NAME = '2.2_'+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = 'efo-data'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = '2.1_'+'efo-data'
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
     ELASTICSEARCH_ECO_INDEX_NAME = 'eco-data'
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
@@ -26,9 +27,9 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = 'association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = '2.2_'+'association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
-    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = 'search-data'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     DEBUG = True
     PROFILE = False
@@ -86,7 +87,7 @@ class DevelopmentConfig(Config):
 
 class DockerLinkedDevConfig(Config):
     DEBUG = True
-    ELASTICSEARCH_URL = 'http://elastic:9200'
+    ELASTICSEARCH_URL = 'http://elastic:9201'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
