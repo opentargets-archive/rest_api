@@ -179,11 +179,12 @@ class RawResult(Result):
     '''
 
     def toDict(self):
+        return json.loads(self.res)
+    def toJSON(self):
         return self.res
 
 class EmptySimpleResult(Result):
     def toDict(self):
-
         return {'data':[],
                 # 'status' : self.status,
                 }

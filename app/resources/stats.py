@@ -14,19 +14,19 @@ import time
 
 
 
-class EfoLabelFromCode(restful.Resource):
+class Stats(restful.Resource):
 
     @is_authenticated
     @rate_limit
-    def get(self, disease_id ):
+    def get(self):
         '''
-        get EFO information from a code
+        get counts and statistics fro the availabkle data
         '''
         start_time = time.time()
         es = current_app.extensions['esquery']
-        res = es.get_efo_info_from_code(disease_id)
+        res = es.get_stats()
         if res:
-            return CTTVResponse.OK(json.dumps(res[0]),
+            return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
         else:
-            abort(404, message="EFO code %s cannot be found"%disease_id)
+            abort(404, message="Cannot get statistics")

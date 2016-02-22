@@ -1,4 +1,4 @@
-
+from app.resources.stats import Stats
 
 __author__ = 'andreap'
 
@@ -79,6 +79,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/ping')
     api.add_resource(Version,
                      '/public/utils/version')
+    api.add_resource(Stats,
+                     '/public/utils/stats')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')
