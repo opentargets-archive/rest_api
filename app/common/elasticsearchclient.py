@@ -11,8 +11,8 @@ from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions
-from app.common.response_templates import Association
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult
+from app.common.response_templates import Association, DataStats
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.datatypes import FilterTypes
 from app.common.scoring import Scorer, Score
 from app.common.scoring_conf import ScoringMethods
@@ -1607,6 +1607,81 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
+
+
+    def get_stats(self):
+
+        stats = DataStats()
+        stats.add_evidencestring(self.handler.search(index=self._index_data,
+                                  # doc_type=self._docname_data,
+                                  body= {"query": {"match_all":{}},
+                                         "aggs" : {
+                                            "data": {
+                                                "terms": {
+                                                    "field": "type",
+                                                    'size': 10,
+                                                },
+                                                "aggs": {
+                                                    "datasources": {
+                                                        "terms": {
+                                                            "field": "sourceID",
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                         },
+                                         'size': 0,
+                                         '_source': False,
+                                    },
+                                  timeout="10m",
+                                      )
+                                 )
+
+        stats.add_associations(self.handler.search(index=self._index_association,
+                                  # doc_type=self._docname_data,
+                                  body= {"query": {"match_all":{}},
+                                         "aggs" : {
+                                            "data": {
+                                                "terms": {
+                                                    "field": "private.facets.datatype",
+                                                    'size': 10,
+                                                },
+                                                "aggs": {
+                                                    "datasources": {
+                                                        "terms": {
+                                                            "field": "private.facets.datasource",
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                         },
+                                         'size': 0,
+                                         '_source': False,
+                                    },
+                                  timeout="10m",
+                                      ),
+                               self.datatypes
+                                 )
+
+        target_count =self.handler.search(index=self._index_search,
+                                  doc_type=self._docname_search+'-target',
+                                  body= {"query": {"match_all":{}},
+                                         'size': 0,
+                                         '_source': False,
+                                    })
+        stats.add_key_value('targets', target_count['hits']['total'])
+
+        disease_count =self.handler.search(index=self._index_search,
+                                  doc_type=self._docname_search+'-disease',
+                                  body= {"query": {"match_all":{}},
+                                         'size': 0,
+                                         '_source': False,
+                                    })
+        stats.add_key_value('diseases', disease_count['hits']['total'])
+
+
+        return RawResult(str(stats))
+
 
 
 

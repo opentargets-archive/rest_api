@@ -162,3 +162,43 @@ class Association(object):
                 return 1.
         return score
 
+
+class DataStats(object):
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return json.dumps(self.__dict__)
+
+    def add_evidencestring(self, res):
+        datatypes = {}
+        for bucket in res['aggregations']['data']['buckets']:
+            datatypes[bucket['key']]={'total':bucket['doc_count']}
+            datasources = {}
+            for ds_bucket in bucket['datasources']['buckets']:
+                datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
+                datatypes[bucket['key']]['datasources']=datasources
+
+        self.evidencestrings = dict(total = res['hits']['total'],
+                                    datatypes= datatypes)
+
+    def add_associations(self, res, known_datatypes):
+        datatypes = {}
+        for bucket in res['aggregations']['data']['buckets']:
+            datatypes[bucket['key']]={'total':bucket['doc_count']}
+            datasources = {}
+            for ds_bucket in bucket['datasources']['buckets']:
+                try:
+                    if known_datatypes.is_datasources_in_datatype(ds_bucket['key'], bucket['key']):
+                        datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
+                        datatypes[bucket['key']]['datasources']=datasources
+                except KeyError:
+                    pass
+
+
+        self.associations = dict(total = res['hits']['total'],
+                                 datatypes= datatypes)
+
+    def add_key_value(self, key, value):
+        self.__dict__[key]={'total': value}

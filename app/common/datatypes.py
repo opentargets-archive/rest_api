@@ -45,6 +45,9 @@ class DataTypes():
         except KeyError:
             return []
 
+    def is_datasources_in_datatype(self, datasource, datatype):
+        return datasource in  self.datatypes[datatype].datasources
+
 
 class FilterTypes():
     DATASOURCE = 'filterbydatasource'

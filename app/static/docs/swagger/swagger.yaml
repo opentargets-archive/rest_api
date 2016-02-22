@@ -449,3 +449,13 @@ paths:
       responses:
         200:
           description: Successful response
+  /public/utils/stats:
+    get:
+      tags:
+        - public
+        - utils
+      description: |
+        Get stats about available data
+      responses:
+        200:
+          description: Successful response
