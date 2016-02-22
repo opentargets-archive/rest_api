@@ -1,3 +1,5 @@
+import json
+
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
@@ -25,7 +27,7 @@ class EfoLabelFromCode(restful.Resource):
         es = current_app.extensions['esquery']
         res = es.get_efo_info_from_code(disease_id)
         if res:
-            return CTTVResponse.OK(res[0],
+            return CTTVResponse.OK(json.dumps(res[0]),
                                    took=time.time() - start_time)
         else:
             abort(404, message="EFO code %s cannot be found"%disease_id)

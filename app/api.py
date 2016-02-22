@@ -22,7 +22,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     '''define api'''
 
 
-    from app.resources.genes import GeneInfo
+    from app.resources.target import TargetInfo
     from app.resources import evidence
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
@@ -59,7 +59,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/disease/<string:disease_id>')
     api.add_resource(EcoLabelFromCode,
                      '/private/eco/<string:code>')
-    api.add_resource(GeneInfo,
+    api.add_resource(TargetInfo,
                      '/private/target/<string:target_id>')
     api.add_resource(Expression,
                      '/private/target/expression')

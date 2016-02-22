@@ -166,7 +166,10 @@ class SimpleResult(Result):
 
     def toDict(self):
         if  self.data is None:
-            raise AttributeError('some data is needed to be returned in a SimpleResult')
+            try:
+                self.data = [hit['_source'] for hit in self.res['hits']['hits']]
+            except:
+                raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data,
                 # 'status' : self.status,
                 }
