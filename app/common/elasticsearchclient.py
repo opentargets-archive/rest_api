@@ -293,7 +293,8 @@ class esQuery():
 
                                       }
                                       )
-            return PaginatedResult(res, params)
+            if res['hits']['total']:
+                return SimpleResult(res, params)
 
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
