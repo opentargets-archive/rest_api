@@ -1,1 +1,76 @@
+import json
+import unittest
+
+import time
+import uuid
+
+from app import create_app
+from app.common.auth import AuthKey
+
 __author__ = 'andreap'
+
+
+class GenericTestCase(unittest.TestCase):
+    _AUTO_GET_TOKEN='auto'
+
+    def setUp(self):
+
+        auth_credentials = {'domain': '',
+                            'reference': 'andreap@ebi.ac.uk',
+                            'app_name': 'api-test',
+                            'short_window_rate': '1000',
+                            'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
+                            'users_allowed': 'true',
+                            'long_window_rate': '50000'}
+        self.auth_key = AuthKey(**auth_credentials)
+        self.app = create_app('testing')
+        self.app.extensions['redis-user'].hmset(self.auth_key.get_key(), self.auth_key.__dict__)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        self.client = self.app.test_client()
+        self.host = 'http://'+self.app_context.url_adapter.get_host('')
+
+
+    def tearDown(self):
+        self.app_context.pop()
+        self.app.extensions['redis-user'].hdel(self.auth_key.get_key(), self.auth_key.__dict__.keys())
+        self.app.extensions['redis-user'].delete(self.auth_key.get_key())
+
+    def _get_token(self, expire = 120):
+        return self._make_request('/api/latest/public/auth/request_token',data={'app_name':self.auth_key.app_name,
+                                                                               'secret':self.auth_key.secret,
+                                                                                'uid': str(uuid.uuid4()),
+                                                                                'password': 'test',
+                                                                               'expiry': expire})
+    def _make_request(self,
+                      path,
+                      data = {},
+                      method = "GET",
+                      token = None,
+                      headers = None,
+                      rate_limit_fail = False,
+                      **kwargs):
+        params = dict(method = method)
+        params['data'] = data
+        # params['data']['nocache']=True
+        if headers is not None:
+            params['headers'] = headers
+        if token is not None:
+            if token == self._AUTO_GET_TOKEN:
+                token_response = self._get_token()
+                token = json.loads(token_response.data.decode('utf-8'))['token']
+            if 'headers' not in params:
+                params['headers']={}
+            params['headers']['Auth-Token']=token
+        params.update(**kwargs)
+
+        if not rate_limit_fail:
+            status_code = 429
+            while status_code == 429:
+                response = self.client.open(path,**params)
+                status_code = response.status_code
+                if status_code == 429:
+                    time.sleep(10)
+        else:
+            response = self.client.open(path,**params)
+        return response

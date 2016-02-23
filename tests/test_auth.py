@@ -4,9 +4,9 @@ import time
 
 from flask import url_for
 
-from app import create_app, AuthKey
-
-#TODO
+from app import create_app
+from app.common.auth import AuthKey
+from tests import GenericTestCase
 
 '''
 init a local redislite
@@ -19,35 +19,7 @@ drop local redis
 
 
 
-class AuthTestCase(unittest.TestCase):
-
-    def setUp(self):
-
-        auth_credentials = {'domain': '',
-                            'reference': 'andreap@ebi.ac.uk',
-                            'app_name': 'api-test',
-                            'short_window_rate': '100',
-                            'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
-                            'users_allowed': 'true',
-                            'long_window_rate': '600'}
-        self.auth_key = AuthKey(**auth_credentials)
-        self.app = create_app('testing')
-        self.app.extensions['redis-user'].hmset(self.auth_key.get_key(), self.auth_key.__dict__)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        self.client = self.app.test_client()
-        self.host = 'http://'+self.app_context.url_adapter.get_host('')
-
-
-    def tearDown(self):
-        self.app_context.pop()
-        self.app.extensions['redis-user'].hdel(self.auth_key.get_key(), self.auth_key.__dict__.keys())
-        self.app.extensions['redis-user'].delete(self.auth_key.get_key())
-
-    def _get_token(self, expire = 120):
-        return self.client.open('/api/latest/public/auth/request_token', data={'app_name':self.auth_key.app_name,
-                                                                               'secret':self.auth_key.secret,
-                                                                               'expiry': expire})
+class AuthTestCase(GenericTestCase):
 
 
     def testTokenGeneration(self):
@@ -93,6 +65,7 @@ class AuthTestCase(unittest.TestCase):
         '''test expied token'''
         status_code = 429
         time.sleep(3)
+        print self.app.debug
         while status_code == 429:
             response4 = self.client.open('/api/latest/public/auth/validate_token',
                                            headers={'Auth-Token':token})

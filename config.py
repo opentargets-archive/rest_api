@@ -31,7 +31,7 @@ class Config:
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
     ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
-    DEBUG = True
+    DEBUG = False
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
@@ -93,7 +93,6 @@ class DockerLinkedDevConfig(Config):
     APP_CACHE_EXPIRY_TIMEOUT = 60
 
 class DockerLinkedConfig(Config):
-    TESTING = True
     ELASTICSEARCH_URL = 'http://elastic:9200'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
@@ -101,7 +100,7 @@ class DockerLinkedConfig(Config):
 
 
 class TestingConfig(Config):
-    TESTING = True
+    # TESTING = True
     ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000

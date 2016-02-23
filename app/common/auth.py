@@ -170,11 +170,7 @@ def is_authenticated(func):
     return wrapper
 
 def get_token_payload():
-    token = request.headers.get('Auth-Token')
-    if not token:
-        token= request.headers.get('Authorization')
-        if token:
-            token = token.split()[-1].strip()
-            token = base64.b64decode(token)[:-1]
+    r = request
+    token = r.headers.get('Auth-Token')
     if token:
         return TokenAuthentication.get_payload_from_token(token)
