@@ -267,7 +267,7 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-         - name: outputstructure
+        - name: outputstructure
           in: query
           description: Type of output structure to return. Can be 'flat', or 'tree'.
           required: false
