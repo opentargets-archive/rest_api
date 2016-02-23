@@ -158,8 +158,6 @@ class TokenAuthentication():
 def is_authenticated(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not getattr(func, 'authenticated', True):
-            return func(*args, **kwargs)
         # authorized =False # set to false to authorise only requests with token
         authorized =True
         token = request.headers.get('Auth-Token')

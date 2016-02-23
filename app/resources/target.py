@@ -10,7 +10,7 @@ from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
-
+from app.common.results import RawResult
 
 
 class TargetInfo(restful.Resource):
@@ -26,7 +26,7 @@ class TargetInfo(restful.Resource):
         if res:
             data = res.toDict()['data']
             if data:
-                return CTTVResponse.OK(json.dumps(data[0]), took=time.time() - start_time)
+                return CTTVResponse.OK(RawResult(json.dumps(data[0])), took=time.time() - start_time)
 
         abort(404, message="Gene id %s cannot be found"%target_id)
 
