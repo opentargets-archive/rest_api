@@ -1,5 +1,5 @@
 import time
-from flask import current_app
+from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort,reqparse
 from flask_restful_swagger import swagger
@@ -17,7 +17,7 @@ __author__ = 'andreap'
 class RequestToken(restful.Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('appname', type=str, required=True, help="app name [appname] is required")
+    parser.add_argument('app_name', type=str, required=True, help="app name [appname] is required")
     parser.add_argument('secret', type=str, required=True, help="app secret [secret] is required")
     parser.add_argument('uid', type=str, required=False, help="user id [uid] ")
     parser.add_argument('password', type=str, required=False, help="password [password] ")
@@ -25,7 +25,7 @@ class RequestToken(restful.Resource):
 
     _swagger_parameters = [
                 {
-                  "name": "appname",
+                  "name": "app_name",
                   "description": "the name of the app you are using to request a token. You need to register the app before you will be able to request a token",
                   "required": True,
                   "dataType": "string",
@@ -82,10 +82,6 @@ class RequestToken(restful.Resource):
 
 
 class ValidateToken(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
     @rate_limit
     def get(self, ):
-        args = self.parser.parse_args()
-        auth_token = args['auth_token']
-        return TokenAuthentication.is_valid(auth_token)
+        return TokenAuthentication.is_valid(request.headers.get('Auth-Token'))

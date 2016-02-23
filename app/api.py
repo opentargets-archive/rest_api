@@ -17,7 +17,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
         'message': "Authentication expired.",
         'status': 419},
     }
-    api = Api(app)
+    api = Api(app,
+              errors=errors)
 
     '''define api'''
 
