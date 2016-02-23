@@ -42,8 +42,8 @@ class RateLimiter(object):
                                secret=self.auth_token_payload['secret'],
                                )
             auth_key.get_loaded_data()
-        self.short_window_rate = auth_key.short_window_rate
-        self.long_window_rate = auth_key.long_window_rate
+        self.short_window_rate = int(auth_key.short_window_rate)
+        self.long_window_rate = int(auth_key.long_window_rate)
 
 
 
