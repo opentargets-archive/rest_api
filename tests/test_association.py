@@ -5,30 +5,17 @@ import time
 from flask import url_for
 
 from app import create_app
+from tests import GenericTestCase
 
 
-class AssociationTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.app = create_app('testing')
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        self.client = self.app.test_client()
-        self.host = 'http://'+self.app_context.url_adapter.get_host('')
-
-
-    def tearDown(self):
-        self.app_context.pop()
+class AssociationTestCase(GenericTestCase):
 
 
     def testAssociationID(self):
         id = 'ENSG00000157764-EFO_0000701'#braf-skin disease
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association', data={'id':id})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association',
+                                      data={'id':id},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertEqual(json_response['data'][0]['id'],id, 'association found')
@@ -36,12 +23,8 @@ class AssociationTestCase(unittest.TestCase):
 
 
     def testAssociationFilterNone(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association/filter')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),0, 'association retrieved')
@@ -49,12 +32,9 @@ class AssociationTestCase(unittest.TestCase):
 
     def testAssociationFilterTargetGet(self):
         target = 'ENSG00000157764'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association/filter',data={'target':target})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
@@ -63,14 +43,11 @@ class AssociationTestCase(unittest.TestCase):
 
     def testAssociationFilterTargetPost(self):
         target = 'ENSG00000157764'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.post('/api/latest/public/association/filter',
-                                       data=json.dumps({'target':[target]}),
-                                       content_type='application/json')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data=json.dumps({'target':[target]}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
@@ -79,16 +56,10 @@ class AssociationTestCase(unittest.TestCase):
 
     def testAssociationFilterDiseaseGet(self):
         disease = 'EFO_0000311'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association/filter',
-                                       data={'disease':disease,
-                                             'direct':False,
-                                            })
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
-        self.assertTrue(response.status_code == 200)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                             'direct':False},
+                                      token=self._AUTO_GET_TOKEN)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
@@ -96,16 +67,13 @@ class AssociationTestCase(unittest.TestCase):
 
     def testAssociationFilterDiseasePost(self):
         disease = 'EFO_0000311'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.post('/api/latest/public/association/filter',
-                                       data=json.dumps({'disease':[disease],
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data=json.dumps({'disease':[disease],
                                                         'direct':False,
                                                         }),
-                                       content_type='application/json')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
@@ -117,17 +85,14 @@ class AssociationTestCase(unittest.TestCase):
     def testAssociationFilterDirect(self):
         disease = 'EFO_0000311'
         'indirect call'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association/filter',data={'disease':disease,
-                                                                                  'direct':False,
-                                                                                  'fields':['is_direct',
-                                                                                            'disease.id'
-                                                                                            ],
-                                                                                  'size':1000})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                              'direct':False,
+                                              'fields':['is_direct',
+                                                        'disease.id'
+                                                        ],
+                                              'size':1000},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
@@ -139,17 +104,14 @@ class AssociationTestCase(unittest.TestCase):
                 break
         self.assertTrue(indirect_found, 'indirect association found')
         'direct call'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/association/filter',data={'disease':disease,
-                                                                                  'direct':True,
-                                                                                  'fields':['is_direct',
-                                                                                            'disease.id'
-                                                                                            ],
-                                                                                  'size':1000})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                              'direct':True,
+                                              'fields':['is_direct',
+                                                        'disease.id'
+                                                        ],
+                                              'size':1000},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
