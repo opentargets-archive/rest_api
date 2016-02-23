@@ -27,12 +27,11 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertGreaterEqual(first_result['association_counts']['total'], min_association_number)
 
     def testBraf(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/search', data={'q':'braf'})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+
+        response= self._make_request('/api/latest/public/search',
+                                     data={'q':'braf'},
+                                     token=self._AUTO_GET_TOKEN)
+
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self._assert_search_result(json_response,
@@ -43,12 +42,10 @@ class FreeTextSearchTestCase(GenericTestCase):
 
 
     def testAsthma(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/search', data={'q':'asthma'})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response= self._make_request('/api/latest/public/search',
+                                     data={'q':'asthma'},
+                                     token=self._AUTO_GET_TOKEN)
+
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self._assert_search_result(json_response,
@@ -74,12 +71,9 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertGreaterEqual(first_result['association_counts']['total'], min_association_number)
 
     def testQuickSearchBraf(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/private/quicksearch', data={'q':'braf'})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response= self._make_request('/api/latest/private/quicksearch',
+                                     data={'q':'braf'},
+                                     token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self._assert_quicksearch_result(json_response,
@@ -90,12 +84,11 @@ class FreeTextSearchTestCase(GenericTestCase):
 
 
     def testQuickSearchAsthma(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/private/quicksearch', data={'q':'asthma'})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+
+        response= self._make_request('/api/latest/private/quicksearch',
+                                     data={'q':'asthma'},
+                                     token=self._AUTO_GET_TOKEN)
+
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self._assert_quicksearch_result(json_response,
