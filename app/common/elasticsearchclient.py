@@ -620,15 +620,13 @@ class esQuery():
             ta_scores.extend(scores)
             data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
 
-        total = len(data['data'])
 
         # data_distribution["evidence_count"]= datapoints
         aggregation_results['data_distribution'] = data_distribution
 
-        return CountedResult([],
+        return PaginatedResult(ass_data,
                              params,
                              data['data'],
-                             total=total,
                              facets=data['facets'],
                              available_datatypes=self.datatypes.available_datatypes,
                              )
