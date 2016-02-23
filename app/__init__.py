@@ -113,7 +113,7 @@ def create_app(config_name):
                 auth_key = AuthKey(**row)
                 app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
     else:
-        app.logger.error('cannot file rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
+        app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
 
     '''compress http response'''
@@ -129,27 +129,6 @@ def create_app(config_name):
     if app.config['PROFILE'] == True:
         from werkzeug.contrib.profiler import ProfilerMiddleware
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
-
-    # bootstrap.init_app(app)
-    # mail.init_app(app)
-    # moment.init_app(app)
-    # db.init_app(app)
-    # login_manager.init_app(app)
-    # pagedown.init_app(app)
-    #
-    # if 1:# not app.debug and not app.testing and not app.config['SSL_DISABLE']:
-    #     from flask.ext.sslify import SSLify
-    #     app.debug=False
-    #     sslify = SSLify(app, age=30)
-
-    # from .main import main as main_blueprint
-    # app.register_blueprint(main_blueprint)
-    #
-    # from .auth import auth as auth_blueprint
-    # app.register_blueprint(auth_blueprint, url_prefix='/auth')
-    #
-    # from .api_1_0 import api as api_1_0_blueprint
-    # app.register_blueprint(api_1_0_blueprint, url_prefix='/api/v1.0')
 
 
 

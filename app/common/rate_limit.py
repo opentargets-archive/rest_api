@@ -5,7 +5,7 @@ from flask.ext import restful
 from flask.ext.restful import abort, wraps
 from flask import current_app, request
 
-from app.common.auth import TokenAuthentication, get_token_payload, AuthKey
+from app.common.auth import get_token_payload, AuthKey
 from config import Config
 
 '''
