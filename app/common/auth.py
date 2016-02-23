@@ -1,8 +1,4 @@
 from datetime import datetime
-import time
-
-__author__ = 'andreap'
-
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadData
 from itsdangerous import SignatureExpired, BadSignature
 from flask import current_app, request, make_response
@@ -14,6 +10,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 import json
 from config import Config
+__author__ = 'andreap'
 
 class AuthKey(object):
     _AUTH_KEY_NAMESPACE='REST_API_AUTH_KEY_v'+Config.API_VERSION
@@ -25,10 +22,11 @@ class AuthKey(object):
                  short_window_rate=100,
                  long_window_rate=60000,
                  users_allowed="False",
-                 reference=''):
+                 reference='',
+                 **kwargs):
         self.appname=appname
         self.secret=secret
-        self.domain=domain.split('|')
+        self.domain=domain
         self.short_window_rate=int(short_window_rate)
         self.long_window_rate=int(long_window_rate)
         self.users_allowed=users_allowed.lower()=='true'
@@ -79,17 +77,18 @@ class TokenAuthentication():
 
     @staticmethod
     def _autenticate(auth_data):
-        #TODO: use a proper authentication
-        authorized_keys = current_app.config['AUTORISED_KEYS']
-
-        domain = get_domain()
-        if auth_data['secret'] in authorized_keys:
-            if authorized_keys[auth_data['secret']].domain:
-                for allowed_domain in authorized_keys[auth_data['secret']].domain:
-                    if domain.endswith(allowed_domain):
-                        return True
-            else:
-                return True
+        if auth_data['secret'] and auth_data['appname']:
+            stub_auth_key = AuthKey(**auth_data)
+            if current_app.extensions['redis-user'].exists(stub_auth_key.get_key()):
+                data = current_app.extensions['redis-user'].hgetall(stub_auth_key.get_key())
+                auth_key = AuthKey(**data)
+                domain = get_domain()
+                if auth_key.domain:
+                    for allowed_domain in auth_key.domain.split('|'):
+                        if domain.endswith(allowed_domain):
+                            return True
+                else:
+                    return True
         return False
 
 
@@ -143,7 +142,7 @@ class TokenAuthentication():
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))
-            return dict(token=token)
+            return json.dumps(dict(token=token))
         abort(401)
 
     @classmethod

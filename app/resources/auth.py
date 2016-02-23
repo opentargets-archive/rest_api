@@ -8,6 +8,7 @@ from app.common.boilerplate import Paginable
 from app.common.auth import TokenAuthentication, is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
+from app.common.results import RawResult
 
 __author__ = 'andreap'
 
@@ -77,7 +78,7 @@ class RequestToken(restful.Resource):
         if args['expiry'] is None:
             args['expiry']=600
         token_data = TokenAuthentication.get_auth_token('cttv_api', auth_data=args, expiry=args['expiry'])
-        return CTTVResponse.OK(token_data, took=time.time() - start_time)
+        return CTTVResponse.OK(RawResult(token_data), took=time.time() - start_time)
 
 
 class ValidateToken(restful.Resource):
