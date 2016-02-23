@@ -1,2 +1,2 @@
-appname,secret,domain,short_window_rate,long_window_rate,users_allowed,reference
+app_name,secret,domain,short_window_rate,long_window_rate,users_allowed,reference
 webapp,2J23T20O31UyepRj7754pEA2osMOYfFK,.targetvalidation.org,1000,600000,true,mp@ebi.ac.uk

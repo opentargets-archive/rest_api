@@ -16,7 +16,7 @@ class AuthKey(object):
     _AUTH_KEY_NAMESPACE='REST_API_AUTH_KEY_v'+Config.API_VERSION
 
     def __init__(self,
-                 appname='',
+                 app_name='',
                  secret='',
                  domain='',
                  short_window_rate=100,
@@ -24,20 +24,20 @@ class AuthKey(object):
                  users_allowed="False",
                  reference='',
                  **kwargs):
-        self.appname=appname
+        self.app_name=app_name
         self.secret=secret
         self.domain=domain
         self.short_window_rate=int(short_window_rate)
         self.long_window_rate=int(long_window_rate)
         self.users_allowed=users_allowed.lower()=='true'
         self.reference=reference
-        self.id = '-'.join((secret,appname))
+        self.id = '-'.join((secret, app_name))
 
     def get_key(self, ):
         return '|'.join((self._AUTH_KEY_NAMESPACE,self.id))
 
-    def load(self,secret, appname):
-        data = current_app.extensions['redis-user'].hmset(self.get_key())
+    def get_loaded_data(self):
+        data = current_app.extensions['redis-user'].hgetall(self.get_key())
         if data:
             self.__dict__.update(data)
 
@@ -77,11 +77,10 @@ class TokenAuthentication():
 
     @staticmethod
     def _autenticate(auth_data):
-        if auth_data['secret'] and auth_data['appname']:
-            stub_auth_key = AuthKey(**auth_data)
-            if current_app.extensions['redis-user'].exists(stub_auth_key.get_key()):
-                data = current_app.extensions['redis-user'].hgetall(stub_auth_key.get_key())
-                auth_key = AuthKey(**data)
+        if auth_data['secret'] and auth_data['app_name']:
+            auth_key = AuthKey(**auth_data)
+            if current_app.extensions['redis-user'].exists(auth_key.get_key()):
+                auth_key.get_loaded_data()
                 domain = get_domain()
                 if auth_key.domain:
                     for allowed_domain in auth_key.domain.split('|'):
@@ -95,7 +94,7 @@ class TokenAuthentication():
     @staticmethod
     def _prepare_payload(api_name, auth_data):
         payload = {'api_name': api_name,
-                   'app_name': auth_data['appname'],
+                   'app_name': auth_data['app_name'],
                    'secret': auth_data['secret'],
                    'domain': get_domain()}
         if 'uid' in auth_data:
@@ -112,7 +111,7 @@ class TokenAuthentication():
         except SignatureExpired, se:
             time_offset = (datetime.now()- se.date_signed).total_seconds()
             current_app.logger.error('token expired: %s. signature date %s. offset with current date = %s'%(se.message,str(se.date_signed),str(time_offset)))
-            if -1<= time_offset < 0:#allow for 5 seconds out of sync machines
+            if -1<= time_offset < 0:#allow for 1 seconds out of sync machines
                 current_app.logger.info('token time offset within grace period. allowing auth')
                 return json.loads(cipher.decrypt(se.payload))
             else:
@@ -151,9 +150,9 @@ class TokenAuthentication():
         if payload:
             if payload['domain'] != get_domain():
                 current_app.logger.error("bad domain in token: got %s expecting %s"%(payload['domain'],get_domain()))
-                return False
+                abort(401)
             return True
-        return False
+        abort(401)
 
 
 def is_authenticated(func):

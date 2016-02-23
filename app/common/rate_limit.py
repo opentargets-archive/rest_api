@@ -38,8 +38,10 @@ class RateLimiter(object):
     def set_limits(self):
         auth_key = AuthKey()
         if self.auth_token_payload:
-            auth_key.load(secret=self.auth_token_payload['secret'],
-                          appname=self.auth_token_payload['appname'])
+            auth_key = AuthKey(app_name=self.auth_token_payload['app_name'],
+                               secret=self.auth_token_payload['secret'],
+                               )
+            auth_key.get_loaded_data()
         self.short_window_rate = auth_key.short_window_rate
         self.long_window_rate = auth_key.long_window_rate
 
