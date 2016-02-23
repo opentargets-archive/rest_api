@@ -118,7 +118,7 @@ class TokenAuthentication():
                 raise SignatureExpired(se)
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
-            abort(401, 'bad signature in token')
+            abort(401, message = 'bad signature in token')
             # encoded_payload = e.payload
             # if encoded_payload is not None:
             #     try:

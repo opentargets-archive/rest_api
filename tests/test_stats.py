@@ -12,12 +12,8 @@ class StatsTestCase(GenericTestCase):
 
 
     def testStats(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/utils/stats')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response= self._make_request('/api/latest/public/utils/stats',
+                                   token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreater(json_response['evidencestrings']['total'],0, 'evidence stats found')

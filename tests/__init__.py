@@ -29,6 +29,8 @@ class GenericTestCase(unittest.TestCase):
         self.app_context.push()
         self.client = self.app.test_client()
         self.host = 'http://'+self.app_context.url_adapter.get_host('')
+        self.token = None
+        self.update_token()
 
 
     def tearDown(self):
@@ -36,12 +38,16 @@ class GenericTestCase(unittest.TestCase):
         self.app.extensions['redis-user'].hdel(self.auth_key.get_key(), self.auth_key.__dict__.keys())
         self.app.extensions['redis-user'].delete(self.auth_key.get_key())
 
-    def _get_token(self, expire = 120):
+    def _make_token_request(self, expire = 10*60):
         return self._make_request('/api/latest/public/auth/request_token',data={'app_name':self.auth_key.app_name,
                                                                                'secret':self.auth_key.secret,
                                                                                 'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
                                                                                'expiry': expire})
+
+    def get_token(self):
+        return json.loads(self._make_token_request().data.decode('utf-8'))['token']
+
     def _make_request(self,
                       path,
                       data = {},
@@ -57,8 +63,8 @@ class GenericTestCase(unittest.TestCase):
             params['headers'] = headers
         if token is not None:
             if token == self._AUTO_GET_TOKEN:
-                token_response = self._get_token()
-                token = json.loads(token_response.data.decode('utf-8'))['token']
+                self.update_token()
+                token = self.token
             if 'headers' not in params:
                 params['headers']={}
             params['headers']['Auth-Token']=token
@@ -74,3 +80,13 @@ class GenericTestCase(unittest.TestCase):
         else:
             response = self.client.open(path,**params)
         return response
+
+    def update_token(self):
+        if self.token:
+            token_valid_response = self._make_request('/api/latest/public/auth/validate_token',
+                                                       headers={'Auth-Token':self.token})
+            if token_valid_response.status == 200:
+                return
+            if token_valid_response.status == 419:
+                pass
+        self.token = self.get_token()
