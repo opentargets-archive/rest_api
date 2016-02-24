@@ -602,7 +602,7 @@ class esQuery():
         "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"] = len(data['data'])
-        if params.datastructure == OutputStructureOptions.TREE:
+        if params.outputstructure == OutputStructureOptions.TREE:
             extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
