@@ -66,6 +66,7 @@ class ScoreDataStructure(OutputDataStructure):
                            "disease.id",
                            "disease.efo_info.label",
                            "disease.efo_info.therapeutic_area",
+                           "disease.efo_info.path",
                            "is_direct",
                            "evidence_count",
                            "id",
