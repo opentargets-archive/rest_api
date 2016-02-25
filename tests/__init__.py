@@ -43,7 +43,8 @@ class GenericTestCase(unittest.TestCase):
                                                                                'secret':self.auth_key.secret,
                                                                                 'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
-                                                                               'expiry': expire})
+                                                                               'expiry': expire},
+                                  headers =dict(Authorization="Basic Y3R0djpkajhtaXhpamswNGpwZGc="))
 
     def get_token(self, expire = 10*60):
         return json.loads(self._make_token_request(expire).data.decode('utf-8'))['token']
