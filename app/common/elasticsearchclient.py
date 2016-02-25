@@ -587,11 +587,11 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-        associations = [Association(h['_source'], params.association_score_method, self.datatypes)
-                        for h in ass_data['hits']['hits']]
+        associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+                        for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
         scores = [a.data for a in associations]
-        therapeutic_areas = list(set([i for s in scores for i in s['disease']['therapeutic_area']['codes']]))
+        therapeutic_areas = list(set([i[1] for s in scores for i in s['disease']['path']]))
         efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
@@ -602,7 +602,7 @@ class esQuery():
         "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         data_distribution["total"] = len(data['data'])
-        if params.outputstructure == OutputStructureOptions.TREE:
+        if params.is_direct and genes:
             extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
@@ -614,22 +614,26 @@ class esQuery():
                                           # routing=use gene here
                                           query_cache=True,
                                           )
-            ta_associations = [Association(h['_source'], params.association_score_method, self.datatypes)
-                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+            ta_associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
             ta_scores = [a.data for a in ta_associations]
-            ta_scores.extend(scores)
-            data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
+            # ta_scores.extend(scores)
+            # data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
 
 
-        # data_distribution["evidence_count"]= datapoints
-        aggregation_results['data_distribution'] = data_distribution
-
+            return PaginatedResult(ass_data,
+                                 params,
+                                 data['data'],
+                                 facets=data['facets'],
+                                 available_datatypes=self.datatypes.available_datatypes,
+                                 therapeutic_areas = ta_scores
+                                 )
         return PaginatedResult(ass_data,
-                             params,
-                             data['data'],
-                             facets=data['facets'],
-                             available_datatypes=self.datatypes.available_datatypes,
-                             )
+                                 params,
+                                 data['data'],
+                                 facets=data['facets'],
+                                 available_datatypes=self.datatypes.available_datatypes,
+                                 )
 
     def _get_complex_gene_filter(self,
                                  genes,
