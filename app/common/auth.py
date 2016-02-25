@@ -143,7 +143,7 @@ class TokenAuthentication():
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))
             return json.dumps(dict(token=token))
-        abort(401)
+        abort(401, message='authentication credentials not valid')
 
     @classmethod
     def is_valid(cls,token):
