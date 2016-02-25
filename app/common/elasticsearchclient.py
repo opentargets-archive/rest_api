@@ -1663,7 +1663,13 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
         target_count =self.handler.search(index=self._index_search,
                                   doc_type=self._docname_search+'-target',
-                                  body= {"query": {"match_all":{}},
+                                  body= {"query": {
+                                           "range" : {
+                                                "association_counts.total" : {
+                                                   "gt" : 0,
+                                                    }
+                                                }
+                                          },
                                          'size': 0,
                                          '_source': False,
                                     })
@@ -1671,7 +1677,13 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
         disease_count =self.handler.search(index=self._index_search,
                                   doc_type=self._docname_search+'-disease',
-                                  body= {"query": {"match_all":{}},
+                                  body= {"query": {
+                                           "range" : {
+                                                "association_counts.total" : {
+                                                   "gt" : 0,
+                                                    }
+                                                }
+                                          },
                                          'size': 0,
                                          '_source': False,
                                     })
