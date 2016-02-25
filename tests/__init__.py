@@ -45,8 +45,8 @@ class GenericTestCase(unittest.TestCase):
                                                                                 'password': 'test',
                                                                                'expiry': expire})
 
-    def get_token(self):
-        return json.loads(self._make_token_request().data.decode('utf-8'))['token']
+    def get_token(self, expire = 10*60):
+        return json.loads(self._make_token_request(expire).data.decode('utf-8'))['token']
 
     def _make_request(self,
                       path,

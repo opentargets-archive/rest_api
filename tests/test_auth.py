@@ -33,7 +33,7 @@ class AuthTestCase(GenericTestCase):
 
         response= self._make_token_request(expire=1)
         self.assertTrue(response.status_code == 200)
-        token = self.get_token()
+        token = self.get_token(1)
         '''test valid token'''
         response = self._make_request('/api/latest/public/auth/validate_token',
                                       headers={'Auth-Token':token})
