@@ -132,7 +132,7 @@ class Association(object):
         self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
         # self.data['label'] = self.hit['disease']['efo_info']['label']
         self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
-        self.data['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+        self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
 
         self.data['id'] = self.hit['id']
 

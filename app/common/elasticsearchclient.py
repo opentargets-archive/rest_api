@@ -1479,8 +1479,8 @@ return scores""" % (self._get_datatype_combine_init_list(params),
 
     def _get_datasource_score_calculation_script(self, params=None):
         template_ds = """if (ev_sourceID == '%s') {
-  ev_score_ds = doc['scores.association_score'].value * %f / %f;
-  }"""
+ev_score_ds = doc['scores.association_score'].value * %f / %f;
+}"""
         script = []
         for ds in self.datatypes.datasources:
             script.append(template_ds % (ds, self.datatource_scoring.weights[ds], params.stringency))
