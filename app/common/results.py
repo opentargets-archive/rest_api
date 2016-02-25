@@ -20,7 +20,8 @@ class Result(object):
                  data=None,
                  facets=None,
                  available_datatypes = [],
-                 status = ['ok']):
+                 status = ['ok'],
+                 therapeutic_areas = []):
         '''
 
         :param res: elasticsearch query response
@@ -37,6 +38,7 @@ class Result(object):
         self.facets = facets
         self.available_datatypes = available_datatypes
         self.status = status
+        self.therapeutic_areas= therapeutic_areas
 
 
     def toDict(self):
@@ -145,7 +147,8 @@ class PaginatedResult(Result):
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
                 # 'status' : self.status,
-        }
+                'therapeutic_areas': self.therapeutic_areas
+                }
 
 class EmptyPaginatedResult(Result):
     def toDict(self):
