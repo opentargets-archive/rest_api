@@ -76,7 +76,6 @@ class GenericTestCase(unittest.TestCase):
             while status_code == 429:
                 response = self.client.open(path,**params)
                 status_code = response.status_code
-                print status_code
                 if status_code == 429:
                     time.sleep(10)
         else:
@@ -87,8 +86,8 @@ class GenericTestCase(unittest.TestCase):
         if self.token:
             token_valid_response = self._make_request('/api/latest/public/auth/validate_token',
                                                        headers={'Auth-Token':self.token})
-            if token_valid_response.status == 200:
+            if token_valid_response.status_code == 200:
                 return
-            if token_valid_response.status == 419:
+            if token_valid_response.status_code == 419:
                 pass
         self.token = self.get_token()
