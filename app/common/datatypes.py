@@ -50,10 +50,10 @@ class DataTypes():
 
 
 class FilterTypes():
-    DATASOURCE = 'filterbydatasource'
-    DATATYPE = 'filterbydatatype'
-    ASSOCIATION_SCORE_MIN = 'filterbyscorevalue_min'
-    ASSOCIATION_SCORE_MAX = 'filterbyscorevalue_max'
-    PATHWAY = 'filterbypathway'
-    GO = 'filterbygo'
-    UNIPROT_KW = 'filterbyuniprotkw'
+    DATASOURCE = 'datasource'
+    DATATYPE = 'datatype'
+    ASSOCIATION_SCORE_MIN = 'scorevalue_min'
+    ASSOCIATION_SCORE_MAX = 'scorevalue_max'
+    PATHWAY = 'pathway'
+    GO = 'go'
+    UNIPROT_KW = 'uniprotkw'

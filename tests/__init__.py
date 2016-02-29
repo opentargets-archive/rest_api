@@ -18,10 +18,10 @@ class GenericTestCase(unittest.TestCase):
         auth_credentials = {'domain': '',
                             'reference': 'andreap@ebi.ac.uk',
                             'app_name': 'api-test',
-                            'short_window_rate': '1000',
+                            'short_window_rate': '10000',
                             'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
                             'users_allowed': 'true',
-                            'long_window_rate': '50000'}
+                            'long_window_rate': '600000'}
         self.auth_key = AuthKey(**auth_credentials)
         self.app = create_app('testing')
         self.app.extensions['redis-user'].hmset(self.auth_key.get_key(), self.auth_key.__dict__)
@@ -76,6 +76,7 @@ class GenericTestCase(unittest.TestCase):
             while status_code == 429:
                 response = self.client.open(path,**params)
                 status_code = response.status_code
+                print status_code
                 if status_code == 429:
                     time.sleep(10)
         else:

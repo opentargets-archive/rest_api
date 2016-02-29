@@ -599,14 +599,14 @@ class esQuery():
         '''build data structure to return'''
         # if params.datastructure == OutputStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
-        "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
-        data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
-        data_distribution["total"] = len(data['data'])
+        # "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
+        # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
+        # data_distribution["total"] = len(data['data'])
         if params.is_direct and genes:
             extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
-                therapeutic_areas, genes, object_operator, gene_operator, is_direct=True)
+                therapeutic_areas, genes, object_operator, gene_operator, is_direct=False)
             ta_data = self.handler.search(index=self._index_association,
                                           body=extended_query_body,
                                           timeout="20m",
