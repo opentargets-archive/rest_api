@@ -20,32 +20,7 @@ class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('filter', type=str, required=False,  action='append', help="filter by gene or efo")
-    _swagger_params = [
-            {
-              "name": "q",
-              "description": "a full text query",
-              "required": True,
-              "allowMultiple": False,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {"name": "filter",
-              "description": "restrict the search to return just genes or efo. Available options are 'target' and 'disease'",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            }]
-    _swagger_params.extend(Paginable._swagger_parameters)
 
-
-
-    @swagger.operation(
-        nickname='search',
-        responseClass=PaginatedResponse.__name__,
-
-        parameters=_swagger_params,
-        )
     @is_authenticated
     @rate_limit
     def get(self ):
@@ -72,30 +47,7 @@ class QuickSearch(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number of genes or efo to be returned.")
-    _swagger_params = [
-            {
-              "name": "q",
-              "description": "a full text query",
-              "required": True,
-              "allowMultiple": False,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {"name": "size",
-              "description": "number of genes or efo to be returned",
-              "required": False,
-              "allowMultiple": False,
-              "dataType": "integer",
-              "paramType": "query"
-            }]
 
-
-
-    @swagger.operation(
-        nickname='quick search',
-        # responseClass=PaginatedResponse.__name__,
-        parameters=_swagger_params,
-        )
     @is_authenticated
     @rate_limit
     def get(self ):
@@ -122,31 +74,7 @@ class AutoComplete(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")
-    _swagger_params = [
-            {
-              "name": "q",
-              "description": "a full text query",
-              "required": True,
-              "allowMultiple": False,
-              "dataType": "string",
-              "paramType": "query"
-            },
-            {"name": "size",
-              "description": "number of genes or efo to be returned",
-              "required": False,
-              "allowMultiple": False,
-              "dataType": "integer",
-              "paramType": "query"
-            },
-            ]
 
-
-
-    @swagger.operation(
-        nickname='autocomplete',
-        # responseClass=PaginatedResponse.__name__,
-        parameters=_swagger_params,
-        )
     @is_authenticated
     @rate_limit
     def get(self ):

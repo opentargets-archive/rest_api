@@ -23,54 +23,6 @@ class RequestToken(restful.Resource):
     parser.add_argument('password', type=str, required=False, help="password [password] ")
     parser.add_argument('expiry', type=int, required=False, help="seconds before the token expires")
 
-    _swagger_parameters = [
-                {
-                  "name": "app_name",
-                  "description": "the name of the app you are using to request a token. You need to register the app before you will be able to request a token",
-                  "required": True,
-                  "dataType": "string",
-                  "paramType": "query"
-                },
-                {
-                  "name": "secret",
-                  "description": "the secret you were given when registering your app",
-                  "required": True,
-                  "dataType": "string",
-                  "paramType": "query"
-
-                },
-                {
-                  "name": "uid",
-                  "description": "the id of the user that is using your app",
-                  "required": False,
-                  "dataType": "string",
-                  "paramType": "query"
-
-                },
-                {
-                  "name": "password",
-                  "description": "the password of the user that is using your app",
-                  "required": False,
-                  "dataType": "string",
-                  "paramType": "query"
-
-                },
- {
-                  "name": "expiry",
-                  "description": "seconds before the token expires",
-                  "required": False,
-                  "dataType": "integer",
-                  "paramType": "query"
-
-                },
-
-              ]
-
-    @swagger.operation(
-        nickname='association',
-        produces = ["application/json"],
-        parameters=_swagger_parameters,
-        )
     @rate_limit
     def get(self, ):
         start_time = time.time()

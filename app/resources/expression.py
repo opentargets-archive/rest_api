@@ -14,37 +14,10 @@ import time
 __author__ = 'andreap'
 
 
-@swagger.model
-class ExpressionQuery:
-  "An object to specify an getbyid query"
-  resource_fields = {
-      'id': fields.List(fields.String(attribute='gene identifier', ))
-  }
-
-
 
 
 class Expression(restful.Resource):
 
-    _swagger_parameters = [
-            {
-              "name": "gene",
-              "description": "a gene identifier",
-              "required": False,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "query"
-            },
-
-
-          ]
-
-    @swagger.operation(
-        nickname='expression',
-        produces = ["application/json", "text/xml", "text/csv"],
-
-        parameters=_swagger_parameters,
-        )
     @is_authenticated
     @rate_limit
     def get(self):
@@ -63,22 +36,6 @@ class Expression(restful.Resource):
             abort(404, message='Please provide at least one gene')
         expression_data = self.get_expression(genes,params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
-
-    @swagger.operation(
-        nickname='expression',
-        produces = ["application/json", "text/xml", "text/csv"],
-        parameters=[
-            {
-              "name": "body",
-              "description": "gene id(s) you want expression data for",
-              "required": True,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "body",
-              "type": "ExpressionQuery"
-            },
-            ]
-        )
 
     @is_authenticated
     @rate_limit

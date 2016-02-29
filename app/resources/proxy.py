@@ -12,7 +12,6 @@ from flask_restful_swagger import swagger
 
 class ProxyEnsembl(restful.Resource):
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, url ):
@@ -26,19 +25,7 @@ class ProxyEnsembl(restful.Resource):
         else:
             abort(404, message="cannot proxy to: %s "%url)
 
-    @swagger.operation(
-        parameters=[
-            {
-              "name": "body",
-              "description": "json data you want to pass in the body",
-              "required": True,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "body",
-            },
-            ]
 
-    )
     # @is_authenticated
     def post(self, url ):
         '''
@@ -54,7 +41,6 @@ class ProxyEnsembl(restful.Resource):
 
 class ProxyGXA(restful.Resource):
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, url ):
@@ -70,7 +56,6 @@ class ProxyGXA(restful.Resource):
 
 class ProxyPDB(restful.Resource):
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, url ):
@@ -86,7 +71,6 @@ class ProxyPDB(restful.Resource):
 
 class ProxyEPMC(restful.Resource):
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, url ):
@@ -103,7 +87,6 @@ class ProxyEPMC(restful.Resource):
 
 class ProxyGeneric(restful.Resource):
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, url ):
@@ -117,19 +100,7 @@ class ProxyGeneric(restful.Resource):
         else:
             abort(404, message="cannot proxy to: %s "%url)
 
-    @swagger.operation(
-        parameters=[
-            {
-              "name": "body",
-              "description": "json data you want to pass in the body",
-              "required": True,
-              "allowMultiple": True,
-              "dataType": "string",
-              "paramType": "body",
-            },
-            ]
 
-    )
     # @is_authenticated
     def post(self, url ):
         '''

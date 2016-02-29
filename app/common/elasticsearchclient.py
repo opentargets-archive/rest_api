@@ -10,10 +10,11 @@ import json
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions
+from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions, FilterTypes, \
+    AssociationSortByOptions
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
-from app.common.datatypes import FilterTypes
+from app.common.request_templates import FilterTypes
 from app.common.scoring import Scorer, Score
 from app.common.scoring_conf import ScoringMethods
 
@@ -561,7 +562,7 @@ class esQuery():
             'size': params.size,
             '_source': SourceDataStructureOptions.getSource(params.association_score_method),
 
-            "sort": {params.association_score_method + ".overall": {"order": "desc"}}
+            "sort": {params.association_score_method+"."+params.orderby : {"order": "desc"}}
 
         }
         # calculate aggregation using proper ad hoc filters
@@ -1719,7 +1720,7 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.orderby = kwargs.get('orderby')
+        self.orderby = kwargs.get('orderby', AssociationSortByOptions.OVERALL) or AssociationSortByOptions.OVERALL
 
         self.gte = kwargs.get('gte')
 

@@ -132,3 +132,19 @@ def json_type(data):
         return json.loads(data)
     except:
         raise ValueError('Malformed JSON')
+
+
+class FilterTypes():
+    DATASOURCE = 'datasource'
+    DATATYPE = 'datatype'
+    ASSOCIATION_SCORE_MIN = 'scorevalue_min'
+    ASSOCIATION_SCORE_MAX = 'scorevalue_max'
+    PATHWAY = 'pathway'
+    GO = 'go'
+    UNIPROT_KW = 'uniprotkw'
+
+
+
+class AssociationSortByOptions:
+    OVERALL = 'overall'
+

@@ -14,7 +14,6 @@ from flask_restful_swagger import swagger
 class EcoLabelFromCode(restful.Resource):
 
 
-    @swagger.operation()
     @is_authenticated
     @rate_limit
     def get(self, code ):
