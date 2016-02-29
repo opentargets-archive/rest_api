@@ -69,6 +69,11 @@ class RateLimiter(object):
 
     def get_auth_token_payload(self):
         self.auth_token_payload = get_token_payload()
+        if not self.auth_token_payload:
+            if 'app_name' in request.form and \
+                'secret' in request.form:
+                self.auth_token_payload = dict(app_name=request.form['app_name'],
+                                               secret=request.form['secret'])
 
 
 

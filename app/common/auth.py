@@ -19,7 +19,7 @@ class AuthKey(object):
                  app_name='',
                  secret='',
                  domain='',
-                 short_window_rate=100,
+                 short_window_rate=1000,
                  long_window_rate=60000,
                  users_allowed="False",
                  reference='',
