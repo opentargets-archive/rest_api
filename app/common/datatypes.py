@@ -1,5 +1,4 @@
 __author__ = 'andreap'
-from flask import current_app
 
 
 class DataType():
@@ -49,11 +48,3 @@ class DataTypes():
         return datasource in  self.datatypes[datatype].datasources
 
 
-class FilterTypes():
-    DATASOURCE = 'datasource'
-    DATATYPE = 'datatype'
-    ASSOCIATION_SCORE_MIN = 'scorevalue_min'
-    ASSOCIATION_SCORE_MAX = 'scorevalue_max'
-    PATHWAY = 'pathway'
-    GO = 'go'
-    UNIPROT_KW = 'uniprotkw'

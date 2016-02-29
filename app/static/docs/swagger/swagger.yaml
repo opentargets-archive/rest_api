@@ -299,7 +299,7 @@ paths:
           format: float
         - name: size
           in: query
-          description: maximum amount of results to return. Defaults to 10, max is 1000
+          description: Maximum amount of results to return. Defaults to 10, max is 1000
           required: false
           type: number
           format: integer
@@ -377,7 +377,31 @@ paths:
       tags:
         - private
       description: |
-        Gets `target-expression` objects
+        Gets `gene-expression` objects
+      parameters:
+        - name: gene
+          in: query
+          description: an ensembl gene identifier
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+    post:
+      tags:
+        - private
+      description: |
+        Gets `gene-expression` objects
+      parameters:
+         - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"gene":["gene1", "gene2"]}
+          description: an ensembl gene identifier
+          required: true
+          type: string
       responses:
         200:
           description: Successful response
@@ -387,6 +411,27 @@ paths:
         - public
       description: |
         Gets `search-result` objects
+      parameters:
+        - name: q
+          in: query
+          description: a full text query
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 10, max is 1000
+          required: false
+          type: string
+        - name: from
+          in: query
+          description: How many initial results should be skipped. Defaults to 0
+          required: false
+          type: string
+        - name: filter
+          in: query
+          description: restrict the search to the type requested. Eg. `target` or `disease`.
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
@@ -396,6 +441,17 @@ paths:
         - private
       description: |
         Gets `search-result` objects
+      parameters:
+        - name: q
+          in: query
+          description: a full text query
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 5.
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
@@ -405,6 +461,17 @@ paths:
         - private
       description: |
         Gets `autocomplete` objects
+      parameters:
+        - name: q
+          in: query
+          description: a full text query
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 5
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
@@ -415,6 +482,32 @@ paths:
         - auth
       description: |
         Gets an authentication token in the form of [JWT](https://jwt.io/).
+      parameters:
+        - name: app_name
+          in: query
+          description: the name of the app you are using to request a token. You need to register the app before you will be able to request a token.
+          required: true
+          type: string
+        - name: secret
+          in: query
+          description: the secret you were given when registering your app.
+          required: true
+          type: string
+        - name: uid
+          in: query
+          description: the id of the user that is using your app
+          required: false
+          type: string
+        - name: password
+          in: query
+          description: the password of the user that is using your app
+          required: false
+          type: string
+        - name: expiry
+          in: query
+          description: seconds before the token expires
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
