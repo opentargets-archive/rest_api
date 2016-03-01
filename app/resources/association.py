@@ -66,6 +66,8 @@ class FilterBy(restful.Resource):
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=True)
         parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
+        parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
+
 
 
         args = parser.parse_args()

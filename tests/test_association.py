@@ -170,6 +170,39 @@ class AssociationTestCase(GenericTestCase):
                                     sorted_scores[i],
                                     )
 
+    def testAssociationFilterSearch(self):
+
+        disease = 'EFO_0000270'
+        search_query='ENSG00000100012'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        full_json_response = json.loads(response.data.decode('utf-8'))
+
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'search': search_query,
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        filtered_json_response = json.loads(response.data.decode('utf-8'),)
+        self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'search': search_query[:-2],
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        filtered_json_response = json.loads(response.data.decode('utf-8'),)
+        self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+
+
 
 
 if __name__ == "__main__":

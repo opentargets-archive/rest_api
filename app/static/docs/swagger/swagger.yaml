@@ -323,6 +323,13 @@ paths:
             'datasources.gwas'. Supports multiple entries.
           required: false
           type: string
+        - name: search
+          in: query
+          description: |
+            restrict the filtered results to those matching the passed string. The matching is done with a
+            phrase match prefix
+          required: false
+          type: string
       responses:
         200:
           description: Successful response
