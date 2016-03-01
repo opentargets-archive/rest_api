@@ -393,7 +393,7 @@ paths:
       description: |
         Gets `gene-expression` objects
       parameters:
-         - name: body
+        - name: body
           in: body
           schema:
             type: string
