@@ -114,8 +114,8 @@ class esQuery():
             # for handler in es_logger.handlers:
             #     handler.setFormatter(formatter)
             # es_logger.setLevel(log_level)
-            es_tracer = logging.getLogger('elasticsearch.trace')
-            es_tracer.setLevel(logging.DEBUG)
+            # es_tracer = logging.getLogger('elasticsearch.trace')
+            # es_tracer.setLevel(logging.DEBUG)
             # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
             # for handler in es_tracer.handlers:
             #     handler.setFormatter(formatter)
@@ -485,15 +485,7 @@ class esQuery():
         Get the association scores for the provided target and diseases.
         steps in the process:
 
-        1. get all evidence for matching gene and disease
 
-        2. calculate gene to disease(s) scores
-
-        3. calculate facets limiting for gene and diseases within the selected score range
-
-        4. apply all facets filters to data being returned. (on es use a post_filter)
-
-        5. calculate histogram on filtered data returned
         """
         params = SearchParams(**kwargs)
 
@@ -503,7 +495,6 @@ class esQuery():
         object_operator = getattr(BooleanFilterOperator, object_operator.upper())
         '''create multiple condition boolean query'''
         aggs = None
-        conditions = []
         filter_data_conditions = dict()
 
         if params.filters[FilterTypes.DATASOURCE] or \
@@ -531,8 +522,6 @@ class esQuery():
                                                            object_operator,
                                                            gene_operator,
                                                            is_direct = params.is_direct,
-                                                           # is_direct=(len(genes) == 0) or (len(genes) == 1 and len(
-                                                           #     objects) == 1)  # temporary handle here special cases for the ui. it should always be true.
                                                            )
         if objects:
             params.outputstructure = OutputStructureOptions.FLAT  # override datastructure as only flat is available
@@ -547,11 +536,15 @@ class esQuery():
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
+        query_body = { "match_all": {}}
+        if params.search:
+            query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
 
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {
                 "filtered": {
+                    "query": query_body ,
                     "filter": {
                         "bool": {
                             "must": conditions
@@ -1728,7 +1721,8 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.sort = kwargs.get('sort', AssociationSortOptions.OVERALL) or AssociationSortOptions.OVERALL
+        self.sort = kwargs.get('sort', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
+        self.search = kwargs.get('search')
 
         self.gte = kwargs.get('gte')
 
