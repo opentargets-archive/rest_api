@@ -73,13 +73,13 @@ class ScoreDataStructure(OutputDataStructure):
                            ],}
 
 class ScoreDataStructureHarmonicSum(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["harmonic-sum"],}
+    source =  {"include": ScoreDataStructure.source["include"]+["harmonic-sum*"],}
 
 class ScoreDataStructureMax(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["sum"],}
+    source =  {"include": ScoreDataStructure.source["include"]+["sum*"],}
 
 class ScoreDataStructureSum(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["max"],}
+    source =  {"include": ScoreDataStructure.source["include"]+["max*"],}
 
 class SourceDataStructureOptions():
     DEFAULT = 'default'
@@ -145,6 +145,6 @@ class FilterTypes():
 
 
 
-class AssociationSortByOptions:
+class AssociationSortOptions:
     OVERALL = 'overall'
 

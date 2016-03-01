@@ -11,7 +11,7 @@ from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions, FilterTypes, \
-    AssociationSortByOptions
+    AssociationSortOptions
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.request_templates import FilterTypes
@@ -114,8 +114,8 @@ class esQuery():
             # for handler in es_logger.handlers:
             #     handler.setFormatter(formatter)
             # es_logger.setLevel(log_level)
-            # es_tracer = logging.getLogger('elasticsearch.trace')
-            # es_tracer.setLevel(log_level)
+            es_tracer = logging.getLogger('elasticsearch.trace')
+            es_tracer.setLevel(logging.DEBUG)
             # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
             # for handler in es_tracer.handlers:
             #     handler.setFormatter(formatter)
@@ -561,8 +561,8 @@ class esQuery():
             },
             'size': params.size,
             '_source': SourceDataStructureOptions.getSource(params.association_score_method),
-
-            "sort": {params.association_score_method+"."+params.orderby : {"order": "desc"}}
+            'from': params.start_from,
+            "sort": self._digest_sort_strings(params)
 
         }
         # calculate aggregation using proper ad hoc filters
@@ -1697,8 +1697,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return RawResult(str(stats))
 
-
-
+    def _digest_sort_strings(self, params):
+        digested=[]
+        for s in params.sort:
+            order = 'desc'
+            if s.startswith('~'):
+                order = 'asc'
+                s=s[1:]
+            digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
+        return digested
 
 class SearchParams():
     _max_search_result_limit = 1000
@@ -1707,6 +1714,7 @@ class SearchParams():
 
     def __init__(self, **kwargs):
 
+        self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size) or self._default_return_size
         if (self.size > self._max_search_result_limit):
             raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
@@ -1720,7 +1728,7 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.orderby = kwargs.get('orderby', AssociationSortByOptions.OVERALL) or AssociationSortByOptions.OVERALL
+        self.sort = kwargs.get('sort', AssociationSortOptions.OVERALL) or AssociationSortOptions.OVERALL
 
         self.gte = kwargs.get('gte')
 

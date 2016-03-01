@@ -65,6 +65,8 @@ class FilterBy(restful.Resource):
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=True)
         parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
+        parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
+
 
         args = parser.parse_args()
         # filters = args.pop('filter',[]) or []
