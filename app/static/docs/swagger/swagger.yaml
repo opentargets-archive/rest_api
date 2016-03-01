@@ -274,7 +274,8 @@ paths:
           type: string
         - name: direct
           in: query
-          description: return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
+          description: |
+            return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
           required: false
           type: boolean
           default: false
@@ -401,7 +402,6 @@ paths:
               {"gene":["gene1", "gene2"]}
           description: an ensembl gene identifier
           required: true
-          type: string
       responses:
         200:
           description: Successful response
