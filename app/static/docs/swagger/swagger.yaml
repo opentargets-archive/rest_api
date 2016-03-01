@@ -315,6 +315,14 @@ paths:
           description: Format to get data back. Can be 'json', 'xml' or 'table'
           required: false
           type: string
+        - name: sort
+          in: query
+          description: |
+            Sort by the given score type. Defaults to 'overall' and descending order. use '~' prefix to do ascending
+            order eg. '~overall'. Call a datatype score like: 'datatypes.literature', and a datasource one as
+            'datasources.gwas'. Supports multiple entries.
+          required: false
+          type: string
       responses:
         200:
           description: Successful response

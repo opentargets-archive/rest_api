@@ -1,4 +1,6 @@
-import unittest, json
+import decimal
+import unittest
+import ujson as json
 import requests
 import time
 
@@ -9,6 +11,18 @@ from tests import GenericTestCase
 
 
 class AssociationTestCase(GenericTestCase):
+
+    def _get_score(self, datapoint,score_type):
+            if score_type == 'overall':
+                 return datapoint['association_score']
+            elif score_type.startswith('datatypes'):
+                for i in datapoint['datatypes']:
+                    if i['datatype']== score_type.split('.')[1]:
+                        return i['association_score']
+            elif score_type.startswith('datasources'):
+                for i in datapoint['datasources']:
+                    if i['datatype']== score_type.split('.')[1]:
+                        return i['association_score']
 
 
     def testAssociationID(self):
@@ -120,6 +134,41 @@ class AssociationTestCase(GenericTestCase):
             self.assertEqual(entry_disease_id, disease, 'association is direct')
 
 
+    def testAssociationFilterOrder(self):
+
+        disease = 'EFO_0000270'
+        score_type='overall'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'sort': score_type,
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
+        self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
+        sorted_scores = [self._get_score(d, score_type) for d in json_response['data']]
+        for i in range(len(sorted_scores)-1):
+            self.assertGreaterEqual(sorted_scores[i],
+                                    sorted_scores[i+1],
+                                    )
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'sort': '~overall',
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        json_response = json.loads(response.data.decode('utf-8'),)
+        self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
+        self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
+        sorted_scores = [self._get_score(d, score_type) for d in json_response['data']]
+        for i in range(len(sorted_scores)-1):
+            self.assertGreaterEqual(sorted_scores[i+1],
+                                    sorted_scores[i],
+                                    )
 
 
 
