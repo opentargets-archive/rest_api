@@ -8,7 +8,6 @@ Flask-Cache==0.13.1
 Flask-Limiter==0.9.1
 Flask-RESTful==0.3.2
 Flask-Compress==1.2.1
--e git+https://github.com/CTTV/flask-restful-swagger.git@657faa7377f5dcf7718f4e094d50aa2dd86999cf#egg=flask_restful_swagger
 Flask-Script==2.0.5
 Flask-SQLAlchemy==2.0
 Flask-SSLify==0.1.4

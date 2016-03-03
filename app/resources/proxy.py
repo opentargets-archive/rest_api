@@ -5,7 +5,6 @@ __author__ = 'andreap'
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort
-from flask_restful_swagger import swagger
 
 
 

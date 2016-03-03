@@ -11,7 +11,6 @@ __author__ = 'andreap'
 
 from flask import Flask, Response, current_app, request
 from flask.ext.restful import fields
-from flask_restful_swagger import swagger
 
 
 class ResponseType():
@@ -86,17 +85,6 @@ class CTTVResponse():
 class Results(fields.Raw):
     def format(self):
         return 'Results data'
-
-@swagger.model
-class PaginatedResponse():
-     resource_fields = {
-      'data': fields.List(Results,attribute='Query results'),
-      'total':fields.Integer(attribute='total of results returned', ),
-      'took': fields.Integer(attribute='time took to complete the query'),
-      'from': fields.Integer(attribute='paginate from',),
-      'size': fields.Integer(attribute='size to return', ),
-
-  }
 
 
 
