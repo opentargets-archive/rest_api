@@ -147,11 +147,11 @@ paths:
           default: false
         - name: scorevalue_min
           in: query
-          description: filter by minimum score value
+          description: filter by minimum score value. default is 0, but using 0.2 is a good tradeoff to filter lower quality data points
           required: false
           type: number
           format: float
-          default: 0.2
+          default: 0.
         - name: scorevalue_max
           in: query
           description: filter by maximum score value
