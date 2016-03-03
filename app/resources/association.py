@@ -6,12 +6,10 @@ from app.common import boilerplate
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
-from app.common.response_templates import CTTVResponse, PaginatedResponse
-from app.common.utils import get_ordered_filter_list
+from app.common.response_templates import CTTVResponse
 import time
 
 __author__ = 'andreap'

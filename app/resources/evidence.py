@@ -7,41 +7,40 @@ __author__ = 'andreap'
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask_restful_swagger import swagger
 from flask.ext.restful import reqparse
 from app.common.boilerplate import Paginable
-from app.common.response_templates import CTTVResponse, PaginatedResponse
+from app.common.response_templates import CTTVResponse
 import json
 from app.common.auth import is_authenticated
 
-@swagger.model
-class GetByIdQuery:
-  "An object to specify an getbyid query"
-  resource_fields = {
-      'id': fields.List(fields.String(attribute='gene file name', ))
-  }
+# @swagger.model
+# class GetByIdQuery:
+#   "An object to specify an getbyid query"
+#   resource_fields = {
+#       'id': fields.List(fields.String(attribute='gene file name', ))
+#   }
 
 
-@swagger.model
-class FilterByQuery:
-  "An object to specify a filterby query"
-  resource_fields = {
-      'target': fields.List(fields.String(attribute='target gene id', )),
-      'disease': fields.List(fields.String(attribute='diseaseefo code', )),
-      'eco': fields.List(fields.String(attribute='eco code', )),
-      'pathway': fields.List(fields.String(attribute='pathway', )),
-      'datasource': fields.List(fields.String(attribute='datasource', )),
-      'datatype': fields.List(fields.String(attribute='datatype', )),
-      'uniprotkw': fields.List(fields.String(attribute='uniprotkw', )),
-      'from': fields.Integer(attribute='paginate from',),
-      'size': fields.Integer(attribute='size to return', ),
-      'format': fields.String(attribute='format',),
-      'datastructure': fields.String(attribute='datastructure', ),
-      'fields': fields.List(fields.String(attribute='fields to return', )),
-      'expandefo': fields.Boolean(attribute='get data for efo children',),
-      # 'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
-
-  }
+# @swagger.model
+# class FilterByQuery:
+#   "An object to specify a filterby query"
+#   resource_fields = {
+#       'target': fields.List(fields.String(attribute='target gene id', )),
+#       'disease': fields.List(fields.String(attribute='diseaseefo code', )),
+#       'eco': fields.List(fields.String(attribute='eco code', )),
+#       'pathway': fields.List(fields.String(attribute='pathway', )),
+#       'datasource': fields.List(fields.String(attribute='datasource', )),
+#       'datatype': fields.List(fields.String(attribute='datatype', )),
+#       'uniprotkw': fields.List(fields.String(attribute='uniprotkw', )),
+#       'from': fields.Integer(attribute='paginate from',),
+#       'size': fields.Integer(attribute='size to return', ),
+#       'format': fields.String(attribute='format',),
+#       'datastructure': fields.String(attribute='datastructure', ),
+#       'fields': fields.List(fields.String(attribute='fields to return', )),
+#       'expandefo': fields.Boolean(attribute='get data for efo children',),
+#       # 'groupby': fields.List(fields.String(attribute='group returned evidence by', )),
+#
+#   }
 
 
 
@@ -87,38 +86,6 @@ class Evidence(restful.Resource):
 
 class FilterBy(restful.Resource, Paginable):
 
-    _swagger_parameters = [
-
-
-
-            #  {
-            #   "name": "scorevalue_max",
-            #   "description": "the maximum value of association score you want to filter by",
-            #   "required": False,
-            #   "allowMultiple": False,
-            #   "defaultValue": 1,
-            #   "dataType": "float",
-            #   "paramType": "query"
-            # },
-            # {
-            #   "name": "scorevalue_min",
-            #   "description": "the minimum value of association score you want to filter by",
-            #   "required": False,
-            #   "allowMultiple": False,
-            #   "defaultValue": 0,
-            #   "dataType": "float",
-            #   "paramType": "query"
-            # },
-          ]
-
-    _swagger_parameters.extend(Paginable._swagger_parameters)
-    @swagger.operation(
-        nickname='filterby',
-        produces = ["application/json", "text/xml", "text/csv"],
-
-        responseClass=PaginatedResponse.__name__,
-        parameters=_swagger_parameters,
-        )
     @is_authenticated
     @rate_limit
     def get(self):

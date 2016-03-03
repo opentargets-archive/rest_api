@@ -2,7 +2,6 @@ import time
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort,reqparse
-from flask_restful_swagger import swagger
 from app.common import boilerplate
 from app.common.boilerplate import Paginable
 from app.common.auth import TokenAuthentication, is_authenticated

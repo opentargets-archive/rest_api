@@ -1,15 +1,13 @@
-import json
 
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
-
-__author__ = 'andreap'
 from flask import current_app
 from flask.ext import restful
 from flask.ext.restful import abort
-from flask_restful_swagger import swagger
 import time
+
+__author__ = 'andreap'
 
 
 
