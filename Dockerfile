@@ -39,8 +39,7 @@ COPY docker-conf/nginx.conf /etc/nginx/
 COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
 
 #install app requirements
-RUN pip install -r /var/www/app/requirements.txt && \
-  pip install -e git+https://github.com/CTTV/flask-restful-swagger.git@657faa7377f5dcf7718f4e094d50aa2dd86999cf#egg=flask_restful_swagger
+RUN pip install -r /var/www/app/requirements.txt 
 
 #install swagger ui
 RUN cd /var/www &&  \
