@@ -39,7 +39,7 @@ COPY docker-conf/nginx.conf /etc/nginx/
 COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
 
 #install app requirements
-RUN pip install -r /var/www/app/requirements.txt 
+RUN pip install -r /var/www/app/requirements.txt
 
 #install swagger ui
 RUN cd /var/www &&  \
