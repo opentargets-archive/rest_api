@@ -49,7 +49,9 @@ class LogApiCallCount(BaseDatadogSignal):
         if self.stats:
             tags = ['version:'+str(Config.API_VERSION),
                     'application:rest-api',
-                    'api-key:'+rate_limiter._auth_key.id]
+                    'api-key:'+rate_limiter._auth_key.id,
+                    'method:'+request.environ['REQUEST_METHOD'],
+                    'endpoint:'+request.url_rule.rule.split('<')[0].split(request.blueprint)[1]]
 
             self.stats.increment(metric_name='api.call.count',
                             tags=tags,)
