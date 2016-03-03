@@ -1,6 +1,7 @@
 import csv
 import os
 
+import datadog
 from flask import Flask, redirect, Blueprint, send_from_directory
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
@@ -13,7 +14,7 @@ from app.common.auth import AuthKey
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.scoring_conf import DataSourceScoring
-from config import config
+from config import config, Config
 import logging
 from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery
@@ -114,6 +115,16 @@ def create_app(config_name):
                 app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
     else:
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
+
+
+    '''setup datadog logging'''
+    if  Config.datadog_options:
+        datadog.initialize(**Config.datadog_options)
+        stats = datadog.ThreadStats()
+        stats.start(flush_interval=5, roll_up_interval=5)
+        app.extensions['datadog'] = stats
+    else:
+         app.extensions['datadog'] = None
 
 
     '''compress http response'''

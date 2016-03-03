@@ -34,3 +34,5 @@ Werkzeug==0.10.1
 Yapsy==1.10.423
 numpy==1.9.2
 redislite==3.0.271
+datadog==0.10.0
+requests==2.5.3

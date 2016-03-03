@@ -9,6 +9,9 @@ import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
 import json
+
+from app.common.datadog_signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid, \
+    LogApiTokenServed
 from config import Config
 __author__ = 'andreap'
 
@@ -115,17 +118,20 @@ class TokenAuthentication():
                 current_app.logger.info('token time offset within grace period. allowing auth')
                 return json.loads(cipher.decrypt(se.payload))
             else:
+                LogApiTokenExpired()
                 raise SignatureExpired(se)
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
+            encoded_payload = e.payload
+            if encoded_payload is not None:
+                try:
+                    decoded_payload = s.load_payload(encoded_payload)
+                    payload= json.loads(cipher.decrypt(decoded_payload))
+                    LogApiTokenInvalid(payload)
+                except BadData:
+                    LogApiTokenInvalid(dict(error='bad data in token',
+                                            token=token))
             abort(401, message = 'bad signature in token')
-            # encoded_payload = e.payload
-            # if encoded_payload is not None:
-            #     try:
-            #         decoded_payload = s.load_payload(encoded_payload)
-            #         print json.loads(cipher.decrypt(decoded_payload))
-            #     except BadData:
-            #         print 'bad data in token'
 
 
 
@@ -142,6 +148,7 @@ class TokenAuthentication():
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))
+            LogApiTokenServed()
             return json.dumps(dict(token=token))
         abort(401, message='authentication credentials not valid')
 
@@ -151,6 +158,7 @@ class TokenAuthentication():
         if payload:
             if payload['domain'] != get_domain():
                 current_app.logger.error("bad domain in token: got %s expecting %s"%(payload['domain'],get_domain()))
+                LogApiTokenInvalidDomain(payload)
                 abort(401)
             return True
         abort(401)
