@@ -1,9 +1,7 @@
 from collections import defaultdict
 from copy import copy
 
-import operator
 import logging
-import pprint
 import numpy as np
 import json
 
@@ -15,7 +13,7 @@ from app.common.request_templates import SourceDataStructureOptions, OutputStruc
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.request_templates import FilterTypes
-from app.common.scoring import Scorer, Score
+from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
@@ -247,7 +245,7 @@ class esQuery():
                                    body={"suggest": {
                                        "text": searchphrase,
                                        "completion": {
-                                           "field": "_private.suggestions"
+                                           "field": "private.suggestions"
                                        }
                                    }
                                    }

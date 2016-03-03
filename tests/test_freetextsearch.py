@@ -99,7 +99,14 @@ class FreeTextSearchTestCase(GenericTestCase):
 
 
 
+    def testAutocomplete(self):
+        response= self._make_request('/api/latest/private/autocomplete',
+                                     data={'q':'ast'},
+                                     token=self._AUTO_GET_TOKEN)
 
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
 
 
 

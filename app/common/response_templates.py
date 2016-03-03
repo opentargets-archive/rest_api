@@ -2,6 +2,7 @@ import json
 import time
 from datetime import datetime
 
+from app.common.datadog_signals import LogApiCallWeight
 from app.common.datatypes import DataTypes
 from app.common.rate_limit import increment_call_rate, RateLimiter, ceil_dt_to_future_time
 from app.common.scoring_conf import ScoringMethods
@@ -69,6 +70,7 @@ class CTTVResponse():
             resp.headers.add('X-Accel-Expires', cache_time)
         msec = int(round(took*1000))
         current_values = increment_call_rate(msec)
+        LogApiCallWeight(msec)
         rate_limiter = RateLimiter()
         now = datetime.now()
         resp.headers.add('X-API-Took', int(round(msec)))

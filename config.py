@@ -69,6 +69,11 @@ class Config:
                     }
     REDIS_SERVER ='/tmp/api_redis.db'
 
+    datadog_options = {
+        'api_key':'c18195d82553654274bffddb25175967',
+        'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
+    }
+
     @staticmethod
     def init_app(app):
         pass
@@ -100,7 +105,7 @@ class DockerLinkedConfig(Config):
 
 
 class TestingConfig(Config):
-    # TESTING = True
+    #TESTING = True
     ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000

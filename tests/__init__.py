@@ -1,4 +1,5 @@
 import json
+import logging
 import unittest
 
 import time
@@ -18,10 +19,10 @@ class GenericTestCase(unittest.TestCase):
         auth_credentials = {'domain': '',
                             'reference': 'andreap@ebi.ac.uk',
                             'app_name': 'api-test',
-                            'short_window_rate': '10000',
+                            'short_window_rate': '1000',
                             'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
                             'users_allowed': 'true',
-                            'long_window_rate': '600000'}
+                            'long_window_rate': '6000000'}
         self.auth_key = AuthKey(**auth_credentials)
         self.app = create_app('testing')
         self.app.extensions['redis-user'].hmset(self.auth_key.get_key(), self.auth_key.__dict__)
@@ -31,6 +32,9 @@ class GenericTestCase(unittest.TestCase):
         self.host = 'http://'+self.app_context.url_adapter.get_host('')
         self.token = None
         self.update_token()
+        log = logging.getLogger('dd.datadogpy')
+        log.setLevel(logging.DEBUG)
+
 
 
     def tearDown(self):

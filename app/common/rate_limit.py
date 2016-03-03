@@ -6,6 +6,7 @@ from flask.ext.restful import abort, wraps
 from flask import current_app, request
 
 from app.common.auth import get_token_payload, AuthKey
+from app.common.datadog_signals import RateLimitExceeded, LogApiCallCount
 from config import Config
 
 '''
@@ -36,20 +37,20 @@ class RateLimiter(object):
         self.set_long_window_key()
 
     def set_limits(self):
-        auth_key = AuthKey()
+        self._auth_key = AuthKey()
         if self.auth_token_payload:
-            auth_key = AuthKey(app_name=self.auth_token_payload['app_name'],
-                               secret=self.auth_token_payload['secret'],
-                               )
-            auth_key.get_loaded_data()
-        self.short_window_rate = int(auth_key.short_window_rate)
-        self.long_window_rate = int(auth_key.long_window_rate)
+            self._auth_key = AuthKey(app_name=self.auth_token_payload['app_name'],
+                                     secret=self.auth_token_payload['secret'],
+                                     )
+            self._auth_key.get_loaded_data()
+        self.short_window_rate = int(self._auth_key.short_window_rate)
+        self.long_window_rate = int(self._auth_key.long_window_rate)
 
 
 
     def set_short_window_key(self):
         self.short_window_key =  '|'.join((self._RATE_LIMIT_NAMESPACE,
-                                           str(request.environ.get('REMOTE_ADDR')),
+                                           self._get_remote_addr(),
                                            self.unique_id,
                                            time.strftime("%H%M%S")[:-1],
                                            #r.environ.get('HTTP_USER_AGENT')
@@ -58,14 +59,14 @@ class RateLimiter(object):
 
     def set_long_window_key(self):
         self.long_window_key ='|'.join((self._RATE_LIMIT_NAMESPACE,
-                                        str(request.environ.get('REMOTE_ADDR')),
+                                        self._get_remote_addr(),
                                         self.unique_id,
                                         time.strftime("%d%H"),
                                         #r.environ.get('HTTP_USER_AGENT')
                                         ))
 
     def set_unique_requester_id(self):
-        self.unique_id = ''
+        self.unique_id = self._auth_key.id
 
     def get_auth_token_payload(self):
         self.auth_token_payload = get_token_payload()
@@ -74,7 +75,11 @@ class RateLimiter(object):
                 'secret' in request.form:
                 self.auth_token_payload = dict(app_name=request.form['app_name'],
                                                secret=request.form['secret'])
-
+    def _get_remote_addr(self):
+        remote_addr =  request.environ.get('REMOTE_ADDR')
+        if remote_addr is None:
+            remote_addr = '127.0.0.1'
+        return str(remote_addr)
 
 
 
@@ -103,12 +108,14 @@ def rate_limit(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         rate_limiter = RateLimiter()
+        LogApiCallCount(rate_limiter)
         current_values = increment_call_rate(rate_limiter=rate_limiter)
         if (current_values['short'] <= rate_limiter.short_window_rate and \
             current_values['long'] <= rate_limiter.long_window_rate) or \
                  current_app.config['DEBUG']:
             # current_app.logger.debug('Rate Limit PASSED')
             return func(*args, **kwargs)
-        current_app.logger.info('Rate Limit NOT PASSED')
+        current_app.logger.info('Rate Limit Exceeded')
+        RateLimitExceeded(rate_limiter)
         restful.abort(429)
     return wrapper
