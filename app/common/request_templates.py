@@ -139,6 +139,7 @@ class FilterTypes():
     DATATYPE = 'datatype'
     ASSOCIATION_SCORE_MIN = 'scorevalue_min'
     ASSOCIATION_SCORE_MAX = 'scorevalue_max'
+    SCORE_RANGE = 'scorevalue_range'
     PATHWAY = 'pathway'
     GO = 'go'
     UNIPROT_KW = 'uniprotkw'

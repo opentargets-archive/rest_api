@@ -515,6 +515,11 @@ class esQuery():
                                                                    BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 filter_data_conditions[FilterTypes.UNIPROT_KW] = uniprotkw_filter
+        if params.filters[FilterTypes.ASSOCIATION_SCORE_MAX] < 1 or \
+                params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] >0 :
+            score_filter = self._get_association_score_range_filter(params)
+            if score_filter:
+                filter_data_conditions[FilterTypes.SCORE_RANGE] = score_filter
         conditions = self._get_base_association_conditions(objects,
                                                            genes,
                                                            object_operator,
@@ -1698,6 +1703,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
         return digested
 
+    def _get_association_score_range_filter(self, params):
+        return {
+                        "range" : {
+                            params.association_score_method+".overall" : {
+                                "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
+                            }
+                        }
+                    }
+
+
+
+
 class SearchParams():
     _max_search_result_limit = 1000
     _default_return_size = 10
@@ -1740,9 +1758,9 @@ class SearchParams():
             self.datastructure = SourceDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.2)
+        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] is None:
-            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = 0.2
+            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = 0.
         self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
         if self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] is None:
             self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = 1
