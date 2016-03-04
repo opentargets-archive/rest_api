@@ -145,6 +145,7 @@ class AssociationTestCase(GenericTestCase):
                                             'size': '30',
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
@@ -161,6 +162,7 @@ class AssociationTestCase(GenericTestCase):
                                             'size': '30',
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
@@ -180,9 +182,8 @@ class AssociationTestCase(GenericTestCase):
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         full_json_response = json.loads(response.data.decode('utf-8'))
-
-
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
@@ -190,6 +191,7 @@ class AssociationTestCase(GenericTestCase):
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         filtered_json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
         response = self._make_request('/api/latest/public/association/filter',
@@ -211,6 +213,7 @@ class AssociationTestCase(GenericTestCase):
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         full_json_response = json.loads(response.data.decode('utf-8'))
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
@@ -222,6 +225,7 @@ class AssociationTestCase(GenericTestCase):
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         filtered_json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreater(filtered_json_response['total'],0)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])

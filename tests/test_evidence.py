@@ -14,12 +14,9 @@ class EvidenceTestCase(GenericTestCase):
 
     def testEvidenceByID(self):
         id = 'e1704ccbf8f2874000c5beb0ec84c2b8'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence', data={'id':id})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence',
+                                      data={'id':id},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertEqual(json_response['data'][0]['id'],id, 'evidence found')
@@ -27,12 +24,8 @@ class EvidenceTestCase(GenericTestCase):
 
 
     def testEvidenceFilterNone(self):
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -40,12 +33,9 @@ class EvidenceTestCase(GenericTestCase):
 
     def testEvidenceFilterTargetGet(self):
         target = 'ENSG00000157764'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter',data={'target':target})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'target':target},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -54,14 +44,10 @@ class EvidenceTestCase(GenericTestCase):
 
     def testEvidenceFilterTargetPost(self):
         target = 'ENSG00000157764'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.post('/api/latest/public/evidence/filter',
-                                       data=json.dumps({'target':[target]}),
-                                       content_type='application/json')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data=json.dumps({'target':[target]}),
+                                      content_type='application/json',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -70,14 +56,10 @@ class EvidenceTestCase(GenericTestCase):
 
     def testEvidenceFilterDiseaseGet(self):
         disease = 'EFO_0000311'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
-                                                                                  'direct':True,
-                                                                                  })
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -86,16 +68,12 @@ class EvidenceTestCase(GenericTestCase):
 
     def testEvidenceFilterDiseasePost(self):
         disease = 'EFO_0000311'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.post('/api/latest/public/evidence/filter',
-                                       data=json.dumps({'disease':[disease],
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data=json.dumps({'disease':[disease],
                                                         'direct':True,
                                                         }),
-                                       content_type='application/json')
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+                                      content_type='application/json',
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -107,17 +85,14 @@ class EvidenceTestCase(GenericTestCase):
     def testEvidenceFilterDirect(self):
         disease = 'EFO_0000311'
         'indirect call'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
-                                                                                  'direct':False,
-                                                                                  'fields':['disease.efo_info.path',
-                                                                                            'disease.id'
-                                                                                            ],
-                                                                                  'size':10})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':False,
+                                            'fields':['disease.efo_info.path',
+                                                    'disease.id'
+                                                    ],
+                                            'size':10},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -133,17 +108,14 @@ class EvidenceTestCase(GenericTestCase):
                 indirect_found = True
         self.assertTrue(indirect_found, 'indirect evidence found')
         'direct call'
-        status_code = 429
-        while status_code == 429:
-            response= self.client.open('/api/latest/public/evidence/filter',data={'disease':disease,
-                                                                                  'direct':True,
-                                                                                  'fields':['disease.efo_info.path',
-                                                                                            'disease.id'
-                                                                                            ],
-                                                                                  'size':100})
-            status_code = response.status_code
-            if status_code == 429:
-                time.sleep(10)
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'fields':['disease.efo_info.path',
+                                                    'disease.id'
+                                                    ],
+                                            'size':100},
+                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
@@ -151,6 +123,27 @@ class EvidenceTestCase(GenericTestCase):
             entry_disease_id = json_response['data'][i]['disease']['id']
             self.assertEqual(entry_disease_id, disease, 'evidence is direct')
 
+    def testEvidenceFilterScore(self):
+        disease = 'EFO_0000311'
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        full_json_response = json.loads(response.data.decode('utf-8'))
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'scorevalue_min': 0.2,
+                                            'scorevalue_max': 0.9,
+                                            'size':0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        filtered_json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreater(filtered_json_response['total'],0)
+        self.assertGreater(full_json_response['total'],filtered_json_response['total'])
 
 
 

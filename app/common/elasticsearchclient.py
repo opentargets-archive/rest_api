@@ -393,6 +393,11 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
+        if params.filters[FilterTypes.ASSOCIATION_SCORE_MAX] < 1 or \
+                params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] >0 :
+            score_filter = self._get_evidence_score_range_filter(params)
+            if score_filter:
+                conditions.append(score_filter)
         # if not conditions:
         #     return EmptyPaginatedResult([], params, )
         '''boolean query joining multiple conditions with an AND'''
@@ -408,7 +413,6 @@ class esQuery():
                             "must": conditions
                         }
                     }
-
                 }
             },
             'size': params.size,
@@ -1728,6 +1732,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                     }
                 }
 
+    def _get_evidence_score_range_filter(self, params):
+        return {
+                "range" : {
+                    'scores.association_score' : {
+                        "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                        "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
+                        }
+                    }
+                }
 
 
 
