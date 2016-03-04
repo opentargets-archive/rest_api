@@ -202,6 +202,7 @@ def create_app(config_name):
         resp.headers.add('X-RateLimit-Remaining-1h', rate_limiter.long_window_rate-current_values['long'])
         resp.headers.add('X-RateLimit-Reset-10s', round(ceil_dt_to_future_time(now, 10),2))
         resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
+        resp.headers.add('Access-Control-Allow-Origin', '*')
         return resp
 
 
