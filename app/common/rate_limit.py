@@ -1,7 +1,5 @@
 import time
 
-import datetime
-from flask.ext import restful
 from flask.ext.restful import abort, wraps
 from flask import current_app, request
 
@@ -117,5 +115,5 @@ def rate_limit(func):
             return func(*args, **kwargs)
         current_app.logger.info('Rate Limit Exceeded')
         RateLimitExceeded(rate_limiter)
-        restful.abort(429)
+        abort(429)
     return wrapper
