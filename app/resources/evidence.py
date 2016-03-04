@@ -112,6 +112,7 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
 
+
         args = parser.parse_args()
         targets = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
