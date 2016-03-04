@@ -183,7 +183,6 @@ def create_app(config_name):
       g.request_start = datetime.now()
     @app.after_request
     def after(resp):
-        current_values = increment_call_rate(0)
         rate_limiter = RateLimiter()
         now = datetime.now()
         took = (now - g.request_start).total_seconds()*1000
@@ -192,8 +191,9 @@ def create_app(config_name):
             resp.headers.add('X-Accel-Expires', cache_time)
         took = int(round(took))
         LogApiCallWeight(took)
-        if took < 10:
-            took = 10
+        # if took < RateLimiter.DEFAULT_CALL_WEIGHT:
+        #     took = RateLimiter.DEFAULT_CALL_WEIGHT
+        current_values = increment_call_rate(took,rate_limiter)
         now = datetime.now()
         resp.headers.add('X-API-Took', took)
         resp.headers.add('X-RateLimit-Limit-10s', rate_limiter.short_window_rate)

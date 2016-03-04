@@ -9,7 +9,7 @@ from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions, FilterTypes, \
-    AssociationSortOptions
+    AssociationSortOptions, EvidenceSortOptions
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.request_templates import FilterTypes
@@ -417,7 +417,7 @@ class esQuery():
             },
             'size': params.size,
             'from': params.start_from,
-            "sort": [{"scores.association_score": {"order": "desc"}}],
+            "sort": self._digest_evidence_sortbyfield_strings(params),
             '_source': source_filter,
         }
         res = self.handler.search(index=self._index_data,
@@ -460,7 +460,7 @@ class esQuery():
         if isinstance(associationid, str):
             associationid = [associationid]
 
-        params = params = SearchParams(**kwargs)
+        params = SearchParams(**kwargs)
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
@@ -1707,6 +1707,16 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
         return digested
 
+    def _digest_evidence_sortbyfield_strings(self, params):
+        digested=[]
+        for s in params.sortbyfield:
+            order = 'desc'
+            if s.startswith('~'):
+                order = 'asc'
+                s=s[1:]
+            digested.append({s : {"order": order}})
+        return digested
+
     def _get_association_score_range_filter(self, params):
         if len(params.scorevalue_types) ==1:
             return {
@@ -1768,6 +1778,7 @@ class SearchParams():
                     self.groupby.append(g)
 
         self.sort = kwargs.get('sort', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
+        self.sortbyfield = kwargs.get('sortbyfield', [EvidenceSortOptions.SCORE]) or [EvidenceSortOptions.SCORE]
         self.search = kwargs.get('search')
 
         self.gte = kwargs.get('gte')
