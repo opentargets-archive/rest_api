@@ -1,8 +1,9 @@
 import csv
 import os
+from datetime import datetime
 
 import datadog
-from flask import Flask, redirect, Blueprint, send_from_directory
+from flask import Flask, redirect, Blueprint, send_from_directory, g
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask_limiter import Limiter
@@ -11,8 +12,11 @@ from flask_limiter import Limiter
 from redislite import Redis
 
 from app.common.auth import AuthKey
+from app.common.datadog_signals import LogApiCallWeight
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
+from app.common.rate_limit import RateLimiter, ceil_dt_to_future_time
+from app.common.rate_limit import increment_call_rate
 from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 import logging
@@ -173,6 +177,32 @@ def create_app(config_name):
     @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
     def send_swagger_current_cersion():
         return serve_swagger()
+
+    @app.before_request
+    def before_request():
+      g.request_start = datetime.now()
+    @app.after_request
+    def after(resp):
+        current_values = increment_call_rate(0)
+        rate_limiter = RateLimiter()
+        now = datetime.now()
+        took = (now - g.request_start).total_seconds()*1000
+        if took > 500:
+            cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
+            resp.headers.add('X-Accel-Expires', cache_time)
+        took = int(round(took))
+        LogApiCallWeight(took)
+        if took < 10:
+            took = 10
+        now = datetime.now()
+        resp.headers.add('X-API-Took', took)
+        resp.headers.add('X-RateLimit-Limit-10s', rate_limiter.short_window_rate)
+        resp.headers.add('X-RateLimit-Limit-1h', rate_limiter.long_window_rate)
+        resp.headers.add('X-RateLimit-Remaining-10s', rate_limiter.short_window_rate-current_values['short'])
+        resp.headers.add('X-RateLimit-Remaining-1h', rate_limiter.long_window_rate-current_values['long'])
+        resp.headers.add('X-RateLimit-Reset-10s', round(ceil_dt_to_future_time(now, 10),2))
+        resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
+        return resp
 
 
     return app
