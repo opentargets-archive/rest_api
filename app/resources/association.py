@@ -55,6 +55,7 @@ class FilterBy(restful.Resource):
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
+        parser.add_argument('scorevalue_types', type=str, required=False, action='append', help="score types to apply min and max score filter")
         parser.add_argument('datasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
         parser.add_argument('datatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('pathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")

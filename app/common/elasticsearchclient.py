@@ -1704,14 +1704,31 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         return digested
 
     def _get_association_score_range_filter(self, params):
-        return {
+        if len(params.scorevalue_types) ==1:
+            return {
                         "range" : {
-                            params.association_score_method+".overall" : {
+                            params.association_score_method+"."+params.scorevalue_types[0] : {
                                 "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
                                 "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
                             }
                         }
                     }
+        else:
+            return {
+                    "bool": {
+                        'must': [{
+                                "range" : {
+                                    params.association_score_method+"."+st : {
+                                        "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
+                                        "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
+                                    }
+                                }
+                              }
+                              for st in params.scorevalue_types]
+                    }
+                }
+
+
 
 
 
@@ -1764,6 +1781,7 @@ class SearchParams():
         self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
         if self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] is None:
             self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = 1
+        self.scorevalue_types = kwargs.get('scorevalue_types', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
         self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)

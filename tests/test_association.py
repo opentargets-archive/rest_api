@@ -202,6 +202,30 @@ class AssociationTestCase(GenericTestCase):
         filtered_json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
 
+    def testAssociationFilterscore_value(self):
+
+        disease = 'EFO_0000270'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        full_json_response = json.loads(response.data.decode('utf-8'))
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'scorevalue_min': 0.2,
+                                            'scorevalue_types': ['datasources.gwas_catalog',
+                                                                 'overall',
+                                                                 'datatypes.literature'],
+                                            'size': 0,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        filtered_json_response = json.loads(response.data.decode('utf-8'),)
+        self.assertGreater(filtered_json_response['total'],0)
+        self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+
 
 
 

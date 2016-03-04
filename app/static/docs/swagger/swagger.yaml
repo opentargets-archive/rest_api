@@ -158,6 +158,11 @@ paths:
           required: false
           type: number
           format: float
+        - name: scorevalue_types
+          in: query
+          description: score types to apply the scorevalue min and max filters. defaults to `overall`
+          required: false
+          type: string
         - name: size
           in: query
           description: maximum amount of results to return. Defaults to 10, max is 1000

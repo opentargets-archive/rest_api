@@ -32,8 +32,8 @@ class GenericTestCase(unittest.TestCase):
         self.host = 'http://'+self.app_context.url_adapter.get_host('')
         self.token = None
         self.update_token()
-        log = logging.getLogger('dd.datadogpy')
-        log.setLevel(logging.DEBUG)
+        # log = logging.getLogger('dd.datadogpy')
+        # log.setLevel(logging.DEBUG)
 
 
 
