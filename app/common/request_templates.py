@@ -149,3 +149,5 @@ class FilterTypes():
 class AssociationSortOptions:
     OVERALL = 'overall'
 
+class EvidenceSortOptions:
+    SCORE = 'scores.association_score'

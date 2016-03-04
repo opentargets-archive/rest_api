@@ -131,6 +131,7 @@ class EvidenceTestCase(GenericTestCase):
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
         full_json_response = json.loads(response.data.decode('utf-8'))
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data={'disease':disease,
@@ -144,6 +145,29 @@ class EvidenceTestCase(GenericTestCase):
         filtered_json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreater(filtered_json_response['total'],0)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+
+    def testEvidenceFilterSortByField(self):
+        disease = 'EFO_0000311'
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'size': 1,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        default_json_response = json.loads(response.data.decode('utf-8'))
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'disease':disease,
+                                            'direct':True,
+                                            'sortbyfield': 'target.id',
+                                            'size':1,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        reordered_json_response = json.loads(response.data.decode('utf-8'))
+        self.assertEqual(default_json_response['total'],reordered_json_response['total'])
+        self.assertNotEqual(default_json_response['data'][0]['id'],
+                            reordered_json_response['data'][0]['id'])
 
 
 

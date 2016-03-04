@@ -158,6 +158,13 @@ paths:
           required: false
           type: number
           format: float
+        - name: sortbyfield
+          in: query
+          description: |
+            Sort by the given field. Defaults to 'scores.association_score' and descending order. use '~' prefix to do ascending
+            order eg. '~scores.association_score'. Supports multiple entries.
+          required: false
+          type: string
         - name: size
           in: query
           description: maximum amount of results to return. Defaults to 10, max is 1000
