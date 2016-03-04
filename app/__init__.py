@@ -93,7 +93,7 @@ def create_app(config_name):
                                            allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])
     api_version = app.config['API_VERSION']
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
-    cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
+    # cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
 
     ''' define cache'''
     # cache = Cache(config={'CACHE_TYPE': 'simple'})
@@ -203,6 +203,7 @@ def create_app(config_name):
         resp.headers.add('X-RateLimit-Reset-10s', round(ceil_dt_to_future_time(now, 10),2))
         resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
         resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
         return resp
 
 
