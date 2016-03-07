@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import pickle
 from collections import defaultdict
 from copy import copy
 
@@ -5,6 +8,9 @@ import logging
 import numpy as np
 import json
 
+import time
+
+import ujson
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
@@ -50,6 +56,43 @@ class ESResultStatus(object):
         self.status = ['ok']
 
 
+class InternalCache(object):
+
+    NAMESPACE = 'CTTV_REST_API_CACHE'
+    def __init__(self, r_server,
+                 app_version = '',
+                 default_ttl = 60):
+        self.r_server  = r_server
+        self.app_version = app_version
+        self.default_ttl = default_ttl
+
+    def get(self, key):
+        value = self.r_server.get(self._get_namespaced_key(key))
+        if value:
+            return self._decode(value)
+
+    def set(self, key, value, ttl = None):
+        k = self._get_namespaced_key(key)
+        v = self._encode(value)
+        return self.r_server.setex(self._get_namespaced_key(key),
+                                   self._encode(value),
+                                   ttl or self.default_ttl)
+
+    def _get_namespaced_key(self, key):
+        #try cityhash for better performance (fast and non cryptographic hash library) from cityhash import CityHash64
+        # hashed_key = hashlib.md5(key).digest().encode('base64')[:8]
+        hashed_key = hashlib.md5(key).hexdigest()
+        return ':'.join([self.NAMESPACE, self.app_version, hashed_key])
+
+    def _encode(self, obj):
+        # return base64.encodestring(pickle.dumps(obj, pickle.HIGHEST_PROTOCOL))
+        return ujson.dumps(obj)
+
+    def _decode(self, obj):
+        # return pickle.loads(base64.decodestring(obj))
+        return ujson.loads(obj)
+
+
 class esQuery():
     def __init__(self,
                  handler,
@@ -71,6 +114,7 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
+                 cache = None,
                  log_level=logging.DEBUG):
         '''
 
@@ -105,6 +149,7 @@ class esQuery():
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
+        self.cache = cache
 
         if log_level == logging.DEBUG:
             formatter = jsonlogger.JsonFormatter()
@@ -269,7 +314,7 @@ class esQuery():
             aggs = self._get_gene_info_agg()
 
         if gene_ids:
-            res = self.handler.search(index=self._index_genename,
+            res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
                                       body={"query": {
                                           "filtered": {
@@ -298,7 +343,7 @@ class esQuery():
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
         if efo_codes:
-            res = self.handler.search(index=self._index_efo,
+            res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
                                       body={'filter': {
                                           "ids": {
@@ -323,7 +368,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
-        res = self.handler.search(index=self._index_data,
+        res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body={"filter": {
                                             "ids": {"values": evidenceid},
@@ -337,7 +382,7 @@ class esQuery():
                                 data = [hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
-        res = self.handler.search(index=self._index_eco,
+        res = self._cached_search(index=self._index_eco,
                                   doc_type=self._docname_eco,
                                   body={'filter': {
                                       "ids": {
@@ -420,7 +465,7 @@ class esQuery():
             "sort": self._digest_evidence_sortbyfield_strings(params),
             '_source': source_filter,
         }
-        res = self.handler.search(index=self._index_data,
+        res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=query_body,
                                   timeout="10m",
@@ -464,7 +509,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
-        res = self.handler.search(index=self._index_association,
+        res = self._cached_search(index=self._index_association,
                                   body={"filter": {
                                             "ids": {"values": associationid},
                                             },
@@ -576,7 +621,7 @@ class esQuery():
                 }
             }
 
-        ass_data = self.handler.search(index=self._index_association,
+        ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
                                        timeout="20m",
                                        request_timeout=60 * 20,
@@ -608,7 +653,7 @@ class esQuery():
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
                 therapeutic_areas, genes, object_operator, gene_operator, is_direct=False)
-            ta_data = self.handler.search(index=self._index_association,
+            ta_data = self._cached_search(index=self._index_association,
                                           body=extended_query_body,
                                           timeout="20m",
                                           request_timeout=60 * 20,
@@ -1089,7 +1134,7 @@ class esQuery():
             if params.fields:
                 source_filter["include"] = params.fields
 
-            res = self.handler.search(index=self._index_expression,
+            res = self._cached_search(index=self._index_expression,
                                       body={
                                           'filter': {
                                               "ids": {
@@ -1107,7 +1152,7 @@ class esQuery():
 
     def _get_efo_with_data(self, conditions):
         efo_with_data = []
-        res = self.handler.search(index=self._index_data,
+        res = self._cached_search(index=self._index_data,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -1166,7 +1211,7 @@ class esQuery():
 
     def _get_genes_for_pathway_code(self, pathway_codes):
         data = []
-        res = self.handler.search(index=self._index_genename,
+        res = self._cached_search(index=self._index_genename,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -1239,7 +1284,7 @@ class esQuery():
     def _get_labels_for_reactome_ids(self, reactome_ids):
         labels = defaultdict(str)
         if reactome_ids:
-            res = self.handler.search(index=self._index_reactome,
+            res = self._cached_search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
                                           "filtered": {
@@ -1543,7 +1588,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _get_genes_for_uniprot_kw(self, kw):
         data = []
-        res = self.handler.search(index=self._index_genename,
+        res = self._cached_search(index=self._index_genename,
                                   body={
                                       "query": {
                                           "filtered": {
@@ -1593,7 +1638,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         return doc_types
 
     def _free_text_query(self, searchphrase, doc_types, params):
-        return self.handler.search(index=self._index_search,
+        return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
                                    body={'query': self._get_free_text_query(searchphrase),
                                          'size': params.size,
@@ -1615,7 +1660,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
     def get_stats(self):
 
         stats = DataStats()
-        stats.add_evidencestring(self.handler.search(index=self._index_data,
+        stats.add_evidencestring(self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body= {"query": {"match_all":{}},
                                          "aggs" : {
@@ -1640,7 +1685,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                       )
                                  )
 
-        stats.add_associations(self.handler.search(index=self._index_association,
+        stats.add_associations(self._cached_search(index=self._index_association,
                                   # doc_type=self._docname_data,
                                   body= {"query": {"match_all":{}},
                                          "aggs" : {
@@ -1666,7 +1711,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                self.datatypes
                                  )
 
-        target_count =self.handler.search(index=self._index_search,
+        target_count =self._cached_search(index=self._index_search,
                                   doc_type=self._docname_search+'-target',
                                   body= {"query": {
                                            "range" : {
@@ -1680,7 +1725,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                     })
         stats.add_key_value('targets', target_count['hits']['total'])
 
-        disease_count =self.handler.search(index=self._index_search,
+        disease_count =self._cached_search(index=self._index_search,
                                   doc_type=self._docname_search+'-disease',
                                   body= {"query": {
                                            "range" : {
@@ -1752,8 +1797,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                     }
                 }
 
-
-
+    def _cached_search(self, *args, **kwargs):
+        key = str(args)+str(kwargs)
+        res = self.cache.get(key)
+        if res is None:
+            start_time = time.time()
+            res = self.handler.search(*args,**kwargs)
+            took = int(round(time.time() - start_time))
+            self.cache.set(key, res, took*60)
+        return res
 
 
 class SearchParams():
