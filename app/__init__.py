@@ -21,7 +21,7 @@ from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 import logging
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery
+from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 
@@ -37,6 +37,7 @@ def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
+    api_version = app.config['API_VERSION']
 
 
     log_level = logging.INFO
@@ -60,6 +61,12 @@ def create_app(config_name):
                         # sniffer_timeout=60
                        timeout=60*20,
                         )
+    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
+    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
+    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)# user info
+
+    icache = InternalCache(app.extensions['redis-service'],
+                           str(api_version))
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),
@@ -80,18 +87,16 @@ def create_app(config_name):
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         log_level=log_level,
-
+                                        cache = icache
                                         )
 
-    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0)
-    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1)
-    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)
+
 
 
     app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],
                                            allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
                                            allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])
-    api_version = app.config['API_VERSION']
+
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     # cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
 
@@ -180,7 +185,7 @@ def create_app(config_name):
 
     @app.before_request
     def before_request():
-      g.request_start = datetime.now()
+        g.request_start = datetime.now()
     @app.after_request
     def after(resp):
         rate_limiter = RateLimiter()
