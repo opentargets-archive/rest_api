@@ -9,10 +9,11 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
 
     'custom errors for flask-restful'
-    errors = {'SignatureExpired': {
-        'message': "Authentication expired.",
-        'status': 419},
-    }
+    # errors = {'SignatureExpired': {
+    #     'message': "Authentication expired.",
+    #     'status': 419},
+    # }
+    errors ={}
     api = Api(app,
               errors=errors)
 

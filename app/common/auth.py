@@ -12,6 +12,7 @@ import json
 
 from app.common.datadog_signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid, \
     LogApiTokenServed
+from app.common.exceptions import TokenExpired
 from config import Config
 __author__ = 'andreap'
 
@@ -119,7 +120,9 @@ class TokenAuthentication():
                 return json.loads(cipher.decrypt(se.payload))
             else:
                 LogApiTokenExpired()
-                raise SignatureExpired(se)
+                # raise SignatureExpired(se)
+                raise TokenExpired()
+                # abort(419, message = 'Authentication expired.')
         except BadSignature, e:
             current_app.logger.error('bad signature in token')
             encoded_payload = e.payload
