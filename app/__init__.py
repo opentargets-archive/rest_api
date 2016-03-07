@@ -209,6 +209,7 @@ def create_app(config_name):
         resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
+        resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
         return resp
 
 
