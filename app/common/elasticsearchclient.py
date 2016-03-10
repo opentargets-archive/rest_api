@@ -1146,9 +1146,8 @@ class esQuery():
 
                                       }
                                       )
-            if res['hits']['total']:
-                data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
-                return SimpleResult(res, params, data)
+            data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+            return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
         efo_with_data = []
