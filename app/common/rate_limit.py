@@ -109,10 +109,11 @@ def rate_limit(func):
         LogApiCallCount(rate_limiter)
         current_values = increment_call_rate(rate_limiter=rate_limiter)
         if (current_values['short'] <= rate_limiter.short_window_rate and \
-            current_values['long'] <= rate_limiter.long_window_rate) or \
-                 current_app.config['DEBUG']:
-            # current_app.logger.debug('Rate Limit PASSED')
+            current_values['long'] <= rate_limiter.long_window_rate):
             return func(*args, **kwargs)
+        # elif current_app.config['DEBUG']:
+        #     current_app.logger.debug('Rate Limit Exceeded, skipped in debug mode')
+        #     return func(*args, **kwargs)
         current_app.logger.info('Rate Limit Exceeded')
         RateLimitExceeded(rate_limiter)
         abort(429)
