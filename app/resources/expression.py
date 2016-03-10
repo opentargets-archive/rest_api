@@ -32,7 +32,7 @@ class Expression(restful.Resource):
         args = parser.parse_args()
         genes = args.pop('gene',[]) or []
         if not (genes ):
-            abort(404, message='Please provide at least one gene')
+            abort(400, message='Please provide at least one gene')
         expression_data = self.get_expression(genes,params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
@@ -56,7 +56,7 @@ class Expression(restful.Resource):
         genes = fix_empty_strings(args.pop('gene',[]) or [])
 
         if not genes:
-            abort(404, message='Please provide at least one gene')
+            abort(400, message='Please provide at least one gene')
         expression_data = self.get_expression(genes,params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
@@ -67,7 +67,7 @@ class Expression(restful.Resource):
         es = current_app.extensions['esquery']
         res = es.get_expression(genes = genes,
                                         **params)
-        if not res:
-            abort(404, message='Cannot find tissue expression data for  %s'%', '.join(genes))
+        # if not res:
+        #     abort(404, message='Cannot find tissue expression data for  %s'%', '.join(genes))
         return CTTVResponse.OK(res)
 
