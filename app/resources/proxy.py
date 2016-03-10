@@ -22,7 +22,7 @@ class ProxyEnsembl(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)
 
 
     # @is_authenticated
@@ -51,7 +51,7 @@ class ProxyGXA(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)
 
 class ProxyPDB(restful.Resource):
 
@@ -66,7 +66,7 @@ class ProxyPDB(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)
 
 class ProxyEPMC(restful.Resource):
 
@@ -81,7 +81,7 @@ class ProxyEPMC(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)
 
 
 class ProxyGeneric(restful.Resource):
@@ -97,7 +97,7 @@ class ProxyGeneric(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)
 
 
     # @is_authenticated
@@ -110,4 +110,4 @@ class ProxyGeneric(restful.Resource):
         if res:
             return res
         else:
-            abort(404, message="cannot proxy to: %s "%url)
+            abort(400, message="cannot proxy to: %s "%url)

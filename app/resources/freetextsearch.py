@@ -37,7 +37,7 @@ class FreeTextSearch(restful.Resource, Paginable):
             return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
         else:
-            abort(404, message = "Query is too short")
+            abort(400, message = "Query is too short")
 
 
 
@@ -65,7 +65,7 @@ class QuickSearch(restful.Resource):
             took = time.time() - start_time
             return CTTVResponse.OK(res, took=took)
         else:
-            abort(404, message = "Query is too short")
+            abort(400, message = "Query is too short")
 
 
 
@@ -88,5 +88,5 @@ class AutoComplete(restful.Resource):
             res = current_app.extensions['esquery'].autocomplete(searchphrase, size = size,**kwargs)
             return CTTVResponse.OK(res)
         else:
-            abort(404, message = "Query is too short")
+            abort(400, message = "Query is too short")
 

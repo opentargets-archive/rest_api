@@ -23,8 +23,6 @@ class Stats(restful.Resource):
         start_time = time.time()
         es = current_app.extensions['esquery']
         res = es.get_stats()
-        if res:
-            return CTTVResponse.OK(res,
-                                   took=time.time() - start_time)
-        else:
-            abort(404, message="Cannot get statistics")
+        return CTTVResponse.OK(res,
+                               took=time.time() - start_time)
+

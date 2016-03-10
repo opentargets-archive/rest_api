@@ -62,8 +62,6 @@ class Evidence(restful.Resource):
         es = current_app.extensions['esquery']
 
         res = es.get_evidences_by_id(evidenceids)
-        if not res:
-            abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
@@ -78,8 +76,6 @@ class Evidence(restful.Resource):
         es = current_app.extensions['esquery']
 
         res = es.get_evidences_by_id(evidenceids)
-        if not res:
-            abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
@@ -183,18 +179,16 @@ class FilterBy(restful.Resource, Paginable):
 
         es = current_app.extensions['esquery']
 
-        try:
-            res = es.get_evidence(targets= targets,
-                                  diseases= diseases,
-                                  evidence_types = evidence_types,
-                                  datasources = datasources,
-                                  datatypes = datatype,
-                                  # gene_operator = gene_operator,
-                                   # object_operator = object_operator,
-                                   # evidence_type_operator = evidence_type_operator,
-                                   **params)
-        except AttributeError,e:
-            abort(404, message=e.message)
+        res = es.get_evidence(targets= targets,
+                              diseases= diseases,
+                              evidence_types = evidence_types,
+                              datasources = datasources,
+                              datatypes = datatype,
+                              # gene_operator = gene_operator,
+                               # object_operator = object_operator,
+                               # evidence_type_operator = evidence_type_operator,
+                               **params)
+
 
         return res
 
