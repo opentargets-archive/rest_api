@@ -69,5 +69,5 @@ class Expression(restful.Resource):
                                         **params)
         # if not res:
         #     abort(404, message='Cannot find tissue expression data for  %s'%', '.join(genes))
-        return CTTVResponse.OK(res)
+        return res
 
