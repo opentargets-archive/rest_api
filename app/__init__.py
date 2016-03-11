@@ -2,7 +2,6 @@ import csv
 import os
 from datetime import datetime
 
-import datadog
 from flask import Flask, redirect, Blueprint, send_from_directory, g
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
@@ -128,10 +127,17 @@ def create_app(config_name):
 
     '''setup datadog logging'''
     if  Config.datadog_options:
+        import datadog
         datadog.initialize(**Config.datadog_options)
-        stats = datadog.ThreadStats()
-        stats.start(flush_interval=5, roll_up_interval=5)
+        if app.config['DEBUG']:
+            stats = datadog.ThreadStats()#namespace='api')
+            stats.start(flush_interval=30, roll_up_interval=30)
+            log = logging.getLogger('dd.datadogpy')
+            log.setLevel(logging.DEBUG)
+        else:
+            stats = datadog.dogstatsd.base.DogStatsd('dd-agent')
         app.extensions['datadog'] = stats
+
     else:
          app.extensions['datadog'] = None
 

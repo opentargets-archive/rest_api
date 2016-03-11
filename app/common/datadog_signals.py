@@ -27,7 +27,7 @@ class RateLimitExceeded(BaseDatadogSignal):
                              text=text,
                              tags=tags,
                              alert_type='error')
-            self.stats.increment(metric_name='api.auth.rate.limit.exceeded',
+            self.stats.increment('api.auth.rate.limit.exceeded',
                             tags=tags,)
 
 
@@ -39,7 +39,7 @@ class LogApiCallWeight(BaseDatadogSignal):
         if self.stats:
             tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
 
-            self.stats.increment(metric_name='api.call.weight',
+            self.stats.increment('api.call.weight',
                             value=value,
                             tags=tags,)
 
@@ -53,7 +53,7 @@ class LogApiCallCount(BaseDatadogSignal):
                     'method:'+request.environ['REQUEST_METHOD'],
                     'endpoint:'+request.url_rule.rule.split('<')[0].split(request.blueprint)[1]]
 
-            self.stats.increment(metric_name='api.call.count',
+            self.stats.increment('api.call.count',
                             tags=tags,)
 
 
@@ -64,7 +64,7 @@ class LogApiTokenServed(BaseDatadogSignal):
         if self.stats:
             tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
 
-            self.stats.increment(metric_name='api.auth.token.served',
+            self.stats.increment('api.auth.token.served',
                             tags=tags,)
 
 class LogApiTokenExpired(BaseDatadogSignal):
@@ -73,7 +73,7 @@ class LogApiTokenExpired(BaseDatadogSignal):
         if self.stats:
             tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
 
-            self.stats.increment(metric_name='api.auth.token.expired',
+            self.stats.increment('api.auth.token.expired',
                             tags=tags,)
 
 class LogApiTokenInvalid(BaseDatadogSignal):
@@ -92,7 +92,7 @@ class LogApiTokenInvalid(BaseDatadogSignal):
                              text=text,
                              tags=tags,
                              alert_type='error')
-            self.stats.increment(metric_name='api.auth.token.invalid',
+            self.stats.increment('api.auth.token.invalid',
                             tags=tags,)
 
 class LogApiTokenInvalidDomain(BaseDatadogSignal):
@@ -110,5 +110,5 @@ class LogApiTokenInvalidDomain(BaseDatadogSignal):
                              text=text,
                              tags=tags,
                              alert_type='error')
-            self.stats.increment(metric_name='api.auth.token.invalid.domain',
+            self.stats.increment('api.auth.token.invalid.domain',
                             tags=tags,)
