@@ -132,8 +132,6 @@ def create_app(config_name):
         stats = datadog.ThreadStats()
         stats.start(flush_interval=5, roll_up_interval=5)
         app.extensions['datadog'] = stats
-        log = logging.getLogger('dd.datadogpy')
-        log.setLevel(logging.DEBUG)
     else:
          app.extensions['datadog'] = None
 
