@@ -1,15 +1,12 @@
 import csv
 import os
 from datetime import datetime
-
 from flask import Flask, redirect, Blueprint, send_from_directory, g
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask_limiter import Limiter
-
 # from flask.ext.login import LoginManager
 from redislite import Redis
-
 from app.common.auth import AuthKey
 from app.common.datadog_signals import LogApiCallWeight
 from app.common.datatypes import DataTypes
@@ -31,6 +28,7 @@ from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 
 
 __author__ = 'andreap'
+
 
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')

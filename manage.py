@@ -1,8 +1,17 @@
-__author__ = 'andreap'
-
-
 #!/usr/bin/env python
 import os
+
+import sys
+import werkzeug
+from gevent.wsgi import WSGIServer
+from gevent import monkey
+from werkzeug.debug import DebuggedApplication
+from werkzeug.serving import run_with_reloader
+
+monkey.patch_all()
+
+__author__ = 'andreap'
+
 COV = None
 if os.environ.get('FLASK_COVERAGE'):
     import coverage
@@ -62,6 +71,29 @@ def profile(length=25, profile_dir=None):
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[length],
                                       profile_dir=profile_dir)
     app.run(ssl_context=('data/cert/server.crt', 'data/cert/server.crt'))
+
+@manager.command
+def runserver(host="127.0.0.1", port=8000):
+    """Run a gevent-based WSGI server."""
+    port = int(port)
+
+    wrapped_app = app
+    if app.config.get("DEBUG", True):
+        wrapped_app = DebuggedApplication(app)
+
+    server = WSGIServer(listener=(host, port), application=wrapped_app,)
+
+    def serve():
+        print(" * Running on http://%s:%d/" % (host, port))
+        server.serve_forever()
+
+    if app.debug:
+        # the watchdog reloader (with watchdog==0.8.3) appears to hang on
+        # Windows 8.1, so we're using stat instead
+        run_with_reloader(
+            serve, reloader_type="stat" if sys.platform == "win32" else "auto")
+    else:
+        serve()
 
 #
 # @manager.command
