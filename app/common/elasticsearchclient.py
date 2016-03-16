@@ -364,7 +364,7 @@ class esQuery():
         if isinstance(evidenceid, str):
             evidenceid = [evidenceid]
 
-        params = params = SearchParams(**kwargs)
+        params = SearchParams(**kwargs)
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
@@ -376,10 +376,9 @@ class esQuery():
                                         "size" : len(evidenceid),
                                         }
                                   )
-        if res['hits']['total']:
-            return SimpleResult(res,
-                                params,
-                                data = [hit['_source'] for hit in res['hits']['hits']])
+        return SimpleResult(res,
+                            params,
+                            data = [hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
