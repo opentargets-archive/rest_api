@@ -49,5 +49,10 @@ RUN cd /var/www &&  \
 #declare app port
 EXPOSE 80 8008
 
+#define entrypoint
+COPY docker-conf/docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
 #run supervisor to run uwsgi to run the flask app
 CMD ["supervisord"]
