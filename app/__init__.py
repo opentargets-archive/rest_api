@@ -1,7 +1,7 @@
 import csv
 import os
 from datetime import datetime
-from flask import Flask, redirect, Blueprint, send_from_directory, g
+from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
 from flask.ext.cors import CORS
 from flask_limiter import Limiter
@@ -28,6 +28,10 @@ from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 
 
 __author__ = 'andreap'
+
+
+def do_not_cache(request):
+    return '/request_token?' in str(request)
 
 
 def create_app(config_name):
@@ -213,8 +217,10 @@ def create_app(config_name):
         resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
-        # resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
-        resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*180/1000, took*600/1000))
+        if do_not_cache(request):# do not cache in the browser
+            resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
+        else:
+            resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*180/1000, took*600/1000))
         return resp
 
 
