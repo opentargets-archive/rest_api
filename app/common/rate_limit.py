@@ -116,5 +116,5 @@ def rate_limit(func):
         #     return func(*args, **kwargs)
         current_app.logger.info('Rate Limit Exceeded')
         RateLimitExceeded(rate_limiter)
-        abort(429)
+        abort(429, description = 'Too many requests. Please look at the "X-Usage-Limit-Wait" header for the time to wait for an other call')
     return wrapper

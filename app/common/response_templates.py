@@ -113,7 +113,7 @@ class Association(object):
         self.data['id'] = self.hit['id']
 
         self.data['is_direct'] = self.hit['is_direct']
-        self._is_direct = self.hit['is_direct']
+        self.is_direct = self.hit['is_direct']
 
         evidence_count = self.hit['evidence_count']
         self.data['evidence_count'] = evidence_count['total']

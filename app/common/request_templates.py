@@ -143,6 +143,10 @@ class FilterTypes():
     PATHWAY = 'pathway'
     GO = 'go'
     UNIPROT_KW = 'uniprotkw'
+    TARGET='target'
+    DISEASE='disease'
+    ECO='eco'
+    IS_DIRECT='is_direct'
 
 
 
