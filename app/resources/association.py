@@ -70,20 +70,7 @@ class FilterBy(restful.Resource):
 
 
         args = parser.parse_args()
-        # filters = args.pop('filter',[]) or []
-        # if filters:
-        #     filters = get_ordered_filter_list(filters)
-        # else:
-        #     filters = get_ordered_filter_list(request.query_string)
-        # if filters:
-        #     args['filter']=filters
-        targets = args.pop('target',[]) or []
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = args.pop('disease',[]) or []
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
-
-
-        data = self.get_association(targets, diseases, params=args)
+        data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
@@ -107,10 +94,6 @@ class FilterBy(restful.Resource):
 
         start_time = time.time()
         args = request.get_json()
-        targets = fix_empty_strings(args.pop('target',[]) or [])
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = fix_empty_strings(args.pop('disease',[]) or [])
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
         for k,v in args.items():
             if isinstance(v, list):
                 if len(v)>0:
@@ -122,26 +105,16 @@ class FilterBy(restful.Resource):
                         del args[k]
 
 
-        data = self.get_association(targets, diseases,params=args)
+        data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
 
-    def get_association(self,
-                     genes,
-                     objects,
-                     gene_operator='OR',
-                     object_operator='OR',
-                     params ={}):
+    def get_association(self,params):
 
         es = current_app.extensions['esquery']
         try:
-            res = es.get_associations(genes = genes,
-                                     objects = objects,
-                                     # gene_operator = gene_operator,
-                                     # object_operator = object_operator,
-                                     # evidence_type_operator = evidence_type_operator,
-                                     **params)
+            res = es.get_associations(**params)
         except AttributeError,e:
             abort(404, message=e.message)
 
