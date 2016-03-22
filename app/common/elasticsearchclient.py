@@ -554,6 +554,7 @@ class esQuery():
             "query": {
                 "filtered": {
                     "query": query_body,
+                    "filter": {"bool":{"must":[]}},
                 }
             },
 
@@ -605,7 +606,7 @@ class esQuery():
             extended_query_body = ass_query_body
             extended_query_body['aggs'] = {}
             extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
-                therapeutic_areas, params.target, is_direct=False)
+                therapeutic_areas, params.target, BooleanFilterOperator.OR, BooleanFilterOperator.OR, is_direct=False)
             ta_data = self._cached_search(index=self._index_association,
                                           body=extended_query_body,
                                           timeout="20m",
