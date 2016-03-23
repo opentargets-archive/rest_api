@@ -53,6 +53,7 @@ class FilterBy(restful.Resource):
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
+        parser.add_argument('therapeutic_area', type=str, action='append', required=False, help="efo code of the therapeutic area")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('scorevalue_types', type=str, required=False, action='append', help="score types to apply min and max score filter")

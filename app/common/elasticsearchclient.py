@@ -440,8 +440,8 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
-        if params.filters[FilterTypes.ASSOCIATION_SCORE_MAX] < 1 or \
-                params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] >0 :
+        if params.filters[FilterTypes.SCORE_RANGE][1] < 1 or \
+                params.filters[FilterTypes.SCORE_RANGE][0] >0 :
             score_filter = self._get_evidence_score_range_filter(params)
             if score_filter:
                 conditions.append(score_filter)
@@ -931,7 +931,8 @@ class esQuery():
         for facet_type in FilterTypes.__dict__.values():
             if facet_type in facets:
                 facets[facet_type] = facets[facet_type]['data']
-        facets = self._process_facets(facets)
+        if facets:
+            facets = self._process_facets(facets)
         return dict(data=scores,
                     facets=facets)
 
@@ -1162,7 +1163,10 @@ class esQuery():
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
-        therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in self.get_efo_info_from_code(therapeutic_areas)])
+        efo_data = self.get_efo_info_from_code(therapeutic_areas)
+        therapeutic_area_labels = {}
+        if efo_data:
+            therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])
 
         '''alter data'''
         for facet in facets:
@@ -1188,7 +1192,6 @@ class esQuery():
                                         new_sub_buckets.append(sub_bucket)
                                 bucket['datasource']['buckets'] = new_sub_buckets
                     elif facet == FilterTypes.THERAPEUTIC_AREA:
-                        bucket['key'] = bucket['key'].upper()
                         bucket['label'] = therapeutic_area_labels[bucket['key']] or bucket['key']
 
         return facets
