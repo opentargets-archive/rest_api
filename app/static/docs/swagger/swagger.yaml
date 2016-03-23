@@ -239,6 +239,11 @@ paths:
           description: a EFO code listed as disease.id
           required: false
           type: string
+        - name: therapeutic_area
+          in: query
+          description: a EFO code of a therapeutic area
+          required: false
+          type: string
         - name: datasource
           in: query
           description: datasource to consider

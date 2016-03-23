@@ -1627,6 +1627,7 @@ class SearchParams():
         self.filters = dict()
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
+        self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
         score_range = [0.,1]
         score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not  None:
@@ -1869,6 +1870,48 @@ class AggregationUnitDisease(AggregationUnit):
                 },
             }
         }
+
+class AggregationUnitTherapeuticArea(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_therapeutic_area_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_disease_facet_aggregation(filters)
+
+    def _get_disease_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.THERAPEUTIC_AREA, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field" : "disease.efo_info.therapeutic_area.codes",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_complex_therapeutic_area_filter(self, filter):
+        return {"terms": {"disease.efo_info.therapeutic_area.codes": filter}}
+
 
 class AggregationUnitIsDirect(AggregationUnit):
 
@@ -2128,7 +2171,7 @@ class AggregationBuilder(object):
         FilterTypes.PATHWAY : AggregationUnitPathway,
         FilterTypes.UNIPROT_KW : AggregationUnitUniprotKW,
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
-
+        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
