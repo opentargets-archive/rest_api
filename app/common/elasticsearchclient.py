@@ -1157,9 +1157,12 @@ class esQuery():
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     reactome_ids.append(sub_bucket['key'])
+                    elif facet == FilterTypes.THERAPEUTIC_AREA:
+                        therapeutic_areas.append(bucket['key'].upper())
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
+        therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in self.get_efo_info_from_code(therapeutic_areas)])
 
         '''alter data'''
         for facet in facets:
@@ -1167,14 +1170,14 @@ class esQuery():
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
                     if facet == FilterTypes.PATHWAY:  # reactome data
-                        bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key']
+                        bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key'].upper()
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()] or sub_bucket[
                                         'key']
-                    elif facet == 'datatype':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
+                    elif facet == FilterTypes.DATATYPE:  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
                         if 'datasource' in bucket:
                             if 'buckets' in bucket['datasource']:
@@ -1184,6 +1187,9 @@ class esQuery():
                                     if sub_bucket['key'] in self.datatypes.get_datasources(dt):
                                         new_sub_buckets.append(sub_bucket)
                                 bucket['datasource']['buckets'] = new_sub_buckets
+                    elif facet == FilterTypes.THERAPEUTIC_AREA:
+                        bucket['key'] = bucket['key'].upper()
+                        bucket['label'] = therapeutic_area_labels[bucket['key']] or bucket['key']
 
         return facets
 
