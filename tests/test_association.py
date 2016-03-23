@@ -68,6 +68,16 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['target']['id'], target)
 
+    def testAssociationFilterTargetFacet(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target, 'facets':True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertEqual(json_response['data'][0]['target']['id'], target)
+        self.assertIsNotNone(json_response['facets'])
+
     def testAssociationFilterDiseaseGet(self):
         disease = 'EFO_0000311'
         response = self._make_request('/api/latest/public/association/filter',

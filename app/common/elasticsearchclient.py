@@ -1174,7 +1174,7 @@ class esQuery():
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
                     if facet == FilterTypes.PATHWAY:  # reactome data
-                        bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key'].upper()
+                        bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key']
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
@@ -1192,7 +1192,13 @@ class esQuery():
                                         new_sub_buckets.append(sub_bucket)
                                 bucket['datasource']['buckets'] = new_sub_buckets
                     elif facet == FilterTypes.THERAPEUTIC_AREA:
-                        bucket['label'] = therapeutic_area_labels[bucket['key']] or bucket['key']
+                        try:
+                            bucket['label'] = therapeutic_area_labels[bucket['key'].upper()]
+                        except KeyError:
+                            try:
+                                bucket['label'] = therapeutic_area_labels[bucket['key']]
+                            except KeyError:
+                                bucket['label'] = bucket['key']
 
         return facets
 
