@@ -1143,6 +1143,7 @@ class esQuery():
     def _process_facets(self, facets):
 
         reactome_ids = []
+        therapeutic_areas = []
 
         '''get data'''
         for facet in facets:
@@ -1173,7 +1174,7 @@ class esQuery():
                                 for sub_bucket in sub_facet_buckets:
                                     sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()] or sub_bucket[
                                         'key']
-                    elif facet == 'datatypes':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
+                    elif facet == 'datatype':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
                         if 'datasource' in bucket:
                             if 'buckets' in bucket['datasource']:
@@ -1667,6 +1668,7 @@ class SearchParams():
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
 
+
 class AssociationTreeNode(object):
     ROOT = 'cttv_disease'
 
@@ -2129,10 +2131,10 @@ class AggregationUnitDatasource(AggregationUnit):
         if self.filter is not None:
             requested_datasources = []
             for d in self.filter:
-                if d in self.handler.datasources:
-                    requested_datasources.append(d)
-                elif d in self.handler.datatypes:
+                if d in self.handler.datatypes.datatypes:
                     requested_datasources.extend(self.handler.datatypes.get_datasources(d))
+                else:
+                    requested_datasources.append(d)
             requested_datasources = list(set(requested_datasources))
             self.query_filter = self._get_complex_datasource_filter(requested_datasources,
                                                                     BooleanFilterOperator.OR)
