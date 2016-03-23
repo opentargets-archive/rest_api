@@ -2164,7 +2164,7 @@ class AggregationBuilder(object):
 
     _UNIT_MAP={
         FilterTypes.DATASOURCE : AggregationUnitDatasource,
-        # FilterTypes.ECO : AggregationUnitECO,#TODO: enable the eco filter
+        # FilterTypes.ECO : AggregationUnitECO,
         FilterTypes.DISEASE : AggregationUnitDisease,
         FilterTypes.TARGET : AggregationUnitTarget,
         FilterTypes.IS_DIRECT : AggregationUnitIsDirect,

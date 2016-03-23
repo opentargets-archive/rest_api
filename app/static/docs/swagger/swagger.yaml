@@ -124,11 +124,6 @@ paths:
           description: a uniprot keyword (meaning all the targets linked to that kw)
           required: false
           type: string
-        - name: eco
-          in: query
-          description: a ECO identifier listed in the evidence
-          required: false
-          type: string
         - name: datastructure
           in: query
           description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
@@ -262,11 +257,6 @@ paths:
         - name: uniprotkw
           in: query
           description: a uniprot keyword (meaning all the targets linked to that kw)
-          required: false
-          type: string
-        - name: eco
-          in: query
-          description: a ECO identifier listed in the evidence
           required: false
           type: string
         - name: datastructure
