@@ -1175,14 +1175,14 @@ class esQuery():
                                         'key']
                     elif facet == 'datatypes':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
-                        if 'datasources' in bucket:
-                            if 'buckets' in bucket['datasources']:
+                        if 'datasource' in bucket:
+                            if 'buckets' in bucket['datasource']:
                                 new_sub_buckets = []
-                                sub_facet_buckets = bucket['datasources']['buckets']
+                                sub_facet_buckets = bucket['datasource']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     if sub_bucket['key'] in self.datatypes.get_datasources(dt):
                                         new_sub_buckets.append(sub_bucket)
-                                bucket['datasources']['buckets'] = new_sub_buckets
+                                bucket['datasource']['buckets'] = new_sub_buckets
 
         return facets
 
@@ -1587,7 +1587,9 @@ class SearchParams():
 
 
         self.sortmethod = None
-        self.size = kwargs.get('size', self._default_return_size) or self._default_return_size
+        self.size = kwargs.get('size', self._default_return_size)
+        if self.size is None:
+            self.size =  self._default_return_size
         if (self.size > self._max_search_result_limit):
             raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
 
@@ -1649,7 +1651,7 @@ class SearchParams():
             datasource_filter.extend(dt_params)
         if datasource_filter == []:
             datasource_filter = None
-        self.filters[FilterTypes.DATASOURCE] = datasource_filter
+        self.filters[FilterTypes.DATATYPE] = datasource_filter
 
         #required for evidence query. TODO: harmonise it with the filters in association endpoint
         self.pathway = kwargs.get('pathway', []) or []
@@ -2135,6 +2137,57 @@ class AggregationUnitDatasource(AggregationUnit):
             self.query_filter = self._get_complex_datasource_filter(requested_datasources,
                                                                     BooleanFilterOperator.OR)
 
+    def build_agg(self, filters):
+        self.agg = self.get_datatype_facet_aggregation(filters)
+
+    def get_datatype_facet_aggregation(self, filters):
+
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.datatype",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "datasource": {
+                            "terms": {
+                                "field": "private.facets.datasource",
+                            },
+                            "aggs": {
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+
+                    }
+                }
+            }
+        }
+
     def _get_complex_datasource_filter(self, datasources, bol):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
@@ -2160,7 +2213,7 @@ class AggregationBuilder(object):
     '''
 
     _UNIT_MAP={
-        FilterTypes.DATASOURCE : AggregationUnitDatasource,
+        FilterTypes.DATATYPE : AggregationUnitDatasource,
         # FilterTypes.ECO : AggregationUnitECO,
         FilterTypes.DISEASE : AggregationUnitDisease,
         FilterTypes.TARGET : AggregationUnitTarget,
