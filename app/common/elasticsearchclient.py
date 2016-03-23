@@ -896,7 +896,7 @@ class esQuery():
 
         aggs = {}
         if params.facets:
-            aggs = dict(pathway_type=self._get_pathway_facet_aggregation(filters),
+            aggs = dict(pathway=self._get_pathway_facet_aggregation(filters),
                         uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
                         datatypes=self._get_datatype_facet_aggregation(filters),
                         # go=self._get_go_facet_aggregation(filters),
@@ -928,12 +928,9 @@ class esQuery():
                                                  scores,
                                                  facets):
 
-        if 'datatypes' in facets:
-            facets['datatypes'] = facets['datatypes']['data']
-        if 'pathway_type' in facets:
-            facets['pathway_type'] = facets['pathway_type']['data']
-        if 'uniprot_keywords' in facets:
-            facets['uniprot_keywords'] = facets['uniprot_keywords']['data']
+        for facet_type in FilterTypes.__dict__.values():
+            if facet_type in facets:
+                facets[facet_type] = facets[facet_type]['data']
         facets = self._process_facets(facets)
         return dict(data=scores,
                     facets=facets)
@@ -1091,7 +1088,7 @@ class esQuery():
     def _get_gene_info_agg(self, filters={}):
 
         return {
-            "pathway_type": {
+            "pathway": {
                 "filter": {
                     "bool": {
                         "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
@@ -1152,7 +1149,7 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet == 'pathway_type':
+                    if facet == FilterTypes.PATHWAY:
                         reactome_ids.append(bucket['key'])
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
@@ -1168,7 +1165,7 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet == 'pathway_type':  # reactome data
+                    if facet == FilterTypes.PATHWAY:  # reactome data
                         bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key']
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
@@ -1664,7 +1661,7 @@ class SearchParams():
         self.disease = kwargs.get('disease', []) or []
         self.eco = kwargs.get('eco', []) or []
 
-        self.facets = kwargs.get('facets', True)
+        self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
 
