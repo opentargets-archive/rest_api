@@ -134,12 +134,6 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: direct
-          in: query
-          description: return only evidence directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
-          required: false
-          type: boolean
-          default: false
         - name: scorevalue_min
           in: query
           description: filter by minimum score value. default is 0, but using 0.2 is a good tradeoff to filter lower quality data points
@@ -274,13 +268,6 @@ paths:
           description: Type of output structure to return. Can be 'flat', or 'tree'.
           required: false
           type: string
-        - name: direct
-          in: query
-          description: |
-            return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
-          required: false
-          type: boolean
-          default: false
         - name: facets
           in: query
           description: returns facets
