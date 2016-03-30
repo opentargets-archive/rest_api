@@ -112,9 +112,6 @@ class AssociationTestCase(GenericTestCase):
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
                                               'direct':False,
-                                              'fields':['is_direct',
-                                                        'disease.id'
-                                                        ],
                                               'size':1000},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -131,9 +128,6 @@ class AssociationTestCase(GenericTestCase):
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
                                               'direct':True,
-                                              'fields':['is_direct',
-                                                        'disease.id'
-                                                        ],
                                               'size':1000},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)

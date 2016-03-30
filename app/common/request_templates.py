@@ -146,7 +146,7 @@ class FilterTypes():
     TARGET='target'
     DISEASE='disease'
     ECO='eco'
-    IS_DIRECT='is_direct'
+    IS_DIRECT='direct'
     THERAPEUTIC_AREA='therapeutic_area'
 
 

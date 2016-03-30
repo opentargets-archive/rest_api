@@ -82,46 +82,46 @@ class EvidenceTestCase(GenericTestCase):
 
 
 
-    def testEvidenceFilterDirect(self):
-        disease = 'EFO_0000311'
-        'indirect call'
-        response = self._make_request('/api/latest/public/evidence/filter',
-                                      data={'disease':disease,
-                                            'direct':False,
-                                            'fields':['disease.efo_info.path',
-                                                    'disease.id'
-                                                    ],
-                                            'size':10},
-                                      token=self._AUTO_GET_TOKEN)
-        self.assertTrue(response.status_code == 200)
-        json_response = json.loads(response.data.decode('utf-8'))
-        self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
-        indirect_found = False
-        for i in range(len(json_response['data'])):
-            entry_disease_id = json_response['data'][i]['disease']['id']
-            paths = json_response['data'][i]['disease']['efo_info']['path']
-            all_codes = []
-            for p in paths:
-                all_codes.extend(p)
-            if entry_disease_id != disease:
-                self.assertIn(disease, all_codes,'disease in path')
-                indirect_found = True
-        self.assertTrue(indirect_found, 'indirect evidence found')
-        'direct call'
-        response = self._make_request('/api/latest/public/evidence/filter',
-                                      data={'disease':disease,
-                                            'direct':True,
-                                            'fields':['disease.efo_info.path',
-                                                    'disease.id'
-                                                    ],
-                                            'size':100},
-                                      token=self._AUTO_GET_TOKEN)
-        self.assertTrue(response.status_code == 200)
-        json_response = json.loads(response.data.decode('utf-8'))
-        self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
-        for i in range(len(json_response['data'])):
-            entry_disease_id = json_response['data'][i]['disease']['id']
-            self.assertEqual(entry_disease_id, disease, 'evidence is direct')
+    # def testEvidenceFilterDirect(self):
+    #     disease = 'EFO_0000311'
+    #     'indirect call'
+    #     response = self._make_request('/api/latest/public/evidence/filter',
+    #                                   data={'disease':disease,
+    #                                         'direct':False,
+    #                                         'fields':['disease.efo_info.path',
+    #                                                 'disease.id'
+    #                                                 ],
+    #                                         'size':10},
+    #                                   token=self._AUTO_GET_TOKEN)
+    #     self.assertTrue(response.status_code == 200)
+    #     json_response = json.loads(response.data.decode('utf-8'))
+    #     self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
+    #     indirect_found = False
+    #     for i in range(len(json_response['data'])):
+    #         entry_disease_id = json_response['data'][i]['disease']['id']
+    #         paths = json_response['data'][i]['disease']['efo_info']['path']
+    #         all_codes = []
+    #         for p in paths:
+    #             all_codes.extend(p)
+    #         if entry_disease_id != disease:
+    #             self.assertIn(disease, all_codes,'disease in path')
+    #             indirect_found = True
+    #     self.assertTrue(indirect_found, 'indirect evidence found')
+    #     'direct call'
+    #     response = self._make_request('/api/latest/public/evidence/filter',
+    #                                   data={'disease':disease,
+    #                                         'direct':True,
+    #                                         'fields':['disease.efo_info.path',
+    #                                                 'disease.id'
+    #                                                 ],
+    #                                         'size':100},
+    #                                   token=self._AUTO_GET_TOKEN)
+    #     self.assertTrue(response.status_code == 200)
+    #     json_response = json.loads(response.data.decode('utf-8'))
+    #     self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
+    #     for i in range(len(json_response['data'])):
+    #         entry_disease_id = json_response['data'][i]['disease']['id']
+    #         self.assertEqual(entry_disease_id, disease, 'evidence is direct')
 
     def testEvidenceFilterScore(self):
         disease = 'EFO_0000311'
