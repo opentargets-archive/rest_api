@@ -64,7 +64,12 @@ class EvidenceTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
-        self.assertEqual(json_response['data'][0]['disease']['id'], disease)
+        efo_code_found = False
+        for path in json_response['data'][0]['disease']['efo_info']['path']:
+            if disease in path:
+                efo_code_found = True
+                break
+        self.assertTrue(efo_code_found)
 
     def testEvidenceFilterDiseasePost(self):
         disease = 'EFO_0000311'
@@ -78,9 +83,12 @@ class EvidenceTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(len(json_response['data']),1, 'evidence retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
-        self.assertEqual(json_response['data'][0]['disease']['id'], disease)
-
-
+        efo_code_found = False
+        for path in json_response['data'][0]['disease']['efo_info']['path']:
+            if disease in path:
+                efo_code_found = True
+                break
+        self.assertTrue(efo_code_found)
 
     # def testEvidenceFilterDirect(self):
     #     disease = 'EFO_0000311'
