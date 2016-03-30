@@ -591,8 +591,12 @@ class esQuery():
                         for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
         scores = [a.data for a in associations]
-        therapeutic_areas = list(set([i[1] for s in scores for i in s['disease']['path']]))
-        efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
+        therapeutic_areas = set()
+        for s in scores:
+            for ta_code in s['disease']['therapeutic_area']['codes']:
+                therapeutic_areas.add(s['target']['id']+'-'+ta_code)
+        therapeutic_areas = list(therapeutic_areas)
+        # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
 
@@ -603,17 +607,13 @@ class esQuery():
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
         if params.is_direct and params.target:
-            extended_query_body = ass_query_body
-            extended_query_body['aggs'] = {}
-            extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
-                therapeutic_areas, params.target, BooleanFilterOperator.OR, BooleanFilterOperator.OR, is_direct=False)
             ta_data = self._cached_search(index=self._index_association,
-                                          body=extended_query_body,
-                                          timeout="20m",
-                                          request_timeout=60 * 20,
-                                          # routing=use gene here
-                                          query_cache=True,
-                                          )
+                                          body={"filter": {
+                                                    "ids": {"values": therapeutic_areas},
+                                                },
+                                                "size": 1000,
+                                                }
+                                            )
             ta_associations = (Association(h['_source'], params.association_score_method, self.datatypes)
                                for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
             ta_scores = [a.data for a in ta_associations]
