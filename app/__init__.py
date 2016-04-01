@@ -3,9 +3,6 @@ import os
 from datetime import datetime
 from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
-from flask.ext.cors import CORS
-from flask_limiter import Limiter
-# from flask.ext.login import LoginManager
 from redislite import Redis
 from app.common.auth import AuthKey
 from app.common.datadog_signals import LogApiCallWeight
@@ -20,7 +17,9 @@ from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
-
+# from flask.ext.cors import CORS
+# from flask_limiter import Limiter
+# from flask.ext.login import LoginManager
 # login_manager = LoginManager()
 # login_manager.session_protection = 'strong'
 # login_manager.login_view = 'auth.login'
@@ -128,16 +127,21 @@ def create_app(config_name):
 
 
     '''setup datadog logging'''
-    if  Config.datadog_options:
+    if  Config.DATADOG_OPTIONS:
         import datadog
-        datadog.initialize(**Config.datadog_options)
-        if app.config['DEBUG']:
+        datadog.initialize(**Config.DATADOG_OPTIONS)
+        stats = None
+        if app.config['DEBUG'] or app.config['TESTING']:
             stats = datadog.ThreadStats()#namespace='api')
             stats.start(flush_interval=30, roll_up_interval=30)
             log = logging.getLogger('dd.datadogpy')
             log.setLevel(logging.DEBUG)
+            app.logger.info("using internal datadog agent in debug mode")
         else:
-            stats = datadog.dogstatsd.base.DogStatsd('dd-agent')
+            datadog_agent_host = app.config['DATADOG_AGENT_HOST']
+            if datadog_agent_host is not None:
+                stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
+                app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
         app.extensions['datadog'] = stats
 
     else:
