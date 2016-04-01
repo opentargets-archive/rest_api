@@ -593,7 +593,7 @@ class esQuery():
         scores = [a.data for a in associations]
         therapeutic_areas = set()
         for s in scores:
-            for ta_code in s['disease']['therapeutic_area']['codes']:
+            for ta_code in s['disease']['efo_info']['therapeutic_area']['codes']:
                 therapeutic_areas.add(s['target']['id']+'-'+ta_code)
         therapeutic_areas = list(therapeutic_areas)
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
