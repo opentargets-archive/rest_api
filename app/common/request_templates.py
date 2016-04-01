@@ -122,11 +122,6 @@ class SourceDataStructureOptions():
         else:
             return OutputDataStructure.source
 
-
-class OutputStructureOptions():
-    TREE = 'tree'
-    FLAT = 'flat'
-
 def json_type(data):
     try:
         return json.loads(data)

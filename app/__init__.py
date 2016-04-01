@@ -60,7 +60,7 @@ def create_app(config_name):
                         # # and also every 60 seconds
                         # sniffer_timeout=60
                        timeout=60*20,
-                       maxsize=500,
+                       maxsize=100,
                         )
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
@@ -132,13 +132,15 @@ def create_app(config_name):
         import datadog
         datadog.initialize(**Config.DATADOG_OPTIONS)
         stats = None
-        if app.config['DEBUG'] or app.config['TESTING']:
+        if app.config['TESTING']:
+            pass
+        elif app.config['DEBUG']:
             stats = datadog.ThreadStats()#namespace='api')
             stats.start(flush_interval=30, roll_up_interval=30)
             log = logging.getLogger('dd.datadogpy')
             log.setLevel(logging.DEBUG)
             app.logger.info("using internal datadog agent in debug mode")
-        else:
+        elif app.config['DATADOG_AGENT_HOST']:
             datadog_agent_host = app.config['DATADOG_AGENT_HOST']
             if datadog_agent_host is not None:
                 stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
