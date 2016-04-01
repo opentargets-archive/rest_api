@@ -60,6 +60,7 @@ def create_app(config_name):
                         # # and also every 60 seconds
                         # sniffer_timeout=60
                        timeout=60*20,
+                       maxsize=100,
                         )
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
