@@ -17,7 +17,7 @@ import sys
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions, FilterTypes, \
+from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
     AssociationSortOptions, EvidenceSortOptions
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
@@ -601,7 +601,6 @@ class esQuery():
             aggregation_results = ass_data['aggregations']
 
         '''build data structure to return'''
-        # if params.datastructure == OutputStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
         # "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
@@ -618,7 +617,6 @@ class esQuery():
                                for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
             ta_scores = [a.data for a in ta_associations]
             # ta_scores.extend(scores)
-            # data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
 
 
             return PaginatedResult(ass_data,
@@ -936,54 +934,6 @@ class esQuery():
         return dict(data=scores,
                     facets=facets)
 
-    def _return_association_tree_data_structures(self,
-                                                 scores,
-                                                 flat_scores,
-                                                 efo_with_data=[],
-                                                 ):
-
-        def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
-            data = dict([(i["disease"]['id'], i) for i in data])
-            expanded_relations = []
-            for code, paths in efo_parents.items():
-                if code in data:
-                    for path in paths:
-                        expanded_relations.append([code, path])
-
-            efo_tree_relations = sorted(expanded_relations, key=lambda items: len(items[1]))
-            root = AssociationTreeNode()
-            if not efo_with_data:
-                extended_efo_with_data = [code for code, parents in efo_tree_relations]
-            else:
-                extended_efo_with_data = copy(efo_with_data)
-                for code, parents in efo_tree_relations:
-                    if len(parents) > 1:
-                        ta_code = parents[1]
-                        if ta_code not in extended_efo_with_data:
-                            extended_efo_with_data.append(ta_code)
-
-            for code, parents in efo_tree_relations:
-                if code in extended_efo_with_data:
-                    if not parents:
-                        root.add_child(AssociationTreeNode(code, **data[code]))
-                    else:
-                        node = root.get_node_at_path(parents)
-                        node.add_child(AssociationTreeNode(code, **data[code]))
-
-            return root.to_dict_tree_with_children_as_array()
-
-        facets = {}
-        if scores:
-
-            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["disease"]['id'] for i in scores])
-            # scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
-            tree_data = transform_data_to_tree(scores, efo_parents, efo_tas, efo_with_data) or flat_scores['data']
-            facets = flat_scores['facets']
-        else:
-            tree_data = scores
-
-        return dict(data=tree_data,
-                    facets=facets)
 
     def _get_efo_data_for_associations(self, efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
@@ -1631,8 +1581,6 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
-        self.outputstructure =  kwargs.get('outputstructure',
-                                        OutputStructureOptions.FLAT) or OutputStructureOptions.FLAT
 
         self.fields = kwargs.get('fields')
 
@@ -1682,99 +1630,6 @@ class SearchParams():
         self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
-
-
-class AssociationTreeNode(object):
-    ROOT = 'cttv_disease'
-
-    def __init__(self, name=None, **kwargs):
-        self.name = name or self.ROOT
-        self.children = {}
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-    def _is_root(self):
-        return self.name == self.ROOT
-
-    def add_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            if child._is_root():
-                raise AttributeError("child cannot be root ")
-            if child == self:
-                raise AttributeError(" cannot add a node to itself as a child")
-            if not self.has_child(child):
-                self.children[child.name] = child
-        else:
-            raise AttributeError("child needs to be an AssociationTreeNode ")
-
-    def del_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            if child._is_root():
-                raise AttributeError("child cannot be root ")
-            if child == self:
-                raise AttributeError(" cannot add a node to itself as a child")
-            if self.has_child(child):
-                del self.children[child.name]
-        else:
-            raise AttributeError("child needs to be an AssociationTreeNode ")
-
-    def get_child(self, child_name):
-        return self.children[child_name]
-
-    def has_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            return child.name in self.children
-        return child in self.children
-
-    def get_children(self):
-        return self.children.values()
-
-    def get_node_at_path(self, path):
-        node = self
-        for p in path:
-            if node.has_child(p):
-                node = node.get_child(p)
-                continue
-        # if node._is_root():
-        #     print 'got root for path: ', path, node.children_as_array()
-        return node
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.name
-
-    def __unicode__(self):
-        return unicode(self.name)
-
-    def children_as_array(self):
-        return self.children.values()
-
-    def single_node_to_dict(self):
-        out = self.__dict__
-        if self.children:
-            out['children'] = self.children_as_array()
-        else:
-            del out['children']
-        return out
-
-    def recursive_node_to_dict(self, node):
-        if isinstance(node, AssociationTreeNode):
-            out = node.single_node_to_dict()
-            if 'children' in out:
-                for i, child in enumerate(out['children']):
-                    if isinstance(child, AssociationTreeNode):
-                        child = child.recursive_node_to_dict(child)
-                    out['children'][i] = child
-            return out
-
-    def to_dict_tree_with_children_as_array(self):
-        out = self.recursive_node_to_dict(self)
-        return out
 
 class AggregationUnit(object):
     '''
