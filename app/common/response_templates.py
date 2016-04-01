@@ -98,39 +98,46 @@ class Association(object):
         self.parse_hit()
 
     def parse_hit(self):
-        self.data['target'] = {}
-        self.data['target']['id'] = self.hit['target']['id']
-        self.data['target']['name'] = self.hit['target']['gene_info']['name']
-        self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
+        self.data = self.hit
+        # self.data['target'] = {}
+        # self.data['target']['id'] = self.hit['target']['id']
+        # self.data['target']['name'] = self.hit['target']['gene_info']['name']
+        # self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
+        #
+        # self.data['disease'] = {}
+        # self.data['disease']['id'] = self.hit['disease']['id']
+        # self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
+        # # self.data['label'] = self.hit['disease']['efo_info']['label']
+        # self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+        # self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
+        #
+        # self.data['id'] = self.hit['id']
+        #
+        # self.data['is_direct'] = self.hit['is_direct']
+        # self.is_direct = self.hit['is_direct']
+        #
+        # evidence_count = self.hit['evidence_count']
+        # self.data['evidence_count'] = evidence_count['total']
+        self.data['association_score'] = self.hit[self._scoring_method]
+        self.data['association_score']['overall'] = self._cap_score(self.data['association_score']['overall'])
+        for dt in self.data['association_score']['datatypes']:
+            self.data['association_score']['datatypes'][dt] = self._cap_score(self.data['association_score']['datatypes'][dt])
+        for ds in self.data['association_score']['datasources']:
+            self.data['association_score']['datasources'][ds] = self._cap_score(
+                self.data['association_score']['datasources'][ds])
 
-        self.data['disease'] = {}
-        self.data['disease']['id'] = self.hit['disease']['id']
-        self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
-        # self.data['label'] = self.hit['disease']['efo_info']['label']
-        self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
-        self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
-
-        self.data['id'] = self.hit['id']
-
-        self.data['is_direct'] = self.hit['is_direct']
-        self.is_direct = self.hit['is_direct']
-
-        evidence_count = self.hit['evidence_count']
-        self.data['evidence_count'] = evidence_count['total']
-        score = self.hit[self._scoring_method]
-        self.data['association_score'] = self._cap_score(score['overall'])
-        self.data['datatypes']=[]
-        for dt in score['datatypes']:
-            datasources = []
-            for ds in self._datatypes.get_datasources(dt):
-                datasources.append(dict(datasource = ds,
-                                        association_score = self._cap_score(score['datasources'][ds]),
-                                        evidence_count = evidence_count['datasource'][ds],))
-
-            self.data['datatypes'].append(dict(datatype = dt,
-                                               association_score = self._cap_score(score['datatypes'][dt]),
-                                               evidence_count = evidence_count['datatype'][dt],
-                                               datasources =datasources))
+    # self.data['datatypes']=[]
+        # for dt in score['datatypes']:
+        #     datasources = []
+        #     for ds in self._datatypes.get_datasources(dt):
+        #         datasources.append(dict(datasource = ds,
+        #                                 association_score = self._cap_score(score['datasources'][ds]),
+        #                                 evidence_count = evidence_count['datasource'][ds],))
+        #
+        #     self.data['datatypes'].append(dict(datatype = dt,
+        #                                        association_score = self._cap_score(score['datatypes'][dt]),
+        #                                        evidence_count = evidence_count['datatype'][dt],
+        #                                        datasources =datasources))
 
     def _cap_score(self, score):
         if self.cap_scores:
