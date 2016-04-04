@@ -1549,17 +1549,20 @@ class SearchParams():
 
     def __init__(self, **kwargs):
 
-
-
-
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
         if self.size is None:
-            self.size =  self._default_return_size
+            self.size = self._default_return_size
         if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
+            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or 0
+        self._max_score = 1e6
+        self.cap_scores = kwargs.get('cap_scores', True)
+        if self.cap_scores is None:
+            self.cap_scores = True
+        if self.cap_scores:
+            self._max_score = 1e6
 
         self.groupby = []
         groupby = kwargs.get('groupby')
@@ -1581,7 +1584,6 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
-
         self.fields = kwargs.get('fields')
 
         if self.fields:
@@ -1591,11 +1593,13 @@ class SearchParams():
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
-        score_range = [0.,1]
-        score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
-        if score_min is not  None:
+        score_range = [0., self._max_score]
+        score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
+        if score_min is not None:
             score_range[0] = score_min
-        score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
+        score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
+        if score_max == 1:  # temporary fix until max score cap can be done in elasticsearch
+            score_max = self._max_score
         if score_max is not None:
             score_range[1] = score_max
         self.filters[FilterTypes.SCORE_RANGE] = score_range
