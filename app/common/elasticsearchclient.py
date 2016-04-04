@@ -587,7 +587,10 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-        associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+        associations = (Association(h['_source'],
+                                    params.association_score_method,
+                                    self.datatypes,
+                                    cap_scores=params.cap_scores)
                         for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
         scores = [a.data for a in associations]
@@ -613,7 +616,11 @@ class esQuery():
                                                 "size": 1000,
                                                 }
                                             )
-            ta_associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+            ta_associations = (Association(h['_source'],
+                                           params.association_score_method,
+                                           self.datatypes,
+                                           cap_scores=params.cap_scores
+                                           )
                                for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
             ta_scores = [a.data for a in ta_associations]
             # ta_scores.extend(scores)
@@ -1524,7 +1531,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _cached_search(self, *args, **kwargs):
         key = str(args)+str(kwargs)
-        res = self.cache.get(key)
+        res = None# self.cache.get(key)
         if res is None:
             start_time = time.time()
             res = self.handler.search(*args,**kwargs)
@@ -1541,6 +1548,42 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             else:
                 filtered_params.append(p)
         return filtered_params
+
+    def _get_complex_uniprot_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of uniprot kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            genes = self.handler.get_genes_for_uniprot_kw(kw)
+            if genes:
+                return self.handler.get_complex_target_filter(genes, bol)
+        return dict()
+
+
+    def _get_complex_pathway_filter(self, pathway_codes):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param pathway_codes: list of pathway_codes strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if pathway_codes:
+            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
+            # if genes:
+            #     return self._get_complex_gene_filter(genes, bol)
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
+                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
+            }
+            }
+
+        return dict()
+
 
 class SearchParams():
     _max_search_result_limit = 1000
@@ -1560,6 +1603,12 @@ class SearchParams():
             raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or 0
+        self._max_score = 1e6
+        self.cap_scores = kwargs.get('cap_scores', True)
+        if self.cap_scores is None:
+            self.cap_scores = True
+        if self.cap_scores:
+            self._max_score = 1e6
 
         self.groupby = []
         groupby = kwargs.get('groupby')
@@ -1591,11 +1640,11 @@ class SearchParams():
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
-        score_range = [0.,1]
+        score_range = [0.,self._max_score]
         score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not  None:
             score_range[0] = score_min
-        score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
+        score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
         if score_max is not None:
             score_range[1] = score_max
         self.filters[FilterTypes.SCORE_RANGE] = score_range
@@ -1827,6 +1876,8 @@ class AggregationUnitIsDirect(AggregationUnit):
         return {
             "term": {"is_direct": is_direct}
         }
+
+
 
 class AggregationUnitPathway(AggregationUnit):
 
