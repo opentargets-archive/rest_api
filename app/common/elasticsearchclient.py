@@ -1645,6 +1645,8 @@ class SearchParams():
         if score_min is not  None:
             score_range[0] = score_min
         score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
+        if score_max == 1:#temporary fix until max score cap can be done in elasticsearch
+            score_max = self._max_score
         if score_max is not None:
             score_range[1] = score_max
         self.filters[FilterTypes.SCORE_RANGE] = score_range
