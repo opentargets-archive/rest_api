@@ -119,6 +119,7 @@ class Association(object):
         # evidence_count = self.hit['evidence_count']
         # self.data['evidence_count'] = evidence_count['total']
         self.data['association_score'] = self.hit[self._scoring_method]
+        del self.data[self._scoring_method]
         self.data['association_score']['overall'] = self._cap_score(self.data['association_score']['overall'])
         for dt in self.data['association_score']['datatypes']:
             self.data['association_score']['datatypes'][dt] = self._cap_score(self.data['association_score']['datatypes'][dt])
