@@ -242,11 +242,17 @@ paths:
         - public
       description: |
         After integrating all evidence connecting a target to a specific disease, we
-        compute an association score by mean of an harmonic sum. The *association score* provides
+        compute an association score by mean of an harmonic sum. This *association score* provides
         an indication of how strong the evidence behind each connection is and can be
         used to rank genes in order of likelihood as drug targets.
         The association id is constructed by using the ensembl id of the gene and the
         EFO id for the disease (eg. ENSG00000073756-EFO_0003767)
+      parameters:
+        - name: id
+          in: query
+          description: not sure it is - TODO check the parameter list in the flask definition
+          required: true
+          type: string
       responses:
         200:
           description: Successful response
