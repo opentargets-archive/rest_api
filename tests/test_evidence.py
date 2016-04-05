@@ -159,15 +159,20 @@ class EvidenceTestCase(GenericTestCase):
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data={'disease':disease,
                                             'direct':True,
-                                            'size': 1,
+                                            'size': 10,
                                             },
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         default_json_response = json.loads(response.data.decode('utf-8'))
+        sorted_scores = [d['scores']['association_score'] for d in default_json_response['data']]
+        for i in range(len(sorted_scores) - 1):
+            self.assertLessEqual(sorted_scores[i + 1],
+                                    sorted_scores[i],
+                                    )
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data={'disease':disease,
                                             'direct':True,
-                                            'sortbyfield': 'target.id',
+                                            'sort': 'target.id',
                                             'size':1,
                                             },
                                       token=self._AUTO_GET_TOKEN)
