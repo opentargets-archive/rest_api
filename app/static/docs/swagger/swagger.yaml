@@ -246,7 +246,9 @@ paths:
         an indication of how strong the evidence behind each connection is and can be
         used to rank genes in order of likelihood as drug targets.
         The association id is constructed by using the ensembl id of the gene and the
-        EFO id for the disease (eg. ENSG00000073756-EFO_0003767)
+        EFO id for the disease (eg. ENSG00000073756-EFO_0003767).
+        The method returns an association object, which contain data and summary
+        on each evidence type included in the calculation of the score, as well as the score itself.
       parameters:
         - name: id
           in: query
@@ -261,7 +263,9 @@ paths:
       tags:
         - public
       description: |
-        Gets `association` objects by applying a range of filters
+        More complex queries for associations scores and objects can be done using
+        this filter method, which allows to sort in different order, restrict to a specific class
+        of diseases or targets, as well as filtering results by score and associated pathways.
       parameters:
         - name: target
           in: query
@@ -290,7 +294,7 @@ paths:
           type: string
         - name: pathway
           in: query
-          description: a pathway identifier (meaning all the targets linked to that pathway)
+          description: a reactome pathway identifier (returning only those targets linked to the pathway specified)
           required: false
           type: string
         - name: uniprotkw
@@ -376,7 +380,8 @@ paths:
       tags:
         - public
       description: |
-        Gets `association` objects by applying a range of filters
+        Complex queries and filters for association objects can also be submitted using a JSON
+        object and the equivalent POST method.
       parameters:
         - name: body
           in: body
@@ -464,7 +469,9 @@ paths:
       tags:
         - public
       description: |
-        Gets `search-result` objects
+        The search method allows to look for gene or diseases of interest using a free text search,
+        replicating the functionality of the search box on our homepage. It should be used to identify
+        the best match for a disease or target of interest, rather than gathering a specific set of evidences.
       parameters:
         - name: q
           in: query
