@@ -464,7 +464,7 @@ class esQuery():
             },
             'size': params.size,
             'from': params.start_from,
-            "sort": self._digest_evidence_sortbyfield_strings(params),
+            "sort": self._digest_sort_strings(params),
             '_source': source_filter,
         }
         res = self._cached_search(index=self._index_data,
@@ -1505,18 +1505,11 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             if s.startswith('~'):
                 order = 'asc'
                 s=s[1:]
-            digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
-        return digested
-
-    def _digest_evidence_sortbyfield_strings(self, params):
-        digested=[]
-        for s in params.sortbyfield:
-            order = 'desc'
-            if s.startswith('~'):
-                order = 'asc'
-                s=s[1:]
+            if s.startswith('association_score'):
+                s= s.replace('association_score', params.association_score_method)
             digested.append({s : {"order": order}})
         return digested
+
 
 
     def _get_evidence_score_range_filter(self, params):
@@ -1531,7 +1524,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _cached_search(self, *args, **kwargs):
         key = str(args)+str(kwargs)
-        res = None# self.cache.get(key)
+        res = self.cache.get(key)
         if res is None:
             start_time = time.time()
             res = self.handler.search(*args,**kwargs)
@@ -1617,7 +1610,8 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.sort = kwargs.get('sort', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
+
+        self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
         self.sortbyfield = kwargs.get('sortbyfield', [EvidenceSortOptions.SCORE]) or [EvidenceSortOptions.SCORE]
         self.search = kwargs.get('search')
 
