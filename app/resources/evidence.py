@@ -2,6 +2,7 @@ import time
 from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
 from app.common.rate_limit import rate_limit
+from app.common.request_templates import EvidenceSortOptions
 
 __author__ = 'andreap'
 from flask import current_app, request
@@ -107,7 +108,7 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
-        parser.add_argument('sortbyfield', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
+        parser.add_argument('sort', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
 
         args = parser.parse_args()
         targets = args.pop('target',[]) or []
@@ -118,6 +119,8 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasources =  args.pop('datasource',[]) or []
         datatypes =  args.pop('datatype',[]) or []
+        if args.get('sort') is None:
+            args['sort'] = [EvidenceSortOptions.SCORE]
 
         # if not (genes
         #         or objects

@@ -1612,7 +1612,6 @@ class SearchParams():
 
 
         self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
-        self.sortbyfield = kwargs.get('sortbyfield', [EvidenceSortOptions.SCORE]) or [EvidenceSortOptions.SCORE]
         self.search = kwargs.get('search')
 
         self.gte = kwargs.get('gte')
