@@ -3,25 +3,35 @@ swagger: '2.0'
 
 info:
   version: "1.1"
-  title: targetvalidation.org REST API DOCS
+  title: targetvalidation.org REST API Documentation
   description: |
-    Documentation for the REST API served at www.targetvalidation.org.
-    More info [here](https://about.targetvalidation.org).
+    You can access all data at the base of targetvalidation.org via a REST API. This page explains what each method does and also let's you query the API directly.
+    Try building your query using the interactive interface below or
+    head to the api tutorials for more complex examples.
+
+    When you use the interactive interface, the API will return a response and you will be able to read the equivalent curl command. You can copy and paste it directly in the command line to obtain the same results without using your browser.
+
+    All API access is over HTTPS, and accessed from the https://www.targetvalidation.com/api. All data is sent and received as JSON. For POST requests, parameters not included in the URL should be encoded as JSON with a Content-Type of 'application/json'. For instance, to query for a specific disease an example call might be
+
+         curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://alpha.targetvalidation.org/public/evidence/filter
+
+
+    Head to the [API tutorials]() for more examples on how to use the API and code snippets which can be used to construct more complex queries.
   license:
     name: Apache 2.0
   contact:
     email: support@targetvalidation.org
   termsOfService: |
-    Fair usage is enforced with limits to the api calls
+    Fair usage is enforced with limits to the api calls. Currently any excessive requests from the API triggers a 20 minutes ban.
 tags:
   - name: public
-    description: Publicly supported stable API
+    description: Publicly supported stable API. We will continue supporting these methods for the foreseeable future.
   - name: private
-    description: Unstable API methods, subject to change at any time without prior notice. Use at your own risk.
+    description: Unstable API methods. We use these to render our the graphical web interface of our platform and they can change a lot over time, without any prior notice. Use at your own risk.
   - name: auth
-    description: Authentication methods
+    description: Authentication methods. After you [email us](mailto:info@targetvalidation.org) to get an API key, you can use these methods to validate it.
   - name: utils
-    description: Utility methods
+    description: Utility methods. Miscellaneous utilities to query the status of our REST API.
 basePath: /api/latest
 consumes:
   - text/plain; charset=utf-8
@@ -38,7 +48,13 @@ paths:
       tags:
         - public
       description: |
-        Gets `evidencestring` object by id
+        We call **evidence** all the data that support a connection between a target and a disease. targetvalidation.org integrates multiple types of evidence including genetic associations, somatic mutations, RNA expression and connections mined from the literature.
+        This method allows you to retrieve a single evidence item or a list of evidences by using their targetvalidation.org internal ID.
+
+        Evidence IDs are unique but complicated random strings (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
+        Generally, you will have obtained a list of evidence IDs from another API call. Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance, can return a list of evidences and their IDs. See the [API tutorials]() for examples.
+
+        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
         - name: id
           in: query
@@ -63,7 +79,12 @@ paths:
       tags:
         - public
       description: |
-        Gets `evidencestring` object by id
+        This is the POST version of the samemethod allows you to retrieve a list of evidences by using their targetvalidation.org internal ID.
+
+        Evidence IDs are unique but complicated random strings (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
+        Generally, you will have obtained a list of evidence IDs from another API call. Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance, can return a list of evidences and their IDs. See the [API tutorials]() for examples.
+
+        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
         - name: body
           in: body
