@@ -156,10 +156,10 @@ grep -f genelist_ibd.txt opentargets_ibd_list.txt > opentargets_top_ibd_genes.tx
 an ordered list of common genes.
 
 
-### Retrieve all targets involved in a particular disease
+### Retrieve all targets involved in a particular disease category
 
-To obtain association scores on all targets involved in nervous system disease,
-we query the API with the EFO ontology term for nervous system disease (EFO_0000618).
+To obtain association scores on all targets involved in a therapeutic area (eg. nervous system disease),
+we query the API `/public/association/filter` method with the EFO ontology term (EFO_0000618 in this case).
 Because the resulting list is longer than the maximum 1000 terms allowed, one can use
 the `from` parameter to paginate a series of requests.
 Again using [httpie](http://httpie.org) and [jq](http://www.jq.org) this becomes:
