@@ -542,13 +542,13 @@ class esQuery():
         filter_data_conditions = agg_builder.filters
 
         '''boolean query joining multiple conditions with an AND'''
-        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
-        if params.fields:
-            source_filter["include"] = params.fields
         query_body = { "match_all": {}}
         if params.search:
             query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
 
+        if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
+            params.datastructure = SourceDataStructureOptions.SCORE
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {
@@ -559,7 +559,7 @@ class esQuery():
             },
 
             'size': params.size,
-            '_source': SourceDataStructureOptions.getSource(params.association_score_method),
+            '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params)
 
@@ -587,18 +587,14 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-        associations = (Association(h['_source'],
+
+        associations = (Association(h,
                                     params.association_score_method,
                                     self.datatypes,
                                     cap_scores=params.cap_scores)
                         for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-        scores = [a.data for a in associations]
-        therapeutic_areas = set()
-        for s in scores:
-            for ta_code in s['disease']['efo_info']['therapeutic_area']['codes']:
-                therapeutic_areas.add(s['target']['id']+'-'+ta_code)
-        therapeutic_areas = list(therapeutic_areas)
+        scores = [a.data for a in associations if a.data]
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
@@ -609,30 +605,38 @@ class esQuery():
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
         if params.is_direct and params.target:
-            ta_data = self._cached_search(index=self._index_association,
-                                          body={"filter": {
-                                                    "ids": {"values": therapeutic_areas},
-                                                },
-                                                "size": 1000,
-                                                }
-                                            )
-            ta_associations = (Association(h['_source'],
-                                           params.association_score_method,
-                                           self.datatypes,
-                                           cap_scores=params.cap_scores
-                                           )
-                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
-            ta_scores = [a.data for a in ta_associations]
-            # ta_scores.extend(scores)
+            try:
+                therapeutic_areas = set()
+                for s in scores:
+                    for ta_code in s['disease']['efo_info']['therapeutic_area']['codes']:
+                        therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
+                therapeutic_areas = list(therapeutic_areas)
+                ta_data = self._cached_search(index=self._index_association,
+                                              body={"filter": {
+                                                        "ids": {"values": therapeutic_areas},
+                                                    },
+                                                    "size": 1000,
+                                                    }
+                                                )
+                ta_associations = (Association(h['_source'],
+                                               params.association_score_method,
+                                               self.datatypes,
+                                               cap_scores=params.cap_scores
+                                               )
+                                   for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
+                ta_scores = [a.data for a in ta_associations]
+                # ta_scores.extend(scores)
 
 
-            return PaginatedResult(ass_data,
-                                 params,
-                                 data['data'],
-                                 facets=data['facets'],
-                                 available_datatypes=self.datatypes.available_datatypes,
-                                 therapeutic_areas = ta_scores
-                                 )
+                return PaginatedResult(ass_data,
+                                     params,
+                                     data['data'],
+                                     facets=data['facets'],
+                                     available_datatypes=self.datatypes.available_datatypes,
+                                     therapeutic_areas = ta_scores
+                                     )
+            except KeyError:
+                current_app.logger.debug('fields containing therapeutic area information not available')
         return PaginatedResult(ass_data,
                                  params,
                                  data['data'],
