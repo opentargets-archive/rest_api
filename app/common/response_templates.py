@@ -93,12 +93,14 @@ class Association(object):
         if datatypes is None:
             datatypes = DataTypes(current_app)
         self._datatypes = datatypes
-        self.hit = hit
+        self.hit_source = {}
+        if '_source' in hit:
+            self.hit_source = hit['_source']
         self.cap_scores = cap_scores
         self.parse_hit()
 
     def parse_hit(self):
-        self.data = self.hit
+        self.data = self.hit_source
         # self.data['target'] = {}
         # self.data['target']['id'] = self.hit['target']['id']
         # self.data['target']['name'] = self.hit['target']['gene_info']['name']
@@ -118,14 +120,18 @@ class Association(object):
         #
         # evidence_count = self.hit['evidence_count']
         # self.data['evidence_count'] = evidence_count['total']
-        self.data['association_score'] = self.hit[self._scoring_method]
-        del self.data[self._scoring_method]
-        self.data['association_score']['overall'] = self._cap_score(self.data['association_score']['overall'])
-        for dt in self.data['association_score']['datatypes']:
-            self.data['association_score']['datatypes'][dt] = self._cap_score(self.data['association_score']['datatypes'][dt])
-        for ds in self.data['association_score']['datasources']:
-            self.data['association_score']['datasources'][ds] = self._cap_score(
-                self.data['association_score']['datasources'][ds])
+        if self._scoring_method in self.hit_source:
+            self.data['association_score'] = self.hit_source[self._scoring_method]
+            del self.data[self._scoring_method]
+            if 'overall' in self.data['association_score']:
+                self.data['association_score']['overall'] = self._cap_score(self.data['association_score']['overall'])
+            if 'datatypes' in self.data['association_score']:
+                for dt in self.data['association_score']['datatypes']:
+                    self.data['association_score']['datatypes'][dt] = self._cap_score(self.data['association_score']['datatypes'][dt])
+            if 'datasources' in self.data['association_score']:
+                for ds in self.data['association_score']['datasources']:
+                    self.data['association_score']['datasources'][ds] = self._cap_score(
+                        self.data['association_score']['datasources'][ds])
 
     # self.data['datatypes']=[]
         # for dt in score['datatypes']:
