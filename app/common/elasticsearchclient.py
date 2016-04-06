@@ -618,7 +618,7 @@ class esQuery():
                                                     "size": 1000,
                                                     }
                                                 )
-                ta_associations = (Association(h['_source'],
+                ta_associations = (Association(h,
                                                params.association_score_method,
                                                self.datatypes,
                                                cap_scores=params.cap_scores
