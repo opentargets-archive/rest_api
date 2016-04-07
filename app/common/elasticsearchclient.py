@@ -2067,7 +2067,7 @@ class AggregationUnitDatasource(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DATATYPE, filters),
                 }
             },
             "aggs": {
@@ -2113,7 +2113,7 @@ class AggregationUnitDatasource(AggregationUnit):
     def _get_complex_datasource_filter(self, datasources, bol):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param evidence_types: list of dataasource strings
+        :param evidence_types: list of datasource strings
         :param bol: boolean operator to use for combining filters
         :return: boolean filter
         '''
