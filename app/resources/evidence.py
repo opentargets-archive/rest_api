@@ -72,7 +72,7 @@ class Evidence(restful.Resource):
     def post(self):
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         evidenceids = args['id']
         es = current_app.extensions['esquery']
 
@@ -153,7 +153,7 @@ class FilterBy(restful.Resource, Paginable):
             return new_l
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         targets = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
         diseases = fix_empty_strings(args.pop('disease',[]) or [])

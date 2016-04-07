@@ -54,6 +54,20 @@ class EvidenceTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['target']['id'], target)
 
+    def testEvidenceFilterTargetPost2(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data=json.dumps({"target": ["ENSG00000157764"], "size": 1000, "datasource": ["uniprot", "eva"]}),
+                                      content_type='application/json',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']), 1, 'evidence retrieved')
+        self.assertGreaterEqual(len(json_response['data']), 10, 'minimum default returned')
+        self.assertEqual(json_response['data'][0]['target']['id'], target)
+
+
+
     def testEvidenceFilterDiseaseGet(self):
         disease = 'EFO_0000311'
         response = self._make_request('/api/latest/public/evidence/filter',
