@@ -94,7 +94,7 @@ class FilterBy(restful.Resource):
             return new_l
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         for k,v in args.items():
             if isinstance(v, list):
                 if len(v)>0:
