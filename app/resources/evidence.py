@@ -162,6 +162,8 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasources =  args.pop('datasource',[]) or []
         datatypes=  args.pop('datatype',[]) or []
+        if args.get('sort') is None:
+            args['sort'] = [EvidenceSortOptions.SCORE]
 
 
         data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)
