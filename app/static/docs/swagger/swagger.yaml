@@ -6,24 +6,63 @@ info:
   title: targetvalidation.org REST API Documentation
   description: |
     You can access all data at the base of targetvalidation.org via a REST API.
+    This is the same API that powers our website and gives full access to the data that we use to build our search and visualizations.
     This page explains what each method does and also let's you query the API directly.
     Try building your query using the interactive interface below or
     head to the api tutorials for more complex examples.
+
+    The available methods are divided in:
+
+    * _public_ - the methods we will keep stable and support
+    * _private_ - the methods we use to speed up the visualizations, but
+    change often and thus should not be relied upon
+    * _utils_ - miscellaneous methods useful for testing the status of the API
+    * _auth_ - the calls used to validate an API token
+
+    Each of the available method is described in detail below.
+
+    ### get an API token
+    If you are planning to do a large number of requests or are building an application
+     leveraging our API, you should [email us](mailto:support@targetvalidation.org) and obtain an API key.
+    Having a key will allow you to make more requests than an anonymous user and will also help us in the long term to
+    make the API better for you in the long term.
+
+    Importantly, **we will never track the content of your API request** but instead monitor the overall usage of the API.
+
+    Also, don't forget to [let us know what you think](mailto:support@targetvalidation.org) of the API - we'd
+    love to hear how we could make the API more useful in our next release.
+
+
+    ### Construct a query
+    Any REST API query is formed by a verb, an URL and a method.
+
+    [image of API call with labels]
 
     When you use the interactive interface, the API will return a response and you
     will be able to read the equivalent curl command. You can copy and paste it
     directly in the command line to obtain the same results without using your browser.
 
-    All API access is over HTTPS, and accessed from the https://www.targetvalidation.com/api.
-    All data is sent and received as JSON.
+    All API access is over HTTPS, and accessed from the https://www.targetvalidation.com/api URL.
+
+    All data is sent and received in JSON format.
     For POST requests, parameters not included in the URL should be encoded as
-    JSON by specifying `Content-Type: applicaation/json` in the request header.
+    JSON by specifying `Content-Type: application/json` in the request header.
     For instance, to query for a specific disease an example call might be
 
          curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://alpha.targetvalidation.org/public/evidence/filter
 
+    ### Interpret a response
 
-    Head to the [API tutorials]() for more examples on how to use the API and code snippets which can be used to construct more complex queries.
+    The API will always offer a reponse in JSON format. Each response can be divided in headers and content.
+
+    [image of API response elements with labels]
+
+    Any tools capable of reading and manipulating JSON can be used to interpret the response.
+    [jq](http://www.jq.org) is a useful tool to parse the resulting json file while on the command line.
+
+    ### More examples
+    Head to our [tutorial blog post](http://blog.targetvalidation.org/) for more
+    examples on how to use the API and code snippets which can be used to construct more complex queries.
   license:
     name: Apache 2.0
   contact:
