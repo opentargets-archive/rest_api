@@ -65,36 +65,37 @@ class Result(object):
         output = StringIO()
         if self.data is None:
             self.flatten(self.toDict())  # populate data if empty
-        if isinstance(self.data[0], dict):
-            key_set = set()
-            flattened_data = []
-            for row in self.data:
-                flat = self.flatten(row,
-                                    simplify=self.params.datastructure == SourceDataStructureOptions.SIMPLE)
-                for field in NOT_ALLOWED_FIELDS:
-                    flat.pop(field, None)
-                flattened_data.append(flat)
-                key_set.update(flat.keys())
+        if self.data:
+            if isinstance(self.data[0], dict):
+                key_set = set()
+                flattened_data = []
+                for row in self.data:
+                    flat = self.flatten(row,
+                                        simplify=self.params.datastructure == SourceDataStructureOptions.SIMPLE)
+                    for field in NOT_ALLOWED_FIELDS:
+                        flat.pop(field, None)
+                    flattened_data.append(flat)
+                    key_set.update(flat.keys())
 
-            writer = csv.DictWriter(output,
-                                    sorted(list(key_set)),
+                writer = csv.DictWriter(output,
+                                        sorted(list(key_set)),
+                                        delimiter=delimiter,
+                                        quotechar='"',
+                                        quoting=csv.QUOTE_MINIMAL,
+                                        doublequote=False,
+                                        escapechar='|')
+                writer.writeheader()
+                for row in flattened_data:
+                    writer.writerow(row)
+            if isinstance(self.data[0], list):
+                writer = csv.writer(output,
                                     delimiter=delimiter,
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
                                     doublequote=False,
                                     escapechar='|')
-            writer.writeheader()
-            for row in flattened_data:
-                writer.writerow(row)
-        if isinstance(self.data[0], list):
-            writer = csv.writer(output,
-                                delimiter=delimiter,
-                                quotechar='"',
-                                quoting=csv.QUOTE_MINIMAL,
-                                doublequote=False,
-                                escapechar='|')
-            for row in self.data:
-                writer.writerow(row)
+                for row in self.data:
+                    writer.writerow(row)
         return output.getvalue()
 
     def flatten(self, d, parent_key='', sep='.', simplify=False):
