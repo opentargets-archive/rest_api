@@ -16,7 +16,8 @@ from flask.ext.restful import fields
 class ResponseType():
     JSON='json'
     XML='xml'
-    CSV='table'
+    TSV= 'tab'
+    CSV = 'csv'
 
 
 class CTTVResponse():
@@ -44,20 +45,26 @@ class CTTVResponse():
                 type = ResponseType.JSON
             elif "text/xml"in accept_header:
                 type = ResponseType.XML
-            elif "text/csv"in accept_header:
-                type = ResponseType.CSV
+            elif "text/tab-separated-values"in accept_header:
+                type = ResponseType.TSV
+            elif "text/csv" in accept_header:
+                type = ResponseType.TSV
 
 
-        if type == ResponseType.JSON:
+        if type == ResponseType.JSON or result.format == ResponseType.JSON:
             resp = Response(response=result.toJSON(),
                             status=status,
                             mimetype="application/json")
-        elif type == ResponseType.XML:
+        elif type == ResponseType.XML or result.format == ResponseType.XML:
             resp = Response(response=result.toXML(),
                             status=status,
                             mimetype="text/xml")
-        elif type == ResponseType.CSV:
-            resp = Response(response=result.toCSV(),
+        elif type == ResponseType.TSV or result.format == ResponseType.TSV:
+            resp = Response(response=result.toCSV(delimiter='\t'),
+                            status=status,
+                            mimetype="text/tab-separated-values")
+        elif type == ResponseType.CSV or result.format == ResponseType.CSV:
+            resp = Response(response=result.toCSV(delimiter=','),
                             status=status,
                             mimetype="text/csv")
         else:

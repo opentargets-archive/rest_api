@@ -49,8 +49,10 @@ class Result(object):
             return self.toJSON()
         elif self.format == ResponseType.XML:
             return self.toXML()
+        elif self.format == ResponseType.TSV:
+            return self.toCSV(delimiter = '\t')
         elif self.format == ResponseType.CSV:
-            return self.toCSV()
+            return self.toCSV(delimiter=',')
 
     def toJSON(self):
         return json.dumps(self.toDict())
@@ -58,7 +60,7 @@ class Result(object):
     def toXML(self):
         return dicttoxml(self.toDict(), custom_root='cttv-api-result')
 
-    def toCSV(self):
+    def toCSV(self, delimiter = '\t'):
         NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
         output = StringIO()
         if self.data is None:
@@ -76,7 +78,7 @@ class Result(object):
 
             writer = csv.DictWriter(output,
                                     sorted(list(key_set)),
-                                    delimiter='\t',
+                                    delimiter=delimiter,
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
                                     doublequote=False,
@@ -86,7 +88,7 @@ class Result(object):
                 writer.writerow(row)
         if isinstance(self.data[0], list):
             writer = csv.writer(output,
-                                delimiter='\t',
+                                delimiter=delimiter,
                                 quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL,
                                 doublequote=False,
