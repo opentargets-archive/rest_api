@@ -464,7 +464,7 @@ class esQuery():
             },
             'size': params.size,
             'from': params.start_from,
-            "sort": self._digest_evidence_sortbyfield_strings(params),
+            "sort": self._digest_sort_strings(params),
             '_source': source_filter,
         }
         res = self._cached_search(index=self._index_data,
@@ -542,13 +542,13 @@ class esQuery():
         filter_data_conditions = agg_builder.filters
 
         '''boolean query joining multiple conditions with an AND'''
-        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
-        if params.fields:
-            source_filter["include"] = params.fields
         query_body = { "match_all": {}}
         if params.search:
             query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
 
+        if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
+            params.datastructure = SourceDataStructureOptions.SCORE
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {
@@ -559,7 +559,7 @@ class esQuery():
             },
 
             'size': params.size,
-            '_source': SourceDataStructureOptions.getSource(params.association_score_method),
+            '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params)
 
@@ -587,15 +587,14 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-        associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+
+        associations = (Association(h,
+                                    params.association_score_method,
+                                    self.datatypes,
+                                    cap_scores=params.cap_scores)
                         for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-        scores = [a.data for a in associations]
-        therapeutic_areas = set()
-        for s in scores:
-            for ta_code in s['disease']['therapeutic_area']['codes']:
-                therapeutic_areas.add(s['target']['id']+'-'+ta_code)
-        therapeutic_areas = list(therapeutic_areas)
+        scores = [a.data for a in associations if a.data]
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
@@ -606,26 +605,39 @@ class esQuery():
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
         if params.is_direct and params.target:
-            ta_data = self._cached_search(index=self._index_association,
-                                          body={"filter": {
-                                                    "ids": {"values": therapeutic_areas},
-                                                },
-                                                "size": 1000,
-                                                }
-                                            )
-            ta_associations = (Association(h['_source'], params.association_score_method, self.datatypes)
-                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
-            ta_scores = [a.data for a in ta_associations]
-            # ta_scores.extend(scores)
+            try:
+                therapeutic_areas = set()
+                for s in scores:
+                    for ta_code in s['disease']['efo_info']['therapeutic_area']['codes']:
+                        therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
+                therapeutic_areas = list(therapeutic_areas)
+                ta_data = self._cached_search(index=self._index_association,
+                                              body={"filter": {
+                                                        "ids": {"values": therapeutic_areas},
+                                                    },
+                                                    "size": 1000,
+                                                    '_source': source,
+                                                    },
+                                                )
+                ta_associations = (Association(h,
+                                               params.association_score_method,
+                                               self.datatypes,
+                                               cap_scores=params.cap_scores
+                                               )
+                                   for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
+                ta_scores = [a.data for a in ta_associations]
+                # ta_scores.extend(scores)
 
 
-            return PaginatedResult(ass_data,
-                                 params,
-                                 data['data'],
-                                 facets=data['facets'],
-                                 available_datatypes=self.datatypes.available_datatypes,
-                                 therapeutic_areas = ta_scores
-                                 )
+                return PaginatedResult(ass_data,
+                                     params,
+                                     data['data'],
+                                     facets=data['facets'],
+                                     available_datatypes=self.datatypes.available_datatypes,
+                                     therapeutic_areas = ta_scores
+                                     )
+            except KeyError:
+                current_app.logger.debug('fields containing therapeutic area information not available')
         return PaginatedResult(ass_data,
                                  params,
                                  data['data'],
@@ -1498,18 +1510,11 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             if s.startswith('~'):
                 order = 'asc'
                 s=s[1:]
-            digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
-        return digested
-
-    def _digest_evidence_sortbyfield_strings(self, params):
-        digested=[]
-        for s in params.sortbyfield:
-            order = 'desc'
-            if s.startswith('~'):
-                order = 'asc'
-                s=s[1:]
+            if s.startswith('association_score'):
+                s= s.replace('association_score', params.association_score_method)
             digested.append({s : {"order": order}})
         return digested
+
 
 
     def _get_evidence_score_range_filter(self, params):
@@ -1542,6 +1547,42 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 filtered_params.append(p)
         return filtered_params
 
+    def _get_complex_uniprot_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of uniprot kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            genes = self.handler.get_genes_for_uniprot_kw(kw)
+            if genes:
+                return self.handler.get_complex_target_filter(genes, bol)
+        return dict()
+
+
+    def _get_complex_pathway_filter(self, pathway_codes):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param pathway_codes: list of pathway_codes strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if pathway_codes:
+            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
+            # if genes:
+            #     return self._get_complex_gene_filter(genes, bol)
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
+                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
+            }
+            }
+
+        return dict()
+
+
 class SearchParams():
     _max_search_result_limit = 1000
     _default_return_size = 10
@@ -1549,12 +1590,15 @@ class SearchParams():
 
     def __init__(self, **kwargs):
 
+
+
+
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
         if self.size is None:
-            self.size = self._default_return_size
+            self.size =  self._default_return_size
         if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
+            raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or 0
         self._max_score = 1e6
@@ -1571,8 +1615,8 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.sort = kwargs.get('sort', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
-        self.sortbyfield = kwargs.get('sortbyfield', [EvidenceSortOptions.SCORE]) or [EvidenceSortOptions.SCORE]
+
+        self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
         self.search = kwargs.get('search')
 
         self.gte = kwargs.get('gte')
@@ -1584,6 +1628,7 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
+
         self.fields = kwargs.get('fields')
 
         if self.fields:
@@ -1593,12 +1638,12 @@ class SearchParams():
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
-        score_range = [0., self._max_score]
-        score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
-        if score_min is not None:
+        score_range = [0.,self._max_score]
+        score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
+        if score_min is not  None:
             score_range[0] = score_min
         score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
-        if score_max == 1:  # temporary fix until max score cap can be done in elasticsearch
+        if score_max == 1:#temporary fix until max score cap can be done in elasticsearch
             score_max = self._max_score
         if score_max is not None:
             score_range[1] = score_max
@@ -1832,6 +1877,8 @@ class AggregationUnitIsDirect(AggregationUnit):
             "term": {"is_direct": is_direct}
         }
 
+
+
 class AggregationUnitPathway(AggregationUnit):
 
     def build_query_filter(self):
@@ -2021,7 +2068,7 @@ class AggregationUnitDatasource(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DATATYPE, filters),
                 }
             },
             "aggs": {
@@ -2067,7 +2114,7 @@ class AggregationUnitDatasource(AggregationUnit):
     def _get_complex_datasource_filter(self, datasources, bol):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param evidence_types: list of dataasource strings
+        :param evidence_types: list of datasource strings
         :param bol: boolean operator to use for combining filters
         :return: boolean filter
         '''
