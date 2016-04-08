@@ -15,9 +15,9 @@ class FullSourceDataStructure(OutputDataStructure):
 class SimpleSourceDataStructure(OutputDataStructure):
     source =  {"include": [ "id",
                             "disease.id",
-                            "disease.properties.*",
+                            "disease.efo_info.label",
                             "target.id",
-                            "evidence.evidence_codes",
+                            "target.gene_info.symbol",
                             "sourceID",
                             "type",
                             "scores.association_score",
@@ -75,7 +75,10 @@ class ScoreDataStructure(OutputDataStructure):
                            "evidence_count*",
                            "association_score*",
                            "id",
-                           ],}
+                           ],
+               "exclude": ["_private*",
+                           "private*"]
+               }
 
 
 
