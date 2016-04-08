@@ -10,7 +10,7 @@ from config import Config
 '''
 Rate limit is computed every 10 seconds
 the value stored is the amount of ms spent in the elasticsearch backend.
-each request also count for a minimum default ms (10?), so if the request does not hit es
+each request also count for a minimum default ms (10), so if the request does not hit es
 an higher throughput is allowed
 '''
 

@@ -31,7 +31,6 @@ class InternalCacheTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
 
         self.assertGreater(first_time, second_time)
-        print first_time, second_time
         print 'cache speedup: %1.2f times'%(first_time/second_time)
 
 
