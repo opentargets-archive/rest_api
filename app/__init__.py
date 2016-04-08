@@ -52,22 +52,25 @@ def create_app(config_name):
     # logger.error("hi", extra=dict(hi="hi"))
 
 
-    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
-                        # # sniff before doing anything
-                        # sniff_on_start=True,
-                        # # refresh nodes after a node fails to respond
-                        # sniff_on_connection_fail=True,
-                        # # and also every 60 seconds
-                        # sniffer_timeout=60
-                       timeout=60*20,
-                       maxsize=100,
-                        )
+
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
     app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)# user info
-
+    '''setup cache'''
+    app.extensions['redis-service'].config_set('save','')
+    app.extensions['redis-service'].config_set('appendonly', 'no')
     icache = InternalCache(app.extensions['redis-service'],
                            str(api_version))
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
+                       # # sniff before doing anything
+                       # sniff_on_start=True,
+                       # # refresh nodes after a node fails to respond
+                       # sniff_on_connection_fail=True,
+                       # # and also every 60 seconds
+                       # sniffer_timeout=60
+                       timeout=60 * 20,
+                       maxsize=100,
+                       )
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),

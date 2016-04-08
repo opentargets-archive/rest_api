@@ -67,7 +67,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
-
+        parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
 
 
         args = parser.parse_args()
@@ -94,7 +94,7 @@ class FilterBy(restful.Resource):
             return new_l
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         for k,v in args.items():
             if isinstance(v, list):
                 if len(v)>0:

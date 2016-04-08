@@ -8,11 +8,11 @@ def get_parser():
     parser = reqparse.RequestParser()
     parser.add_argument('size', type=int, required=False, help="maximum amount of results to retrieve", default=10, )
     parser.add_argument('from', type=int, required=False, help="pagination start from", default = 0)
-    parser.add_argument('format', type=str, required=False, help="return format, can be: 'json','xml','table'", choices=['json','xml','table'])
+    parser.add_argument('format', type=str, required=False, help="return format, can be: 'json','xml','tab','csv", choices=['json','xml','tab', 'csv'])
     parser.add_argument('datastructure', type=str, required=False, help="Type of data structure to return. Can be: 'full','simple','ids', 'count' ",choices=['full','simple','ids', 'count'])
     parser.add_argument('fields', type=str, action='append', required=False, help="fields you want to retrieve")
     # parser.add_argument('groupby', type=str, action='append', required=False, help="group returned elements by the indicated value")
-    parser.add_argument('auth_token', type=str, required=False, help="a valid auth token")
+    # parser.add_argument('auth_token', type=str, required=False, help="a valid auth token")
 
     return parser
 

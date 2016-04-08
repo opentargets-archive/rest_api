@@ -306,7 +306,7 @@ paths:
           format: integer
         - name: format
           in: query
-          description: Format to get data back. Can be 'json', 'xml' or 'table'
+          description: Format to get data back. Can be 'json', 'xml', 'tab' or 'csv'
           required: false
           type: string
         - name: sort
