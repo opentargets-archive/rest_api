@@ -29,6 +29,7 @@ consumes:
 produces:
   - application/json
   - text/xml
+  - text/tab-separated-values
   - text/csv
 # Describe your paths here
 paths:
