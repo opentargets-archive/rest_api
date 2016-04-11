@@ -57,7 +57,7 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 
 class CustomDataStructure(OutputDataStructure):
-    source =  {"include": ["disease.efo_info.therapeutic_area.codes"],
+    source =  {"include": [],
                 "exclude": [ "_private*" ,
                            "private*"],
                }
