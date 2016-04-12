@@ -82,7 +82,7 @@ class Result(object):
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
                                     doublequote=False,
-                                    escapechar='|')
+                                    escapechar='\\')
             writer.writeheader()
             for row in flattened_data:
                 writer.writerow(row)
@@ -92,7 +92,7 @@ class Result(object):
                                 quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL,
                                 doublequote=False,
-                                escapechar='|')
+                                escapechar='\\')
             for row in self.data:
                 writer.writerow(row)
         return output.getvalue()
@@ -105,11 +105,16 @@ class Result(object):
                 items.extend(self.flatten(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
-        return_dict = {}
+        return_dict = collections.OrderedDict()
         for k, v in items:
             if isinstance(v, list):
-                if len(v) == 1:
-                    v = v[0]
+                try:
+                    v = '|'.join(v)
+                except:
+                    if len(v) == 1:
+                        v = v[0]
+            if not (isinstance(v, str) or isinstance(v, unicode)):
+                v= json.dumps(v)
             return_dict[k] = v
         if simplify:
             for k, v in items:
