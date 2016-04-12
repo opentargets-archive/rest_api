@@ -75,9 +75,9 @@ class Result(object):
                     flat.pop(field, None)
                 flattened_data.append(flat)
                 key_set.update(flat.keys())
-
+            ordered_keys=self.params.fields or sorted(list(key_set))
             writer = csv.DictWriter(output,
-                                    sorted(list(key_set)),
+                                    ordered_keys,
                                     delimiter=delimiter,
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
