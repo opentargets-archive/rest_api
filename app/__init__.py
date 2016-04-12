@@ -220,17 +220,20 @@ def create_app(config_name):
         now = datetime.now()
         ceil10s=round(ceil_dt_to_future_time(now, 10),2)
         ceil1h=round(ceil_dt_to_future_time(now, 3600),2)
+        usage_left_10s = rate_limiter.short_window_rate-current_values['short']
+        usage_left_1h = rate_limiter.long_window_rate - current_values['long']
         min_ceil = ceil10s
-        if rate_limiter.short_window_rate-current_values['short'] <0:
+        if usage_left_1h <0:
             min_ceil = ceil1h
+        if (usage_left_10s < 0) or (usage_left_1h <0):
+            resp.headers.add('Retry-After', min_ceil)
         resp.headers.add('X-API-Took', took)
         resp.headers.add('X-Usage-Limit-10s', rate_limiter.short_window_rate)
         resp.headers.add('X-Usage-Limit-1h', rate_limiter.long_window_rate)
-        resp.headers.add('X-Usage-Remaining-10s', rate_limiter.short_window_rate-current_values['short'])
-        resp.headers.add('X-Usage-Remaining-1h', rate_limiter.long_window_rate-current_values['long'])
+        resp.headers.add('X-Usage-Remaining-10s', usage_left_10s)
+        resp.headers.add('X-Usage-Remaining-1h', usage_left_1h)
         # resp.headers.add('X-Usage-Limit-Reset-10s', ceil10s)
         # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
-        resp.headers.add('X-Usage-Limit-Wait', min_ceil)
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
         if do_not_cache(request):# do not cache in the browser
