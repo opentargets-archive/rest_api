@@ -549,8 +549,6 @@ class esQuery():
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
-        if params.fields:
-            source["include"] = params.fields
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {

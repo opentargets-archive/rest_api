@@ -122,6 +122,9 @@ class SourceDataStructureOptions():
     def _inject_association_score_implementation(cls,source, params):
         if params is not None:
             if isinstance(source, dict) and ('include' in source):
+                if params.fields:
+                    source['include'].extend(params.fields)
+                    source['include'] = list(set(source['include']))
                 for i,field in enumerate(source['include']):
                     if field.startswith('association_score'):
                         source['include'][i]= source['include'][i].replace('association_score',params.association_score_method)
