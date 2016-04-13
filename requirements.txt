@@ -35,3 +35,4 @@ redislite==3.0.271
 datadog==0.10.0
 requests==2.5.3
 gevent==1.1.0
+unicodecsv
