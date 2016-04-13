@@ -5,8 +5,8 @@ from dicttoxml import dicttoxml
 import collections
 import pprint
 import itertools
-import csv
-from StringIO import StringIO
+import unicodecsv as csv
+from io import BytesIO
 import json
 
 __author__ = 'andreap'
@@ -62,7 +62,7 @@ class Result(object):
 
     def toCSV(self, delimiter = '\t'):
         NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
-        output = StringIO()
+        output = BytesIO()
         if self.data is None:
             self.flatten(self.toDict())  # populate data if empty
         if isinstance(self.data[0], dict):
@@ -76,8 +76,10 @@ class Result(object):
                 flattened_data.append(flat)
                 key_set.update(flat.keys())
             ordered_keys=self.params.fields or sorted(list(key_set))
+            ordered_keys = map(unicode,ordered_keys)
             writer = csv.DictWriter(output,
                                     ordered_keys,
+                                    restval='',
                                     delimiter=delimiter,
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
@@ -86,6 +88,7 @@ class Result(object):
             writer.writeheader()
             for row in flattened_data:
                 writer.writerow(row)
+
         if isinstance(self.data[0], list):
             writer = csv.writer(output,
                                 delimiter=delimiter,
@@ -109,13 +112,17 @@ class Result(object):
         for k, v in items:
             if isinstance(v, list):
                 try:
-                    v = '|'.join(v)
+                    v = '|'.join(v).encode('utf-8')
                 except:
                     if len(v) == 1:
                         v = v[0]
-            if not (isinstance(v, str) or isinstance(v, unicode)):
-                v= json.dumps(v)
-            return_dict[k] = v
+                    else:
+                        v = json.dumps(v, encoding='utf-8')
+            if isinstance(v, str):
+                v= unicode(v)
+            if not isinstance(v, unicode):
+                v= json.dumps(v, encoding='utf-8')
+            return_dict[unicode(k)] = unicode(v)
         if simplify:
             for k, v in items:
                 try:
