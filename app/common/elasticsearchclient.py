@@ -1586,14 +1586,11 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
 
 class SearchParams():
-    _max_search_result_limit = 1000
+    _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
 
     def __init__(self, **kwargs):
-
-
-
 
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
