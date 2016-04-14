@@ -10,7 +10,7 @@ info:
     The API is accessible at https://www.targetvalidation.com/api only via the HTTPS protocol.
 
     This page documents the methods available with an interactive interface that lets you query directly the API.
-    For every request created the interface will display an equivalent (curl)[https://curl.haxx.se/] command that you
+    For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
     can copy and paste directly to a shell to obtain the same results without using a browser.
     A more comprehensive tuotorial is available [here](http://blog.opentargets.org).
 
@@ -130,16 +130,17 @@ paths:
         200:
           description: Successful response
           schema:
-            title: ArrayOfPersons
-            type: array
+            title: DataContainer
+            type: object
+            properties:
+                data:
+                  type: array
             items:
               title: EvidenceString
               type: object
               properties:
-                name:
+                id:
                   type: string
-                single:
-                  type: boolean
     post:
       tags:
         - public
@@ -159,16 +160,17 @@ paths:
         200:
           description: Successful response
           schema:
-            title: ArrayOfEvidenceStrings
-            type: array
+            title: DataContainer
+            type: object
+            properties:
+                data:
+                  type: array
             items:
               title: EvidenceString
               type: object
               properties:
-                name:
+                id:
                   type: string
-                single:
-                  type: boolean
   /public/evidence/filter:
     get:
       tags:
@@ -280,15 +282,16 @@ paths:
           description: Successful response
           schema:
             title: ArrayOfEvidenceStrings
-            type: array
+            type: object
+            properties:
+                data:
+                  type: array
             items:
               title: EvidenceString
               type: object
               properties:
-                name:
+                id:
                   type: string
-                single:
-                  type: boolean
   /public/association:
     get:
       tags:
@@ -429,6 +432,18 @@ paths:
       responses:
         200:
           description: Successful response
+          schema:
+            title: ArrayOfAssociations
+            type: object
+            properties:
+                data:
+                  type: array
+            items:
+              title: Associations
+              type: object
+              properties:
+                id:
+                  type: string
     post:
       tags:
         - public
@@ -449,15 +464,16 @@ paths:
           description: Successful response
           schema:
             title: ArrayOfAssociations
-            type: array
+            type: object
+            properties:
+                data:
+                  type: array
             items:
               title: Associations
               type: object
               properties:
-                name:
+                id:
                   type: string
-                single:
-                  type: boolean
   /private/disease:
     get:
       tags:
