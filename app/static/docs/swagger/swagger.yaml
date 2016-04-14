@@ -22,7 +22,8 @@ info:
     * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
     change often and thus should not be relied upon.
     * __utils__ - Methods to get statistics and technical data about the API.
-    * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key.
+    * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key (you can request one
+    by [emailing us](mailto:support@targetvalidation.org)).
 
     Each of the available method is described in detail below.
 
@@ -84,13 +85,13 @@ info:
     least a 24h ban.
 tags:
   - name: public
-    description: Publicly supported stable API. We will continue supporting these methods for the foreseeable future.
+    description: Publicly supported stable API.
   - name: private
-    description: Unstable API methods. We use these to render our the graphical web interface of our platform and they can change a lot over time, without any prior notice. Use at your own risk.
+    description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
   - name: auth
-    description: Authentication methods. After you [email us](mailto:info@targetvalidation.org) to get an API key, you can use these methods to validate it.
+    description: Authentication methods.
   - name: utils
-    description: Utility methods. Miscellaneous utilities to query the status of our REST API.
+    description: Utility methods.
 basePath: /api/latest
 consumes:
   - application/json
@@ -107,11 +108,16 @@ paths:
       tags:
         - public
       description: |
-        We call **evidence** all the data that support a connection between a target and a disease. targetvalidation.org integrates multiple types of evidence including genetic associations, somatic mutations, RNA expression and connections mined from the literature.
-        This method allows you to retrieve a single evidence item or a list of evidences by using their targetvalidation.org internal ID.
+        We call **evidence** a unit of data that support a connection between a target and a disease.
+        The Target Validation Platform integrates multiple types of evidence including genetic associations,
+        somatic mutations, RNA expression and connections mined from the literature.
+        This method allows you to retrieve a single evidence item or a list of evidences by using their
+        targetvalidation.org ID.
 
-        Evidence IDs are unique but complicated random strings (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
-        Generally, you will have obtained a list of evidence IDs from another API call. Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance, can return a list of evidences and their IDs. See the [API tutorials]() for examples.
+        Evidence IDs are unique within each data release (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
+        Generally, you will have obtained a list of evidence IDs from other API calls.
+        Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance,
+        can return a list of evidences and their IDs.
 
         **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
@@ -138,19 +144,15 @@ paths:
       tags:
         - public
       description: |
-        This is the POST version of the samemethod allows you to retrieve a list of evidences by using their targetvalidation.org internal ID.
-
-        Evidence IDs are unique but complicated random strings (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
-        Generally, you will have obtained a list of evidence IDs from another API call. Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance, can return a list of evidences and their IDs. See the [API tutorials]() for examples.
-
-        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
+        This is the POST version of [/public/evidence](#!/public/get_public_evidence)
+        It allows to query for list of evidence strings encoded in a `json` object to be passed in the body.
       parameters:
         - name: body
           in: body
           schema:
             type: string
             example: |
-              {["id1", "id2"]}
+              {"id":["id1", "id2"]}
           description: ids of the evidencestring to retrieve
           required: true
       responses:
@@ -174,9 +176,9 @@ paths:
       description: |
         The filter method allows to retrieve the specific data that support a connection between targets and diseases.
         Filters can be used to restrict the results by source and type of data,
-        or limit results to targets which are part of a particular pathway in Reactome.
+        or limit results to targets which are part of a particular pathway .
         Minimum and maximum score can be specified as well as the type of evidence linking target and disease.
-        Searches can be restricted to pieces of evidence directly linking the two or evidence linking targets with associated diseases.
+        Notice multiple genes and disease can be specified in the same request.
       parameters:
         - name: target
           in: query
@@ -262,9 +264,8 @@ paths:
       tags:
         - public
       description: |
-        The filter method allows to retrieve the specific data that support a connection between targets and diseases.
-        In this POST version of the method above, filters can be specified as part of a JSON object, allowing more complex queries.
-        Notice multiple genes and disease can be specified in the same request.
+        POST version of [/public/evidence/filter](#!/public/get_public_evidence_filter).
+        Filters can be specified as part of a `json` object in the body, simplifying the submission of queries.
       parameters:
         - name: body
           in: body
