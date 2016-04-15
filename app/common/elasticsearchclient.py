@@ -819,7 +819,7 @@ class esQuery():
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
-                                    # "tie_breaker": 0.1,
+                                    "tie_breaker": 0,
                                     "type": "best_fields",
                                 }
                                 },
@@ -858,15 +858,15 @@ class esQuery():
                     # "weight": 0.01,
                     }
                 },
-                {
-                "field_value_factor":{
-                    "field": "min_path_len",
-                    "factor": 0.5,
-                    "modifier": "reciprocal",
-                    "missing": 1,
-                    # "weight": 0.5,
-                    }
-                }
+                # {
+                # "field_value_factor":{
+                #     "field": "min_path_len",
+                #     "factor": 0.5,
+                #     "modifier": "reciprocal",
+                #     "missing": 1,
+                #     # "weight": 0.5,
+                #     }
+                # }
               ],
             # "filter": {
             #     "exists": {
