@@ -787,7 +787,7 @@ class esQuery():
                             "should": [
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^5",
+                                    "fields": ["name^3",
                                                "description^2",
                                                "efo_synonyms",
                                                "symbol_synonyms",
@@ -805,7 +805,8 @@ class esQuery():
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^3",
+                                    "fields": ["name^3",
+                                               "description^2",
                                                "id",
                                                "approved_symbol",
                                                "symbol_synonyms",
