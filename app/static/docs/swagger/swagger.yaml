@@ -14,18 +14,6 @@ info:
     can copy and paste directly to a shell to obtain the same results without using a browser.
     A more comprehensive tuotorial is available [here](http://blog.opentargets.org).
 
-    ### Available Methods
-
-    The available methods can be grouped in 4 types:
-
-    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
-    * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
-    change often and thus should not be relied upon.
-    * __utils__ - Methods to get statistics and technical data about the API.
-    * __auth__ - Methods used for authentication. Only relevant if you have been issued an API key (you can request one
-    by [emailing us](mailto:support@targetvalidation.org)).
-
-    Each of the available methods is described in detail below.
 
     ### Supported formats
 
@@ -46,7 +34,7 @@ info:
     servers, and how much usage you have left (see below).
 
     In the body of the response you will find the requested data, typically in `json` format.
-    [jq](https://stedolan.github.io/jq/) is a useful tool to parse the json response while on the command line.
+    The [jq command](https://stedolan.github.io/jq/) is a useful tool to parse the json response while on the command line.
 
     ```sh
     curl https://www.targetvalidation.org/api/latest/public/association/filter\?target\=ENSG00000157764 | jq
@@ -76,12 +64,25 @@ info:
     ### More examples
     Head to our [tutorial blog post](http://blog.opentargets.org/) for more
     examples on how to use the API and code snippets which can be used to construct more complex queries.
+
+    ### Available Methods
+
+    The available methods can be grouped in 4 types:
+
+    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
+    * __private__ - Methods used by the web app to serve additional data. These methods
+    change often and thus should not be relied upon.
+    * __utils__ - Methods to get statistics and technical data about the API.
+    * __auth__ - Methods used for authentication. Only relevant if you have been issued an API key (you can request one
+    by [emailing us](mailto:support@targetvalidation.org)).
+
+    Each of the available methods is described in detail below.
   license:
     name: Apache 2.0
   contact:
     email: support@targetvalidation.org
   termsOfService: |
-    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will result in 
+    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will result in
     access sanctions.
 tags:
   - name: public
@@ -119,7 +120,7 @@ paths:
         Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance,
         can return a list of evidences and their IDs.
 
-        **important note!** A specific evidence ID may change between data releases. We are currently not able to 
+        **important note!** A specific evidence ID may change between data releases. We are currently not able to
         guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
         - name: id
