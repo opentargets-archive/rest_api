@@ -1,4 +1,6 @@
 import collections
+import logging
+
 from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
 from dicttoxml import dicttoxml
@@ -77,6 +79,8 @@ class Result(object):
                 key_set.update(flat.keys())
             ordered_keys=self.params.fields or sorted(list(key_set))
             ordered_keys = map(unicode,ordered_keys)
+            if set(self.params.fields) - set(key_set):
+                ordered_keys=sorted(list(key_set))
             writer = csv.DictWriter(output,
                                     ordered_keys,
                                     restval='',
@@ -86,6 +90,7 @@ class Result(object):
                                     doublequote=False,
                                     escapechar='\\')
             writer.writeheader()
+            logging.critical(' | '.join([str(key_set), str(self.params.fields),str(set(self.params.fields) - set(key_set))]))
             for row in flattened_data:
                 writer.writerow(row)
 
