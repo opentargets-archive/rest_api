@@ -129,18 +129,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: DataContainer
-            type: object
-            properties:
-                data:
-                  type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                id:
-                  type: string
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
     post:
       tags:
         - public
@@ -159,18 +159,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: DataContainer
-            type: object
-            properties:
-                data:
-                  type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                id:
-                  type: string
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /public/evidence/filter:
     get:
       tags:
@@ -280,18 +280,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfEvidenceStrings
-            type: object
-            properties:
-                data:
-                  type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                id:
-                  type: string
+          # schema:
+          #   title: ArrayOfEvidenceStrings
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /public/association:
     get:
       tags:
@@ -432,18 +432,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfAssociations
-            type: object
-            properties:
-                data:
-                  type: array
-            items:
-              title: Associations
-              type: object
-              properties:
-                id:
-                  type: string
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
     post:
       tags:
         - public
@@ -462,18 +462,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfAssociations
-            type: object
-            properties:
-                data:
-                  type: array
-            items:
-              title: Associations
-              type: object
-              properties:
-                id:
-                  type: string
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /private/disease:
     get:
       tags:
