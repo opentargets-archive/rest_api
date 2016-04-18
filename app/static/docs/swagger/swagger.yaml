@@ -5,21 +5,35 @@ info:
   version: "1.1"
   title: targetvalidation.org API
   description: |
-    The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
-    to allow programmatic retrieval of data served by the Target Validation Platform Web App.
 
-    This page documents the methods available with an interactive interface that lets you directly query the API.
+    The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
+    to allow a programmatic retrieval of data served by the Target Validation Platform Web App.
+    The API is accessible at https://www.targetvalidation.com/api only via the HTTPS protocol.
+
+    This page documents the methods available with an interactive interface that lets you query directly the API.
     For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
     can copy and paste directly to a shell to obtain the same results without using a browser.
-    A more comprehensive tuotorial is available [here](http://blog.opentargets.org/api-getting-started-1/).
+    A more comprehensive tuotorial is available [here](http://blog.opentargets.org).
 
+    ### Available Methods
+
+    The available methods can be grouped in 4 types:
+
+    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
+    * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
+    change often and thus should not be relied upon.
+    * __utils__ - Methods to get statistics and technical data about the API.
+    * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key (you can request one
+    by [emailing us](mailto:support@targetvalidation.org)).
+
+    Each of the available method is described in detail below.
 
     ### Supported formats
 
-    All the methods are available via a `GET` request and will serve the output formatted as `json`. For some methods
-    alternative response formats are available e.g. `xml` or a tabluar format such as  `csv` or
+    All the methods are vailable via a `GET` request and will serve the output formatted as `json`. For some methods
+    alternative formats are available in order to have a response as `xml` or in a tabluar format as  `csv` or
     `tab-separated-values`.
-    Some methods are available as a `POST` request, to simplify complex query submissions. `POST` methods requires a
+    Some methods are available as a `POST` request, to simplyfy complex query submissions. `POST` methods requires a
     body encoded as `json`.
     E.g. to query for a specific disease an example call might be
 
@@ -28,12 +42,12 @@ info:
     ```
     ### Interpret a response
 
-    Each HTTP response serves data in headers and body.
-    The headers will give you useful information about your query, detailing how long it took to run on our
+    Each HTTP response serve data in headers and body.
+    The headers will give you some useful information about your query, detailing how long did it took to run on our
     servers, and how much usage you have left (see below).
 
-    In the body of the response you will find the requested data, typically in `json` format.
-    The [jq command](https://stedolan.github.io/jq/) is a useful tool to parse the json response while on the command line.
+    In the body of the response you will find the data you requested for, typically in `json` format.
+    [jq](http://www.jq.org) is a useful tool to parse the json response while on the command line.
 
     ```sh
     curl https://www.targetvalidation.org/api/latest/public/association/filter\?target\=ENSG00000157764 | jq
@@ -42,47 +56,34 @@ info:
     ### Fair Usage and API key
 
     There is a fair usage limit to the calls to the REST API. The usage is computed based on how much time the
-    queries take to execute on our servers.
-    The usage limit is expressed in milliseconds and is computed over two windows: 10 seconds and 1 hour.
+    queries take to execute in our servers.
+    The usage limit is expressed in milliseconds and is computed over two temporal windows: 10 seconds and 1 hour.
     You can check the usage status in the header response. If the quota is exceeded, a 429 error is returned.
-    The response will indicate how much time is needed to pass before a new call can be made in the `Retry-After` header.
-    Continuing to make calls while getting a 429 error will consume possible future usage within the time window.
+    The response will indicate how much time is needed to wait until a new call can be made in the `Retry-After` header.
+    Continuing to make calls while getting a 429 error, will consume future usage within the temporal window.
 
-    The default usage limit will typically not impact normal use of the REST API.
-    However if you are planning to do a large number of requests or are building an application leveraging our API,
+    The default usage limit will typically not impact a normal use of the REST API.
+    If you are planning to do a large number of requests or are building an application leveraging our API,
     we strongly encourage you to [email us](mailto:support@targetvalidation.org) and obtain an API key.
-    Having a key will allow you to make many more requests than an anonymous user, and will solve potential problems with many
+    Having a key will allow you to make many more requests than an anonymous user, and will solve the problem of many
     accesses from the same IP.
 
     **We will never track the content of your API request** but only monitor aggregated statistics of the
-    API endpoint usage in order to improve its performance in the future.
+    API endpoint usages in order to improve its performance in the future.
 
     Also, don't forget to [let us know what you think](mailto:support@targetvalidation.org) of the API - we'd
     love to hear how we could make the API more useful in our next release.
 
     ### More examples
-    Head to our [tutorial blog post](http://blog.opentargets.org/api-getting-started-1/) for more
+    Head to our [tutorial blog post](http://blog.opentargets.org/) for more
     examples on how to use the API and code snippets which can be used to construct more complex queries.
-
-    ### Available Methods
-
-    The available methods can be grouped in 4 types:
-
-    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
-    * __private__ - Methods used by the web app to serve additional data. These methods
-    change often and thus should not be relied upon.
-    * __utils__ - Methods to get statistics and technical data about the API.
-    * __auth__ - Methods used for authentication. Only relevant if you have been issued an API key (you can request one
-    by [emailing us](mailto:support@targetvalidation.org)).
-
-    Each of the available methods is described in detail below.
   license:
     name: Apache 2.0
   contact:
     email: support@targetvalidation.org
   termsOfService: |
-    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will result in
-    access sanctions.
+    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
+    least a 24h ban.
 tags:
   - name: public
     description: Publicly supported stable API.
@@ -111,7 +112,7 @@ paths:
         We call **evidence** a unit of data that support a connection between a target and a disease.
         The Target Validation Platform integrates multiple types of evidence including genetic associations,
         somatic mutations, RNA expression and connections mined from the literature.
-        This method allows you to retrieve a single evidence item or a list of evidence by using their
+        This method allows you to retrieve a single evidence item or a list of evidences by using their
         targetvalidation.org ID.
 
         Evidence IDs are unique within each data release (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
@@ -119,8 +120,7 @@ paths:
         Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance,
         can return a list of evidences and their IDs.
 
-        **important note!** A specific evidence ID may change between data releases. We are currently not able to
-        guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
+        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
         - name: id
           in: query
@@ -147,7 +147,7 @@ paths:
         - public
       description: |
         This is the POST version of [/public/evidence](#!/public/get_public_evidence)
-        It allows a query for a list of evidence strings encoded in a `json` object to be passed in the body.
+        It allows to query for list of evidence strings encoded in a `json` object to be passed in the body.
       parameters:
         - name: body
           in: body
@@ -177,9 +177,9 @@ paths:
       tags:
         - public
       description: |
-        The filter method allows retrieval of the specific data that supports a connection between targets and diseases.
+        The filter method allows to retrieve the specific data that support a connection between targets and diseases.
         Filters can be used to restrict the results by source and type of data,
-        or limit results to targets which are part of a particular pathway.
+        or limit results to targets which are part of a particular pathway .
         Minimum and maximum score can be specified as well as the type of evidence linking target and disease.
         Notice multiple genes and disease can be specified in the same request.
       parameters:
@@ -236,7 +236,7 @@ paths:
           required: false
           type: number
           format: float
-        - name: sortbyfield
+        - name: sort
           in: query
           description: |
             Sort by the given field. Defaults to 'scores.association_score' and descending order. use '~' prefix to do ascending
@@ -245,7 +245,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: maximum amount of results to return. Defaults to 10, max is 1000
+          description: maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: number
           format: integer
@@ -257,7 +257,7 @@ paths:
           format: integer
         - name: format
           in: query
-          description: Format to get data back. Can be 'json', 'xml' or 'table'
+          description: Format to get data back. Can be 'json', 'xml', 'tab' or 'csv'
           required: false
           type: string
       responses:
@@ -299,13 +299,13 @@ paths:
         - public
       description: |
         After integrating all evidence connecting a target to a specific disease, we
-        compute an association score by means of an harmonic sum. This *association score* provides
+        compute an association score by mean of an harmonic sum. This *association score* provides
         an indication of how strong the evidence behind each connection is and can be
         used to rank genes in order of likelihood as drug targets.
         The association id is constructed by using the ensembl id of the gene and the
         EFO id for the disease (eg. ENSG00000073756-EFO_0003767).
-        The method returns an association object, which contains data and a summary
-        of each evidence type included in the calculation of the score, as well as the score itself.
+        The method returns an association object, which contain data and summary
+        on each evidence type included in the calculation of the score, as well as the score itself.
       parameters:
         - name: id
           in: query
@@ -321,7 +321,7 @@ paths:
         - public
       description: |
         More complex queries for associations scores and objects can be done using
-        this filter method, which allows sorting in different orders, restriction to a specific class
+        this filter method, which allows to sort in different order, restrict to a specific class
         of diseases or targets, as well as filtering results by score and associated pathways.
       parameters:
         - name: target
@@ -369,9 +369,9 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: outputstructure
+        - name: fields
           in: query
-          description: Type of output structure to return. Can be 'flat', or 'tree'.
+          description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
         - name: facets
@@ -400,7 +400,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: Maximum amount of results to return. Defaults to 10, max is 1000
+          description: Maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: number
           format: integer
@@ -539,9 +539,9 @@ paths:
       tags:
         - public
       description: |
-        The search method allows a search for genes or diseases of interest using free text,
+        The search method allows to look for gene or diseases of interest using a free text search,
         replicating the functionality of the search box on our homepage. It should be used to identify
-        the best match for a disease or target of interest, rather than gathering a specific set of evidence.
+        the best match for a disease or target of interest, rather than gathering a specific set of evidences.
       parameters:
         - name: q
           in: query
@@ -550,7 +550,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: Maximum amount of results to return. Defaults to 10, max is 1000
+          description: Maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: string
         - name: from
