@@ -10,7 +10,7 @@ from config import Config
 '''
 Rate limit is computed every 10 seconds
 the value stored is the amount of ms spent in the elasticsearch backend.
-each request also count for a minimum default ms (10?), so if the request does not hit es
+each request also count for a minimum default ms (10), so if the request does not hit es
 an higher throughput is allowed
 '''
 
@@ -116,5 +116,5 @@ def rate_limit(func):
         #     return func(*args, **kwargs)
         current_app.logger.info('Rate Limit Exceeded')
         RateLimitExceeded(rate_limiter)
-        abort(429)
+        abort(429, description = 'Too many requests. Please look at the "X-Usage-Limit-Wait" header for the time to wait for an other call')
     return wrapper

@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-import os
-
-import sys
-import werkzeug
-from gevent.wsgi import WSGIServer
 from gevent import monkey
+monkey.patch_all()
+import os
+import sys
+from gevent.wsgi import WSGIServer
 from werkzeug.debug import DebuggedApplication
 from werkzeug.serving import run_with_reloader
 
-monkey.patch_all()
 
 __author__ = 'andreap'
 
