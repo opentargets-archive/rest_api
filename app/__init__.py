@@ -3,9 +3,6 @@ import os
 from datetime import datetime
 from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
-from flask.ext.cors import CORS
-from flask_limiter import Limiter
-# from flask.ext.login import LoginManager
 from redislite import Redis
 from app.common.auth import AuthKey
 from app.common.datadog_signals import LogApiCallWeight
@@ -20,7 +17,9 @@ from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
-
+# from flask.ext.cors import CORS
+# from flask_limiter import Limiter
+# from flask.ext.login import LoginManager
 # login_manager = LoginManager()
 # login_manager.session_protection = 'strong'
 # login_manager.login_view = 'auth.login'
@@ -53,21 +52,25 @@ def create_app(config_name):
     # logger.error("hi", extra=dict(hi="hi"))
 
 
-    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
-                        # # sniff before doing anything
-                        # sniff_on_start=True,
-                        # # refresh nodes after a node fails to respond
-                        # sniff_on_connection_fail=True,
-                        # # and also every 60 seconds
-                        # sniffer_timeout=60
-                       timeout=60*20,
-                        )
+
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
     app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)# user info
-
+    '''setup cache'''
+    app.extensions['redis-service'].config_set('save','')
+    app.extensions['redis-service'].config_set('appendonly', 'no')
     icache = InternalCache(app.extensions['redis-service'],
                            str(api_version))
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
+                       # # sniff before doing anything
+                       # sniff_on_start=True,
+                       # # refresh nodes after a node fails to respond
+                       # sniff_on_connection_fail=True,
+                       # # and also every 60 seconds
+                       # sniffer_timeout=60
+                       timeout=60 * 20,
+                       maxsize=100,
+                       )
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),
@@ -128,16 +131,23 @@ def create_app(config_name):
 
 
     '''setup datadog logging'''
-    if  Config.datadog_options:
+    if  Config.DATADOG_OPTIONS:
         import datadog
-        datadog.initialize(**Config.datadog_options)
-        if app.config['DEBUG']:
+        datadog.initialize(**Config.DATADOG_OPTIONS)
+        stats = None
+        if app.config['TESTING']:
+            pass
+        elif app.config['DEBUG']:
             stats = datadog.ThreadStats()#namespace='api')
             stats.start(flush_interval=30, roll_up_interval=30)
             log = logging.getLogger('dd.datadogpy')
             log.setLevel(logging.DEBUG)
-        else:
-            stats = datadog.dogstatsd.base.DogStatsd('dd-agent')
+            app.logger.info("using internal datadog agent in debug mode")
+        elif app.config['DATADOG_AGENT_HOST']:
+            datadog_agent_host = app.config['DATADOG_AGENT_HOST']
+            if datadog_agent_host is not None:
+                stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
+                app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
         app.extensions['datadog'] = stats
 
     else:
@@ -208,19 +218,28 @@ def create_app(config_name):
         #     took = RateLimiter.DEFAULT_CALL_WEIGHT
         current_values = increment_call_rate(took,rate_limiter)
         now = datetime.now()
+        ceil10s=round(ceil_dt_to_future_time(now, 10),2)
+        ceil1h=round(ceil_dt_to_future_time(now, 3600),2)
+        usage_left_10s = rate_limiter.short_window_rate-current_values['short']
+        usage_left_1h = rate_limiter.long_window_rate - current_values['long']
+        min_ceil = ceil10s
+        if usage_left_1h <0:
+            min_ceil = ceil1h
+        if (usage_left_10s < 0) or (usage_left_1h <0):
+            resp.headers.add('Retry-After', min_ceil)
         resp.headers.add('X-API-Took', took)
-        resp.headers.add('X-RateLimit-Limit-10s', rate_limiter.short_window_rate)
-        resp.headers.add('X-RateLimit-Limit-1h', rate_limiter.long_window_rate)
-        resp.headers.add('X-RateLimit-Remaining-10s', rate_limiter.short_window_rate-current_values['short'])
-        resp.headers.add('X-RateLimit-Remaining-1h', rate_limiter.long_window_rate-current_values['long'])
-        resp.headers.add('X-RateLimit-Reset-10s', round(ceil_dt_to_future_time(now, 10),2))
-        resp.headers.add('X-RateLimit-Reset-1h', round(ceil_dt_to_future_time(now, 3600),2))
+        resp.headers.add('X-Usage-Limit-10s', rate_limiter.short_window_rate)
+        resp.headers.add('X-Usage-Limit-1h', rate_limiter.long_window_rate)
+        resp.headers.add('X-Usage-Remaining-10s', usage_left_10s)
+        resp.headers.add('X-Usage-Remaining-1h', usage_left_1h)
+        # resp.headers.add('X-Usage-Limit-Reset-10s', ceil10s)
+        # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
         if do_not_cache(request):# do not cache in the browser
             resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
         else:
-            resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*180/1000, took*600/1000))
+            resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*1800/1000, took*9000/1000))
         return resp
 
 

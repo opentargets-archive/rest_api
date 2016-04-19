@@ -2,6 +2,7 @@ import time
 from flask.ext.restful.inputs import boolean
 from app.common import boilerplate
 from app.common.rate_limit import rate_limit
+from app.common.request_templates import EvidenceSortOptions
 
 __author__ = 'andreap'
 from flask import current_app, request
@@ -71,7 +72,7 @@ class Evidence(restful.Resource):
     def post(self):
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         evidenceids = args['id']
         es = current_app.extensions['esquery']
 
@@ -101,13 +102,13 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
-        parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
+        # parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
-        parser.add_argument('sortbyfield', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
+        parser.add_argument('sort', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
 
         args = parser.parse_args()
         targets = args.pop('target',[]) or []
@@ -118,6 +119,8 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasources =  args.pop('datasource',[]) or []
         datatypes =  args.pop('datatype',[]) or []
+        if args.get('sort') is None:
+            args['sort'] = [EvidenceSortOptions.SCORE]
 
         # if not (genes
         #         or objects
@@ -150,7 +153,7 @@ class FilterBy(restful.Resource, Paginable):
             return new_l
 
         start_time = time.time()
-        args = request.get_json()
+        args = request.get_json(force=True)
         targets = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
         diseases = fix_empty_strings(args.pop('disease',[]) or [])
@@ -159,6 +162,8 @@ class FilterBy(restful.Resource, Paginable):
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasources =  args.pop('datasource',[]) or []
         datatypes=  args.pop('datatype',[]) or []
+        if args.get('sort') is None:
+            args['sort'] = [EvidenceSortOptions.SCORE]
 
 
         data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)

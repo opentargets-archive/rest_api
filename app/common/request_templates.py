@@ -14,13 +14,17 @@ class FullSourceDataStructure(OutputDataStructure):
 
 class SimpleSourceDataStructure(OutputDataStructure):
     source =  {"include": [ "id",
-                           "disease.id",
-                           "disease.properties.*",
-                           "target.id",
-                           "evidence.evidence_codes",
-                           "sourceID",
-                           "type",
-                           "scores.association_score"],
+                            "disease.id",
+                            "disease.efo_info.label",
+                            "target.id",
+                            "target.gene_info.symbol",
+                            "sourceID",
+                            "type",
+                            "scores.association_score",
+                            # "disease.efo_info.therapeutic_area.codes",
+                            "association_score.overall",
+                            "association_score.datatype*",
+                            ],
                 "exclude": [ "_private*" ,
                            "private*"]}
 
@@ -53,7 +57,7 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 
 class CustomDataStructure(OutputDataStructure):
-    source =  {"include": [ ],
+    source =  {"include": [],
                 "exclude": [ "_private*" ,
                            "private*"],
                }
@@ -68,18 +72,15 @@ class ScoreDataStructure(OutputDataStructure):
                            "disease.efo_info.therapeutic_area",
                            "disease.efo_info.path",
                            "is_direct",
-                           "evidence_count",
+                           "evidence_count*",
+                           "association_score*",
                            "id",
-                           ],}
+                           ],
+               "exclude": ["_private*",
+                           "private*"]
+               }
 
-class ScoreDataStructureHarmonicSum(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["harmonic-sum*"],}
 
-class ScoreDataStructureMax(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["sum*"],}
-
-class ScoreDataStructureSum(OutputDataStructure):
-    source =  {"include": ScoreDataStructure.source["include"]+["max*"],}
 
 class SourceDataStructureOptions():
     DEFAULT = 'default'
@@ -95,7 +96,6 @@ class SourceDataStructureOptions():
     SCORE = 'score'
     SCORE_SUM = ScoringMethods.SUM
     SCORE_MAX = ScoringMethods.MAX
-    SCORE_HARMONIC_SUM = ScoringMethods.HARMONIC_SUM
 
 
     options = {
@@ -109,23 +109,27 @@ class SourceDataStructureOptions():
         GENE_AND_DISEASE_ID: GeneAndDiseaseIDDataStructure.source,
         COUNT: OutputDataStructure.source,
         SCORE: ScoreDataStructure.source,
-        SCORE_SUM: ScoreDataStructureSum.source,
-        SCORE_MAX: ScoreDataStructureMax.source,
-        SCORE_HARMONIC_SUM: ScoreDataStructureHarmonicSum.source,
         CUSTOM: CustomDataStructure.source,
     }
 
     @classmethod
-    def getSource(cls,structure):
+    def getSource(cls,structure, params = None):
         if structure in cls.options:
-            return  cls.options[structure]
-        else:
-            return OutputDataStructure.source
+            return cls._inject_association_score_implementation(cls.options[structure], params)
+        return OutputDataStructure.source
 
+    @classmethod
+    def _inject_association_score_implementation(cls,source, params):
+        if params is not None:
+            if isinstance(source, dict) and ('include' in source):
+                if params.fields:
+                    source['include'].extend(params.fields)
+                    source['include'] = list(set(source['include']))
+                for i,field in enumerate(source['include']):
+                    if field.startswith('association_score'):
+                        source['include'][i]= source['include'][i].replace('association_score',params.association_score_method)
+        return source
 
-class OutputStructureOptions():
-    TREE = 'tree'
-    FLAT = 'flat'
 
 def json_type(data):
     try:
@@ -143,6 +147,11 @@ class FilterTypes():
     PATHWAY = 'pathway'
     GO = 'go'
     UNIPROT_KW = 'uniprotkw'
+    TARGET='target'
+    DISEASE='disease'
+    ECO='eco'
+    IS_DIRECT='direct'
+    THERAPEUTIC_AREA='therapeutic_area'
 
 
 

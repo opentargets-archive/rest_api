@@ -14,10 +14,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = '3_'
-    ELASTICSEARCH_DATA_INDEX_NAME = '2.2_'+'evidence-data*'
+    DATA_VERSION = '4_'
+    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = '2.1_'+'efo-data'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
     ELASTICSEARCH_ECO_INDEX_NAME = 'eco-data'
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
@@ -27,11 +27,12 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = 'reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = '2.2_'+'association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
     ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     DEBUG = False
+    TESTING = False
     PROFILE = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
     PUBLIC_API_BASE_PATH = '/api/public/v'
@@ -69,10 +70,11 @@ class Config:
                     }
     REDIS_SERVER ='/tmp/api_redis.db'
 
-    datadog_options = {
-        # 'api_key':'c18195d82553654274bffddb25175967',
-        # 'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
+    DATADOG_OPTIONS = {
+        'api_key':'c18195d82553654274bffddb25175967',
+        'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
     }
+    DATADOG_AGENT_HOST = 'dd-agent'#set to None to disable
 
 
     @staticmethod
@@ -106,7 +108,7 @@ class DockerLinkedConfig(Config):
 
 
 class TestingConfig(Config):
-    #TESTING = True
+    TESTING = True
     ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000

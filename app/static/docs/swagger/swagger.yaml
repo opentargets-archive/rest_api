@@ -3,32 +3,103 @@ swagger: '2.0'
 
 info:
   version: "1.1"
-  title: targetvalidation.org REST API DOCS
+  title: targetvalidation.org API
   description: |
-    Documentation for the REST API served at www.targetvalidation.org.
-    More info [here](https://about.targetvalidation.org).
+
+    The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
+    to allow a programmatic retrieval of data served by the Target Validation Platform Web App.
+    The API is accessible at https://www.targetvalidation.com/api only via the HTTPS protocol.
+
+    This page documents the methods available with an interactive interface that lets you query directly the API.
+    For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
+    can copy and paste directly to a shell to obtain the same results without using a browser.
+    More comprehensive tuotorials are available [here](https://blog.opentargets.org/tag/api).
+
+    ### Available Methods
+
+    The available methods can be grouped in 4 types:
+
+    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
+    * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
+    change often and thus should not be relied upon.
+    * __utils__ - Methods to get statistics and technical data about the API.
+    * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key (you can request one
+    by [emailing us](mailto:support@targetvalidation.org)).
+
+    Each of the available method is described in detail below.
+
+    ### Supported formats
+
+    All the methods are vailable via a `GET` request and will serve the output formatted as `json`. For some methods
+    alternative formats are available in order to have a response as `xml` or in a tabluar format as  `csv` or
+    `tab-separated-values`.
+    Some methods are available as a `POST` request, to simplyfy complex query submissions. `POST` methods requires a
+    body encoded as `json`.
+    E.g. to query for a specific disease an example call might be
+
+    ```sh
+    curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://www.targetvalidation.org/api/latest/public/evidence/filter
+    ```
+    ### Interpret a response
+
+    Each HTTP response serve data in headers and body.
+    The headers will give you some useful information about your query, detailing how long did it took to run on our
+    servers, and how much usage you have left (see below).
+
+    In the body of the response you will find the data you requested for, typically in `json` format.
+    [jq](http://www.jq.org) is a useful tool to parse the json response while on the command line.
+
+    ```sh
+    curl https://www.targetvalidation.org/api/latest/public/association/filter\?target\=ENSG00000157764 | jq
+    ```
+
+    ### Fair Usage and API key
+
+    There is a fair usage limit to the calls to the REST API. The usage is computed based on how much time the
+    queries take to execute in our servers.
+    The usage limit is expressed in milliseconds and is computed over two temporal windows: 10 seconds and 1 hour.
+    You can check the usage status in the header response. If the quota is exceeded, a 429 error is returned.
+    The response will indicate how much time is needed to wait until a new call can be made in the `Retry-After` header.
+    Continuing to make calls while getting a 429 error, will consume future usage within the temporal window.
+
+    The default usage limit will typically not impact a normal use of the REST API.
+    If you are planning to do a large number of requests or are building an application leveraging our API,
+    we strongly encourage you to [email us](mailto:support@targetvalidation.org) and obtain an API key.
+    Having a key will allow you to make many more requests than an anonymous user, and will solve the problem of many
+    accesses from the same IP.
+
+    **We will never track the content of your API request** but only monitor aggregated statistics of the
+    API endpoint usages in order to improve its performance in the future.
+
+    Also, don't forget to [let us know what you think](mailto:support@targetvalidation.org) of the API - we'd
+    love to hear how we could make the API more useful in our next release.
+
+    ### More examples
+    Head to our [getting strarted tutorial](https://blog.opentargets.org/api-getting-started-1) for more
+    examples on how to use the API and code snippets which can be used to construct more complex queries.
   license:
     name: Apache 2.0
   contact:
     email: support@targetvalidation.org
   termsOfService: |
-    Fair usage is enforced with limits to the api calls
+    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
+    least a 24h ban.
 tags:
   - name: public
-    description: Publicly supported stable API
+    description: Publicly supported stable API.
   - name: private
-    description: Unstable API methods, subject to change at any time without prior notice. Use at your own risk.
+    description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
   - name: auth
-    description: Authentication methods
+    description: Authentication methods.
   - name: utils
-    description: Utility methods
+    description: Utility methods.
 basePath: /api/latest
 consumes:
-  - text/plain; charset=utf-8
   - application/json
 produces:
   - application/json
   - text/xml
+  - text/tab-separated-values
   - text/csv
 # Describe your paths here
 paths:
@@ -38,7 +109,18 @@ paths:
       tags:
         - public
       description: |
-        Gets `evidencestring` object by id
+        We call **evidence** a unit of data that support a connection between a target and a disease.
+        The Target Validation Platform integrates multiple types of evidence including genetic associations,
+        somatic mutations, RNA expression and connections mined from the literature.
+        This method allows you to retrieve a single evidence item or a list of evidences by using their
+        targetvalidation.org ID.
+
+        Evidence IDs are unique within each data release (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
+        Generally, you will have obtained a list of evidence IDs from other API calls.
+        Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance,
+        can return a list of evidences and their IDs.
+
+        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
       parameters:
         - name: id
           in: query
@@ -48,51 +130,58 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfPersons
-            type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                name:
-                  type: string
-                single:
-                  type: boolean
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
     post:
       tags:
         - public
       description: |
-        Gets `evidencestring` object by id
+        This is the POST version of [/public/evidence](#!/public/get_public_evidence)
+        It allows to query for list of evidence strings encoded in a `json` object to be passed in the body.
       parameters:
         - name: body
           in: body
           schema:
             type: string
             example: |
-              {["id1", "id2"]}
+              {"id":["id1", "id2"]}
           description: ids of the evidencestring to retrieve
           required: true
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfEvidenceStrings
-            type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                name:
-                  type: string
-                single:
-                  type: boolean
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /public/evidence/filter:
     get:
       tags:
         - public
       description: |
-        Gets `evidencestring` objects by applying a range of filters
+        The filter method allows to retrieve the specific data that support a connection between targets and diseases.
+        Filters can be used to restrict the results by source and type of data,
+        or limit results to targets which are part of a particular pathway .
+        Minimum and maximum score can be specified as well as the type of evidence linking target and disease.
+        Notice multiple genes and disease can be specified in the same request.
       parameters:
         - name: target
           in: query
@@ -124,11 +213,6 @@ paths:
           description: a uniprot keyword (meaning all the targets linked to that kw)
           required: false
           type: string
-        - name: eco
-          in: query
-          description: a ECO identifier listed in the evidence
-          required: false
-          type: string
         - name: datastructure
           in: query
           description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
@@ -139,12 +223,6 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: direct
-          in: query
-          description: return only evidence directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
-          required: false
-          type: boolean
-          default: false
         - name: scorevalue_min
           in: query
           description: filter by minimum score value. default is 0, but using 0.2 is a good tradeoff to filter lower quality data points
@@ -158,7 +236,7 @@ paths:
           required: false
           type: number
           format: float
-        - name: sortbyfield
+        - name: sort
           in: query
           description: |
             Sort by the given field. Defaults to 'scores.association_score' and descending order. use '~' prefix to do ascending
@@ -167,7 +245,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: maximum amount of results to return. Defaults to 10, max is 1000
+          description: maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: number
           format: integer
@@ -179,7 +257,7 @@ paths:
           format: integer
         - name: format
           in: query
-          description: Format to get data back. Can be 'json', 'xml' or 'table'
+          description: Format to get data back. Can be 'json', 'xml', 'tab' or 'csv'
           required: false
           type: string
       responses:
@@ -189,36 +267,51 @@ paths:
       tags:
         - public
       description: |
-        Gets `evidencestring` objects by applying a range of filters
+        POST version of [/public/evidence/filter](#!/public/get_public_evidence_filter).
+        Filters can be specified as part of a `json` object in the body, simplifying the submission of queries.
       parameters:
         - name: body
           in: body
           schema:
             type: string
             example: |
-              {"target":["target1", "target2"]}
+              {"target":["ENSG00000094755", "ENSG00000167207"], "disease":["EFO_0003767"]}
           description: filters to apply when retrieving evidencestring objects
           required: true
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfEvidenceStrings
-            type: array
-            items:
-              title: EvidenceString
-              type: object
-              properties:
-                name:
-                  type: string
-                single:
-                  type: boolean
+          # schema:
+          #   title: ArrayOfEvidenceStrings
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /public/association:
     get:
       tags:
         - public
       description: |
-        Gets `association` object by id
+        After integrating all evidence connecting a target to a specific disease, we
+        compute an association score by mean of an harmonic sum. This *association score* provides
+        an indication of how strong the evidence behind each connection is and can be
+        used to rank genes in order of likelihood as drug targets.
+        The association id is constructed by using the ensembl id of the gene and the
+        EFO id for the disease (eg. ENSG00000073756-EFO_0003767).
+        The method returns an association object, which contain data and summary
+        on each evidence type included in the calculation of the score, as well as the score itself.
+      parameters:
+        - name: id
+          in: query
+          description: not sure it is - TODO check the parameter list in the flask definition
+          required: true
+          type: string
       responses:
         200:
           description: Successful response
@@ -227,7 +320,9 @@ paths:
       tags:
         - public
       description: |
-        Gets `association` objects by applying a range of filters
+        More complex queries for associations scores and objects can be done using
+        this filter method, which allows to sort in different order, restrict to a specific class
+        of diseases or targets, as well as filtering results by score and associated pathways.
       parameters:
         - name: target
           in: query
@@ -237,6 +332,11 @@ paths:
         - name: disease
           in: query
           description: a EFO code listed as disease.id
+          required: false
+          type: string
+        - name: therapeutic_area
+          in: query
+          description: a EFO code of a therapeutic area
           required: false
           type: string
         - name: datasource
@@ -251,17 +351,12 @@ paths:
           type: string
         - name: pathway
           in: query
-          description: a pathway identifier (meaning all the targets linked to that pathway)
+          description: a reactome pathway identifier (returning only those targets linked to the pathway specified)
           required: false
           type: string
         - name: uniprotkw
           in: query
           description: a uniprot keyword (meaning all the targets linked to that kw)
-          required: false
-          type: string
-        - name: eco
-          in: query
-          description: a ECO identifier listed in the evidence
           required: false
           type: string
         - name: datastructure
@@ -274,18 +369,11 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: outputstructure
+        - name: fields
           in: query
-          description: Type of output structure to return. Can be 'flat', or 'tree'.
+          description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: direct
-          in: query
-          description: |
-            return only associations directly linked with the disease efo term if true or all the evidence linked with its children in the EFO ontology if false
-          required: false
-          type: boolean
-          default: false
         - name: facets
           in: query
           description: returns facets
@@ -312,7 +400,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: Maximum amount of results to return. Defaults to 10, max is 1000
+          description: Maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: number
           format: integer
@@ -324,7 +412,7 @@ paths:
           format: integer
         - name: format
           in: query
-          description: Format to get data back. Can be 'json', 'xml' or 'table'
+          description: Format to get data back. Can be 'json', 'xml', 'tab' or 'csv'
           required: false
           type: string
         - name: sort
@@ -345,11 +433,24 @@ paths:
       responses:
         200:
           description: Successful response
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
     post:
       tags:
         - public
       description: |
-        Gets `association` objects by applying a range of filters
+        Complex queries and filters for association objects can also be submitted using a JSON
+        object and the equivalent POST method.
       parameters:
         - name: body
           in: body
@@ -362,17 +463,18 @@ paths:
       responses:
         200:
           description: Successful response
-          schema:
-            title: ArrayOfAssociations
-            type: array
-            items:
-              title: Associations
-              type: object
-              properties:
-                name:
-                  type: string
-                single:
-                  type: boolean
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
   /private/disease:
     get:
       tags:
@@ -437,7 +539,9 @@ paths:
       tags:
         - public
       description: |
-        Gets `search-result` objects
+        The search method allows to look for gene or diseases of interest using a free text search,
+        replicating the functionality of the search box on our homepage. It should be used to identify
+        the best match for a disease or target of interest, rather than gathering a specific set of evidences.
       parameters:
         - name: q
           in: query
@@ -446,7 +550,7 @@ paths:
           type: string
         - name: size
           in: query
-          description: Maximum amount of results to return. Defaults to 10, max is 1000
+          description: Maximum amount of results to return. Defaults to 10, max is 10000
           required: false
           type: string
         - name: from

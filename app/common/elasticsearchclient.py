@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import pickle
+import pprint
 from collections import defaultdict
 from copy import copy
 
@@ -11,10 +12,12 @@ import json
 import time
 
 import ujson
+
+import sys
 from flask import current_app
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import SourceDataStructureOptions, OutputStructureOptions, FilterTypes, \
+from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
     AssociationSortOptions, EvidenceSortOptions
 from app.common.response_templates import Association, DataStats
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
@@ -414,9 +417,9 @@ class esQuery():
         '''create multiple condition boolean query'''
         conditions = []
         if targets:
-            conditions.append(self._get_complex_gene_filter(targets, gene_operator))
+            conditions.append(self.get_complex_target_filter(targets, gene_operator))
         if diseases:
-            conditions.append(self._get_complex_object_filter(diseases, object_operator, is_direct=params.is_direct))
+            conditions.append(self.get_complex_disease_filter(diseases, object_operator, is_direct=False))#temporary until params.is_direct is supported again
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources or datatypes:
@@ -437,8 +440,8 @@ class esQuery():
             uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
-        if params.filters[FilterTypes.ASSOCIATION_SCORE_MAX] < 1 or \
-                params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] >0 :
+        if params.filters[FilterTypes.SCORE_RANGE][1] < 1 or \
+                params.filters[FilterTypes.SCORE_RANGE][0] >0 :
             score_filter = self._get_evidence_score_range_filter(params)
             if score_filter:
                 conditions.append(score_filter)
@@ -461,7 +464,7 @@ class esQuery():
             },
             'size': params.size,
             'from': params.start_from,
-            "sort": self._digest_evidence_sortbyfield_strings(params),
+            "sort": self._digest_sort_strings(params),
             '_source': source_filter,
         }
         res = self._cached_search(index=self._index_data,
@@ -522,10 +525,6 @@ class esQuery():
 
 
     def get_associations(self,
-                         genes=[],
-                         objects=[],
-                         gene_operator='OR',
-                         object_operator='OR',
                          **kwargs):
         """
         Get the association scores for the provided target and diseases.
@@ -535,76 +534,34 @@ class esQuery():
         """
         params = SearchParams(**kwargs)
 
-
-        '''convert boolean to elasticsearch syntax'''
-        gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
-        object_operator = getattr(BooleanFilterOperator, object_operator.upper())
         '''create multiple condition boolean query'''
-        aggs = None
-        filter_data_conditions = dict()
 
-        if params.filters[FilterTypes.DATASOURCE] or \
-                params.filters[FilterTypes.DATATYPE]:
-            requested_datasources = []
-            if params.filters[FilterTypes.DATASOURCE]:
-                requested_datasources.extend(params.filters[FilterTypes.DATASOURCE])
-            if params.filters[FilterTypes.DATATYPE]:
-                for datatype in params.filters[FilterTypes.DATATYPE]:
-                    requested_datasources.extend(self.datatypes.get_datasources(datatype))
-            requested_datasources = list(set(requested_datasources))
-            filter_data_conditions[FilterTypes.DATASOURCE] = self._get_complex_datasource_filter(requested_datasources,
-                                                                                                 BooleanFilterOperator.OR)
-        if params.filters[FilterTypes.PATHWAY]:
-            pathway_filter = self._get_complex_pathway_filter(params.filters[FilterTypes.PATHWAY])
-            if pathway_filter:
-                filter_data_conditions[FilterTypes.PATHWAY] = pathway_filter
-        if params.filters[FilterTypes.UNIPROT_KW]:
-            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.filters[FilterTypes.UNIPROT_KW],
-                                                                   BooleanFilterOperator.OR)
-            if uniprotkw_filter:
-                filter_data_conditions[FilterTypes.UNIPROT_KW] = uniprotkw_filter
-        if params.filters[FilterTypes.ASSOCIATION_SCORE_MAX] < 1 or \
-                params.filters[FilterTypes.ASSOCIATION_SCORE_MIN] >0 :
-            score_filter = self._get_association_score_range_filter(params)
-            if score_filter:
-                filter_data_conditions[FilterTypes.SCORE_RANGE] = score_filter
-        conditions = self._get_base_association_conditions(objects,
-                                                           genes,
-                                                           object_operator,
-                                                           gene_operator,
-                                                           is_direct = params.is_direct,
-                                                           )
-        if objects:
-            params.outputstructure = OutputStructureOptions.FLAT  # override datastructure as only flat is available
-            aggs = self._get_efo_associations_agg(filters=filter_data_conditions, params=params)
-        if genes:
-            if not aggs:
-                aggs = self._get_gene_associations_agg(filters=filter_data_conditions, params=params)
-            full_conditions = copy(conditions)
-            full_conditions.extend(filter_data_conditions.values())
+        agg_builder = AggregationBuilder(self)
+        agg_builder.load_params(params)
+        aggs = agg_builder.aggs
+        filter_data_conditions = agg_builder.filters
 
         '''boolean query joining multiple conditions with an AND'''
-        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
-        if params.fields:
-            source_filter["include"] = params.fields
         query_body = { "match_all": {}}
         if params.search:
             query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
 
+        if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
+            params.datastructure = SourceDataStructureOptions.SCORE
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
+        if 'include' in source:
+            params.requested_fields = source['include']
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": {
                 "filtered": {
-                    "query": query_body ,
-                    "filter": {
-                        "bool": {
-                            "must": conditions
-                        }
-                    }
+                    "query": query_body,
+                    "filter": {"bool":{"must":[]}},
                 }
             },
+
             'size': params.size,
-            '_source': SourceDataStructureOptions.getSource(params.association_score_method),
+            '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params)
 
@@ -632,47 +589,57 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-        associations = (Association(h['_source'], params.association_score_method, self.datatypes)
+
+        associations = (Association(h,
+                                    params.association_score_method,
+                                    self.datatypes,
+                                    cap_scores=params.cap_scores)
                         for h in ass_data['hits']['hits'])
                         # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
-        scores = [a.data for a in associations]
-        therapeutic_areas = list(set([i[1] for s in scores for i in s['disease']['path']]))
-        efo_with_data = list(set([a.data['disease']['id'] for a in associations if a._is_direct]))
+        scores = [a.data for a in associations if a.data]
+        # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
 
         '''build data structure to return'''
-        # if params.datastructure == OutputStructureOptions.FLAT:
         data = self._return_association_flat_data_structures(scores, aggregation_results)
         # "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
-        if params.is_direct and genes:
-            extended_query_body = ass_query_body
-            extended_query_body['aggs'] = {}
-            extended_query_body["query"]["filtered"]["filter"]["bool"]["must"] = self._get_base_association_conditions(
-                therapeutic_areas, genes, object_operator, gene_operator, is_direct=False)
-            ta_data = self._cached_search(index=self._index_association,
-                                          body=extended_query_body,
-                                          timeout="20m",
-                                          request_timeout=60 * 20,
-                                          # routing=use gene here
-                                          query_cache=True,
-                                          )
-            ta_associations = (Association(h['_source'], params.association_score_method, self.datatypes)
-                               for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
-            ta_scores = [a.data for a in ta_associations]
-            # ta_scores.extend(scores)
-            # data = self._return_association_tree_data_structures(ta_scores, data, efo_with_data)
+        if params.is_direct and params.target:
+            try:
+                therapeutic_areas = set()
+                for s in scores:
+                    for ta_code in s['disease']['efo_info']['therapeutic_area']['codes']:
+                        therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
+                therapeutic_areas = list(therapeutic_areas)
+                ta_data = self._cached_search(index=self._index_association,
+                                              body={"filter": {
+                                                        "ids": {"values": therapeutic_areas},
+                                                    },
+                                                    "size": 1000,
+                                                    '_source': source,
+                                                    },
+                                                )
+                ta_associations = (Association(h,
+                                               params.association_score_method,
+                                               self.datatypes,
+                                               cap_scores=params.cap_scores
+                                               )
+                                   for h in ta_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root')
+                ta_scores = [a.data for a in ta_associations]
+                # ta_scores.extend(scores)
 
 
-            return PaginatedResult(ass_data,
-                                 params,
-                                 data['data'],
-                                 facets=data['facets'],
-                                 available_datatypes=self.datatypes.available_datatypes,
-                                 therapeutic_areas = ta_scores
-                                 )
+                return PaginatedResult(ass_data,
+                                     params,
+                                     data['data'],
+                                     facets=data['facets'],
+                                     available_datatypes=self.datatypes.available_datatypes,
+                                     therapeutic_areas = ta_scores
+                                     )
+            except KeyError:
+                current_app.logger.debug('fields containing therapeutic area information not available')
         return PaginatedResult(ass_data,
                                  params,
                                  data['data'],
@@ -680,50 +647,55 @@ class esQuery():
                                  available_datatypes=self.datatypes.available_datatypes,
                                  )
 
-    def _get_complex_gene_filter(self,
-                                 genes,
-                                 bol=BooleanFilterOperator.OR,
-                                 ):
+    def get_complex_target_filter(self,
+                                  targets,
+                                  bol=BooleanFilterOperator.OR,
+                                  include_negative=False,
+                                  ):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param genes: list of genes
+        :param targets: list of genes
         :param bol: boolean operator to use for combining filters
         :return: boolean filter
         '''
-        if genes:
+        targets=self._resolve_negable_parameter_set(targets, include_negative)
+        if targets:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {"target.id": genes}
+                    "terms": {"target.id": targets}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "terms": {
-                                      "target.id": [gene]}
+                                      "target.id": [target]}
                               }
-                              for gene in genes]
+                              for target in targets]
                     }
                 }
         return dict()
 
-    def _get_complex_object_filter(self,
-                                   objects,
+    def get_complex_disease_filter(self,
+                                   diseases,
                                    bol=BooleanFilterOperator.OR,
-                                   is_direct=False):
+                                   is_direct=False,
+                                   include_negative=False,
+                                   ):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param objects: list of objects
+        :param diseases: list of objects
         :param bol: boolean operator to use for combining filters
         :param is_direct: search in the full efo parent list (True) or just direct links (False)
         :return: boolean filter
         '''
-        if objects:
+        diseases=self._resolve_negable_parameter_set(diseases, include_negative)
+        if diseases:
             if bol == BooleanFilterOperator.OR:
                 if is_direct:
-                    return {"terms": {"disease.id": objects}}
+                    return {"terms": {"disease.id": diseases}}
                 else:
-                    return {"terms": {"private.efo_codes": objects}}
+                    return {"terms": {"private.efo_codes": diseases}}
 
 
             else:
@@ -732,9 +704,9 @@ class esQuery():
                         "bool": {
                             bol: [{
                                       "terms": {
-                                          "disease.id": [object]}
+                                          "disease.id": [disease]}
                                   }
-                                  for object in objects]
+                                  for disease in diseases]
                         }
 
                     }
@@ -743,9 +715,9 @@ class esQuery():
                         "bool": {
                             bol: [{
                                       "terms": {
-                                          "private.efo_codes": [object]}
+                                          "private.efo_codes": [disease]}
                                   }
-                                  for object in objects]
+                                  for disease in diseases]
                         }
 
                     }
@@ -782,24 +754,7 @@ class esQuery():
             }
         return dict()
 
-    def _get_complex_datasource_filter(self, datasources, bol):
-        '''
-        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param evidence_types: list of dataasource strings
-        :param bol: boolean operator to use for combining filters
-        :return: boolean filter
-        '''
-        if datasources:
-            return {
-                "bool": {
-                    bol: [{
-                              "terms": {
-                                  "private.facets.datasource": [datasource]}
-                          }
-                          for datasource in datasources]
-                }
-            }
-        return dict()
+
 
     def _get_complex_datasource_filter_evidencestring(self, datasources, bol):
         '''
@@ -820,27 +775,7 @@ class esQuery():
             }
         return dict()
 
-    def _get_complex_pathway_filter(self, pathway_codes):
-        '''
-        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-        :param pathway_codes: list of pathway_codes strings
-        :param bol: boolean operator to use for combining filters
-        :return: boolean filter
-        '''
-        if pathway_codes:
-            genes = self._get_genes_for_pathway_code(pathway_codes)
-            # if genes:
-            #     return self._get_complex_gene_filter(genes, bol)
-            return {"bool": {
-                "should": [
-                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
-                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
-                ]
 
-            }
-            }
-
-        return dict()
 
     def _get_free_text_query(self, searchphrase):
         query_body = {"function_score": {
@@ -852,7 +787,7 @@ class esQuery():
                             "should": [
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^5",
+                                    "fields": ["name^3",
                                                "description^2",
                                                "efo_synonyms",
                                                "symbol_synonyms",
@@ -870,7 +805,8 @@ class esQuery():
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
-                                    "fields": ["title^3",
+                                    "fields": ["name^3",
+                                               "description^2",
                                                "id",
                                                "approved_symbol",
                                                "symbol_synonyms",
@@ -884,7 +820,7 @@ class esQuery():
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
-                                    # "tie_breaker": 0.1,
+                                    "tie_breaker": 0,
                                     "type": "best_fields",
                                 }
                                 },
@@ -923,15 +859,15 @@ class esQuery():
                     # "weight": 0.01,
                     }
                 },
-                {
-                "field_value_factor":{
-                    "field": "min_path_len",
-                    "factor": 0.5,
-                    "modifier": "reciprocal",
-                    "missing": 1,
-                    # "weight": 0.5,
-                    }
-                }
+                # {
+                # "field_value_factor":{
+                #     "field": "min_path_len",
+                #     "factor": 0.5,
+                #     "modifier": "reciprocal",
+                #     "missing": 1,
+                #     # "weight": 0.5,
+                #     }
+                # }
               ],
             # "filter": {
             #     "exists": {
@@ -969,25 +905,18 @@ class esQuery():
         }
         }
 
-    def _get_gene_associations_agg(self, expand_efo=True, filters={}, params=None):
-        facets = params.facets
+    def _get_associations_agg(self, filters, params):
+
         aggs = {}
-        if facets:
-            aggs["datatypes"] = self._get_datatype_facet_aggregation(filters)
-        return aggs
-
-    def _get_efo_associations_agg(self, filters={}, params=None):
-
-        facets = params.facets
-
-        gene_related_aggs = self._get_gene_related_aggs(filters)
-
-        aggs = {
-        }
-        if facets:
-            aggs['datatypes'] = self._get_datatype_facet_aggregation(filters)
-            aggs['pathway_type'] = gene_related_aggs["pathway_type"]
-            aggs['uniprot_keywords'] = gene_related_aggs["uniprot_keywords"]
+        if params.facets:
+            aggs = dict(pathway=self._get_pathway_facet_aggregation(filters),
+                        uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
+                        datatypes=self._get_datatype_facet_aggregation(filters),
+                        # go=self._get_go_facet_aggregation(filters),
+                        target=self._get_target_facet_aggregation(filters),
+                        disease=self._get_disease_facet_aggregation(filters),
+                        is_direct=self._get_is_direct_facet_aggregation(filters),
+                        )
 
         return aggs
 
@@ -1007,75 +936,19 @@ class esQuery():
                 datatype_list.append("'%s': 0" % datasource)
         return ',\n'.join(datatype_list)
 
-    def _get_complimentary_facet_filters(self, key, filters):
-        conditions = []
-        for filter_type, filter_value in filters.items():
-            if filter_type != key:
-                conditions.append(filter_value)
-        return conditions
 
     def _return_association_flat_data_structures(self,
                                                  scores,
                                                  facets):
 
-        if 'datatypes' in facets:
-            facets['datatypes'] = facets['datatypes']['data']
-        if 'pathway_type' in facets:
-            facets['pathway_type'] = facets['pathway_type']['data']
-        if 'uniprot_keywords' in facets:
-            facets['uniprot_keywords'] = facets['uniprot_keywords']['data']
-        facets = self._process_facets(facets)
+        for facet_type in FilterTypes.__dict__.values():
+            if facet_type in facets:
+                facets[facet_type] = facets[facet_type]['data']
+        if facets:
+            facets = self._process_facets(facets)
         return dict(data=scores,
                     facets=facets)
 
-    def _return_association_tree_data_structures(self,
-                                                 scores,
-                                                 flat_scores,
-                                                 efo_with_data=[],
-                                                 ):
-
-        def transform_data_to_tree(data, efo_parents, efo_tas, efo_with_data=[]):
-            data = dict([(i["disease"]['id'], i) for i in data])
-            expanded_relations = []
-            for code, paths in efo_parents.items():
-                if code in data:
-                    for path in paths:
-                        expanded_relations.append([code, path])
-
-            efo_tree_relations = sorted(expanded_relations, key=lambda items: len(items[1]))
-            root = AssociationTreeNode()
-            if not efo_with_data:
-                extended_efo_with_data = [code for code, parents in efo_tree_relations]
-            else:
-                extended_efo_with_data = copy(efo_with_data)
-                for code, parents in efo_tree_relations:
-                    if len(parents) > 1:
-                        ta_code = parents[1]
-                        if ta_code not in extended_efo_with_data:
-                            extended_efo_with_data.append(ta_code)
-
-            for code, parents in efo_tree_relations:
-                if code in extended_efo_with_data:
-                    if not parents:
-                        root.add_child(AssociationTreeNode(code, **data[code]))
-                    else:
-                        node = root.get_node_at_path(parents)
-                        node.add_child(AssociationTreeNode(code, **data[code]))
-
-            return root.to_dict_tree_with_children_as_array()
-
-        facets = {}
-        if scores:
-
-            efo_parents, efo_labels, efo_tas = self._get_efo_data_for_associations([i["disease"]['id'] for i in scores])
-            # scores_with_ta = inject_missing_ta(efo_parents, unfiltered_scores, scores)
-            tree_data = transform_data_to_tree(scores, efo_parents, efo_tas, efo_with_data) or flat_scores['data']
-            facets = flat_scores['facets']
-        else:
-            tree_data = scores
-
-        return dict(data=tree_data,
-                    facets=facets)
 
     def _get_efo_data_for_associations(self, efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
@@ -1181,7 +1054,7 @@ class esQuery():
     def _get_gene_info_agg(self, filters={}):
 
         return {
-            "pathway_type": {
+            "pathway": {
                 "filter": {
                     "bool": {
                         "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
@@ -1236,29 +1109,36 @@ class esQuery():
     def _process_facets(self, facets):
 
         reactome_ids = []
+        therapeutic_areas = []
 
         '''get data'''
         for facet in facets:
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet == 'pathway_type':
+                    if facet == FilterTypes.PATHWAY:
                         reactome_ids.append(bucket['key'])
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
                                 sub_facet_buckets = bucket['pathway']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     reactome_ids.append(sub_bucket['key'])
+                    elif facet == FilterTypes.THERAPEUTIC_AREA:
+                        therapeutic_areas.append(bucket['key'].upper())
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
+        efo_data = self.get_efo_info_from_code(therapeutic_areas)
+        therapeutic_area_labels = {}
+        if efo_data:
+            therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])
 
         '''alter data'''
         for facet in facets:
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
-                    if facet == 'pathway_type':  # reactome data
+                    if facet == FilterTypes.PATHWAY:  # reactome data
                         bucket['label'] = reactome_labels[bucket['key'].upper()] or bucket['key']
                         if 'pathway' in bucket:
                             if 'buckets' in bucket['pathway']:
@@ -1266,16 +1146,24 @@ class esQuery():
                                 for sub_bucket in sub_facet_buckets:
                                     sub_bucket['label'] = reactome_labels[sub_bucket['key'].upper()] or sub_bucket[
                                         'key']
-                    elif facet == 'datatypes':  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
+                    elif facet == FilterTypes.DATATYPE:  # need to filter out wrong datasource. an alternative is to map these object as nested in elasticsearch
                         dt = bucket["key"]
-                        if 'datasources' in bucket:
-                            if 'buckets' in bucket['datasources']:
+                        if 'datasource' in bucket:
+                            if 'buckets' in bucket['datasource']:
                                 new_sub_buckets = []
-                                sub_facet_buckets = bucket['datasources']['buckets']
+                                sub_facet_buckets = bucket['datasource']['buckets']
                                 for sub_bucket in sub_facet_buckets:
                                     if sub_bucket['key'] in self.datatypes.get_datasources(dt):
                                         new_sub_buckets.append(sub_bucket)
-                                bucket['datasources']['buckets'] = new_sub_buckets
+                                bucket['datasource']['buckets'] = new_sub_buckets
+                    elif facet == FilterTypes.THERAPEUTIC_AREA:
+                        try:
+                            bucket['label'] = therapeutic_area_labels[bucket['key'].upper()]
+                        except KeyError:
+                            try:
+                                bucket['label'] = therapeutic_area_labels[bucket['key']]
+                            except KeyError:
+                                bucket['label'] = bucket['key']
 
         return facets
 
@@ -1357,114 +1245,7 @@ class esQuery():
             }
         }
 
-    def _get_pathway_facet_aggregation(self, filters={}):
 
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.reactome.pathway_type_code",
-                        'size': 100,
-                    },
-
-                    "aggs": {
-                        "pathway": {
-                            "terms": {
-                                "field": "private.facets.reactome.pathway_code",
-                                'size': 10,
-                            },
-                            "aggs": {
-                                "unique_target_count": {
-                                    "cardinality": {
-                                        "field": "target.id",
-                                        "precision_threshold": 1000},
-                                },
-                                "unique_disease_count": {
-                                    "cardinality": {
-                                        "field": "disease.id",
-                                        "precision_threshold": 1000},
-                                },
-                            }
-                        },
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-                    }
-                },
-            }
-        }
-
-    def _get_gene_related_aggs(self, filters):
-        return dict(
-                pathway_type=self._get_pathway_facet_aggregation(filters),
-                go=self._get_go_facet_aggregation(filters),
-                uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
-
-        )
-
-    def _get_go_facet_aggregation(self, filters):
-        pass
-
-    def _get_uniprot_keywords_facet_aggregation(self, filters):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "significant_terms": {
-                        "field": "private.facets.uniprot_keywords",
-                        'size': 25,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-                    },
-                },
-            }
-        }
-
-    def _get_uniprot_keywords_facet_aggregation_for_genes(self, filters):
-        return {
-            "aggs": {
-                "data": {
-                    "significant_terms": {
-                        "field": "uniprot_keywords",
-                        'size': 25,
-                    },
-                    # "aggs": {
-                    #     "unique_target_count": {
-                    #        "value_count" : {
-                    #           "field" : "id",
-                    #        },
-                    #     },
-                    # },
-                },
-            }
-
-        }
 
     def _get_association_score_scripted_metric_script(self, params):
         # TODO:  use the scripted metric to calculate association score.
@@ -1571,20 +1352,9 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return distribution
 
-    def _get_complex_uniprot_kw_filter(self, kw, bol):
-        pass
-        '''
-        :param kw: list of uniprot kw strings
-        :param bol: boolean operator to use for combining filters
-        :return: boolean filter
-        '''
-        if kw:
-            genes = self._get_genes_for_uniprot_kw(kw)
-            if genes:
-                return self._get_complex_gene_filter(genes, bol)
-        return dict()
 
-    def _get_genes_for_uniprot_kw(self, kw):
+
+    def get_genes_for_uniprot_kw(self, kw):
         data = []
         res = self._cached_search(index=self._index_genename,
                                   body={
@@ -1610,20 +1380,16 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
     def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, is_direct=False):
         conditions = []
         if objects:
-            conditions.append(self._get_complex_object_filter(objects, object_operator, is_direct=True))
+            conditions.append(self.get_complex_disease_filter(objects, object_operator, is_direct=True))
         if genes:
-            conditions.append(self._get_complex_gene_filter(genes, gene_operator))
+            conditions.append(self.get_complex_target_filter(genes, gene_operator))
         if is_direct:
             conditions.append(self._get_is_direct_filter())
 
         return conditions
 
 
-    def _get_is_direct_filter(self):
 
-        return {
-            "term": {"is_direct": True}
-        }
 
     def _get_search_doc_types(self, filter):
         doc_types = []
@@ -1747,50 +1513,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             if s.startswith('~'):
                 order = 'asc'
                 s=s[1:]
-            digested.append({"%s.%s"%(params.association_score_method,s) : {"order": order}})
-        return digested
-
-    def _digest_evidence_sortbyfield_strings(self, params):
-        digested=[]
-        for s in params.sortbyfield:
-            order = 'desc'
-            if s.startswith('~'):
-                order = 'asc'
-                s=s[1:]
+            if s.startswith('association_score'):
+                s= s.replace('association_score', params.association_score_method)
             digested.append({s : {"order": order}})
         return digested
 
-    def _get_association_score_range_filter(self, params):
-        if len(params.scorevalue_types) ==1:
-            return {
-                        "range" : {
-                            params.association_score_method+"."+params.scorevalue_types[0] : {
-                                "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
-                            }
-                        }
-                    }
-        else:
-            return {
-                    "bool": {
-                        'must': [{
-                                "range" : {
-                                    params.association_score_method+"."+st : {
-                                        "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                                        "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
-                                    }
-                                }
-                              }
-                              for st in params.scorevalue_types]
-                    }
-                }
+
 
     def _get_evidence_score_range_filter(self, params):
         return {
                 "range" : {
                     'scores.association_score' : {
-                        "gt": params.filters[FilterTypes.ASSOCIATION_SCORE_MIN],
-                        "lte": params.filters[FilterTypes.ASSOCIATION_SCORE_MAX]
+                        "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                        "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                         }
                     }
                 }
@@ -1805,20 +1540,73 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             self.cache.set(key, res, took*60)
         return res
 
+    def _resolve_negable_parameter_set(self, params, include_negative=False):
+        filtered_params =[]
+        for p in params:#handle negative sets
+            if p.startswith('!'):
+                if include_negative:
+                    filtered_params.append(p[1:])
+            else:
+                filtered_params.append(p)
+        return filtered_params
+
+    def _get_complex_uniprot_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of uniprot kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            genes = self.handler.get_genes_for_uniprot_kw(kw)
+            if genes:
+                return self.handler.get_complex_target_filter(genes, bol)
+        return dict()
+
+
+    def _get_complex_pathway_filter(self, pathway_codes):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param pathway_codes: list of pathway_codes strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if pathway_codes:
+            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
+            # if genes:
+            #     return self._get_complex_gene_filter(genes, bol)
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
+                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
+            }
+            }
+
+        return dict()
+
 
 class SearchParams():
-    _max_search_result_limit = 1000
+    _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
 
     def __init__(self, **kwargs):
 
         self.sortmethod = None
-        self.size = kwargs.get('size', self._default_return_size) or self._default_return_size
+        self.size = kwargs.get('size', self._default_return_size)
+        if self.size is None:
+            self.size =  self._default_return_size
         if (self.size > self._max_search_result_limit):
             raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or 0
+        self._max_score = 1e6
+        self.cap_scores = kwargs.get('cap_scores', True)
+        if self.cap_scores is None:
+            self.cap_scores = True
+        if self.cap_scores:
+            self._max_score = 1e6
 
         self.groupby = []
         groupby = kwargs.get('groupby')
@@ -1827,8 +1615,8 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-        self.sort = kwargs.get('sort', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
-        self.sortbyfield = kwargs.get('sortbyfield', [EvidenceSortOptions.SCORE]) or [EvidenceSortOptions.SCORE]
+
+        self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
         self.search = kwargs.get('search')
 
         self.gte = kwargs.get('gte')
@@ -1840,129 +1628,609 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
-        self.outputstructure =  kwargs.get('outputstructure',
-                                        OutputStructureOptions.FLAT) or OutputStructureOptions.FLAT
 
         self.fields = kwargs.get('fields')
+        self.requested_fields = None # to be populated after
 
         if self.fields:
             self.datastructure = SourceDataStructureOptions.CUSTOM
 
         self.filters = dict()
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
-        if self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] is None:
-            self.filters[FilterTypes.ASSOCIATION_SCORE_MIN] = 0.
-        self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, 1)
-        if self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] is None:
-            self.filters[FilterTypes.ASSOCIATION_SCORE_MAX] = 1
+        self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
+        self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
+        self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
+        score_range = [0.,self._max_score]
+        score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
+        if score_min is not  None:
+            score_range[0] = score_min
+        score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
+        if score_max == 1:#temporary fix until max score cap can be done in elasticsearch
+            score_max = self._max_score
+        if score_max is not None:
+            score_range[1] = score_max
+        self.filters[FilterTypes.SCORE_RANGE] = score_range
         self.scorevalue_types = kwargs.get('scorevalue_types', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
-        self.filters[FilterTypes.DATASOURCE] = kwargs.get(FilterTypes.DATASOURCE)
-        self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
         self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
-        # if self.filters[FilterTypes.PATHWAY]:
-        #     self.filters[FilterTypes.PATHWAY] = map(str.upper, self.filters[FilterTypes.PATHWAY])
+        self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
+        self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
 
-        self.stringency = kwargs.get('stringency', 1.) or 1.  # cannot be zero
 
+        datasource_filter = []
+        ds_params = kwargs.get(FilterTypes.DATASOURCE)
+        if ds_params is not None:
+            datasource_filter.extend(ds_params)
+        dt_params = kwargs.get(FilterTypes.DATATYPE)
+        if dt_params is not None:
+            datasource_filter.extend(dt_params)
+        if datasource_filter == []:
+            datasource_filter = None
+        self.filters[FilterTypes.DATATYPE] = datasource_filter
+
+        #required for evidence query. TODO: harmonise it with the filters in association endpoint
         self.pathway = kwargs.get('pathway', []) or []
         self.target_class = kwargs.get('target_class', []) or []
         self.uniprot_kw = kwargs.get('uniprotkw', []) or []
         self.datatype = kwargs.get('datatype', []) or []
-
         self.is_direct = kwargs.get('direct', False)
-        self.facets = kwargs.get('facets', True)
+        self.target = kwargs.get('target', []) or []
+        self.disease = kwargs.get('disease', []) or []
+        self.eco = kwargs.get('eco', []) or []
+
+        self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
 
-class AssociationTreeNode(object):
-    ROOT = 'cttv_disease'
+class AggregationUnit(object):
+    '''
+    base unit to build an aggregation query
+    to be subclassed by implementations
+    '''
 
-    def __init__(self, name=None, **kwargs):
-        self.name = name or self.ROOT
-        self.children = {}
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    def __init__(self,
+                 filter,
+                 params,
+                 handler,
+                 compute_aggs = False):
+        self.filter = filter
+        self.params = params
+        self.handler = handler
+        self.compute_aggs = compute_aggs
+        self.query_filter = {}
+        self.agg = {}
+        self.build_query_filter()
 
-    def _is_root(self):
-        return self.name == self.ROOT
+    def _get_complimentary_facet_filters(self, key, filters):
+        conditions = []
+        for filter_type, filter_value in filters.items():
+            if filter_type != key:
+                conditions.append(filter_value)
+        return conditions
 
-    def add_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            if child._is_root():
-                raise AttributeError("child cannot be root ")
-            if child == self:
-                raise AttributeError(" cannot add a node to itself as a child")
-            if not self.has_child(child):
-                self.children[child.name] = child
+
+    def build_query_filter(self):
+        raise NotImplementedError
+
+
+    def build_agg(self, filters):
+        pass
+        # raise NotImplementedError
+
+class AggregationUnitTarget(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter= self.handler.get_complex_target_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_target_facet_aggregation(filters)
+
+    def _get_target_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TARGET, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "target.id",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+class AggregationUnitDisease(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self.handler.get_complex_disease_filter(self.filter, is_direct=True)
+
+    def build_agg(self, filters):
+        self.agg = self._get_disease_facet_aggregation(filters)
+
+    def _get_disease_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DISEASE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "disease.id",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+class AggregationUnitTherapeuticArea(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_therapeutic_area_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_disease_facet_aggregation(filters)
+
+    def _get_disease_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.THERAPEUTIC_AREA, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field" : "disease.efo_info.therapeutic_area.codes",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_complex_therapeutic_area_filter(self, filter):
+        return {"terms": {"disease.efo_info.therapeutic_area.codes": filter}}
+
+
+class AggregationUnitIsDirect(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_is_direct_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_is_direct_facet_aggregation(filters)
+
+    def _get_is_direct_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "is_direct",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_is_direct_filter(self, is_direct):
+
+        return {
+            "term": {"is_direct": is_direct}
+        }
+
+
+
+class AggregationUnitPathway(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_pathway_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_pathway_facet_aggregation(filters)
+
+    def _get_pathway_facet_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.reactome.pathway_type_code",
+                        'size': 20,
+                    },
+
+                    "aggs": {
+                        "pathway": {
+                            "terms": {
+                                "field": "private.facets.reactome.pathway_code",
+                                'size': 10,
+                            },
+                            "aggs": {
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_complex_pathway_filter(self, pathway_codes):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param pathway_codes: list of pathway_codes strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if pathway_codes:
+            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
+            # if genes:
+            #     return self._get_complex_gene_filter(genes, bol)
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
+                    {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
+                }
+            }
+
+        return dict()
+
+class AggregationUnitScoreRange(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+           self.query_filter = self._get_association_score_range_filter(self.params)
+
+    @staticmethod
+    def _get_association_score_range_filter(params):
+        if len(params.scorevalue_types) ==1:
+            return {
+                        "range" : {
+                            params.association_score_method+"."+params.scorevalue_types[0] : {
+                                "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                                "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                            }
+                        }
+                    }
         else:
-            raise AttributeError("child needs to be an AssociationTreeNode ")
+            return {
+                    "bool": {
+                        'must': [{
+                                "range" : {
+                                    params.association_score_method+"."+st : {
+                                        "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                                        "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                                    }
+                                }
+                              }
+                              for st in params.scorevalue_types]
+                    }
+                }
 
-    def del_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            if child._is_root():
-                raise AttributeError("child cannot be root ")
-            if child == self:
-                raise AttributeError(" cannot add a node to itself as a child")
-            if self.has_child(child):
-                del self.children[child.name]
-        else:
-            raise AttributeError("child needs to be an AssociationTreeNode ")
+class AggregationUnitUniprotKW(AggregationUnit):
 
-    def get_child(self, child_name):
-        return self.children[child_name]
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
+                                                                    BooleanFilterOperator.OR)
+    def build_agg(self, filters):
+        self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
 
-    def has_child(self, child):
-        if isinstance(child, AssociationTreeNode):
-            return child.name in self.children
-        return child in self.children
+    def _get_uniprot_keywords_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.uniprot_keywords",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    },
+                },
+            }
+        }
 
-    def get_children(self):
-        return self.children.values()
+    def _get_complex_uniprot_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of uniprot kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            genes = self.handler.get_genes_for_uniprot_kw(kw)
+            if genes:
+                return self.handler.get_complex_target_filter(genes, bol)
+        return dict()
 
-    def get_node_at_path(self, path):
-        node = self
-        for p in path:
-            if node.has_child(p):
-                node = node.get_child(p)
-                continue
-        # if node._is_root():
-        #     print 'got root for path: ', path, node.children_as_array()
-        return node
+class AggregationUnitECO(AggregationUnit):
 
-    def __eq__(self, other):
-        return self.name == other.name
+    def build_query_filter(self):
+        raise NotImplementedError
 
-    def __str__(self):
-        return self.name
 
-    def __repr__(self):
-        return self.name
+class AggregationUnitDatasource(AggregationUnit):
 
-    def __unicode__(self):
-        return unicode(self.name)
+    def build_query_filter(self):
+        if self.filter is not None:
+            requested_datasources = []
+            for d in self.filter:
+                if d in self.handler.datatypes.datatypes:
+                    requested_datasources.extend(self.handler.datatypes.get_datasources(d))
+                else:
+                    requested_datasources.append(d)
+            requested_datasources = list(set(requested_datasources))
+            self.query_filter = self._get_complex_datasource_filter(requested_datasources,
+                                                                    BooleanFilterOperator.OR)
 
-    def children_as_array(self):
-        return self.children.values()
+    def build_agg(self, filters):
+        self.agg = self.get_datatype_facet_aggregation(filters)
 
-    def single_node_to_dict(self):
-        out = self.__dict__
-        if self.children:
-            out['children'] = self.children_as_array()
-        else:
-            del out['children']
-        return out
+    def get_datatype_facet_aggregation(self, filters):
 
-    def recursive_node_to_dict(self, node):
-        if isinstance(node, AssociationTreeNode):
-            out = node.single_node_to_dict()
-            if 'children' in out:
-                for i, child in enumerate(out['children']):
-                    if isinstance(child, AssociationTreeNode):
-                        child = child.recursive_node_to_dict(child)
-                    out['children'][i] = child
-            return out
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.DATATYPE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.datatype",
+                        'size': 10,
+                    },
+                    "aggs": {
+                        "datasource": {
+                            "terms": {
+                                "field": "private.facets.datasource",
+                            },
+                            "aggs": {
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
 
-    def to_dict_tree_with_children_as_array(self):
-        out = self.recursive_node_to_dict(self)
-        return out
+                    }
+                }
+            }
+        }
+
+    def _get_complex_datasource_filter(self, datasources, bol):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param evidence_types: list of datasource strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if datasources:
+            return {
+                "bool": {
+                    bol: [{
+                              "terms": {
+                                  "private.facets.datasource": [datasource]}
+                          }
+                          for datasource in datasources]
+                }
+            }
+        return dict()
+
+class AggregationBuilder(object):
+    '''
+    handles the construction of an aggregation query based on a set of filters
+    '''
+
+    _UNIT_MAP={
+        FilterTypes.DATATYPE : AggregationUnitDatasource,
+        # FilterTypes.ECO : AggregationUnitECO,
+        FilterTypes.DISEASE : AggregationUnitDisease,
+        FilterTypes.TARGET : AggregationUnitTarget,
+        FilterTypes.IS_DIRECT : AggregationUnitIsDirect,
+        FilterTypes.PATHWAY : AggregationUnitPathway,
+        FilterTypes.UNIPROT_KW : AggregationUnitUniprotKW,
+        FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
+        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea
+    }
+
+    _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
+                             FilterTypes.SCORE_RANGE,
+                             ]
+
+    def __init__(self, handler):
+        self.handler=handler
+        self.filter_types=FilterTypes().__dict__
+        self.units = {}
+        self.aggs = {}
+        self.filters = {}
+
+
+    def load_params(self, params):
+
+
+
+        '''define and init units'''
+        for unit_type in self._UNIT_MAP:
+            self.units[unit_type]= self._UNIT_MAP[unit_type](params.filters[unit_type],
+                                                             params,
+                                                             self.handler,
+                                                             compute_aggs = params.facets)
+        '''get filters'''
+        for query_filter in self._UNIT_MAP:
+            self.filters[query_filter] = self.units[query_filter].query_filter
+
+        '''get aggregations if requested'''
+        if params.facets:
+            aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
+            '''get available aggregations'''
+            for agg in self._UNIT_MAP:
+                if agg not in aggs_not_to_be_returned:
+                    self.units[agg].build_agg(self.filters)
+                    if self.units[agg].agg:
+                        self.aggs[agg] = self.units[agg].agg
+
+
+    def _get_AggregationUnit(self,str):
+        return getattr(sys.modules[__name__], str)
+
+    def _get_aggs_not_to_be_returned(self,params):
+        '''avoid calculate a big facet if only one parameter is passed'''
+        filters_to_apply = list(set([k for k,v in params.filters.items() if v is not None]))
+        for filter_type in self._SERVICE_FILTER_TYPES:
+            if filter_type in filters_to_apply:
+                filters_to_apply.pop(filters_to_apply.index(filter_type))
+        aggs_not_to_be_returned = []
+        if len(filters_to_apply) == 1:#do not return facet if only one filter is applied
+            aggs_not_to_be_returned=filters_to_apply[0]
+        return aggs_not_to_be_returned
+
+
+
+    #
+    # def _get_go_facet_aggregation(self, filters):
+    #     pass
+
+    #
+    #
+    # def _get_uniprot_keywords_facet_aggregation_for_genes(self, filters):
+    #     return {
+    #         "aggs": {
+    #             "data": {
+    #                 "significant_terms": {
+    #                     "field": "uniprot_keywords",
+    #                     'size': 25,
+    #                 },
+    #                 # "aggs": {
+    #                 #     "unique_target_count": {
+    #                 #        "value_count" : {
+    #                 #           "field" : "id",
+    #                 #        },
+    #                 #     },
+    #                 # },
+    #             },
+    #         }
+    #
+    #     }
+
+
+
+
+
+
+
+

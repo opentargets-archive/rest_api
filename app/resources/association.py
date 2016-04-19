@@ -53,6 +53,7 @@ class FilterBy(restful.Resource):
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
+        parser.add_argument('therapeutic_area', type=str, action='append', required=False, help="efo code of the therapeutic area")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('scorevalue_types', type=str, required=False, action='append', help="score types to apply min and max score filter")
@@ -62,28 +63,15 @@ class FilterBy(restful.Resource):
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
-        parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False", default=True)
+        parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False")
         parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
-
+        parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
 
 
         args = parser.parse_args()
-        # filters = args.pop('filter',[]) or []
-        # if filters:
-        #     filters = get_ordered_filter_list(filters)
-        # else:
-        #     filters = get_ordered_filter_list(request.query_string)
-        # if filters:
-        #     args['filter']=filters
-        targets = args.pop('target',[]) or []
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = args.pop('disease',[]) or []
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
-
-
-        data = self.get_association(targets, diseases, params=args)
+        data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
@@ -106,11 +94,7 @@ class FilterBy(restful.Resource):
             return new_l
 
         start_time = time.time()
-        args = request.get_json()
-        targets = fix_empty_strings(args.pop('target',[]) or [])
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = fix_empty_strings(args.pop('disease',[]) or [])
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
+        args = request.get_json(force=True)
         for k,v in args.items():
             if isinstance(v, list):
                 if len(v)>0:
@@ -122,26 +106,16 @@ class FilterBy(restful.Resource):
                         del args[k]
 
 
-        data = self.get_association(targets, diseases,params=args)
+        data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
 
-    def get_association(self,
-                     genes,
-                     objects,
-                     gene_operator='OR',
-                     object_operator='OR',
-                     params ={}):
+    def get_association(self,params):
 
         es = current_app.extensions['esquery']
         try:
-            res = es.get_associations(genes = genes,
-                                     objects = objects,
-                                     # gene_operator = gene_operator,
-                                     # object_operator = object_operator,
-                                     # evidence_type_operator = evidence_type_operator,
-                                     **params)
+            res = es.get_associations(**params)
         except AttributeError,e:
             abort(404, message=e.message)
 

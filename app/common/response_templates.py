@@ -16,7 +16,8 @@ from flask.ext.restful import fields
 class ResponseType():
     JSON='json'
     XML='xml'
-    CSV='table'
+    TSV= 'tab'
+    CSV = 'csv'
 
 
 class CTTVResponse():
@@ -44,20 +45,26 @@ class CTTVResponse():
                 type = ResponseType.JSON
             elif "text/xml"in accept_header:
                 type = ResponseType.XML
-            elif "text/csv"in accept_header:
-                type = ResponseType.CSV
+            elif "text/tab-separated-values"in accept_header:
+                type = ResponseType.TSV
+            elif "text/csv" in accept_header:
+                type = ResponseType.TSV
 
 
-        if type == ResponseType.JSON:
+        if type == ResponseType.JSON or result.format == ResponseType.JSON:
             resp = Response(response=result.toJSON(),
                             status=status,
                             mimetype="application/json")
-        elif type == ResponseType.XML:
+        elif type == ResponseType.XML or result.format == ResponseType.XML:
             resp = Response(response=result.toXML(),
                             status=status,
                             mimetype="text/xml")
-        elif type == ResponseType.CSV:
-            resp = Response(response=result.toCSV(),
+        elif type == ResponseType.TSV or result.format == ResponseType.TSV:
+            resp = Response(response=result.toCSV(delimiter='\t'),
+                            status=status,
+                            mimetype="text/tab-separated-values")
+        elif type == ResponseType.CSV or result.format == ResponseType.CSV:
+            resp = Response(response=result.toCSV(delimiter=','),
                             status=status,
                             mimetype="text/csv")
         else:
@@ -93,44 +100,58 @@ class Association(object):
         if datatypes is None:
             datatypes = DataTypes(current_app)
         self._datatypes = datatypes
-        self.hit = hit
+        self.hit_source = {}
+        if '_source' in hit:
+            self.hit_source = hit['_source']
         self.cap_scores = cap_scores
         self.parse_hit()
 
     def parse_hit(self):
-        self.data['target'] = {}
-        self.data['target']['id'] = self.hit['target']['id']
-        self.data['target']['name'] = self.hit['target']['gene_info']['name']
-        self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
+        self.data = self.hit_source
+        # self.data['target'] = {}
+        # self.data['target']['id'] = self.hit['target']['id']
+        # self.data['target']['name'] = self.hit['target']['gene_info']['name']
+        # self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
+        #
+        # self.data['disease'] = {}
+        # self.data['disease']['id'] = self.hit['disease']['id']
+        # self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
+        # # self.data['label'] = self.hit['disease']['efo_info']['label']
+        # self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
+        # self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
+        #
+        # self.data['id'] = self.hit['id']
+        #
+        # self.data['is_direct'] = self.hit['is_direct']
+        # self.is_direct = self.hit['is_direct']
+        #
+        # evidence_count = self.hit['evidence_count']
+        # self.data['evidence_count'] = evidence_count['total']
+        if self._scoring_method in self.hit_source:
+            self.data['association_score'] = self.hit_source[self._scoring_method]
+            del self.data[self._scoring_method]
+            if 'overall' in self.data['association_score']:
+                self.data['association_score']['overall'] = self._cap_score(self.data['association_score']['overall'])
+            if 'datatypes' in self.data['association_score']:
+                for dt in self.data['association_score']['datatypes']:
+                    self.data['association_score']['datatypes'][dt] = self._cap_score(self.data['association_score']['datatypes'][dt])
+            if 'datasources' in self.data['association_score']:
+                for ds in self.data['association_score']['datasources']:
+                    self.data['association_score']['datasources'][ds] = self._cap_score(
+                        self.data['association_score']['datasources'][ds])
 
-        self.data['disease'] = {}
-        self.data['disease']['id'] = self.hit['disease']['id']
-        self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
-        # self.data['label'] = self.hit['disease']['efo_info']['label']
-        self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
-        self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
-
-        self.data['id'] = self.hit['id']
-
-        self.data['is_direct'] = self.hit['is_direct']
-        self._is_direct = self.hit['is_direct']
-
-        evidence_count = self.hit['evidence_count']
-        self.data['evidence_count'] = evidence_count['total']
-        score = self.hit[self._scoring_method]
-        self.data['association_score'] = self._cap_score(score['overall'])
-        self.data['datatypes']=[]
-        for dt in score['datatypes']:
-            datasources = []
-            for ds in self._datatypes.get_datasources(dt):
-                datasources.append(dict(datasource = ds,
-                                        association_score = self._cap_score(score['datasources'][ds]),
-                                        evidence_count = evidence_count['datasource'][ds],))
-
-            self.data['datatypes'].append(dict(datatype = dt,
-                                               association_score = self._cap_score(score['datatypes'][dt]),
-                                               evidence_count = evidence_count['datatype'][dt],
-                                               datasources =datasources))
+    # self.data['datatypes']=[]
+        # for dt in score['datatypes']:
+        #     datasources = []
+        #     for ds in self._datatypes.get_datasources(dt):
+        #         datasources.append(dict(datasource = ds,
+        #                                 association_score = self._cap_score(score['datasources'][ds]),
+        #                                 evidence_count = evidence_count['datasource'][ds],))
+        #
+        #     self.data['datatypes'].append(dict(datatype = dt,
+        #                                        association_score = self._cap_score(score['datatypes'][dt]),
+        #                                        evidence_count = evidence_count['datatype'][dt],
+        #                                        datasources =datasources))
 
     def _cap_score(self, score):
         if self.cap_scores:

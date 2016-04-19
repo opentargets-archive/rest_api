@@ -1,12 +1,14 @@
 import collections
+import logging
+
 from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
 from dicttoxml import dicttoxml
 import collections
 import pprint
 import itertools
-import csv
-from StringIO import StringIO
+import unicodecsv as csv
+from io import BytesIO
 import json
 
 __author__ = 'andreap'
@@ -49,8 +51,10 @@ class Result(object):
             return self.toJSON()
         elif self.format == ResponseType.XML:
             return self.toXML()
+        elif self.format == ResponseType.TSV:
+            return self.toCSV(delimiter = '\t')
         elif self.format == ResponseType.CSV:
-            return self.toCSV()
+            return self.toCSV(delimiter=',')
 
     def toJSON(self):
         return json.dumps(self.toDict())
@@ -58,9 +62,9 @@ class Result(object):
     def toXML(self):
         return dicttoxml(self.toDict(), custom_root='cttv-api-result')
 
-    def toCSV(self):
+    def toCSV(self, delimiter = '\t'):
         NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
-        output = StringIO()
+        output = BytesIO()
         if self.data is None:
             self.flatten(self.toDict())  # populate data if empty
         if isinstance(self.data[0], dict):
@@ -73,24 +77,30 @@ class Result(object):
                     flat.pop(field, None)
                 flattened_data.append(flat)
                 key_set.update(flat.keys())
-
+            ordered_keys=self.params.fields or sorted(list(key_set))
+            ordered_keys = map(unicode,ordered_keys)
+            if set(self.params.fields) - set(key_set):
+                ordered_keys=sorted(list(key_set))
             writer = csv.DictWriter(output,
-                                    sorted(list(key_set)),
-                                    delimiter='\t',
+                                    ordered_keys,
+                                    restval='',
+                                    delimiter=delimiter,
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
                                     doublequote=False,
-                                    escapechar='|')
+                                    escapechar='\\')
             writer.writeheader()
+            logging.critical(' | '.join([str(key_set), str(self.params.fields),str(set(self.params.fields) - set(key_set))]))
             for row in flattened_data:
                 writer.writerow(row)
+
         if isinstance(self.data[0], list):
             writer = csv.writer(output,
-                                delimiter='\t',
+                                delimiter=delimiter,
                                 quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL,
                                 doublequote=False,
-                                escapechar='|')
+                                escapechar='\\')
             for row in self.data:
                 writer.writerow(row)
         return output.getvalue()
@@ -103,12 +113,21 @@ class Result(object):
                 items.extend(self.flatten(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
-        return_dict = {}
+        return_dict = collections.OrderedDict()
         for k, v in items:
             if isinstance(v, list):
-                if len(v) == 1:
-                    v = v[0]
-            return_dict[k] = v
+                try:
+                    v = '|'.join(v).encode('utf-8')
+                except:
+                    if len(v) == 1:
+                        v = v[0]
+                    else:
+                        v = json.dumps(v, encoding='utf-8')
+            if isinstance(v, str):
+                v= unicode(v)
+            if not isinstance(v, unicode):
+                v= json.dumps(v, encoding='utf-8')
+            return_dict[unicode(k)] = unicode(v)
         if simplify:
             for k, v in items:
                 try:
