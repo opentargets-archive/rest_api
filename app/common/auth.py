@@ -23,8 +23,8 @@ class AuthKey(object):
                  app_name='',
                  secret='',
                  domain='',
-                 short_window_rate=3000,
-                 long_window_rate=1200000,
+                 short_window_rate=Config.USAGE_LIMIT_DEFAULT_SHORT,
+                 long_window_rate=Config.USAGE_LIMIT_DEFAULT_LONG,
                  users_allowed="False",
                  reference='',
                  **kwargs):
