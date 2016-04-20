@@ -30,7 +30,13 @@ __author__ = 'andreap'
 
 
 def do_not_cache(request):
-    return '/request_token?' in str(request)
+    cache_skip = ['no_cache',
+                  '/request_token?',
+                  ]
+    for skip in cache_skip:
+        if skip in str(request):
+            return True
+    return False
 
 
 def create_app(config_name):
@@ -145,6 +151,16 @@ def create_app(config_name):
             app.logger.info("using internal datadog agent in debug mode")
         elif app.config['DATADOG_AGENT_HOST']:
             datadog_agent_host = app.config['DATADOG_AGENT_HOST']
+            '''check host is reachable'''
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((datadog_agent_host, 8125))
+                logger.debug('datadog host %s is reachable'%datadog_agent_host)
+            except socket.error as e:
+                logger.debug("Error on connect to datadog host %s: %s" % (datadog_agent_host,e))
+                datadog_agent_host = None
+            s.close()
             if datadog_agent_host is not None:
                 stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
                 app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
