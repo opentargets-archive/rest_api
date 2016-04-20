@@ -79,11 +79,11 @@ class Result(object):
                 key_set.update(flat.keys())
             ordered_keys=self.params.fields or sorted(list(key_set))
             ordered_keys = map(unicode,ordered_keys)
-            if self.params.fields:
-                if set(self.params.fields) - set(key_set):
-                    ordered_keys=sorted(list(key_set))
-                # logging.critical(
-                #     ' | '.join([str(key_set), str(self.params.fields), str(set(self.params.fields) - set(key_set))]))
+            # if self.params.fields:
+            #     if set(self.params.fields) - set(key_set):
+            #         ordered_keys=sorted(list(key_set))
+            #     # logging.critical(
+            #     #     ' | '.join([str(key_set), str(self.params.fields), str(set(self.params.fields) - set(key_set))]))
 
             writer = csv.DictWriter(output,
                                     ordered_keys,
@@ -92,7 +92,9 @@ class Result(object):
                                     quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL,
                                     doublequote=False,
-                                    escapechar='\\')
+                                    escapechar='\\',
+                                    extrasaction='ignore',
+                                    )
             writer.writeheader()
             for row in flattened_data:
                 writer.writerow(row)
@@ -103,7 +105,9 @@ class Result(object):
                                 quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL,
                                 doublequote=False,
-                                escapechar='\\')
+                                escapechar='\\',
+                                extrasaction = 'ignore',
+                                )
             for row in self.data:
                 writer.writerow(row)
         return output.getvalue()
