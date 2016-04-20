@@ -223,6 +223,58 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreater(filtered_json_response['total'],0)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
 
+    def testAssociationCsvExport(self):
+
+        disease = 'EFO_0000311'
+        size = 100
+        '''check size with no fields'''
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': size,
+                                            'format': 'csv',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        full_response = response.data.decode('utf-8')
+        '''check response size is equal to requeste size +header and empty final line'''
+        self.assertTrue(len(full_response.split('\n'))==(size+2))
+
+        '''check header order with requested fields'''
+        fields = ['association_score.datatypes.literature',
+                  'target.id',
+                  'disease.id',
+                  'association_score.overall']
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': size,
+                                            'format': 'csv',
+                                            'fields':fields,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        full_response = response.data.decode('utf-8')
+        '''check response size is equal to requeste size +header and empty final line'''
+        self.assertEqual(len(full_response.split('\n')), size + 2)
+        header = full_response.split('\n')[0].strip().split(',')
+        self.assertEqual(len(fields), len(header))
+        self.assertEqual(fields, header)
+        # for i in range(len(fields)):
+
+
+        '''check maximum request size'''
+        size = 10000
+        '''check size with no fields'''
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': size,
+                                            'format': 'csv',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        full_response = response.data.decode('utf-8')
+        '''check response size is equal to requeste size +header and empty final line'''
+        self.assertEqual(len(full_response.split('\n')), (size + 2))
+
 
 
 
