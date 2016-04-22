@@ -11,7 +11,8 @@ import json
 
 import time
 
-import ujson
+# import ujson as json
+import json as json
 
 import sys
 from flask import current_app
@@ -89,11 +90,11 @@ class InternalCache(object):
 
     def _encode(self, obj):
         # return base64.encodestring(pickle.dumps(obj, pickle.HIGHEST_PROTOCOL))
-        return ujson.dumps(obj)
+        return json.dumps(obj)
 
     def _decode(self, obj):
         # return pickle.loads(base64.decodestring(obj))
-        return ujson.loads(obj)
+        return json.loads(obj)
 
 
 class esQuery():
@@ -2226,11 +2227,3 @@ class AggregationBuilder(object):
     #         }
     #
     #     }
-
-
-
-
-
-
-
-
