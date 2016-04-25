@@ -1533,7 +1533,8 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _cached_search(self, *args, **kwargs):
         key = str(args)+str(kwargs)
-        res = self.cache.get(key)
+        #res = self.cache.get(key)
+        res=
         if res is None:
             start_time = time.time()
             res = self.handler.search(*args,**kwargs)
