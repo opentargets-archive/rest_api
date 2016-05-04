@@ -19,7 +19,7 @@ class GenericTestCase(unittest.TestCase):
         auth_credentials = {'domain': '',
                             'reference': 'andreap@ebi.ac.uk',
                             'app_name': 'api-test',
-                            'short_window_rate': '1000',
+                            'short_window_rate': '10000',
                             'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
                             'users_allowed': 'true',
                             'long_window_rate': '6000000'}

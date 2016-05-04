@@ -460,7 +460,7 @@ class esQuery():
                     "filter": {
                         "bool": {
                             "must": conditions
-                        }
+                        },
                     }
                 }
             },
@@ -475,6 +475,7 @@ class esQuery():
                                   timeout="10m",
 
                                       )
+
         return PaginatedResult(res, params, )
 
         #     res = helpers.scan(client= self.handler,
@@ -1534,7 +1535,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _cached_search(self, *args, **kwargs):
         key = str(args)+str(kwargs)
-        no_cache = Config.NO_CACHE_PARAMS in str(request)
+        no_cache = Config.NO_CACHE_PARAMS in request.values
         res = None
         if not no_cache:
             res = self.cache.get(key)
@@ -1543,6 +1544,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             res = self.handler.search(*args,**kwargs)
             took = int(round(time.time() - start_time))
             self.cache.set(key, res, took*60)
+        # self.handler.indices.clear_cache(index=Config.ELASTICSEARCH_DATA_INDEX_NAME)
         return res
 
     def _resolve_negable_parameter_set(self, params, include_negative=False):

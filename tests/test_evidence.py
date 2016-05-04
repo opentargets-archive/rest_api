@@ -1,4 +1,6 @@
 import unittest, json
+from pprint import pprint
+
 import requests
 import time
 
@@ -195,6 +197,35 @@ class EvidenceTestCase(GenericTestCase):
         self.assertEqual(default_json_response['total'],reordered_json_response['total'])
         self.assertNotEqual(default_json_response['data'][0]['id'],
                             reordered_json_response['data'][0]['id'])
+
+
+    def testEvidenceFieldsBug(self):
+        data = {'disease': 'EFO_0001444',
+                'size': 1000,
+                'target': 'ENSG00000170961',
+                'datasource': 'gwas_catalog',
+                'fields': ['disease',
+                 'evidence',
+                 'variant',
+                 'target',
+                 'sourceID',
+                 'access_level'],
+                'expandefo': 'true',
+                'no_cache': True,
+                }
+        response = None
+        for i in range(300):
+            old_data = None
+            if not response is None:
+                old_data  = json.dumps(json.loads(response.data.decode('utf-8'))['data'][0])
+            response = self._make_request('/api/latest/public/evidence/filter',
+                                        data=data,
+                                        token=self._AUTO_GET_TOKEN)
+            new_data = json.dumps(json.loads(response.data.decode('utf-8'))['data'][0])
+            if old_data:
+                print i, json.loads(response.data.decode('utf-8'))['took'], len(old_data), len(new_data)
+                self.assertEqual(old_data, new_data)
+            time.sleep(0.05)
 
 
 
