@@ -30,7 +30,7 @@ __author__ = 'andreap'
 
 
 def do_not_cache(request):
-    cache_skip = ['no_cache',
+    cache_skip = [Config.NO_CACHE_PARAMS,
                   '/request_token?',
                   ]
     for skip in cache_skip:

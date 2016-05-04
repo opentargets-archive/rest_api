@@ -78,6 +78,8 @@ class Config:
         'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
     }
     DATADOG_AGENT_HOST = 'dd-agent'#set to None to disable
+    NO_CACHE_PARAMS = 'no_cache'
+
 
 
     @staticmethod
