@@ -15,7 +15,7 @@ import time
 import json as json
 
 import sys
-from flask import current_app
+from flask import current_app, request
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
@@ -25,6 +25,7 @@ from app.common.results import PaginatedResult, SimpleResult, CountedResult, Emp
 from app.common.request_templates import FilterTypes
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
+from config import Config
 
 __author__ = 'andreap'
 
@@ -1533,8 +1534,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _cached_search(self, *args, **kwargs):
         key = str(args)+str(kwargs)
-        #res = self.cache.get(key)
-        res=None
+        no_cache = Config.NO_CACHE_PARAMS in str(request)
+        res = None
+        if not no_cache:
+            res = self.cache.get(key)
         if res is None:
             start_time = time.time()
             res = self.handler.search(*args,**kwargs)
