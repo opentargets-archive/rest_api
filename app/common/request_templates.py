@@ -1,3 +1,5 @@
+import copy
+
 from app.common.scoring_conf import ScoringMethods
 
 __author__ = 'andreap'
@@ -120,6 +122,7 @@ class SourceDataStructureOptions():
 
     @classmethod
     def _inject_association_score_implementation(cls,source, params):
+        source=copy.deepcopy(source)
         if params is not None:
             if isinstance(source, dict) and ('include' in source):
                 if params.fields:

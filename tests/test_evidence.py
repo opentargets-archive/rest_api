@@ -8,6 +8,7 @@ from flask import url_for
 
 from app import create_app
 from tests import GenericTestCase
+import grequests
 
 
 class EvidenceTestCase(GenericTestCase):
@@ -199,34 +200,45 @@ class EvidenceTestCase(GenericTestCase):
                             reordered_json_response['data'][0]['id'])
 
 
-    def testEvidenceFieldsBug(self):
-        data = {'disease': 'EFO_0001444',
-                'size': 1000,
-                'target': 'ENSG00000170961',
-                'datasource': 'gwas_catalog',
-                'fields': ['disease',
-                 'evidence',
-                 'variant',
-                 'target',
-                 'sourceID',
-                 'access_level'],
-                'expandefo': 'true',
-                'no_cache': True,
-                }
-        response = None
-        for i in range(300):
-            old_data = None
-            if not response is None:
-                old_data  = json.dumps(json.loads(response.data.decode('utf-8'))['data'][0])
-            response = self._make_request('/api/latest/public/evidence/filter',
-                                        data=data,
-                                        token=self._AUTO_GET_TOKEN)
-            new_data = json.dumps(json.loads(response.data.decode('utf-8'))['data'][0])
-            if old_data:
-                print i, json.loads(response.data.decode('utf-8'))['took'], len(old_data), len(new_data)
-                self.assertEqual(old_data, new_data)
-            time.sleep(0.05)
 
+    # def testEvidenceWebAppCalls(self):
+    #     web_app_calls = [
+    #         # '/api/latest/public/auth/request_token?app_name=cttv-web-app&secret=2J23T20O31UyepRj7754pEA2osMOYfFK',
+    #         '/api/latest/public/association/filter?target=ENSG00000101144&disease=EFO_0001444&facets=false&scorevalue_min=0',
+    #         '/api/latest/private/target/ENSG00000101144',
+    #         '/api/latest/private/disease/EFO_0001444',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=gwas_catalog&fields=disease&fields=evidence&fields=variant&fields=target&fields=sourceID&fields=access_level&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=cancer_gene_census&datasource=eva_somatic&fields=disease.efo_info&fields=evidence.evidence_codes_info&fields=evidence.urls&fields=evidence.known_mutations&fields=evidence.provenance_type&fields=evidence.known_mutations&fields=access_level&fields=unique_association_fields.mutation_type&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=uniprot&datasource=eva&datasource=uniprot_literature&fields=disease.efo_info&fields=evidence&fields=variant&fields=type&fields=access_level&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=phenodigm&fields=disease&fields=evidence&fields=scores&fields=access_level&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=expression_atlas&fields=disease&fields=evidence&fields=target&fields=access_level&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=1000&datasource=reactome&fields=target&fields=disease&fields=evidence&fields=access_level&expandefo=true',
+    #         '/api/latest/public/evidence/filter?target=ENSG00000101144&disease=EFO_0001444&size=200&datasource=europepmc&expandefo=true',
+    #         '/api/latest/private/disease/EFO_0001444',
+    #         '/api/latest/public/evidence/filter?size=1000&datasource=chembl&fields=disease.efo_info&fields=drug&fields=evidence&fields=target&fields=access_level&target=ENSG00000101144&disease=EFO_0001444&expandefo=true']
+    #
+    #     for i in range(1):
+    #         rs = (grequests.get('http://localhost:8008'+u) for u in web_app_calls)
+    #         print grequests.map(rs)
+    #
+    #         # for call in web_app_calls:
+    #         #     data = dict()
+    #         #     params = None
+    #         #     if '?' in call:
+    #         #         endpoint, params = call.split('?')
+    #         #     else:
+    #         #         endpoint = call
+    #         #     if params:
+    #         #         params = params.split('&')
+    #         #         for p in params:
+    #         #             k,v =p.split('=')
+    #         #             if k not in data:
+    #         #                 data[k]=[]
+    #         #             data[k].append(v)
+    #         #     response = self._make_request(endpoint,
+    #         #                                   data=data,
+    #         #                                   token=self._AUTO_GET_TOKEN)
+    #         #     self.assertEqual(response.status_code,200)
 
 
 
