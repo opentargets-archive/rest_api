@@ -3,7 +3,7 @@ import hashlib
 import pickle
 import pprint
 from collections import defaultdict
-from copy import copy
+import copy
 
 import logging
 import numpy as np
@@ -1544,7 +1544,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             res = self.handler.search(*args,**kwargs)
             took = int(round(time.time() - start_time))
             self.cache.set(key, res, took*60)
-        # self.handler.indices.clear_cache(index=Config.ELASTICSEARCH_DATA_INDEX_NAME)
         return res
 
     def _resolve_negable_parameter_set(self, params, include_negative=False):
