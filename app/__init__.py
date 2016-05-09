@@ -155,10 +155,10 @@ def create_app(config_name):
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
-                s.connect((datadog_agent_host, 8125))
-                logger.debug('datadog host %s is reachable'%datadog_agent_host)
+                s.connect((datadog_agent_host, 17123))
+                logger.info('datadog host %s is reachable'%datadog_agent_host)
             except socket.error as e:
-                logger.debug("Error on connect to datadog host %s: %s" % (datadog_agent_host,e))
+                logger.error("Error on connect to datadog host %s: %s" % (datadog_agent_host,e))
                 datadog_agent_host = None
             s.close()
             if datadog_agent_host is not None:
