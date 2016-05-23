@@ -24,7 +24,7 @@ info:
     change often and thus should not be relied upon.
     * __utils__ - Methods to get statistics and technical data about the API.
     * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key (you can request one
-    by [emailing us](mailto:support@targetvalidation.org)).
+    by completing [this form](http://goo.gl/forms/heGJvffv7PuUpWzG2)).
 
     Each of the available method is described in detail below.
 
@@ -64,9 +64,18 @@ info:
 
     The default usage limit will typically not impact a normal use of the REST API.
     If you are planning to do a large number of requests or are building an application leveraging our API,
-    we strongly encourage you to [email us](mailto:support@targetvalidation.org) and obtain an API key.
+    we strongly encourage you to complete [this form](http://goo.gl/forms/heGJvffv7PuUpWzG2) in order to obtain an API
+    key.
     Having a key will allow you to make many more requests than an anonymous user, and will solve the problem of many
-    accesses from the same IP.
+    requests reaching our servers from the same public IP, if you are behind a company/institution wide proxy.
+
+    If you have an API key you need to go through the authorization workflow to use it.
+    * Request a token with your credentials using the method /public/auth/request_token
+    * Read the token served in the response and pass it into any other following request as an `Auth-Token` header
+    * Once your token expires, you will get a 419 error. If it happens you need to request an other token.
+
+    Please Note that requesting a new token for each request is not recommended: it will impact your usage limit, and
+    will substantially slow down all the other calls.
 
     **We will never track the content of your API request** but only monitor aggregated statistics of the
     API endpoint usages in order to improve its performance in the future.
@@ -309,7 +318,7 @@ paths:
       parameters:
         - name: id
           in: query
-          description: not sure it is - TODO check the parameter list in the flask definition
+          description: an association ID usually in the form of `TARGET_ID-DISEASE_ID`
           required: true
           type: string
       responses:
@@ -624,16 +633,16 @@ paths:
           description: the secret you were given when registering your app.
           required: true
           type: string
-        - name: uid
-          in: query
-          description: the id of the user that is using your app
-          required: false
-          type: string
-        - name: password
-          in: query
-          description: the password of the user that is using your app
-          required: false
-          type: string
+        #- name: uid
+        #  in: query
+        #  description: the id of the user that is using your app
+        #  required: false
+        #  type: string
+        #- name: password
+        #  in: query
+        #  description: the password of the user that is using your app
+        #  required: false
+        #  type: string
         - name: expiry
           in: query
           description: seconds before the token expires
