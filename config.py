@@ -89,7 +89,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -114,7 +114,7 @@ class DockerLinkedConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9201/'
+    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
