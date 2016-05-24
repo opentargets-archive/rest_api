@@ -67,7 +67,7 @@ class Result(object):
         output = BytesIO()
         if self.data is None:
             self.flatten(self.toDict())  # populate data if empty
-        if isinstance(self.data[0], dict):
+        if self.data and isinstance(self.data[0], dict):
             key_set = set()
             flattened_data = []
             for row in self.data:
@@ -94,7 +94,7 @@ class Result(object):
             for row in flattened_data:
                 writer.writerow(row)
 
-        if isinstance(self.data[0], list):
+        if self.data and isinstance(self.data[0], list):
             writer = csv.writer(output,
                                 delimiter=delimiter,
                                 quotechar='"',
