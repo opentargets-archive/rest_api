@@ -17,6 +17,7 @@ from elasticsearch import Elasticsearch
 from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
+from app.common.datadog_signals import LogException
 # from flask.ext.cors import CORS
 # from flask_limiter import Limiter
 # from flask.ext.login import LoginManager
@@ -37,6 +38,10 @@ def do_not_cache(request):
         if skip in str(request):
             return True
     return False
+
+
+def log_exception_to_datadog(sender, exception, **extra):
+    LogException(exception)
 
 
 def create_app(config_name):
@@ -165,6 +170,11 @@ def create_app(config_name):
                 stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
                 app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
         app.extensions['datadog'] = stats
+        if stats is not None:
+            '''log errors to datadog'''
+            from flask import got_request_exception
+            got_request_exception.connect(log_exception_to_datadog, app)
+
 
     else:
          app.extensions['datadog'] = None
@@ -257,6 +267,7 @@ def create_app(config_name):
         else:
             resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*1800/1000, took*9000/1000))
         return resp
+
 
 
     return app
