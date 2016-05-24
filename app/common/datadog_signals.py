@@ -112,3 +112,37 @@ class LogApiTokenInvalidDomain(BaseDatadogSignal):
                              alert_type='error')
             self.stats.increment('api.auth.token.invalid.domain',
                             tags=tags,)
+
+class LogException(BaseDatadogSignal):
+    def __init__(self,
+                 exception):
+
+        super(LogException, self).__init__()
+        if self.stats:
+            title = "Exception in REST API"
+            import traceback
+            try:
+                raise exception
+            except:
+                tb = traceback.format_exc(limit=3)
+                #TODO: the traceback reporting is not working as expexted. might need to be called from a subclassed Flask app, and not from a signal
+                #http://flask.pocoo.org/snippets/127/
+            text = json.dumps(dict(traceback= tb,
+                                   url = str(request.url),
+                                   method = str(request.method),
+                                   args = request.args,
+                                   exception_class = exception.__class__.__name__,
+                                   exception = '%s: %s'%(exception.__class__.__name__, str(exception)),
+                                   )
+                              )
+            tags = ['version:'+str(Config.API_VERSION),
+                    'application:rest-api',
+                    exception.__class__.__name__
+                    ]
+
+            self.stats.event(title=title,
+                             text=text,
+                             tags=tags,
+                             alert_type='error')
+            self.stats.increment('api.error',
+                            tags=tags,)
