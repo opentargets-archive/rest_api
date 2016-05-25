@@ -20,7 +20,7 @@ an higher throughput is allowed
 
 class RateLimiter(object):
 
-    _RATE_LIMIT_NAMESPACE= 'REST_API_RATE_LIMIT_v' + Config.API_VERSION
+    _RATE_LIMIT_NAMESPACE= 'REST_API_RATE_LIMIT_v' + Config.API_VERSION_MINOR
     SHORT_WINDOW_SIZE = 10 #10 seconds
     LONG_WINDOW_SIZE = 60*60 #1 hour
     DEFAULT_CALL_WEIGHT = 10
