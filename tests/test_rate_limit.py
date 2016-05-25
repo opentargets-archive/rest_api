@@ -28,7 +28,6 @@ class RateLimitTestCase(GenericTestCase):
             status_code = response.status_code
             if status_code == 429:
                 break
-        print req_count
 
         self.assertTrue(response.status_code == 429)
         # self.assertEqual(len(json_response['token'].split('.')), 3, 'token is in JWT format')

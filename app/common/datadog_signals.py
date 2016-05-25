@@ -1,5 +1,7 @@
 # Configure the module according to your needs
 from flask import request, current_app
+from werkzeug.exceptions import HTTPException
+
 from config import Config
 from datadog import initialize, ThreadStats, api
 import ujson as json
@@ -127,22 +129,31 @@ class LogException(BaseDatadogSignal):
                 tb = traceback.format_exc(limit=3)
                 #TODO: the traceback reporting is not working as expexted. might need to be called from a subclassed Flask app, and not from a signal
                 #http://flask.pocoo.org/snippets/127/
-            text = json.dumps(dict(traceback= tb,
-                                   url = str(request.url),
-                                   method = str(request.method),
-                                   args = request.args,
-                                   exception_class = exception.__class__.__name__,
-                                   exception = '%s: %s'%(exception.__class__.__name__, str(exception)),
-                                   )
-                              )
+
+            plain_exception = '%s: %s'%(exception.__class__.__name__, str(exception))
+            text = json.dumps(dict(#traceback= tb,
+                                       url = str(request.url),
+                                       method = str(request.method),
+                                       args = request.args,
+                                       headers = request.headers.items(),
+                                       exception_class = exception.__class__.__name__,
+                                       exception = plain_exception,
+                                       )
+                                  )
             tags = ['version:'+str(Config.API_VERSION),
                     'application:rest-api',
                     exception.__class__.__name__
                     ]
 
+            alert_type ='error'
+            if isinstance(exception, HTTPException):
+                if str(exception.code)[0] =='4':
+                    alert_type = 'warning'
+                    title = '4XX error in REST API'
+
             self.stats.event(title=title,
                              text=text,
                              tags=tags,
-                             alert_type='error')
+                             alert_type=alert_type)
             self.stats.increment('api.error',
                             tags=tags,)
