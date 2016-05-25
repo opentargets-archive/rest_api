@@ -17,7 +17,7 @@ from config import Config
 __author__ = 'andreap'
 
 class AuthKey(object):
-    _AUTH_KEY_NAMESPACE='REST_API_AUTH_KEY_v'+Config.API_VERSION
+    _AUTH_KEY_NAMESPACE='REST_API_AUTH_KEY_v'+Config.API_VERSION_MINOR
 
     def __init__(self,
                  app_name='',

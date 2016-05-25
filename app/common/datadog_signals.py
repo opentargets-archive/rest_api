@@ -21,7 +21,7 @@ class RateLimitExceeded(BaseDatadogSignal):
         if self.stats:
             title = "Api limit exceeded"
             text = json.dumps(rate_limiter.__dict__)
-            tags = ['version:'+str(Config.API_VERSION),
+            tags = ['version:'+str(Config.API_VERSION_MINOR),
                     'application:rest-api',
                     'api-key:'+rate_limiter._auth_key.id]
 
@@ -39,7 +39,7 @@ class LogApiCallWeight(BaseDatadogSignal):
                  value):
         super(LogApiCallWeight, self).__init__()
         if self.stats:
-            tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
+            tags = ['version:'+str(Config.API_VERSION_MINOR), 'application:rest-api']
 
             self.stats.increment('api.call.weight',
                             value=value,
@@ -49,7 +49,7 @@ class LogApiCallCount(BaseDatadogSignal):
     def __init__(self, rate_limiter):
         super(LogApiCallCount, self).__init__()
         if self.stats:
-            tags = ['version:'+str(Config.API_VERSION),
+            tags = ['version:'+str(Config.API_VERSION_MINOR),
                     'application:rest-api',
                     'api-key:'+rate_limiter._auth_key.id,
                     'method:'+request.environ['REQUEST_METHOD'],
@@ -64,7 +64,7 @@ class LogApiTokenServed(BaseDatadogSignal):
     def __init__(self,):
         super(LogApiTokenServed, self).__init__()
         if self.stats:
-            tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
+            tags = ['version:'+str(Config.API_VERSION_MINOR), 'application:rest-api']
 
             self.stats.increment('api.auth.token.served',
                             tags=tags,)
@@ -73,7 +73,7 @@ class LogApiTokenExpired(BaseDatadogSignal):
     def __init__(self,):
         super(LogApiTokenExpired, self).__init__()
         if self.stats:
-            tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
+            tags = ['version:'+str(Config.API_VERSION_MINOR), 'application:rest-api']
 
             self.stats.increment('api.auth.token.expired',
                             tags=tags,)
@@ -88,7 +88,7 @@ class LogApiTokenInvalid(BaseDatadogSignal):
 
             title = "Invalid token used"
             text = json.dumps(message)
-            tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
+            tags = ['version:'+str(Config.API_VERSION_MINOR), 'application:rest-api']
 
             self.stats.event(title=title,
                              text=text,
@@ -106,7 +106,7 @@ class LogApiTokenInvalidDomain(BaseDatadogSignal):
 
             title = "Invalid token used"
             text = json.dumps(message)
-            tags = ['version:'+str(Config.API_VERSION), 'application:rest-api']
+            tags = ['version:'+str(Config.API_VERSION_MINOR), 'application:rest-api']
 
             self.stats.event(title=title,
                              text=text,
@@ -140,7 +140,7 @@ class LogException(BaseDatadogSignal):
                                        exception = plain_exception,
                                        )
                                   )
-            tags = ['version:'+str(Config.API_VERSION),
+            tags = ['version:'+str(Config.API_VERSION_MINOR),
                     'application:rest-api',
                     exception.__class__.__name__
                     ]

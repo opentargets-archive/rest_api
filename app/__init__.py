@@ -49,6 +49,7 @@ def create_app(config_name):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
+    api_version_minor = app.config['API_VERSION_MINOR']
 
 
     log_level = logging.INFO
@@ -71,7 +72,7 @@ def create_app(config_name):
     app.extensions['redis-service'].config_set('save','')
     app.extensions['redis-service'].config_set('appendonly', 'no')
     icache = InternalCache(app.extensions['redis-service'],
-                           str(api_version))
+                           str(api_version_minor))
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
                        # # sniff before doing anything
                        # sniff_on_start=True,
@@ -186,6 +187,7 @@ def create_app(config_name):
 
     latest_blueprint = Blueprint('latest', __name__)
     current_version_blueprint = Blueprint(str(api_version), __name__)
+    current_minor_version_blueprint = Blueprint(str(api_version_minor), __name__)
 
 
     specpath = '/cttv'
@@ -199,10 +201,15 @@ def create_app(config_name):
 
     create_api(latest_blueprint, api_version, specpath)
     create_api(current_version_blueprint, api_version, specpath)
+    create_api(current_minor_version_blueprint, api_version_minor, specpath)
 
     app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
     app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
+    app.register_blueprint(current_minor_version_blueprint, url_prefix='/api/'+str(api_version_minor))
 
+    @app.route('/api-docs/%s' % str(api_version_minor))
+    def docs_current_minor_version():
+        return redirect('/api/swagger/index.html')
 
     @app.route('/api-docs/%s'%str(api_version))
     def docs_current_version():
