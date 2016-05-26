@@ -20,7 +20,7 @@ from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
     AssociationSortOptions, EvidenceSortOptions
-from app.common.response_templates import Association, DataStats
+from app.common.response_templates import Association, DataStats, Relation, RelationTypes
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.request_templates import FilterTypes
 from app.common.scoring import Scorer
@@ -1590,6 +1590,112 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             }
 
         return dict()
+
+    def get_targets_related_to_target(self, target_id):
+
+        disease_profile = self._get_associated_diseases([target_id])
+        scored_relations = self._get_associated_target_for_disease_profile(disease_profile)
+        # scored_relations = self._score_relation(target_id,matching_targets)
+
+        relations = [Relation(target_id,i[0],RelationTypes.SHARED_DISEASES,value=i[1]).to_dict() for i in scored_relations]
+        return CountedResult(None, data =relations)
+
+    def _get_associated_diseases(self, target_ids):
+        data = []
+        res = self._cached_search(index=self._index_association,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "bool": {
+                                                      "must": [
+                                                          self.get_complex_target_filter(target_ids),
+                                                          {"term": {"is_direct": True}},
+                                                      ]
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': 100000,
+                                      '_source': ["disease.id", "harmonic-sum.overall"],
+
+                                  })
+        if res['hits']['total']:
+            data = dict([[hit['_source']['disease']['id'], hit['_source']['harmonic-sum']['overall']] for hit in res['hits']['hits']])
+        return data
+
+    def _get_associated_target_for_disease_profile(self, disease_profile):
+        def cap_float(f):
+            if f>1:
+                return 1.
+            return f
+        data = []
+
+        res = helpers.scan(client=self.handler,
+                           query={
+                               "query": {
+                                   "filtered": {
+                                       "filter": {
+                                           "bool": {
+                                               "should": [
+                                                   self.get_complex_disease_filter(disease_profile.keys(),
+                                                                                   is_direct=True),
+                                               ]
+                                           }
+                                       }
+                                   }
+                               },
+                               'size': 10000,
+                               '_source': ["target.id", "disease.id", "harmonic-sum.overall"],
+
+                           },
+                           scroll='1h',
+                           # doc_type=Config.ELASTICSEARCH_VALIDATED_DATA_DOC_NAME,
+                           index=self._index_association,
+                           timeout="10m",
+                           )
+
+        # for hit in res:
+        #     yield hit['_source']
+        #
+        # res = self._cached_search(index=self._index_association,
+        #                           body={
+        #                               "query": {
+        #                                   "filtered": {
+        #                                       "filter": {
+        #                                           "bool": {
+        #                                               "should": [
+        #                                                   self.get_complex_disease_filter(disease_profile.keys(),
+        #                                                                                   is_direct=True),
+        #                                               ]
+        #                                           }
+        #                                       }
+        #                                   }
+        #                               },
+        #                               'size': 300000,
+        #                               '_source': ["target.id","disease.id", "harmonic-sum.overall"],
+        #
+        #                           })
+        scored_targets = dict()
+        for hit in res:
+            # print hit['_source']['harmonic-sum']['overall'], disease_profile[hit['_source']['disease']['id']], (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease']['id']])))/len(disease_profile)
+            target = hit['_source']['target']['id']
+            score = (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease']['id']])))/len(disease_profile)
+            if target not in scored_targets:
+                scored_targets[target] = 0.
+            scored_targets[target] += score
+        if scored_targets:
+            data = sorted(scored_targets.items(), key=lambda x: x[1], reverse=True)
+        return data
+
+    def _score_relation(self, target_id, matching_targets):
+        scored_targets = dict()
+        for target, score in matching_targets:
+            if target not in scored_targets:
+                scored_targets[target]=0.
+            scored_targets[target] += score
+        flattened_targets = sorted(scored_targets.items(),key=lambda x: x[1], reverse=True)
+        return flattened_targets
 
 
 class SearchParams():
