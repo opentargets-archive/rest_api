@@ -17,7 +17,6 @@ __author__ = 'andreap'
 class RelationTarget(restful.Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
 
     @is_authenticated
     @rate_limit
@@ -31,3 +30,20 @@ class RelationTarget(restful.Resource):
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(target_id))
         return CTTVResponse.OK(res)
+
+class RelationDisease(restful.Resource):
+
+        parser = reqparse.RequestParser()
+
+        @is_authenticated
+        @rate_limit
+        def get(self, disease_id):
+            """
+            Given a target id, return related targets
+            """
+            es = current_app.extensions['esquery']
+
+            res = es.get_diseases_related_to_disease(disease_id)
+            if not res:
+                abort(404, message='Cannot find relations for id %s' % str(target_id))
+            return CTTVResponse.OK(res)
