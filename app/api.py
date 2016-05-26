@@ -30,7 +30,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
-    from app.resources.relation import RelationTarget
+    from app.resources.relation import RelationTarget, RelationDisease
     from app.resources.stats import Stats
 
     # api.add_resource(AvailableGenes,
@@ -78,6 +78,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/stats')
     api.add_resource(RelationTarget,
                      '/private/relation/target/<string:target_id>')
+    api.add_resource(RelationDisease,
+                     '/private/relation/disease/<string:disease_id>')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')
