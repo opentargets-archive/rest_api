@@ -90,7 +90,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
+    ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -115,14 +115,14 @@ class DockerLinkedConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = 'http://127.0.0.1:9200/'
+    ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
 class StagingConfig(Config):
-    ELASTICSEARCH_URL = 'http://elasticsearch-9200.staging.cttv.local:9200/'
+    ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
     LOGSTASH_HOST = '192.168.0.168'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours

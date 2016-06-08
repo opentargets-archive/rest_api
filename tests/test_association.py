@@ -60,7 +60,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterTargetFacet(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
-                                      data={'target':target, 'facets':True},
+                                      data={'target':target, 'facets':True, 'no_cache':True},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
