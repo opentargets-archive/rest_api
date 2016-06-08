@@ -347,16 +347,18 @@ class esQuery():
 
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
+        if not isinstance(efo_codes, list):
+            efo_codes = [efo_codes]
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body={'filter': {
-                                          "ids": {
-                                              "values": [efo_codes]
+                                      body={'query': {
+                                              "ids": {
+                                                  "values": efo_codes
+                                              },
                                           },
-                                      },
-                                          'size': 100000
-                                      }
+                                          'size': 10000
+                                        }
                                       )
             if res['hits']['total']:
                 if res['hits']['total'] == 1:
@@ -1038,12 +1040,12 @@ class esQuery():
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["disease.id"],
                                       "aggs": {"efo_codes": {
                                           "terms": {
                                               "field": "disease.id",
-                                              'size': 100000,
+                                              'size': 10000,
 
                                           },
                                       }
@@ -1101,7 +1103,7 @@ class esQuery():
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["id"],
 
                                   })
@@ -1176,24 +1178,14 @@ class esQuery():
             res = self._cached_search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
-                                          "filtered": {
-                                              # "query": {
-                                              #     "match_all": {}
-                                              # },
-                                              "filter": {
-                                                  "ids": {
-                                                      "values": reactome_ids
-
+                                              "ids": {
+                                                  "values": reactome_ids
                                                   }
-                                              }
-                                          }
-                                      },
-
-                                          '_source': ['label'],
-                                          'size': 100000,
+                                              },
+                                          '_source': {"include": ['label']},
+                                          'size': 10000,
                                           'from': 0,
-
-                                      }
+                                          }
                                       )
             if res['hits']['total']:
                 for hit in res['hits']['hits']:
@@ -1372,7 +1364,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["id"],
 
                                   })
@@ -1621,7 +1613,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["disease.id", "harmonic-sum.overall"],
 
                                   })
@@ -1708,7 +1700,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["target.id", "harmonic-sum.overall"],
 
                                   })
