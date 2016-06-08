@@ -37,7 +37,7 @@ COPY docker-conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker-conf/nginx.conf /etc/nginx/
 COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
 COPY docker-conf/nginx-servers.conf /etc/nginx/sites-enabled/
-COPY docker-conf/server.cert /var/www/app
+COPY docker-conf/server.crt /var/www/app
 COPY docker-conf/server.key /var/www/app
 
 #install app requirements
