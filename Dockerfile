@@ -18,8 +18,7 @@ RUN apt-get update && \
     nginx-extras
 
 RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
-  python get-pip.py && \
-  pip install uWSGI==2.0.9 Flask==0.10.1
+  python get-pip.py
 
 
 # setup
