@@ -8,7 +8,7 @@ info:
 
     The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
     to allow a programmatic retrieval of data served by the Target Validation Platform Web App.
-    The API is accessible at https://www.targetvalidation.com/api only via the HTTPS protocol.
+    The API is accessible at https://www.targetvalidation.org/api only via the HTTPS protocol.
 
     This page documents the methods available with an interactive interface that lets you query directly the API.
     For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
