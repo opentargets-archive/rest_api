@@ -32,10 +32,10 @@ info:
 
     ### Supported formats
 
-    All the methods are vailable via a `GET` request and will serve the output formatted as `json`. For some methods
-    alternative formats are available in order to have a response as `xml` or in a tabluar format as  `csv` or
+    All the methods are available via a `GET` request and will serve the output formatted as `json`. For some methods
+    alternative formats are available in order to have a response as `xml` or in a tabular format as  `csv` or
     `tab-separated-values`.  However, please note that alternative response formats are available only when calling the API directly and will not work in this page. The response here will always be in JSON format.
-    Some methods are available as a `POST` request, to simplyfy complex query submissions. `POST` methods requires a
+    Some methods are available as a `POST` request, to simplify complex query submissions. `POST` methods requires a
     body encoded as `json`.
     E.g. to query for a specific disease an example call might be
 
