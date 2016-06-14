@@ -380,11 +380,6 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: fields
-          in: query
-          description: fields you want to retrieve. this will get priority over the datastructure requested
-          required: false
-          type: string
         - name: facets
           in: query
           description: returns facets
@@ -486,30 +481,48 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /private/disease:
+  /private/disease/{disease}:
     get:
       tags:
         - private
       description: |
         Gets `disease` objects
+      parameters:
+        - name: disease
+          in: path
+          type: string
+          required: true
+          description: The EFO ID of the disease of interest.
       responses:
         200:
           description: Successful response
-  /private/eco:
+  /private/eco/{ECO_ID}:
     get:
       tags:
         - private
       description: |
         Gets `eco` objects
+      parameters:
+        - name: ECO_ID
+          in: path
+          type: string
+          required: true
+          description: An [evidence code ontology](http://www.ebi.ac.uk/ols/v2/browse.do?ontName=ECO) ID
       responses:
         200:
           description: Successful response
-  /private/target:
+  /private/target/{target}:
     get:
       tags:
         - private
       description: |
         Gets `target` objects
+      parameters:
+        - name: target
+          in: path
+          required: true
+          description: The ensembl gene ID for the target of interest.
+          type: string
       responses:
         200:
           description: Successful response
@@ -660,7 +673,8 @@ paths:
         - utils
         - auth
       description: |
-        Succed if token is valid
+        Succeed if token is valid. You should test this call by passing the token in the header
+        as 'Auth-Token'
       responses:
         200:
           description: Successful response
