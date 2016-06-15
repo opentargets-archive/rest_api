@@ -94,6 +94,7 @@ def create_app(config_name):
                                         index_reactome=app.config['ELASTICSEARCH_REACTOME_INDEX_NAME'],
                                         index_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME'],
                                         index_search=app.config['ELASTICSEARCH_DATA_SEARCH_INDEX_NAME'],
+                                        index_relation=app.config['ELASTICSEARCH_DATA_RELATION_INDEX_NAME'],
                                         docname_data=app.config['ELASTICSEARCH_DATA_DOC_NAME'],
                                         docname_efo=app.config['ELASTICSEARCH_EFO_LABEL_DOC_NAME'],
                                         docname_eco=app.config['ELASTICSEARCH_ECO_DOC_NAME'],
@@ -102,6 +103,7 @@ def create_app(config_name):
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
+                                        docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
                                         log_level=log_level,
                                         cache = icache
                                         )

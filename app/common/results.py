@@ -155,10 +155,10 @@ class PaginatedResult(Result):
             else:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
         else:
-            if self.params.datastructure == SourceDataStructureOptions.SIMPLE:
+            if self.params and self.params.datastructure == SourceDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
         if self.facets is None:
-            if 'aggregations' in self.res:
+            if self.res and 'aggregations' in self.res:
                 self.facets = self.res['aggregations']
 
         return {'data': self.data,

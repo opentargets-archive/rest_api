@@ -111,6 +111,7 @@ class esQuery():
                  index_reactome=None,
                  index_association=None,
                  index_search=None,
+                 index_relation=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
@@ -119,6 +120,7 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
+                 docname_relation=None,
                  cache = None,
                  log_level=logging.DEBUG):
         '''
@@ -142,6 +144,7 @@ class esQuery():
         self._index_reactome = index_reactome
         self._index_association = index_association
         self._index_search = index_search
+        self._index_relation = index_relation
 
         self._docname_data = docname_data
         self._docname_efo = docname_efo
@@ -151,6 +154,7 @@ class esQuery():
         self._docname_reactome = docname_reactome
         self._docname_association = docname_association
         self._docname_search = docname_search
+        self._docname_relation = docname_relation
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
@@ -161,7 +165,7 @@ class esQuery():
             # es_logger = logging.getLogger('elasticsearch')
             # for handler in es_logger.handlers:
             #     handler.setFormatter(formatter)
-            # es_logger.setLevel(log_level)
+            # es_logger.setLevel(logging.DEBUG)
             # es_tracer = logging.getLogger('elasticsearch.trace')
             # es_tracer.setLevel(logging.DEBUG)
             # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
@@ -169,7 +173,7 @@ class esQuery():
             #     handler.setFormatter(formatter)
 
     def free_text_search(self, searchphrase,
-                         doc_filter=[FreeTextFilterOptions.ALL],
+                         doc_filter=(FreeTextFilterOptions.ALL),
                          **kwargs):
         '''
         Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list
@@ -677,6 +681,37 @@ class esQuery():
                                       "target.id": [target]}
                               }
                               for target in targets]
+                    }
+                }
+        return dict()
+
+    def get_complex_subject_filter(self,
+                                  subject_ids,
+                                  bol=BooleanFilterOperator.OR,
+                                  include_negative=False,
+                                  ):
+
+
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param subject_ids: list of ids as subject
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        subject_ids = self._resolve_negable_parameter_set(subject_ids, include_negative)
+        if subject_ids:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    "terms": {"subject.id": subject_ids}
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "terms": {
+                                      "subject.id": [subject_id]}
+                              }
+                              for subject_id in subject_ids]
                     }
                 }
         return dict()
@@ -1582,6 +1617,38 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             }
 
         return dict()
+
+    def get_relations(self, subject_ids, **kwargs):
+        data = []
+        params = SearchParams(**kwargs)
+        params.sort=['scores.jaccard']
+        query_body = {
+            "query": self.get_complex_subject_filter(subject_ids),
+
+            'size': params.size,
+            'from': params.start_from,
+            "sort": self._digest_sort_strings(params),
+            '_source': True,
+
+            }
+
+
+        res = self._cached_search(index=self._index_relation,
+                                    body=query_body,
+                                      )
+        data = []
+        if res['hits']['total']:
+            for hit in res['hits']['hits']:
+                d = hit['_source']
+                r = Relation(**d)
+                r.value = d['scores']['jaccard']
+                data.append(r.to_dict())
+
+        return PaginatedResult(res,
+                               params,
+                               data,
+                               )
+
 
     def get_targets_related_to_target(self, target_id):
 

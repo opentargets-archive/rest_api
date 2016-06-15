@@ -31,6 +31,8 @@ class Config:
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
     ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
+    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + 'relation-data.test3'
+    ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     DEBUG = False
     TESTING = False
     PROFILE = False
@@ -38,7 +40,7 @@ class Config:
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.1'
-    API_VERSION_MINOR = '1.1.0'
+    API_VERSION_MINOR = '1.1.1'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
