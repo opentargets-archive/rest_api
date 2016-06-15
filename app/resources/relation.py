@@ -16,8 +16,6 @@ __author__ = 'andreap'
 
 class RelationTarget(restful.Resource):
 
-    parser = reqparse.RequestParser()
-
     @is_authenticated
     @rate_limit
     def get(self, target_id):
@@ -25,15 +23,15 @@ class RelationTarget(restful.Resource):
         Given a target id, return related targets
         """
         es = current_app.extensions['esquery']
+        parser = boilerplate.get_parser()
+        args = parser.parse_args()
 
-        res = es.get_targets_related_to_target(target_id)
+        res = es.get_relations([target_id], **args)
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(target_id))
         return CTTVResponse.OK(res)
 
 class RelationDisease(restful.Resource):
-
-        parser = reqparse.RequestParser()
 
         @is_authenticated
         @rate_limit
@@ -42,8 +40,10 @@ class RelationDisease(restful.Resource):
             Given a target id, return related targets
             """
             es = current_app.extensions['esquery']
+            parser = boilerplate.get_parser()
+            args = parser.parse_args()
 
-            res = es.get_diseases_related_to_disease(disease_id)
+            res = es.get_relations([disease_id], **args)
             if not res:
-                abort(404, message='Cannot find relations for id %s' % str(target_id))
+                abort(404, message='Cannot find relations for id %s' % str(disease_id))
             return CTTVResponse.OK(res)
