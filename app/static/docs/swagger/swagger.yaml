@@ -8,12 +8,14 @@ info:
 
     The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
     to allow a programmatic retrieval of data served by the Target Validation Platform Web App.
-    The API is accessible at https://www.targetvalidation.org/api only via the HTTPS protocol.
+    Calls to the API are made using the base URL `https://www.targetvalidation.org/api/latest` only via the HTTPS protocol.
+    A specific version of the API can be reached by changing `latest` to the version desired.
+    For instance `https://www.targetvalidation.org/api/1.1` will leverage v1.1 of the API.
 
     This page documents the methods available with an interactive interface that lets you query directly the API.
     For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
     can copy and paste directly to a shell to obtain the same results without using a browser.
-    More comprehensive tuotorials are available [here](https://blog.opentargets.org/tag/api).
+    More comprehensive tutorials are available [here](https://blog.opentargets.org/tag/api).
 
     ### Available Methods
 
@@ -30,10 +32,10 @@ info:
 
     ### Supported formats
 
-    All the methods are vailable via a `GET` request and will serve the output formatted as `json`. For some methods
-    alternative formats are available in order to have a response as `xml` or in a tabluar format as  `csv` or
+    All the methods are available via a `GET` request and will serve the output formatted as `json`. For some methods
+    alternative formats are available in order to have a response as `xml` or in a tabular format as  `csv` or
     `tab-separated-values`.  However, please note that alternative response formats are available only when calling the API directly and will not work in this page. The response here will always be in JSON format.
-    Some methods are available as a `POST` request, to simplyfy complex query submissions. `POST` methods requires a
+    Some methods are available as a `POST` request, to simplify complex query submissions. `POST` methods requires a
     body encoded as `json`.
     E.g. to query for a specific disease an example call might be
 
@@ -84,7 +86,7 @@ info:
     love to hear how we could make the API more useful in our next release.
 
     ### More examples
-    Head to our [getting strarted tutorial](https://blog.opentargets.org/api-getting-started-1) for more
+    Head to our [getting started tutorial](https://blog.opentargets.org/api-getting-started-1) for more
     examples on how to use the API and code snippets which can be used to construct more complex queries.
   license:
     name: Apache 2.0
@@ -378,11 +380,6 @@ paths:
           description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
-        - name: fields
-          in: query
-          description: fields you want to retrieve. this will get priority over the datastructure requested
-          required: false
-          type: string
         - name: facets
           in: query
           description: returns facets
@@ -484,30 +481,48 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /private/disease:
+  /private/disease/{disease}:
     get:
       tags:
         - private
       description: |
         Gets `disease` objects
+      parameters:
+        - name: disease
+          in: path
+          type: string
+          required: true
+          description: The EFO ID of the disease of interest.
       responses:
         200:
           description: Successful response
-  /private/eco:
+  /private/eco/{ECO_ID}:
     get:
       tags:
         - private
       description: |
         Gets `eco` objects
+      parameters:
+        - name: ECO_ID
+          in: path
+          type: string
+          required: true
+          description: An [evidence code ontology](http://www.ebi.ac.uk/ols/v2/browse.do?ontName=ECO) ID
       responses:
         200:
           description: Successful response
-  /private/target:
+  /private/target/{target}:
     get:
       tags:
         - private
       description: |
         Gets `target` objects
+      parameters:
+        - name: target
+          in: path
+          required: true
+          description: The ensembl gene ID for the target of interest.
+          type: string
       responses:
         200:
           description: Successful response
@@ -658,7 +673,8 @@ paths:
         - utils
         - auth
       description: |
-        Succed if token is valid
+        Succeed if token is valid. You should test this call by passing the token in the header
+        as 'Auth-Token'
       responses:
         200:
           description: Successful response
