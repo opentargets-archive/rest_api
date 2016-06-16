@@ -219,14 +219,13 @@ class Relation(object, ):
                  type=RelationTypes.UNKNOWN,
                  direction = RelationDirection.UNKNOWN,
                  value = 0.,
-                 *args,
                  **kwargs):
         self.subject = subject
         self.object = object
         self.type = type
         self.direction = direction
         self.value = value
-
+        self.__dict__.update(**kwargs)
 
     def to_dict(self):
         return self.__dict__
