@@ -1619,12 +1619,13 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         return dict()
 
     def get_relations(self, subject_ids, **kwargs):
-        data = []
         params = SearchParams(**kwargs)
-        params.sort=['scores.jaccard']
+        # query_body = {"match_all": {}}
+        # if params.search:
+        #     query_body = {"match_phrase_prefix": {"_all": {"query": params.search}}}
+
         query_body = {
             "query": self.get_complex_subject_filter(subject_ids),
-
             'size': params.size,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params),
@@ -1641,7 +1642,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             for hit in res['hits']['hits']:
                 d = hit['_source']
                 r = Relation(**d)
-                r.value = d['scores']['jaccard']
+                r.value = d['scores']['euclidean']
                 data.append(r.to_dict())
 
         return PaginatedResult(res,
