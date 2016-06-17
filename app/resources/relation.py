@@ -24,6 +24,10 @@ class RelationTarget(restful.Resource):
         """
         es = current_app.extensions['esquery']
         parser = boilerplate.get_parser()
+        parser.add_argument('sort', type=str, required=False, action='append',
+                            help="sort the results by this score type", default=['scores.euclidean']
+                            )
+        parser.add_argument('search', type=str, required=False, help="filter the results by fulltext matching")
         args = parser.parse_args()
 
         res = es.get_relations([target_id], **args)
@@ -41,6 +45,9 @@ class RelationDisease(restful.Resource):
             """
             es = current_app.extensions['esquery']
             parser = boilerplate.get_parser()
+            parser.add_argument('sort', type=str, required=False, action='append',
+                                help="sort the results by this score type", default=['scores.euclidean'])
+            parser.add_argument('search', type=str, required=False, help="filter the results by fulltext matching")
             args = parser.parse_args()
 
             res = es.get_relations([disease_id], **args)
