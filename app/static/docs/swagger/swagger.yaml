@@ -71,9 +71,34 @@ info:
     Having a key will allow you to make many more requests than an anonymous user, and will solve the problem of many
     requests reaching our servers from the same public IP, if you are behind a company/institution wide proxy.
 
-    If you have an API key you need to go through the authorization workflow to use it.
+    If you have an API key (consisting of 'app_name' and 'secret') you need to go through the authorization workflow to use it.
     * Request a token with your credentials using the method /public/auth/request_token
+    ```
+    import requests
+    API='https://www.targetvalidation.org/api/latest/'
+
+    jwt = requests.get(API + 'public/auth/request_token',
+                     params={'app_name':<appname>,'secret':<secret>})
+
+    print(jwt.json())
+    ```
     * Read the token served in the response and pass it into any other following request as an `Auth-Token` header
+    ```
+    import requests
+
+    def get_token(app_name,secret):
+      jwt = requests.get(API + 'public/auth/request_token',
+                     params={'app_name':app_name,'secret':secret})
+      return jwt.json()['token']
+
+    token = get_token(<appname>,<secret>)
+
+    response = requests.get(API + 'association/filter',
+                        params={'disease'='EFO_0000270'},
+                        headers={'Auth-Token': token})
+
+    print(response.json())
+    ```
     * Once your token expires, you will get a 419 error. If it happens you need to request an other token.
 
     Please Note that requesting a new token for each request is not recommended: it will impact your usage limit, and
