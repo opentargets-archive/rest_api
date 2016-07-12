@@ -14,7 +14,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = '29.05_'
+    DATA_VERSION = '07.16_'
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
