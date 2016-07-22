@@ -836,6 +836,8 @@ class esQuery():
                                                "name_synonyms",
                                                "gene_family_description",
                                                "efo_path_labels^0.1",
+                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.name^0.2"
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -857,6 +859,7 @@ class esQuery():
                                                "efo_path_codes",
                                                "efo_url",
                                                "efo_synonyms^0.1",
+                                               "ortholog.*.id",
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -942,6 +945,9 @@ class esQuery():
             "efo_path_codes": {},
             "efo_url": {},
             "efo_path_labels": {},
+            "ortholog.*.symbol": {},
+            "ortholog.*.name": {},
+            "ortholog.*.id":{}
         }
         }
 
