@@ -62,6 +62,7 @@ class FreeTextSearchTestCase(GenericTestCase):
                             description = None,
                             min_association_number =0):
         self.assertTrue(json_response['data'])
+        self.assertIsNotNone(json_response['data']['besthit'])
         first_result = json_response['data']['besthit']['data']
         self.assertEqual(first_result['name'], name)
         if full_name is not None:

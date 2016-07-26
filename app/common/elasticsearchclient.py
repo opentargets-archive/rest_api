@@ -859,6 +859,7 @@ class esQuery():
                                                "efo_path_codes",
                                                "efo_url",
                                                "efo_synonyms^0.1",
+                                               "ortholog.*.symbol^0.2",
                                                "ortholog.*.id",
                                                ],
                                     "analyzer": 'keyword',
