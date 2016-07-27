@@ -843,7 +843,7 @@ class esQuery():
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0.0,
                                     "type": "phrase_prefix",
-                                }
+                                    }
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
@@ -859,15 +859,40 @@ class esQuery():
                                                "efo_path_codes",
                                                "efo_url",
                                                "efo_synonyms^0.1",
-                                               "ortholog.*.symbol^0.2",
+                                               "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0,
                                     "type": "best_fields",
-                                }
+                                    },
                                 },
+                                # {"multi_match": {
+                                #     "query": searchphrase,
+                                #     "fields": ["name^3",
+                                #                "description",
+                                #                "approved_symbol",
+                                #                "symbol_synonyms",
+                                #                "name_synonyms",
+                                #                "efo_synonyms^0.1",
+                                #                "ortholog.*.symbol^0.5",
+                                #                "ortholog.*.name^0.2"
+                                #                ],
+                                #     "word_delimiter_analyzer":{
+                                #         "tokenizer":"whitespace",
+                                #         "filter":[
+                                #             "lowercase",
+                                #             "word_delimiter"
+                                #
+                                #         ],
+                                #         "ignore_case":True,
+                                #     },
+                                #     # "fuzziness": "AUTO",
+                                #     "tie_breaker": 0,
+                                #     "type": "best_fields",
+                                #     }
+                                # },
                             ]
                         }
                     },
