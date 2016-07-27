@@ -49,7 +49,7 @@ class Config:
     DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature']
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
-    DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic',]
+    DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
     DATATYPES['known_drug'] = ['chembl',]
     DATATYPES['literature'] = ['europepmc']
     DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature']
