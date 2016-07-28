@@ -114,6 +114,9 @@ class DockerLinkedConfig(Config):
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
 
+class BiogenConfig(Config):
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or 'http://172.17.7.25:80'
+    APP_CACHE_EXPIRY_TIMEOUT = 60*60 #1hr
 
 class TestingConfig(Config):
     TESTING = True
@@ -186,6 +189,7 @@ config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'staging': StagingConfig,
+    'biogen': BiogenConfig,
     'production': ProductionConfig,
     'dockerlink': DockerLinkedConfig,
     'dockerlinkdev': DockerLinkedDevConfig,
