@@ -40,13 +40,13 @@ class Config:
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.2'
-    API_VERSION_MINOR = '1.2.1'
+    API_VERSION_MINOR = '1.2.0'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
-    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature']
+    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature', 'gene2phenotype']
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
@@ -57,11 +57,6 @@ class Config:
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
-    SCORING_WEIGHTS = defaultdict(lambda: 1)
-    SCORING_WEIGHTS['phenodigm'] = 0.33333333
-    # SCORING_WEIGHTS['expression_atlas'] = 0.2
-    SCORING_WEIGHTS['europepmc'] = 0.2
-    SCORING_WEIGHTS['gwas_catalog'] = 1.5
 
     PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
                                         'gxa': 'https://www.ebi.ac.uk/gxa/',
