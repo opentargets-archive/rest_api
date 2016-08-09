@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: "1.1"
+  version: "1.2.0"
   title: targetvalidation.org API
   description: |
 
@@ -400,6 +400,11 @@ paths:
           description: a uniprot keyword (meaning all the targets linked to that kw)
           required: false
           type: string
+        - name: direct
+          in: query
+          description: If True returns associations that have at least one direct evidence connecting the target and the disease. If False only returns associations for wich there is no direct evidence connecting the target and the disease, but only evidence connecting the target to a children of the disease in the EFO ontology.
+          required: false
+          type: boolean
         - name: datastructure
           in: query
           description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
