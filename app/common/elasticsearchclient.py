@@ -553,7 +553,7 @@ class esQuery():
         '''boolean query joining multiple conditions with an AND'''
         query_body = { "match_all": {}}
         if params.search:
-            query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
+            query_body = { "wildcard": { "_all":  '%s*'%params.search } }#could use '*%*' to match anywhere, but it is a very slow query
 
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
@@ -562,13 +562,7 @@ class esQuery():
             params.requested_fields = source['include']
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
-            "query": {
-                "filtered": {
-                    "query": query_body,
-                    "filter": {"bool":{"must":[]}},
-                }
-            },
-
+            "query" : query_body,
             'size': params.size,
             '_source': source,
             'from': params.start_from,
