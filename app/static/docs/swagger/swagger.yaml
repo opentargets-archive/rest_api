@@ -127,12 +127,16 @@ info:
     least a 24h ban.
 tags:
   - name: public
+    open: true
     description: Publicly supported stable API.
   - name: private
     description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
+    open: false
   - name: auth
     description: Authentication methods.
+    open: false
   - name: utils
+    open: true
     description: Utility methods.
 basePath: /api/latest
 consumes:
