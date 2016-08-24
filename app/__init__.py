@@ -274,7 +274,7 @@ def create_app(config_name):
         if do_not_cache(request):# do not cache in the browser
             resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
         else:
-            resp.headers.add('Cache-Control', "no-transform,public,max-age=%i,s-maxage=%i"%(took*1800/1000, took*9000/1000))
+            resp.headers.add('Cache-Control', "no-transform, public, max-age=%i, s-maxage=%i"%(took*1800/1000, took*9000/1000))
         return resp
 
 
