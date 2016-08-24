@@ -280,7 +280,7 @@ class esQuery():
             for opt in active_options:
 
                 if len(data[opt]) < params.size:
-                    res_opt = self._free_text_query(searchphrase, [opt], params)
+                    res_opt = self._free_text_query(searchphrase, [self._get_search_doc_types(opt)], params)
                     for hit in res_opt['hits']['hits']:
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
@@ -971,20 +971,6 @@ class esQuery():
         }
         }
 
-    def _get_associations_agg(self, filters, params):
-
-        aggs = {}
-        if params.facets:
-            aggs = dict(pathway=self._get_pathway_facet_aggregation(filters),
-                        uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
-                        datatypes=self._get_datatype_facet_aggregation(filters),
-                        # go=self._get_go_facet_aggregation(filters),
-                        target=self._get_target_facet_aggregation(filters),
-                        disease=self._get_disease_facet_aggregation(filters),
-                        is_direct=self._get_is_direct_facet_aggregation(filters),
-                        )
-
-        return aggs
 
     def _get_datasource_init_list(self, params=None):
         datatype_list = []  # ["'all':[]"]
