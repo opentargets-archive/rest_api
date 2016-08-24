@@ -280,7 +280,7 @@ class esQuery():
             for opt in active_options:
 
                 if len(data[opt]) < params.size:
-                    res_opt = self._free_text_query(searchphrase, self._get_search_doc_types(opt), params)
+                    res_opt = self._free_text_query(searchphrase, self._get_search_doc_types([opt]), params)
                     for hit in res_opt['hits']['hits']:
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
