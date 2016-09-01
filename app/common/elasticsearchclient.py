@@ -1917,6 +1917,7 @@ class SearchParams():
         self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
+        self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
 
 
         datasource_filter = []
@@ -2141,6 +2142,96 @@ class AggregationUnitIsDirect(AggregationUnit):
             "term": {"is_direct": is_direct}
         }
 
+class AggregationUnitUniprotKW(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_uniprot_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_uniprot_facet_aggregation(filters)
+
+    def _get_uniprot_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.uniprot_keywords",
+                        'size': 25,
+                        # "gnd": {},
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_uniprot_filter(self, kw):
+
+        return {
+            "terms": {"private.facets.uniprot_keywords": kw}
+        }
+
+
+class AggregationUnitGO(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_go_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_go_facet_aggregation(filters)
+
+    def _get_go_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.go.*.code",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_go_filter(self, kw):
+
+        return {
+            "terms": {"private.facets.go.*.code": kw}
+        }
+
 
 
 class AggregationUnitPathway(AggregationUnit):
@@ -2253,56 +2344,56 @@ class AggregationUnitScoreRange(AggregationUnit):
                     }
                 }
 
-class AggregationUnitUniprotKW(AggregationUnit):
-
-    def build_query_filter(self):
-        if self.filter is not None:
-            self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
-                                                                    BooleanFilterOperator.OR)
-    def build_agg(self, filters):
-        self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
-
-    def _get_uniprot_keywords_facet_aggregation(self, filters):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "significant_terms": {
-                        "field": "private.facets.uniprot_keywords",
-                        'size': 25,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-                    },
-                },
-            }
-        }
-
-    def _get_complex_uniprot_kw_filter(self, kw, bol):
-        pass
-        '''
-        :param kw: list of uniprot kw strings
-        :param bol: boolean operator to use for combining filters
-        :return: boolean filter
-        '''
-        if kw:
-            genes = self.handler.get_genes_for_uniprot_kw(kw)
-            if genes:
-                return self.handler.get_complex_target_filter(genes, bol)
-        return dict()
+# class AggregationUnitUniprotKW(AggregationUnit):
+#
+#     def build_query_filter(self):
+#         if self.filter is not None:
+#             self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
+#                                                                     BooleanFilterOperator.OR)
+#     def build_agg(self, filters):
+#         self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
+#
+#     def _get_uniprot_keywords_facet_aggregation(self, filters):
+#         return {
+#             "filter": {
+#                 "bool": {
+#                     "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
+#                 }
+#             },
+#             "aggs": {
+#                 "data": {
+#                     "significant_terms": {
+#                         "field": "private.facets.uniprot_keywords",
+#                         'size': 25,
+#                     },
+#                     "aggs": {
+#                         "unique_target_count": {
+#                             "cardinality": {
+#                                 "field": "target.id",
+#                                 "precision_threshold": 1000},
+#                         },
+#                         "unique_disease_count": {
+#                             "cardinality": {
+#                                 "field": "disease.id",
+#                                 "precision_threshold": 1000},
+#                         },
+#                     },
+#                 },
+#             }
+#         }
+#
+#     def _get_complex_uniprot_kw_filter(self, kw, bol):
+#         pass
+#         '''
+#         :param kw: list of uniprot kw strings
+#         :param bol: boolean operator to use for combining filters
+#         :return: boolean filter
+#         '''
+#         if kw:
+#             genes = self.handler.get_genes_for_uniprot_kw(kw)
+#             if genes:
+#                 return self.handler.get_complex_target_filter(genes, bol)
+#         return dict()
 
 class AggregationUnitECO(AggregationUnit):
 
@@ -2408,7 +2499,8 @@ class AggregationBuilder(object):
         FilterTypes.PATHWAY : AggregationUnitPathway,
         FilterTypes.UNIPROT_KW : AggregationUnitUniprotKW,
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
-        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea
+        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
+        FilterTypes.GO: AggregationUnitGO,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
