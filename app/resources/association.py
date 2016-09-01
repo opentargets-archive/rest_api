@@ -61,6 +61,8 @@ class FilterBy(restful.Resource):
         parser.add_argument('datatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('pathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
+        parser.add_argument('go', type=str, action='append', required=False,
+                            help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False")
