@@ -525,12 +525,18 @@ class esQuery():
                                             "ids": {"values": associationid},
                                             },
                                         "size" : len(associationid),
+                                        'from': params.start_from,
                                         }
                                   )
-        if res['hits']['total']:
-            return SimpleResult(res,
-                                params,
-                                data = [hit['_source'] for hit in res['hits']['hits']])
+        data = [Association(a,
+                            params.association_score_method,
+                            self.datatypes,
+                            cap_scores=params.cap_scores).data
+                    for a in res['hits']['hits']]
+
+        return PaginatedResult(res,
+                               params,
+                               data)
 
 
     def get_associations(self,
