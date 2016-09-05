@@ -13,8 +13,8 @@ info:
     You can make calls to the latest version of our API using the base URL
      `https://www.targetvalidation.org/api/latest`. We do not accept unencrypted 
      `http` calls, so make sure you use `https` in the address instead. 
-    If you want to access previous versions of the API, e.g. 1.1, your call will be
-    `https://www.targetvalidation.org/api/1.1`.
+    If you want to point to a specific version of the API, eg 1.1, your call will be
+      `https://www.targetvalidation.org/api/1.1`.
 
     We list below the methods available to query directly from our API using 
     an interactive and easy-to-use interface. For every request you create below, 
@@ -40,7 +40,7 @@ info:
     ### Supported formats
 
     The four methods above are all available via a `GET` request, and will serve outputs as `json`. Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
-    Please note that alternative response formats are available only when calling the API directly using a shell; they will not work in this interactive page. The response here will always be in JSON format.
+    Please note that alternative output formats are not supported in this interactive page. The response here will always be in `json` format.
 
     If you have complex queries with large number of parameters, you should
     use a `POST` request instead of  `GET`. `POST` methods require a body encoded as `json`.
@@ -73,8 +73,8 @@ info:
 
     The default usage limit will not impact a typical use of the REST API. But if you plan to do large numbers of requests or are building 
     an application leveraging our API, you need to complete our [Open Targets API key request form](http://goo.gl/forms/heGJvffv7PuUpWzG2).
-    The API key will allow you to make more requests than an anonymous user. If you are behind a firewall or proxy in your company or academic 
-    institution, the key will also allow your many requests to reach our servers.
+    The API key will allow you to make more requests than an anonymous user. Using an API key will also help if you are behind a firewall or proxy in your company or academic 
+    institution and many users reach our servers from the same IP address.
 
     * Request a token with your credentials using the method '/public/auth/request_token'
 
@@ -108,13 +108,13 @@ info:
     print(response.json())
     ```
 
-    * Once your token expires, you will get a `429` error. Please submit another form to request additional tokena.
+    * By default tokens will expire after 20 minutes. Once your token expires, you will get a `429` error. If it happens you need to request another token.
 
-    Please refrain from _requesting a new token for each request_ you make. This would both impact your usage limit and slow down all the other calls.
+    Please refrain from _requesting a new token for each request_ you make. This would both impact your usage limit and slow down the calls.
 
     Although *we never track the content of your API request*, we may monitor aggregated statistics on the usage of our API, so that we can improve its performance.
 
-    We want to hear your opinion about the Target Validation Platform API. Can we make it more useful to you? Would you like additional calls to be avaiable? Do [get in touch]
+    We want to hear your opinion about the Target Validation Platform API. Can we make it more useful to you? Would you like additional methods to be avaiable? Do [get in touch]
     (mailto:support@targetvalidation.org) and send your comments and suggestions.
 
     ### More examples
