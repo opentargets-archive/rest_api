@@ -2,24 +2,24 @@
 swagger: '2.0'
 
 info:
-  version: "1.1"
+  version: "1.2"
   title: targetvalidation.org API
   description: |
 
-    The Target Validation Platform API expose a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
-    to allow a programmatic retrieval of data served by the Target Validation Platform Web App.
-    Calls to the API are made using the base URL `https://www.targetvalidation.org/api/latest` only via the HTTPS protocol.
+    The Target Validation Platform API exposes a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
+    to allow programmatic retrieval of data served by the Target Validation Platform Web App.
+    Calls to the API are made using the base URL `https://www.targetvalidation.org/api/latest` via the HTTPS protocol only.
     A specific version of the API can be reached by changing `latest` to the version desired.
-    For instance `https://www.targetvalidation.org/api/1.1` will leverage v1.1 of the API.
+    For instance `https://www.targetvalidation.org/api/1.1` will give access to v1.1 of the API.
 
-    This page documents the methods available with an interactive interface that lets you query directly the API.
-    For every request created the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
-    can copy and paste directly to a shell to obtain the same results without using a browser.
-    More comprehensive tutorials are available [here](https://blog.opentargets.org/tag/api).
+    We list below the methods available using an interactive interface that allows you query the API directly.
+    For every request created, the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
+    can copy and paste directly to the shell to obtain the same results without using a browser.
+    More comprehensive tutorials are available in our [blog](https://blog.opentargets.org/tag/api).
 
     ### Available Methods
 
-    The available methods can be grouped in 4 types:
+    The available methods can be grouped in four types:
 
     * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
     * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
@@ -123,7 +123,7 @@ paths:
         We call **evidence** a unit of data that support a connection between a target and a disease.
         The Target Validation Platform integrates multiple types of evidence including genetic associations,
         somatic mutations, RNA expression and connections mined from the literature.
-        This method allows you to retrieve a single evidence item or a list of evidences by using their
+        This method allows you to retrieve a single evidence item or a list of evidence by using their
         targetvalidation.org ID.
 
         Evidence IDs are unique within each data release (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
