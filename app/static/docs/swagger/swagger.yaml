@@ -87,7 +87,7 @@ info:
 
     print(jwt.json())
     ```
-   Once you have the API key, which consists of 'app_name' and 'secret', you will have to go through the authorization workflow to use it.
+    Once you have the API key, which consists of 'app_name' and 'secret', you will have to go through the authorization workflow to use it.
 
     * Read the token served in the response and pass it into any other following request as an `Auth-Token` header
 
