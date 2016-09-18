@@ -2163,7 +2163,8 @@ class AggregationUnitUniprotKW(AggregationUnit):
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
                         'size': 25,
-                        # "gnd": {},
+                        "chi_square": {"include_negatives": True,
+                                "background_is_superset": False},
                     },
                     "aggs": {
                         "unique_target_count": {

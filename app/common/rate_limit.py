@@ -48,7 +48,7 @@ class RateLimiter(object):
 
     def set_short_window_key(self):
         self.short_window_key =  '|'.join((self._RATE_LIMIT_NAMESPACE,
-                                           self._get_remote_addr(),
+                                           self.get_remote_addr(),
                                            self.unique_id,
                                            time.strftime("%H%M%S")[:-1],
                                            #r.environ.get('HTTP_USER_AGENT')
@@ -57,7 +57,7 @@ class RateLimiter(object):
 
     def set_long_window_key(self):
         self.long_window_key ='|'.join((self._RATE_LIMIT_NAMESPACE,
-                                        self._get_remote_addr(),
+                                        self.get_remote_addr(),
                                         self.unique_id,
                                         time.strftime("%d%H"),
                                         #r.environ.get('HTTP_USER_AGENT')
@@ -73,7 +73,9 @@ class RateLimiter(object):
                 'secret' in request.form:
                 self.auth_token_payload = dict(app_name=request.form['app_name'],
                                                secret=request.form['secret'])
-    def _get_remote_addr(self):
+
+    @staticmethod
+    def get_remote_addr():
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
             remote_addr = real_ip

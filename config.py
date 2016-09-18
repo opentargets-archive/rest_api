@@ -88,7 +88,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     # ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    ELASTICSEARCH_URL = 'http://mirror.targetvalidation.org:9200/'
+    ELASTICSEARCH_URL = 'http://193.62.54.18:9200/'
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5555
     APP_CACHE_EXPIRY_TIMEOUT = 1

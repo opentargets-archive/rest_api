@@ -1,3 +1,4 @@
+from app.resources.utils import LogEvent
 
 __author__ = 'andreap'
 
@@ -76,6 +77,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/version')
     api.add_resource(Stats,
                      '/public/utils/stats')
+    api.add_resource(LogEvent,
+                     '/private/utils/logevent')
     api.add_resource(RelationTarget,
                      '/private/relation/target/<string:target_id>')
     api.add_resource(RelationDisease,

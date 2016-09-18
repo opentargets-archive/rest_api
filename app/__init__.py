@@ -1,5 +1,6 @@
 import csv
 import os
+from collections import defaultdict
 from datetime import datetime
 from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
@@ -18,6 +19,8 @@ from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 from app.common.datadog_signals import LogException
+from ipaddr import IPAddress, IPNetwork
+
 # from flask.ext.cors import CORS
 # from flask_limiter import Limiter
 # from flask.ext.login import LoginManager
@@ -133,7 +136,7 @@ def create_app(config_name):
     '''Load api keys in redis'''
     rate_limit_file = 'rate_limit.csv'
     if not os.path.exists(rate_limit_file):
-        rate_limit_file = '../rate_limit.csv'
+        rate_limit_file = '../'+rate_limit_file
     if os.path.exists(rate_limit_file):
         with open(rate_limit_file) as csvfile:
             reader = csv.DictReader(csvfile)
@@ -143,6 +146,19 @@ def create_app(config_name):
     else:
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
+
+    '''load ip name resolution'''
+    ip_resolver = defaultdict(lambda: "PUBLIC")
+    ip_list_file = 'ip_list.csv'
+    if not os.path.exists(ip_list_file):
+        ip_list_file = '../' + ip_list_file
+    if os.path.exists(ip_list_file):
+        with open(ip_list_file) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                net = IPNetwork(row['ip'])
+                ip_resolver[net] = row['org']
+    app.config['IP_RESOLVER'] = ip_resolver
 
     '''setup datadog logging'''
     if  Config.DATADOG_OPTIONS:
