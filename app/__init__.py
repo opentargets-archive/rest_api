@@ -108,11 +108,12 @@ def create_app(config_name):
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
                                         log_level=log_level,
-                                        cache = icache
+                                        cache=icache
                                         )
 
     app.extensions['esstore'] = esStore(es,
                                         eventlog_index=app.config['ELASTICSEARCH_LOG_EVENT_INDEX_NAME'],
+                                        cache=icache,
                                         )
 
 
