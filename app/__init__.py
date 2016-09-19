@@ -15,7 +15,7 @@ from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 import logging
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery, InternalCache
+from common.elasticsearchclient import esQuery, InternalCache, esStore
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 from app.common.datadog_signals import LogException
@@ -111,7 +111,9 @@ def create_app(config_name):
                                         cache = icache
                                         )
 
-
+    app.extensions['esstore'] = esStore(es,
+                                        eventlog_index=app.config['ELASTICSEARCH_LOG_EVENT_INDEX_NAME'],
+                                        )
 
 
     app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],

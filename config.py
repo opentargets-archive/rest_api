@@ -33,6 +33,7 @@ class Config:
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + 'relation-data'
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
+    ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
     DEBUG = False
     TESTING = False
     PROFILE = False

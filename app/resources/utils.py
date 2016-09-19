@@ -1,6 +1,8 @@
-from flask import current_app
+from datetime import datetime
+from flask import current_app, request
 from ipaddr import IPNetwork, IPv4Network, IPv6Network
 
+from app.common.auth import TokenAuthentication
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult, SimpleResult
 from flask.ext import restful
@@ -25,9 +27,14 @@ class Version(restful.Resource):
 
 class LogEvent(restful.Resource):
     parser = reqparse.RequestParser()
+    parser.add_argument('event', type=str, required=True, help="Event to log")
 
     @rate_limit
     def get(self):
+        es = current_app.extensions['esstore']
+        args = self.parser.parse_args()
+        event = args['event'][:120]
+        auth_token=request.headers.get('Auth-Token')
         ip_resolver = current_app.config['IP_RESOLVER']
         ip = RateLimiter.get_remote_addr()
         ip_net = IPNetwork(ip)
@@ -37,4 +44,14 @@ class LogEvent(restful.Resource):
                 if net.overlaps(ip_net):
                     resolved_org = org
                     break
-        return CTTVResponse.OK(SimpleResult(None, data = dict(ip=ip, org=resolved_org)))
+        data = dict(ip=ip,
+                    org=resolved_org,
+                    host=request.host,
+                    timestamp=datetime.now(),
+                    event=event)
+        if auth_token:
+            payload = TokenAuthentication.get_payload_from_token(auth_token)
+            data['app_name'] = payload['app_name']
+        es.store_event(data)
+        data['timestamp']= str(data['timestamp'])
+        return CTTVResponse.OK(SimpleResult(None, data=data))

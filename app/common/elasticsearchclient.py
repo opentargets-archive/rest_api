@@ -15,6 +15,8 @@ import time
 import json as json
 
 import sys
+
+from datetime import datetime
 from flask import current_app, request
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
@@ -2582,3 +2584,19 @@ class AggregationBuilder(object):
     #         }
     #
     #     }
+
+
+
+class esStore(object):
+    def __init__(self,
+                 es,
+                 eventlog_index,
+                 ):
+        self.es = es
+        self.eventlog_index = eventlog_index
+
+    def store_event(self, event):
+        index_name = self.eventlog_index+ '_'+ '-'.join(map(str,datetime.now().isocalendar()[:2]))
+        self.es.index(index=index_name,
+                      doc_type='event',
+                      body=event)
