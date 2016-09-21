@@ -2096,7 +2096,7 @@ class AggregationUnitIsDirect(AggregationUnit):
             "term": {"is_direct": is_direct}
         }
 
-<<<<<<< HEAD
+
 class AggregationUnitUniprotKW(AggregationUnit):
 
     def build_query_filter(self):
@@ -2188,8 +2188,6 @@ class AggregationUnitGO(AggregationUnit):
             "terms": {"private.facets.go.*.code": kw}
         }
 
-=======
->>>>>>> evidence_facets
 
 
 class AggregationUnitPathway(AggregationUnit):
@@ -2472,14 +2470,14 @@ class AggregationUnitAbstract(AggregationUnit):
             if bol == BooleanFilterOperator.OR:
                 return {
                     #"match": {"evidence.evidence_codes_info.label": kw}
-                    "match": {"target.gene_info.name": kw}
+                    "terms": {"target.gene_info.name": kw}
                     
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
-                                  "match": {
+                                  "terms": {
                                   #    "evidence.evidence_codes_info.label": [term]}
                                   "target.gene_info.name": [term]}
                               }
