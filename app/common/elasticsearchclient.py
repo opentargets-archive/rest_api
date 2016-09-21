@@ -459,7 +459,6 @@ class esQuery():
                     "must": post_filters.values()
                 }
             }
-            
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=ev_query_body,
@@ -2452,11 +2451,21 @@ class AggregationUnitAbstract(AggregationUnit):
 
     def _get_abstract_keywords_facet_aggregation(self, filters):
         return {
-                "significant_terms": {
+                         #"field": "evidence.literature.epmc_keywords",
+                        "significant_terms":{"field": "target.gene_info.name"},
+                        "aggs":{
+                            "cluster_terms":{
+                                "significant_terms": {
                         #"field": "evidence.literature.epmc_keywords",
                         "field": "target.gene_info.name",
-                        'size': 25,
-                    }
+                        "size": 25
+                                }
+                            }
+                        }
+                        
+                        
+        
+               
         }
 
     def _get_complex_abstract_kw_filter(self, kw, bol):
@@ -2470,16 +2479,17 @@ class AggregationUnitAbstract(AggregationUnit):
             if bol == BooleanFilterOperator.OR:
                 return {
                     #"match": {"evidence.evidence_codes_info.label": kw}
-                    "terms": {"target.gene_info.name": kw}
+                    # TODO : use fuzzy query instead??
+                    "match": {"target.gene_info.name": kw}
                     
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
-                                  "terms": {
+                                  "match": {
                                   #    "evidence.evidence_codes_info.label": [term]}
-                                  "target.gene_info.name": [term]}
+                                  "target.gene_info.name": term}
                               }
                               for term in kw]
                     }
@@ -2540,10 +2550,17 @@ class AggregationUnitJournal(AggregationUnit):
     def _get_journal_keywords_facet_aggregation(self, filters):
         
         return {
-                    "significant_terms": {
+                    "significant_terms":{"field": "evidence.literature.journal"},
+                        "aggs":{
+                            "cluster_terms":{
+                                "significant_terms": {
                         "field": "evidence.literature.journal",
-                        'size': 25,
-                    }
+                        "size": 25
+                                }
+                            }
+                        }
+                        
+                    
         }
 
     def _get_complex_journal_kw_filter(self, kw, bol):
@@ -2557,14 +2574,14 @@ class AggregationUnitJournal(AggregationUnit):
         if kw:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {"evidence.literature.journal": kw}
+                    "match": {"evidence.literature.journal": kw}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
-                                  "terms": {
-                                      "evidence.literature.journal": [term]}
+                                  "match": {
+                                      "evidence.literature.journal": term}
                               }
                               for term in kw]
                     }

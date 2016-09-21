@@ -55,7 +55,7 @@ class EvidenceFacetsTestCase(GenericTestCase):
                                       data=json.dumps({'target':[target],
                                             'datasource':[datasource],
                                             'disease' :[disease],
-                                            'abstract':[abstract],
+                                            'abstract':abstract,
                                             'direct':True,
                                             'facets':True,
                                             'size': 10
@@ -71,4 +71,5 @@ class EvidenceFacetsTestCase(GenericTestCase):
         print "Facets -------------"
         print json_response['facets']
         self.assertIsNotNone(json_response['facets'])
+        self.assertIsNotNone(json_response['data'])
               
