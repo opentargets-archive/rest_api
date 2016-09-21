@@ -1,5 +1,5 @@
 # base image
-FROM ubuntu:wily
+FROM ubuntu:xenial
 MAINTAINER Andrea Pierleoni <andreap@ebi.ac.uk>
 
 # Install required packages
@@ -15,11 +15,10 @@ RUN apt-get update && \
     openssh-server \
     git \
     sqlite3 \
-    nginx
+    nginx-extras
 
 RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
-  python get-pip.py && \
-  pip install uWSGI==2.0.9 Flask==0.10.1
+  python get-pip.py
 
 
 # setup
@@ -37,6 +36,9 @@ COPY . /var/www/app
 COPY docker-conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker-conf/nginx.conf /etc/nginx/
 COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
+COPY docker-conf/nginx-servers.conf /etc/nginx/sites-enabled/
+COPY docker-conf/server.crt /var/www/app
+COPY docker-conf/server.key /var/www/app
 
 #install app requirements
 RUN pip install -r /var/www/app/requirements.txt
@@ -47,7 +49,7 @@ RUN cd /var/www &&  \
     mv swagger-ui-master swagger-ui
 
 #declare app port
-EXPOSE 80 8008
+EXPOSE 80 443 8008 8009
 
 #define entrypoint
 COPY docker-conf/docker-entrypoint.sh /

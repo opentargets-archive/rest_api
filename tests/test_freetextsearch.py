@@ -62,6 +62,7 @@ class FreeTextSearchTestCase(GenericTestCase):
                             description = None,
                             min_association_number =0):
         self.assertTrue(json_response['data'])
+        self.assertIsNotNone(json_response['data']['besthit'])
         first_result = json_response['data']['besthit']['data']
         self.assertEqual(first_result['name'], name)
         if full_name is not None:
@@ -85,6 +86,38 @@ class FreeTextSearchTestCase(GenericTestCase):
                                    'kinase signal transduction pathway.',
                                    680)
 
+    def testQuickSearchBrafOrtholog(self):
+        '''lin-45 is a braf ortholog in c.elegans'''
+        response= self._make_request('/api/latest/private/quicksearch',
+                                     data={'q':'lin-45'},
+                                     token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                   'BRAF',
+                                   'B-Raf proto-oncogene, serine/threonine kinase',
+                                   'Protein kinase involved in the transduction of mitogenic signals from the cell'
+                                   ' membrane to the nucleus. May play a role in the postsynaptic responses of '
+                                   'hippocampal neuron. Phosphorylates MAP2K1, and thereby contributes to the MAP '
+                                   'kinase signal transduction pathway.',
+                                   680)
+
+    def testQuickSearchBrafOrtholog_misp(self):
+        '''lin-45 is a braf ortholog in c.elegans, but 50% percent of people willuse lin45
+        '''
+        response= self._make_request('/api/latest/private/quicksearch',
+                                     data={'q':'lin45'},
+                                     token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                   'BRAF',
+                                   'B-Raf proto-oncogene, serine/threonine kinase',
+                                   'Protein kinase involved in the transduction of mitogenic signals from the cell'
+                                   ' membrane to the nucleus. May play a role in the postsynaptic responses of '
+                                   'hippocampal neuron. Phosphorylates MAP2K1, and thereby contributes to the MAP '
+                                   'kinase signal transduction pathway.',
+                                   680)
 
     def testQuickSearchAsthma(self):
 

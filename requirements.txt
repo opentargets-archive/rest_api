@@ -27,7 +27,7 @@ six==1.9.0
 SQLAlchemy==0.9.8
 ujson==1.33
 urllib3==1.10.2
-uWSGI==2.0.9
+uWSGI==2.0.13.1
 Werkzeug==0.10.1
 Yapsy==1.10.423
 numpy==1.9.2
@@ -37,3 +37,4 @@ requests==2.5.3
 gevent==1.1.0
 unicodecsv
 blinker==1.4
+ipaddr==2.1.11

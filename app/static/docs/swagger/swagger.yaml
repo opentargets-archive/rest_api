@@ -2,42 +2,49 @@
 swagger: '2.0'
 
 info:
-  version: "1.2"
-  title: targetvalidation.org API
+  version: "1.2.0"
   description: |
 
-    The Target Validation Platform API exposes a set of [REST services](https://en.wikipedia.org/wiki/Representational_state_transfer)
-    to allow programmatic retrieval of data served by the Target Validation Platform Web App.
-    Calls to the API are made using the base URL `https://www.targetvalidation.org/api/latest` via the HTTPS protocol only.
-    A specific version of the API can be reached by changing `latest` to the version desired.
-    For instance `https://www.targetvalidation.org/api/1.1` will give access to v1.1 of the API.
+    The Target Validation Platform API ('Application Programming Interface')
+    allows programmatic retrieval of our data via a set of
+    [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
+    services.
 
-    We list below the methods available using an interactive interface that allows you query the API directly.
-    For every request created, the interface will display an equivalent [curl](https://curl.haxx.se/) command that you
-    can copy and paste directly to the shell to obtain the same results without using a browser.
-    More comprehensive tutorials are available in our [blog](https://blog.opentargets.org/tag/api).
+    You can make calls to the latest version of our API using the base URL
+     `https://www.targetvalidation.org/api/latest`. We do not accept unencrypted 
+     `http` calls, so make sure you use `https` in the address instead. 
+    If you want to point to a specific version of the API, eg 1.1, your call will be
+      `https://www.targetvalidation.org/api/1.1`.
+
+    We list below the methods available to query directly from our API using 
+    an interactive and easy-to-use interface. For every request you create below, 
+    the interface will display an equivalent [curl](https://curl.haxx.se/) command 
+    that you can copy and paste directly to a shell and obtain the same results without
+    using an internet browser.
+    
+    Check our [API blog posts](https://blog.opentargets.org/tag/api), for additional 
+    information on programmatic access of our data.
+
 
     ### Available Methods
 
     The available methods can be grouped in four types:
 
-    * __public__ - Methods that serve the core set of our data and that we will keep stable and support.
+    * __public__ - Methods that serve the core set of our data. These are stable and fully supported.
     * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
-    change often and thus should not be relied upon.
-    * __utils__ - Methods to get statistics and technical data about the API.
-    * __auth__ - Methods use for authentication, Only relevant if you have been issued an API key (you can request one
-    by completing [this form](http://goo.gl/forms/heGJvffv7PuUpWzG2)).
-
-    Each of the available method is described in detail below.
+    may change without notice and should be used with caution.
+    * __utils__ - Methods to get statistics and technical data about our API.
+    * __auth__ - Methods used for authentication. These are only relevant if you have an API key (see the 'Fair Usage 
+    and API keys' section below for more details).
 
     ### Supported formats
 
-    All the methods are available via a `GET` request and will serve the output formatted as `json`. For some methods
-    alternative formats are available in order to have a response as `xml` or in a tabular format as  `csv` or
-    `tab-separated-values`.  However, please note that alternative response formats are available only when calling the API directly and will not work in this page. The response here will always be in JSON format.
-    Some methods are available as a `POST` request, to simplify complex query submissions. `POST` methods requires a
-    body encoded as `json`.
-    E.g. to query for a specific disease an example call might be
+    The four methods above are all available via a `GET` request, and will serve outputs as `json`. Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
+    Please note that alternative output formats are not supported in this interactive page. The response here will always be in `json` format.
+
+    If you have complex queries with large number of parameters, you should
+    use a `POST` request instead of  `GET`. `POST` methods require a body encoded as `json`.
+    When quering for a specific disease using the latest version of the API, your call would look like the example below:
 
     ```sh
     curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://www.targetvalidation.org/api/latest/public/evidence/filter
@@ -45,64 +52,93 @@ info:
     ### Interpret a response
 
     Each HTTP response serve data in headers and body.
-    The headers will give you some useful information about your query, detailing how long did it took to run on our
-    servers, and how much usage you have left (see below).
+    The headers will give you useful information about your query, detailing how long it took to run, and how much usage you have left (See the 'Fair Usage 
+    and API keys' section below for more details).
 
-    In the body of the response you will find the data you requested for, typically in `json` format.
+    In the body of the response, you will find the data you have requested for in `json` format.
     [jq](http://www.jq.org) is a useful tool to parse the json response while on the command line.
 
     ```sh
     curl https://www.targetvalidation.org/api/latest/public/association/filter\?target\=ENSG00000157764 | jq
     ```
 
-    ### Fair Usage and API key
+    ### Fair Usage and API keys
 
-    There is a fair usage limit to the calls to the REST API. The usage is computed based on how much time the
-    queries take to execute in our servers.
-    The usage limit is expressed in milliseconds and is computed over two temporal windows: 10 seconds and 1 hour.
-    You can check the usage status in the header response. If the quota is exceeded, a 429 error is returned.
-    The response will indicate how much time is needed to wait until a new call can be made in the `Retry-After` header.
-    Continuing to make calls while getting a 429 error, will consume future usage within the temporal window.
+    We have a usage limit to the calls made to our Target Validation Platform API. The usage is computed based on how much time the
+    queries take to get executed in our servers.
+    The limit is expressed in milliseconds and is computed over two time windows, namely 10 seconds and 1 hour.
+    You can check the usage status in the header response. If the quota is exceeded, a `429` error will get returned.
+    The response will also show how much time is needed to wait until a new call can be made. This will be in the `Retry-After` header.
+    Please note that if you continue making calls despite the `429` error, your future usage within that time window will be compromised.
 
-    The default usage limit will typically not impact a normal use of the REST API.
-    If you are planning to do a large number of requests or are building an application leveraging our API,
-    we strongly encourage you to complete [this form](http://goo.gl/forms/heGJvffv7PuUpWzG2) in order to obtain an API
-    key.
-    Having a key will allow you to make many more requests than an anonymous user, and will solve the problem of many
-    requests reaching our servers from the same public IP, if you are behind a company/institution wide proxy.
+    The default usage limit will not impact a typical use of the REST API. But if you plan to do large numbers of requests or are building 
+    an application leveraging our API, you need to complete our [Open Targets API key request form](http://goo.gl/forms/heGJvffv7PuUpWzG2).
+    The API key will allow you to make more requests than an anonymous user. Using an API key will also help if you are behind a firewall or proxy in your company or academic 
+    institution and many users reach our servers from the same IP address.
 
-    If you have an API key you need to go through the authorization workflow to use it.
-    * Request a token with your credentials using the method /public/auth/request_token
+    * Request a token with your credentials using the method '/public/auth/request_token'
+
+    ```python
+    import requests
+    API='https://www.targetvalidation.org/api/latest/'
+
+    jwt = requests.get(API + 'public/auth/request_token',
+                     params={'app_name':<appname>,'secret':<secret>})
+
+    print(jwt.json())
+    ```
+    Once you have the API key, which consists of 'app_name' and 'secret', you will have to go through the authorization workflow to use it.
+
     * Read the token served in the response and pass it into any other following request as an `Auth-Token` header
-    * Once your token expires, you will get a 419 error. If it happens you need to request an other token.
 
-    Please Note that requesting a new token for each request is not recommended: it will impact your usage limit, and
-    will substantially slow down all the other calls.
+    ```python
+    import requests
 
-    **We will never track the content of your API request** but only monitor aggregated statistics of the
-    API endpoint usages in order to improve its performance in the future.
+    def get_token(app_name,secret):
+      jwt = requests.get(API + 'public/auth/request_token',
+                     params={'app_name':app_name,'secret':secret})
+      return jwt.json()['token']
 
-    Also, don't forget to [let us know what you think](mailto:support@targetvalidation.org) of the API - we'd
-    love to hear how we could make the API more useful in our next release.
+    token = get_token(<appname>,<secret>)
+
+    response = requests.get(API + 'association/filter',
+                        params={'disease'='EFO_0000270'},
+                        headers={'Auth-Token': token})
+
+    print(response.json())
+    ```
+
+    * By default tokens will expire after 20 minutes. Once your token expires, you will get a `429` error. If it happens you need to request another token.
+
+    Please refrain from _requesting a new token for each request_ you make. This would both impact your usage limit and slow down the calls.
+
+    Although *we never track the content of your API request*, we may monitor aggregated statistics on the usage of our API, so that we can improve its performance.
+
+    We want to hear your opinion about the Target Validation Platform API. Can we make it more useful to you? Would you like additional methods to be avaiable? Do [get in touch]
+    (mailto:support@targetvalidation.org) and send your comments and suggestions.
 
     ### More examples
-    Head to our [getting started tutorial](https://blog.opentargets.org/api-getting-started-1) for more
-    examples on how to use the API and code snippets which can be used to construct more complex queries.
+    Head to our [Getting started tutorial](https://blog.opentargets.org/api-getting-started-1) for more
+    examples on how to use the API and for some code snippets, which can be used to construct more complex queries.
   license:
     name: Apache 2.0
   contact:
     email: support@targetvalidation.org
   termsOfService: |
     Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
-    least a 24h ban.
+    least a 24 hour ban.
 tags:
   - name: public
+    open: true
     description: Publicly supported stable API.
   - name: private
     description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
+    open: false
   - name: auth
     description: Authentication methods.
+    open: false
   - name: utils
+    open: true
     description: Utility methods.
 basePath: /api/latest
 consumes:
@@ -123,15 +159,13 @@ paths:
         We call **evidence** a unit of data that support a connection between a target and a disease.
         The Target Validation Platform integrates multiple types of evidence including genetic associations,
         somatic mutations, RNA expression and connections mined from the literature.
-        This method allows you to retrieve a single evidence item or a list of evidence by using their
+        This method allows you to retrieve a single evidence item or a list of pieces of evidence by using their
         targetvalidation.org ID.
 
-        Evidence IDs are unique within each data release (eg. `c4c9d3270db7ed179ab488c68a785ecf`).
-        Generally, you will have obtained a list of evidence IDs from other API calls.
-        Any response from the [/public/evidence/filter](#!/public/get_public_evidence_filter) method for instance,
-        can return a list of evidences and their IDs.
+        Evidence IDs are unique within each data release (e.g. `8ed3d7568a8c6cac9c95cfb869bac762`).
+        You can obtain a list of evidence and their IDs from other API calls such as [/public/evidence/filter](#!/public/get_public_evidence_filter).
 
-        **important note!** A specific evidence ID may change between data releases. We are currently not able to guarantee that a specific evidence ID will forever point to the same piece of evidence connecting target and disease.
+        **Please note** that a specific evidence ID may change between data releases. We can not guarantee that a specific evidence ID will refer to the same piece of evidence connecting a target and its diseases.
       parameters:
         - name: id
           in: query
@@ -370,14 +404,14 @@ paths:
           description: a uniprot keyword (meaning all the targets linked to that kw)
           required: false
           type: string
+        - name: direct
+          in: query
+          description: If True returns associations that have at least one direct evidence connecting the target and the disease. If False only returns associations for wich there is no direct evidence connecting the target and the disease, but only evidence connecting the target to a children of the disease in the EFO ontology.
+          required: false
+          type: boolean
         - name: datastructure
           in: query
           description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
-          required: false
-          type: string
-        - name: fields
-          in: query
-          description: fields you want to retrieve. this will get priority over the datastructure requested
           required: false
           type: string
         - name: fields
@@ -486,30 +520,48 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /private/disease:
+  /private/disease/{disease}:
     get:
       tags:
         - private
       description: |
         Gets `disease` objects
+      parameters:
+        - name: disease
+          in: path
+          type: string
+          required: true
+          description: The EFO ID of the disease of interest.
       responses:
         200:
           description: Successful response
-  /private/eco:
+  /private/eco/{ECO_ID}:
     get:
       tags:
         - private
       description: |
         Gets `eco` objects
+      parameters:
+        - name: ECO_ID
+          in: path
+          type: string
+          required: true
+          description: An [evidence code ontology](http://www.ebi.ac.uk/ols/v2/browse.do?ontName=ECO) ID
       responses:
         200:
           description: Successful response
-  /private/target:
+  /private/target/{target}:
     get:
       tags:
         - private
       description: |
         Gets `target` objects
+      parameters:
+        - name: target
+          in: path
+          required: true
+          description: The ensembl gene ID for the target of interest.
+          type: string
       responses:
         200:
           description: Successful response
@@ -660,7 +712,8 @@ paths:
         - utils
         - auth
       description: |
-        Succed if token is valid
+        Succeed if token is valid. You should test this call by passing the token in the header
+        as 'Auth-Token'
       responses:
         200:
           description: Successful response

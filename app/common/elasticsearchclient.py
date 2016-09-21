@@ -2,6 +2,7 @@ import base64
 import hashlib
 import pickle
 import pprint
+import socket
 from collections import defaultdict
 import copy
 
@@ -15,12 +16,14 @@ import time
 import json as json
 
 import sys
+
+from datetime import datetime
 from flask import current_app, request
 from elasticsearch import helpers
 from pythonjsonlogger import jsonlogger
 from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
     AssociationSortOptions, EvidenceSortOptions
-from app.common.response_templates import Association, DataStats
+from app.common.response_templates import Association, DataStats, Relation, RelationTypes
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
 from app.common.request_templates import FilterTypes
 from app.common.scoring import Scorer
@@ -111,6 +114,7 @@ class esQuery():
                  index_reactome=None,
                  index_association=None,
                  index_search=None,
+                 index_relation=None,
                  docname_data=None,
                  docname_efo=None,
                  docname_eco=None,
@@ -119,6 +123,7 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
+                 docname_relation=None,
                  cache = None,
                  log_level=logging.DEBUG):
         '''
@@ -142,6 +147,7 @@ class esQuery():
         self._index_reactome = index_reactome
         self._index_association = index_association
         self._index_search = index_search
+        self._index_relation = index_relation
 
         self._docname_data = docname_data
         self._docname_efo = docname_efo
@@ -151,6 +157,7 @@ class esQuery():
         self._docname_reactome = docname_reactome
         self._docname_association = docname_association
         self._docname_search = docname_search
+        self._docname_relation = docname_relation
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
@@ -161,7 +168,7 @@ class esQuery():
             # es_logger = logging.getLogger('elasticsearch')
             # for handler in es_logger.handlers:
             #     handler.setFormatter(formatter)
-            # es_logger.setLevel(log_level)
+            # es_logger.setLevel(logging.DEBUG)
             # es_tracer = logging.getLogger('elasticsearch.trace')
             # es_tracer.setLevel(logging.DEBUG)
             # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
@@ -169,7 +176,7 @@ class esQuery():
             #     handler.setFormatter(formatter)
 
     def free_text_search(self, searchphrase,
-                         doc_filter=[FreeTextFilterOptions.ALL],
+                         doc_filter=(FreeTextFilterOptions.ALL),
                          **kwargs):
         '''
         Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list
@@ -276,7 +283,7 @@ class esQuery():
             for opt in active_options:
 
                 if len(data[opt]) < params.size:
-                    res_opt = self._free_text_query(searchphrase, [opt], params)
+                    res_opt = self._free_text_query(searchphrase, self._get_search_doc_types([opt]), params)
                     for hit in res_opt['hits']['hits']:
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
@@ -347,16 +354,18 @@ class esQuery():
 
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
+        if not isinstance(efo_codes, list):
+            efo_codes = [efo_codes]
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body={'filter': {
-                                          "ids": {
-                                              "values": [efo_codes]
+                                      body={'query': {
+                                              "ids": {
+                                                  "values": efo_codes
+                                              },
                                           },
-                                      },
-                                          'size': 100000
-                                      }
+                                          'size': 10000
+                                        }
                                       )
             if res['hits']['total']:
                 if res['hits']['total'] == 1:
@@ -519,12 +528,18 @@ class esQuery():
                                             "ids": {"values": associationid},
                                             },
                                         "size" : len(associationid),
+                                        'from': params.start_from,
                                         }
                                   )
-        if res['hits']['total']:
-            return SimpleResult(res,
-                                params,
-                                data = [hit['_source'] for hit in res['hits']['hits']])
+        data = [Association(a,
+                            params.association_score_method,
+                            self.datatypes,
+                            cap_scores=params.cap_scores).data
+                    for a in res['hits']['hits']]
+
+        return PaginatedResult(res,
+                               params,
+                               data)
 
 
     def get_associations(self,
@@ -547,7 +562,7 @@ class esQuery():
         '''boolean query joining multiple conditions with an AND'''
         query_body = { "match_all": {}}
         if params.search:
-            query_body = { "match_phrase_prefix": { "_all": { "query" : params.search } }}
+            query_body = { "wildcard": { "_all":  '%s*'%params.search } }#could use '*%*' to match anywhere, but it is a very slow query
 
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
@@ -556,13 +571,7 @@ class esQuery():
             params.requested_fields = source['include']
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
-            "query": {
-                "filtered": {
-                    "query": query_body,
-                    "filter": {"bool":{"must":[]}},
-                }
-            },
-
+            "query" : query_body,
             'size': params.size,
             '_source': source,
             'from': params.start_from,
@@ -675,6 +684,37 @@ class esQuery():
                                       "target.id": [target]}
                               }
                               for target in targets]
+                    }
+                }
+        return dict()
+
+    def get_complex_subject_filter(self,
+                                  subject_ids,
+                                  bol=BooleanFilterOperator.OR,
+                                  include_negative=False,
+                                  ):
+
+
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param subject_ids: list of ids as subject
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        subject_ids = self._resolve_negable_parameter_set(subject_ids, include_negative)
+        if subject_ids:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    "terms": {"subject.id": subject_ids}
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "terms": {
+                                      "subject.id": [subject_id]}
+                              }
+                              for subject_id in subject_ids]
                     }
                 }
         return dict()
@@ -799,12 +839,14 @@ class esQuery():
                                                "name_synonyms",
                                                "gene_family_description",
                                                "efo_path_labels^0.1",
+                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.name^0.2"
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0.0,
                                     "type": "phrase_prefix",
-                                }
+                                    }
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
@@ -820,13 +862,40 @@ class esQuery():
                                                "efo_path_codes",
                                                "efo_url",
                                                "efo_synonyms^0.1",
+                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.id",
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0,
                                     "type": "best_fields",
-                                }
+                                    },
                                 },
+                                # {"multi_match": {
+                                #     "query": searchphrase,
+                                #     "fields": ["name^3",
+                                #                "description",
+                                #                "approved_symbol",
+                                #                "symbol_synonyms",
+                                #                "name_synonyms",
+                                #                "efo_synonyms^0.1",
+                                #                "ortholog.*.symbol^0.5",
+                                #                "ortholog.*.name^0.2"
+                                #                ],
+                                #     "word_delimiter_analyzer":{
+                                #         "tokenizer":"whitespace",
+                                #         "filter":[
+                                #             "lowercase",
+                                #             "word_delimiter"
+                                #
+                                #         ],
+                                #         "ignore_case":True,
+                                #     },
+                                #     # "fuzziness": "AUTO",
+                                #     "tie_breaker": 0,
+                                #     "type": "best_fields",
+                                #     }
+                                # },
                             ]
                         }
                     },
@@ -905,23 +974,12 @@ class esQuery():
             "efo_path_codes": {},
             "efo_url": {},
             "efo_path_labels": {},
+            "ortholog.*.symbol": {},
+            "ortholog.*.name": {},
+            "ortholog.*.id":{}
         }
         }
 
-    def _get_associations_agg(self, filters, params):
-
-        aggs = {}
-        if params.facets:
-            aggs = dict(pathway=self._get_pathway_facet_aggregation(filters),
-                        uniprot_keywords=self._get_uniprot_keywords_facet_aggregation(filters),
-                        datatypes=self._get_datatype_facet_aggregation(filters),
-                        # go=self._get_go_facet_aggregation(filters),
-                        target=self._get_target_facet_aggregation(filters),
-                        disease=self._get_disease_facet_aggregation(filters),
-                        is_direct=self._get_is_direct_facet_aggregation(filters),
-                        )
-
-        return aggs
 
     def _get_datasource_init_list(self, params=None):
         datatype_list = []  # ["'all':[]"]
@@ -1038,12 +1096,12 @@ class esQuery():
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["disease.id"],
                                       "aggs": {"efo_codes": {
                                           "terms": {
                                               "field": "disease.id",
-                                              'size': 100000,
+                                              'size': 10000,
 
                                           },
                                       }
@@ -1101,7 +1159,7 @@ class esQuery():
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["id"],
 
                                   })
@@ -1176,24 +1234,14 @@ class esQuery():
             res = self._cached_search(index=self._index_reactome,
                                       doc_type=self._docname_reactome,
                                       body={"query": {
-                                          "filtered": {
-                                              # "query": {
-                                              #     "match_all": {}
-                                              # },
-                                              "filter": {
-                                                  "ids": {
-                                                      "values": reactome_ids
-
+                                              "ids": {
+                                                  "values": reactome_ids
                                                   }
-                                              }
-                                          }
-                                      },
-
-                                          '_source': ['label'],
-                                          'size': 100000,
+                                              },
+                                          '_source': {"include": ['label']},
+                                          'size': 10000,
                                           'from': 0,
-
-                                      }
+                                          }
                                       )
             if res['hits']['total']:
                 for hit in res['hits']['hits']:
@@ -1372,7 +1420,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                               }
                                           }
                                       },
-                                      'size': 100000,
+                                      'size': 10000,
                                       '_source': ["id"],
 
                                   })
@@ -1591,6 +1639,218 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return dict()
 
+    def get_relations(self, subject_ids, **kwargs):
+        params = SearchParams(**kwargs)
+        # query_body = {"match_all": {}}
+        # if params.search:
+        #     query_body = {"match_phrase_prefix": {"_all": {"query": params.search}}}
+
+        query_body = {
+            "query": self.get_complex_subject_filter(subject_ids),
+            'size': params.size,
+            'from': params.start_from,
+            "sort": self._digest_sort_strings(params),
+            '_source': True,
+
+            }
+
+
+        res = self._cached_search(index=self._index_relation,
+                                    body=query_body,
+                                      )
+        data = []
+        if res['hits']['total']:
+            for hit in res['hits']['hits']:
+                d = hit['_source']
+                r = Relation(**d)
+                r.value = d['scores']['euclidean']
+                data.append(r.to_dict())
+
+        return PaginatedResult(res,
+                               params,
+                               data,
+                               )
+
+
+    def get_targets_related_to_target(self, target_id):
+
+        disease_profile = self._get_associated_diseases([target_id])
+        scored_relations = self._get_associated_target_for_disease_profile(disease_profile)
+        # scored_relations = self._score_relation(target_id,matching_targets)
+
+        relations = [Relation(target_id,i[0],RelationTypes.SHARED_DISEASES,value=i[1]).to_dict() for i in scored_relations[:100]]
+        return CountedResult(None, data =relations)
+
+    def _get_associated_diseases(self, target_ids):
+        data = []
+        res = self._cached_search(index=self._index_association,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "bool": {
+                                                      "must": [
+                                                          self.get_complex_target_filter(target_ids),
+                                                          {"term": {"is_direct": True}},
+                                                          {"range": { "harmonic-sum.overall": {
+                                                                        "gte": 0.1,
+                                                                        }
+                                                                    }
+                                                          }
+                                                      ]
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': 10000,
+                                      '_source': ["disease.id", "harmonic-sum.overall"],
+
+                                  })
+        if res['hits']['total']:
+            data = dict([[hit['_source']['disease']['id'], hit['_source']['harmonic-sum']['overall']] for hit in res['hits']['hits']])
+        return data
+
+    def _get_associated_target_for_disease_profile(self, disease_profile):
+        def cap_float(f):
+            if f>1:
+                return 1.
+            return f
+        data = []
+
+        res = helpers.scan(client=self.handler,
+                           query={
+                               "query": {
+                                   "filtered": {
+                                       "filter": {
+                                           "bool": {
+                                               "must": [
+                                                   self.get_complex_disease_filter(disease_profile.keys(),
+                                                                                   is_direct=True),
+                                                   {"range": {"harmonic-sum.overall": {
+                                                       "gte": 0.1,
+                                                        }
+                                                    }
+                                                   }
+                                               ]
+                                           }
+                                       }
+                                   }
+                               },
+                               'size': 10000,
+                               '_source': ["target.id", "disease.id", "harmonic-sum.overall"],
+
+                           },
+                           scroll='1h',
+                           # doc_type=Config.ELASTICSEARCH_VALIDATED_DATA_DOC_NAME,
+                           index=self._index_association,
+                           timeout="10m",
+                           )
+
+
+        scored_targets = dict()
+        for hit in res:
+            # print hit['_source']['harmonic-sum']['overall'], disease_profile[hit['_source']['disease']['id']], (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease']['id']])))/len(disease_profile)
+            target = hit['_source']['target']['id']
+            score = (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease']['id']])))/len(disease_profile)
+            if target not in scored_targets:
+                scored_targets[target] = 0.
+            scored_targets[target] += score
+        if scored_targets:
+            data = sorted(scored_targets.items(), key=lambda x: x[1], reverse=True)
+        return data
+
+    def get_diseases_related_to_disease(self, disease_id):
+
+        target_profile = self._get_associated_targets([disease_id])
+        scored_relations = self._get_associated_diseases_for_target_profile(target_profile)
+
+        relations = [Relation(disease_id, i[0], RelationTypes.SHARED_TARGETS, value=i[1]).to_dict() for i in
+                     scored_relations[:100]]
+        return CountedResult(None, data=relations)
+
+    def _get_associated_targets(self, disease_ids):
+        data = []
+        res = self._cached_search(index=self._index_association,
+                                  body={
+                                      "query": {
+                                          "filtered": {
+                                              "filter": {
+                                                  "bool": {
+                                                      "must": [
+                                                          self.get_complex_disease_filter(disease_ids, is_direct=True),
+                                                          {"term": {"is_direct": True}},
+                                                          {"range": {"harmonic-sum.overall": {
+                                                              "gte": 0.1,
+                                                          }
+                                                          }
+                                                          }
+                                                      ]
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      'size': 10000,
+                                      '_source': ["target.id", "harmonic-sum.overall"],
+
+                                  })
+        if res['hits']['total']:
+            data = dict([[hit['_source']['target']['id'], hit['_source']['harmonic-sum']['overall']] for hit in
+                         res['hits']['hits']])
+        return data
+
+    def _get_associated_diseases_for_target_profile(self, target_profile):
+        def cap_float(f):
+            if f > 1:
+                return 1.
+            return f
+
+        data = []
+
+        res = helpers.scan(client=self.handler,
+                           query={
+                               "query": {
+                                   "filtered": {
+                                       "filter": {
+                                           "bool": {
+                                               "must": [
+                                                   self.get_complex_target_filter(target_profile.keys()),
+                                                   {"range": {"harmonic-sum.overall": {
+                                                       "gte": 0.1,
+                                                   }
+                                                   }
+                                                   }
+                                               ]
+                                           }
+                                       }
+                                   }
+                               },
+                               'size': 10000,
+                               '_source': ["target.id", "disease.id", "harmonic-sum.overall"],
+
+                           },
+                           scroll='1h',
+                           # doc_type=Config.ELASTICSEARCH_VALIDATED_DATA_DOC_NAME,
+                           index=self._index_association,
+                           timeout="10m",
+                           )
+
+
+        scored_diseases = dict()
+        for hit in res:
+            # print hit['_source']['harmonic-sum']['overall'], disease_profile[hit['_source']['disease']['id']],
+            # (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease'][
+            # 'id']])))/len(disease_profile)
+            disease = hit['_source']['disease']['id']
+            score = (1 - cap_float(abs(
+                hit['_source']['harmonic-sum']['overall'] - target_profile[hit['_source']['target']['id']]))) / len(
+                target_profile)
+            if disease not in scored_diseases:
+                scored_diseases[disease] = 0.
+            scored_diseases[disease] += score
+        if scored_diseases:
+            data = sorted(scored_diseases.items(), key=lambda x: x[1], reverse=True)
+        return data
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -1660,6 +1920,7 @@ class SearchParams():
         self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
+        self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
 
 
         datasource_filter = []
@@ -1884,6 +2145,97 @@ class AggregationUnitIsDirect(AggregationUnit):
             "term": {"is_direct": is_direct}
         }
 
+class AggregationUnitUniprotKW(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_uniprot_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_uniprot_facet_aggregation(filters)
+
+    def _get_uniprot_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.uniprot_keywords",
+                        'size': 25,
+                        "chi_square": {"include_negatives": True,
+                                "background_is_superset": False},
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_uniprot_filter(self, kw):
+
+        return {
+            "terms": {"private.facets.uniprot_keywords": kw}
+        }
+
+
+class AggregationUnitGO(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_go_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_go_facet_aggregation(filters)
+
+    def _get_go_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.go.*.code",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_go_filter(self, kw):
+
+        return {
+            "terms": {"private.facets.go.*.code": kw}
+        }
+
 
 
 class AggregationUnitPathway(AggregationUnit):
@@ -1996,56 +2348,56 @@ class AggregationUnitScoreRange(AggregationUnit):
                     }
                 }
 
-class AggregationUnitUniprotKW(AggregationUnit):
-
-    def build_query_filter(self):
-        if self.filter is not None:
-            self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
-                                                                    BooleanFilterOperator.OR)
-    def build_agg(self, filters):
-        self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
-
-    def _get_uniprot_keywords_facet_aggregation(self, filters):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "significant_terms": {
-                        "field": "private.facets.uniprot_keywords",
-                        'size': 25,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-                    },
-                },
-            }
-        }
-
-    def _get_complex_uniprot_kw_filter(self, kw, bol):
-        pass
-        '''
-        :param kw: list of uniprot kw strings
-        :param bol: boolean operator to use for combining filters
-        :return: boolean filter
-        '''
-        if kw:
-            genes = self.handler.get_genes_for_uniprot_kw(kw)
-            if genes:
-                return self.handler.get_complex_target_filter(genes, bol)
-        return dict()
+# class AggregationUnitUniprotKW(AggregationUnit):
+#
+#     def build_query_filter(self):
+#         if self.filter is not None:
+#             self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
+#                                                                     BooleanFilterOperator.OR)
+#     def build_agg(self, filters):
+#         self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
+#
+#     def _get_uniprot_keywords_facet_aggregation(self, filters):
+#         return {
+#             "filter": {
+#                 "bool": {
+#                     "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
+#                 }
+#             },
+#             "aggs": {
+#                 "data": {
+#                     "significant_terms": {
+#                         "field": "private.facets.uniprot_keywords",
+#                         'size': 25,
+#                     },
+#                     "aggs": {
+#                         "unique_target_count": {
+#                             "cardinality": {
+#                                 "field": "target.id",
+#                                 "precision_threshold": 1000},
+#                         },
+#                         "unique_disease_count": {
+#                             "cardinality": {
+#                                 "field": "disease.id",
+#                                 "precision_threshold": 1000},
+#                         },
+#                     },
+#                 },
+#             }
+#         }
+#
+#     def _get_complex_uniprot_kw_filter(self, kw, bol):
+#         pass
+#         '''
+#         :param kw: list of uniprot kw strings
+#         :param bol: boolean operator to use for combining filters
+#         :return: boolean filter
+#         '''
+#         if kw:
+#             genes = self.handler.get_genes_for_uniprot_kw(kw)
+#             if genes:
+#                 return self.handler.get_complex_target_filter(genes, bol)
+#         return dict()
 
 class AggregationUnitECO(AggregationUnit):
 
@@ -2151,7 +2503,8 @@ class AggregationBuilder(object):
         FilterTypes.PATHWAY : AggregationUnitPathway,
         FilterTypes.UNIPROT_KW : AggregationUnitUniprotKW,
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
-        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea
+        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
+        FilterTypes.GO: AggregationUnitGO,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
@@ -2232,3 +2585,29 @@ class AggregationBuilder(object):
     #         }
     #
     #     }
+
+
+
+class esStore(object):
+    def __init__(self,
+                 es,
+                 eventlog_index,
+                 cache,
+                 ):
+        self.es = es
+        self.eventlog_index = eventlog_index
+        self.cache = cache
+
+    def store_event(self, event):
+        event['org_from_ip'] = self.get_ip_org(event['ip'])
+        index_name = self.eventlog_index+ '_'+ '-'.join(map(str,datetime.now().isocalendar()[:2]))
+        self.es.index(index=index_name,
+                      doc_type='event',
+                      body=event)
+
+    def get_ip_org(self, ip):
+        host_from_ip = self.cache.get(ip)
+        if host_from_ip is None:
+            host_from_ip = socket.gethostbyaddr(ip)[0]
+            self.cache.set(ip, host_from_ip, 24*60*60)
+        return host_from_ip

@@ -199,3 +199,35 @@ class DataStats(object):
 
     def add_key_value(self, key, value):
         self.__dict__[key]={'total': value}
+
+class RelationTypes(object):
+    SHARED_TARGETS = 'shared-targets'
+    SHARED_DISEASES = 'shared-diseases'
+    UNKNOWN = None
+
+class RelationDirection(object):
+        RIGHT = 'right'
+        LEFT = 'left'
+        BOTH = 'both'
+        UNKNOWN = None
+
+class Relation(object, ):
+
+    def __init__(self,
+                 subject,
+                 object,
+                 type=RelationTypes.UNKNOWN,
+                 direction = RelationDirection.UNKNOWN,
+                 value = 0.,
+                 **kwargs):
+        self.subject = subject
+        self.object = object
+        self.type = type
+        self.direction = direction
+        self.value = value
+        self.__dict__.update(**kwargs)
+
+    def to_dict(self):
+        return self.__dict__
+
+
