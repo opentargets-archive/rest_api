@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: "1.2.0"
+  version: "1.2.1"
   description: |
 
     The Target Validation Platform API ('Application Programming Interface')
