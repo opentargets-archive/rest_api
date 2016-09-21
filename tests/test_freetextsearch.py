@@ -106,7 +106,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         '''lin-45 is a braf ortholog in c.elegans, but 50% percent of people willuse lin45
         '''
         response= self._make_request('/api/latest/private/quicksearch',
-                                     data={'q':'lin45'},
+                                     data={'q':'lin-45'},
                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))

@@ -88,8 +88,12 @@ class TokenAuthentication():
                 domain = get_domain()
                 if auth_key.domain:
                     for allowed_domain in auth_key.domain.split('|'):
-                        if domain.endswith(allowed_domain):
-                            return True
+                        if allowed_domain[0]=='*':
+                            if domain.endswith(allowed_domain[1:]):
+                                return True
+                        else:
+                            if domain==allowed_domain:
+                                return True
                 else:
                     return True
         return False
