@@ -213,6 +213,34 @@ class esQuery():
                              highlight=highlight)
             data.append(datapoint)
         return PaginatedResult(res, params, data)
+    
+    def target_search(self, searchphrase,
+                         **kwargs):
+        '''
+        This is similar to free_text_search but is dedicated to look up a target by target name.
+        assumes that doc_filter = ['target']
+        :param searchphrase:
+        :param doc_filter:
+        :param kwargs:
+        :return:
+        '''
+        searchphrase = searchphrase.lower()
+        params = SearchParams(**kwargs)
+        
+        res = self._target_search_query(searchphrase, params)
+        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
+        data = []
+        for hit in res['hits']['hits']:
+            highlight = ''
+            if 'highlight' in hit:
+                highlight = hit['highlight']
+            datapoint = dict(type=hit['_type'],
+                             data=hit['_source'],
+                             id=hit['_id'],
+                             score=hit['_score'],
+                             highlight=highlight)
+            data.append(datapoint)
+        return PaginatedResult(res, params, data)
 
     def quick_search(self,
                      searchphrase,
@@ -950,6 +978,51 @@ class esQuery():
         }
 
         return query_body
+    
+    def _get_target_name_query(self, searchphrase):
+        query_body = {"function_score": {
+            "score_mode": "multiply",
+            'query': {
+                'filtered': {
+                    'query': {
+                        "bool": {
+                            "should": [
+                                
+                                {"multi_match": {
+                                    "query": searchphrase,
+                                    "fields": ["name^3",
+                                               "description^2",
+                                               "id",
+                                               "approved_symbol"
+                                               ],
+                                    "analyzer": 'keyword',
+                                    # "fuzziness": "AUTO",
+                                    "tie_breaker": 0,
+                                    "type": "best_fields",
+                                    },
+                                }
+                            ]
+                        }
+                    },
+                    'filter': {
+                        
+                    }
+                },
+            },
+            "functions": [             
+                {
+                "field_value_factor":{
+                    "field": "association_counts.total",
+                    "factor": 0.01,
+                    "modifier": "sqrt",
+                    "missing": 1,
+                    # "weight": 0.01,
+                    }
+                }
+              ]
+            }
+        }
+        return query_body
 
     def _get_free_text_highlight(self):
         return {"fields": {
@@ -1448,8 +1521,42 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             elif t in FreeTextFilterOptions.__dict__.values():
                 doc_types.append(self._docname_search + '-' + t)
         return doc_types
+    
+    def _target_search_query(self, searchphrase,  params):
+        
+        theBody = { 'query': self._get_free_text_query(searchphrase),
+                    'size': params.size,
+                    'from': params.start_from,
+                    '_source': SourceDataStructureOptions.getSource(SourceDataStructureOptions.FULL),
+                                         # "min_score": 0.,
+                    "highlight": self._get_free_text_highlight(),
+                    "explain": current_app.config['DEBUG']
+                                         }
+        return self._cached_search(index=self._index_search,
+                                   doc_type=['search-object-target'],
+                                   body={'query': self._get_free_text_query(searchphrase),
+                                         'size': params.size,
+                                         'from': params.start_from,
+                                         '_source': SourceDataStructureOptions.getSource(
+                                                 SourceDataStructureOptions.FULL),
+                                         # "min_score": 0.,
+                                         "highlight": self._get_free_text_highlight(),
+                                         "explain": current_app.config['DEBUG'],
+
+                                         },
+
+                                   )
 
     def _free_text_query(self, searchphrase, doc_types, params):
+        
+        theBody = { 'query': self._get_free_text_query(searchphrase),
+                    'size': params.size,
+                    'from': params.start_from,
+                    '_source': SourceDataStructureOptions.getSource(SourceDataStructureOptions.FULL),
+                                         # "min_score": 0.,
+                    "highlight": self._get_free_text_highlight(),
+                    "explain": current_app.config['DEBUG']
+                                         }
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
                                    body={'query': self._get_free_text_query(searchphrase),

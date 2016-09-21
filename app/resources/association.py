@@ -10,11 +10,15 @@ from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
+from types import *
 import time
+from astropy.io.fits.card import UNDEFINED
+
 
 __author__ = 'andreap'
 
 class Association(restful.Resource):
+
 
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
@@ -38,6 +42,7 @@ class Association(restful.Resource):
                                took=time.time() - start_time)
 
 class FilterBy(restful.Resource):
+
 
     @is_authenticated
     @rate_limit
@@ -66,7 +71,7 @@ class FilterBy(restful.Resource):
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False")
-        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
+        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Defaults to True", default=False)
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
         parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
@@ -107,19 +112,96 @@ class FilterBy(restful.Resource):
                     if drop:
                         del args[k]
 
-
+        print("post:args=" +str(args))
         data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
 
+    
 
     def get_association(self,params):
-
+        print 'get_association:params=' + str(params)
+        
+        '''Here look into params first and see if we need to lookup target names'''
+        #check that target was passed, that target list has at least one element and that first element is not and empty string
+        resultList = [[],[]];
+        if ('target' in params):
+            if(params['target'] is not None ):
+                if (len(params['target']) > 0 and params['target'][0]):
+                    resultList = process_targets(params['target'])
+                    params['target'] = resultList[0]
+                elif(len(params['target']) == 1 and not params['target'][0]):#exists but has an empty value
+                    del params['target']
+                
+            
+        
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
         except AttributeError,e:
+            print("AttributeError:" + message)
             abort(404, message=e.message)
 
+        res.excluded_target_list = resultList[1]
         return res
+
+def process_targets1(targetList):
+    targetIdList = []; #all ids gonna go here
+    idNotFoundList = [];
+    filteredTargetNameList = [];
+    for target in targetList:
+        if target: # if target is not an empty string
+            if not isinstance(target, basestring): #if it is not a string or unicode tye
+                idNotFoundList.append(target)
+            elif not target.startswith('ENSG'): #need to lookup
+                #search_result = next(self.search(target, size=1, filter='target'))
+                search_result = current_app.extensions['esquery'].free_text_search(target, doc_filter=['target'], size=1)
+                filteredTargetNameList.append
+                if not search_result:
+                    idNotFoundList.append(target)
+                elif len(search_result.data) == 0:
+                    #print "For Target = " + target + "no ENS ID found"
+                    idNotFoundList.append(target)
+                else: 
+                    target_id = search_result.data[0]['id']
+                    #print "For Target = " + target + " ENS ID = " +target_id
+                    targetIdList.append(target_id)
+                        #logger.debug('{} resolved to id {}'.format(target, target_id))
+            else:
+                    targetIdList.append(target)
+        
+    resultList = [];
+    resultList.append(targetIdList)
+    resultList.append(idNotFoundList)
+    return resultList;
+    
+def process_targets(targetList):
+    targetIdList = []; #all ids gonna go here
+    idNotFoundList = [];
+    for target in targetList:
+        if target: #meaning if target is not an empty string
+            if not isinstance(target, basestring):
+                idNotFoundList.append(target)
+            elif not target.startswith('ENSG'):
+                #search_result = next(self.search(target, size=1, filter='target'))
+                search_result = current_app.extensions['esquery'].target_search(target, size=1)
+               
+                if not search_result:
+                    idNotFoundList.append(target)
+                elif len(search_result.data) == 0:
+                    #print "For Target = " + target + "no ENS ID found"
+                    idNotFoundList.append(target)
+                else: 
+                    target_id = search_result.data[0]['id']
+                    #print "For Target = " + target + " ENS ID = " +target_id
+                    targetIdList.append(target_id)
+                        #logger.debug('{} resolved to id {}'.format(target, target_id))
+            else:
+                    targetIdList.append(target)
+        
+    resultList = [];
+    resultList.append(targetIdList)
+    resultList.append(idNotFoundList)
+    return resultList;
+    
 

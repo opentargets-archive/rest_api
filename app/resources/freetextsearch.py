@@ -19,7 +19,8 @@ class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('filter', type=str, required=False,  action='append', help="filter by gene or efo")
-
+    
+    
     @is_authenticated
     @rate_limit
     def get(self ):
@@ -28,6 +29,7 @@ class FreeTextSearch(restful.Resource, Paginable):
         Search with a parameter q = 'your query'
         """
         start_time = time.time()
+        print "FreeTextSearch:start_time=" + str(start_time)
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         filter = kwargs.pop('filter') or ['all']

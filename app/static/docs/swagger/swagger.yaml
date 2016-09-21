@@ -222,11 +222,11 @@ paths:
       tags:
         - public
       description: |
-        The filter method allows to retrieve the specific data that support a connection between targets and diseases.
+        The filter method allows to retrieve the specific data that supports a connection between targets and diseases.
         Filters can be used to restrict the results by source and type of data,
         or limit results to targets which are part of a particular pathway .
-        Minimum and maximum score can be specified as well as the type of evidence linking target and disease.
-        Notice multiple genes and disease can be specified in the same request.
+        Minimum and maximum scores can be specified as well as the type of evidence linking target and disease.
+        Notice multiple genes and diseases can be specified in the same request.
       parameters:
         - name: target
           in: query
