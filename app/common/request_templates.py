@@ -156,7 +156,12 @@ class FilterTypes():
     IS_DIRECT='direct'
     THERAPEUTIC_AREA='therapeutic_area'
 
-
+class EvidenceFacetTypes():
+    ABSTRACT = 'abstract'
+    JOURNAL = 'journal'
+    PUB_DATE = 'pub_date'
+    DATATYPE = 'datatype'
+    
 
 class AssociationSortOptions:
     OVERALL = 'overall'
