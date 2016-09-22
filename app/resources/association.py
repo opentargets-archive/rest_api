@@ -76,7 +76,6 @@ class FilterBy(restful.Resource):
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
         parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
 
-
         args = parser.parse_args()
         data = self.get_association(params=args)
         return CTTVResponse.OK(data,
@@ -114,7 +113,13 @@ class FilterBy(restful.Resource):
 
         print("post:args=" +str(args))
         data = self.get_association(params=args)
-        return CTTVResponse.OK(data,
+        format = None
+        if('format' in args):
+            format = args['format']
+        
+            
+        print "format = " + str(format)
+        return CTTVResponse.OK(data, format,
                                took=time.time() - start_time)
 
     
