@@ -2608,6 +2608,9 @@ class esStore(object):
     def get_ip_org(self, ip):
         host_from_ip = self.cache.get(ip)
         if host_from_ip is None:
-            host_from_ip = socket.gethostbyaddr(ip)[0]
-            self.cache.set(ip, host_from_ip, 24*60*60)
+            try:
+                host_from_ip = socket.gethostbyaddr(ip)[0]
+                self.cache.set(ip, host_from_ip, 24*60*60)
+            except:
+                pass
         return host_from_ip
