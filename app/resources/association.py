@@ -150,35 +150,7 @@ class FilterBy(restful.Resource):
         res.excluded_target_list = resultList[1]
         return res
 
-def process_targets1(targetList):
-    targetIdList = []; #all ids gonna go here
-    idNotFoundList = [];
-    filteredTargetNameList = [];
-    for target in targetList:
-        if target: # if target is not an empty string
-            if not isinstance(target, basestring): #if it is not a string or unicode tye
-                idNotFoundList.append(target)
-            elif not target.startswith('ENSG'): #need to lookup
-                #search_result = next(self.search(target, size=1, filter='target'))
-                search_result = current_app.extensions['esquery'].free_text_search(target, doc_filter=['target'], size=1)
-                filteredTargetNameList.append
-                if not search_result:
-                    idNotFoundList.append(target)
-                elif len(search_result.data) == 0:
-                    #print "For Target = " + target + "no ENS ID found"
-                    idNotFoundList.append(target)
-                else: 
-                    target_id = search_result.data[0]['id']
-                    #print "For Target = " + target + " ENS ID = " +target_id
-                    targetIdList.append(target_id)
-                        #logger.debug('{} resolved to id {}'.format(target, target_id))
-            else:
-                    targetIdList.append(target)
-        
-    resultList = [];
-    resultList.append(targetIdList)
-    resultList.append(idNotFoundList)
-    return resultList;
+
     
 def process_targets(targetList):
     targetIdList = []; #all ids gonna go here

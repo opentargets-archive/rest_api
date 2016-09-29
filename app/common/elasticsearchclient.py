@@ -1049,6 +1049,14 @@ class esQuery():
             "ortholog.*.id":{}
         }
         }
+    
+    def _get_target_id_name_highlight(self):
+        return {"fields": {
+            "id": {},
+            "name":{},
+            "approved_symbol": {}
+        }
+        }
 
 
     def _get_datasource_init_list(self, params=None):
@@ -1524,23 +1532,24 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
     
     def _target_search_query(self, searchphrase,  params):
         
-        theBody = { 'query': self._get_free_text_query(searchphrase),
-                    'size': params.size,
-                    'from': params.start_from,
-                    '_source': SourceDataStructureOptions.getSource(SourceDataStructureOptions.FULL),
-                                         # "min_score": 0.,
-                    "highlight": self._get_free_text_highlight(),
-                    "explain": current_app.config['DEBUG']
-                                         }
-        return self._cached_search(index=self._index_search,
-                                   doc_type=['search-object-target'],
-                                   body={'query': self._get_free_text_query(searchphrase),
+        thebody={'query': self._get_target_name_query(searchphrase),
                                          'size': params.size,
                                          'from': params.start_from,
                                          '_source': SourceDataStructureOptions.getSource(
                                                  SourceDataStructureOptions.FULL),
                                          # "min_score": 0.,
-                                         "highlight": self._get_free_text_highlight(),
+                                         "highlight": self._get_target_id_name_highlight(),
+                                         "explain": current_app.config['DEBUG'],
+                                         }
+        return self._cached_search(index=self._index_search,
+                                   doc_type=['search-object-target'],
+                                   body={'query': self._get_target_name_query(searchphrase),
+                                         'size': params.size,
+                                         'from': params.start_from,
+                                         '_source': SourceDataStructureOptions.getSource(
+                                                 SourceDataStructureOptions.FULL),
+                                         # "min_score": 0.,
+                                         "highlight": self._get_target_id_name_highlight(),
                                          "explain": current_app.config['DEBUG'],
 
                                          },
@@ -1548,27 +1557,34 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                    )
 
     def _free_text_query(self, searchphrase, doc_types, params):
+        '''
+           If  'fields' parameter is passed, only these fields would be returned 
+           and 'highlights' would be added only if it is of the fields parameters.
+           If there is not a 'fields' parameter, then fields are included by default
+            
+        '''
         
+        theHighlight = self._get_free_text_highlight()
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)       
+        if 'include' in source:
+            params.requested_fields = source['include']
+            if 'highlight' not in params.requested_fields:
+                theHighlight = None
+                
+            
         theBody = { 'query': self._get_free_text_query(searchphrase),
                     'size': params.size,
                     'from': params.start_from,
-                    '_source': SourceDataStructureOptions.getSource(SourceDataStructureOptions.FULL),
-                                         # "min_score": 0.,
-                    "highlight": self._get_free_text_highlight(),
+                    '_source':source,                             
+                    
                     "explain": current_app.config['DEBUG']
-                                         }
+                                         } 
+        if theHighlight is not None:
+            theBody['highlight'] = theHighlight
+            
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body={'query': self._get_free_text_query(searchphrase),
-                                         'size': params.size,
-                                         'from': params.start_from,
-                                         '_source': SourceDataStructureOptions.getSource(
-                                                 SourceDataStructureOptions.FULL),
-                                         # "min_score": 0.,
-                                         "highlight": self._get_free_text_highlight(),
-                                         "explain": current_app.config['DEBUG'],
-
-                                         },
+                                   body= theBody,
 
                                    )
 

@@ -41,6 +41,36 @@ class FreeTextSearch(restful.Resource, Paginable):
         else:
             abort(400, message = "Query is too short")
 
+    @is_authenticated
+    @rate_limit
+    def post(self ):
+        """
+        Search for gene and disease
+        Parameters are passed with data 
+        Search with a parameter q = 'your query'
+        """
+        start_time = time.time()
+        print "FreeTextSearch:start_time=" + str(start_time)
+        kwargs = request.get_json(force=True)
+        for k,v in kwargs.items():
+            if isinstance(v, list):
+                if len(v)>0:
+                    drop = True
+                    for i in v:
+                        if i != '':
+                            drop =False
+                    if drop:
+                        del args[k]
+        print("free_text_search:post:args=" +str(kwargs))                
+        searchphrase = kwargs.pop('q')
+        filter = kwargs.pop('filter') or ['all']
+        if len(searchphrase)>1:
+            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
+
+            return CTTVResponse.OK(res,
+                                   took=time.time() - start_time)
+        else:
+            abort(400, message = "Query is too short")
 
 
 
