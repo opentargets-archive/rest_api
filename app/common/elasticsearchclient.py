@@ -1884,6 +1884,8 @@ class SearchParams():
         if datasource_filter == []:
             datasource_filter = None
         self.filters[FilterTypes.DATATYPE] = datasource_filter
+        
+        self.is_direct = kwargs.get('direct', False)
 
         # required for evidence query. TODO: harmonise it with the filters in association endpoint
 #         self.pathway = kwargs.get('pathway', []) or []
