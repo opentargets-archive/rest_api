@@ -459,8 +459,10 @@ class esQuery():
                     "must": post_filters.values()
                 }
             }
+
         res = self._cached_search(index=self._index_data,
-                                  # doc_type=self._docname_data,
+                                  #doc_type = self._docname_data,
+                                 doc_type="evidencestring-europepmc",
                                   body=ev_query_body,
                                   timeout="10m",
 
@@ -1869,6 +1871,8 @@ class SearchParams():
         self.evidence_filters[EvidenceFacetTypes.JOURNAL] = kwargs.get(EvidenceFacetTypes.JOURNAL)
         self.evidence_filters[EvidenceFacetTypes.PUB_DATE] = kwargs.get(EvidenceFacetTypes.PUB_DATE)
         self.evidence_filters[EvidenceFacetTypes.DATATYPE] = kwargs.get(EvidenceFacetTypes.DATATYPE)
+
+#         
         
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -2451,22 +2455,20 @@ class AggregationUnitAbstract(AggregationUnit):
 
     def _get_abstract_keywords_facet_aggregation(self, filters):
         return {
-                         #"field": "evidence.literature.epmc_keywords",
-                        "significant_terms":{"field": "target.gene_info.name"},
+                        "significant_terms":{"field": "literature.abstract"},
                         "aggs":{
                             "cluster_terms":{
                                 "significant_terms": {
-                        #"field": "evidence.literature.epmc_keywords",
-                        "field": "target.gene_info.name",
-                        "size": 25
+                        "field": "literature.abstract",
+                        "size": 5
                                 }
                             }
                         }
                         
-                        
-        
-               
         }
+        
+        
+        
 
     def _get_complex_abstract_kw_filter(self, kw, bol):
         pass
@@ -2480,7 +2482,7 @@ class AggregationUnitAbstract(AggregationUnit):
                 return {
                     #"match": {"evidence.evidence_codes_info.label": kw}
                     # TODO : use fuzzy query instead??
-                    "match": {"target.gene_info.name": kw}
+                    "match": {"literature.abstract": kw}
                     
                 }
             else:
@@ -2489,7 +2491,7 @@ class AggregationUnitAbstract(AggregationUnit):
                         bol: [{
                                   "match": {
                                   #    "evidence.evidence_codes_info.label": [term]}
-                                  "target.gene_info.name": term}
+                                  "literature.abstract": term}
                               }
                               for term in kw]
                     }
@@ -2508,7 +2510,7 @@ class AggregationUnitPubDate(AggregationUnit):
     def _pub_date_facet_aggregation(self, filters):
         return {
                 "terms": {
-                        "field": "evidence.literature.year",
+                        "field": "literature.year",
                         'size': 25,
                     }
         }
@@ -2524,14 +2526,14 @@ class AggregationUnitPubDate(AggregationUnit):
         if kw:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {"evidence.literature.year": kw}
+                    "terms": {"literature.year": kw}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "terms": {
-                                      "evidence.literature.year": [term]}
+                                      "literature.year": [term]}
                               }
                               for term in kw]
                     }
@@ -2548,20 +2550,15 @@ class AggregationUnitJournal(AggregationUnit):
         self.agg = self._get_journal_keywords_facet_aggregation(filters)
 
     def _get_journal_keywords_facet_aggregation(self, filters):
-        
+        #TODO : do not analyze medlineAbbreviation field
         return {
-                    "significant_terms":{"field": "evidence.literature.journal"},
-                        "aggs":{
-                            "cluster_terms":{
-                                "significant_terms": {
-                        "field": "evidence.literature.journal",
-                        "size": 25
-                                }
-                            }
-                        }
+                        "terms":{"field": "literature.journal.journal.medlineAbbreviation"}
+                       
                         
-                    
         }
+    
+   
+
 
     def _get_complex_journal_kw_filter(self, kw, bol):
         pass
@@ -2574,14 +2571,14 @@ class AggregationUnitJournal(AggregationUnit):
         if kw:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "match": {"evidence.literature.journal": kw}
+                    "match": {"literature.journal.journal.medlineAbbreviation": kw}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "match": {
-                                      "evidence.literature.journal": term}
+                                      "literature.journal.journal.medlineAbbreviation": term}
                               }
                               for term in kw]
                     }
@@ -2614,9 +2611,6 @@ class AggregationUnitEvidenceDatasource(AggregationUnit):
                     }
         }
 
-    
-
-
 class AggregationBuilder(object):
     '''
     handles the construction of an aggregation query based on a set of filters
@@ -2639,11 +2633,10 @@ class AggregationBuilder(object):
                              ]
     
     _EVIDENCE_FACET_MAP = {
-        #EvidenceFacetTypes.DATATYPE : AggregationUnitDatasource,
+       # EvidenceFacetTypes.DATATYPE : AggregationUnitDatasource,
         EvidenceFacetTypes.ABSTRACT : AggregationUnitAbstract,
         EvidenceFacetTypes.JOURNAL : AggregationUnitJournal,
         EvidenceFacetTypes.PUB_DATE : AggregationUnitPubDate,
-        
     }
     
     _EVIDENCE_UNIT_MAP = {
