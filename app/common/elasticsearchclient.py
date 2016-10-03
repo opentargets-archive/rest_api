@@ -459,7 +459,7 @@ class esQuery():
                     "must": post_filters.values()
                 }
             }
-
+        
         res = self._cached_search(index=self._index_data,
                                   #doc_type = self._docname_data,
                                  doc_type="evidencestring-europepmc",
@@ -2457,11 +2457,11 @@ class AggregationUnitAbstract(AggregationUnit):
 
     def _get_abstract_keywords_facet_aggregation(self, filters):
         return {
-                        "significant_terms":{"field": "literature.abstract"},
+                        "significant_terms":{"field": "private.facets.abstract_lemmas.value"},
                         "aggs":{
                             "cluster_terms":{
                                 "significant_terms": {
-                        "field": "literature.abstract",
+                        "field": "private.facets.abstract_lemmas.value",
                         "size": 5
                                 }
                             }
