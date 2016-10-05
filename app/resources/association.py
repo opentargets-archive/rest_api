@@ -128,7 +128,6 @@ class FilterBy(restful.Resource):
             print("AttributeError:" + message)
             abort(404, message=e.message)
 
-        res.excluded_target_list = resultList[1]
         return res
     
 
