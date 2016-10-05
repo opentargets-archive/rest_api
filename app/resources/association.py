@@ -19,7 +19,6 @@ __author__ = 'andreap'
 
 class Association(restful.Resource):
 
-
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
 
@@ -111,34 +110,16 @@ class FilterBy(restful.Resource):
                     if drop:
                         del args[k]
 
-        print("post:args=" +str(args))
+        #print("post:args=" +str(args))
         data = self.get_association(params=args)
         format = None
         if('format' in args):
-            format = args['format']
-        
-            
-        print "format = " + str(format)
+            format = args['format']   
+        #print "format = " + str(format)
         return CTTVResponse.OK(data, format,
                                took=time.time() - start_time)
-
-    
-
-    def get_association(self,params):
-        print 'get_association:params=' + str(params)
-        
-        '''Here look into params first and see if we need to lookup target names'''
-        #check that target was passed, that target list has at least one element and that first element is not and empty string
-        resultList = [[],[]];
-        if ('target' in params):
-            if(params['target'] is not None ):
-                if (len(params['target']) > 0 and params['target'][0]):
-                    resultList = process_targets(params['target'])
-                    params['target'] = resultList[0]
-                elif(len(params['target']) == 1 and not params['target'][0]):#exists but has an empty value
-                    del params['target']
-                
-            
+  
+    def get_association(self,params):        
         
         es = current_app.extensions['esquery']
         try:
@@ -149,36 +130,7 @@ class FilterBy(restful.Resource):
 
         res.excluded_target_list = resultList[1]
         return res
-
-
     
-def process_targets(targetList):
-    targetIdList = []; #all ids gonna go here
-    idNotFoundList = [];
-    for target in targetList:
-        if target: #meaning if target is not an empty string
-            if not isinstance(target, basestring):
-                idNotFoundList.append(target)
-            elif not target.startswith('ENSG'):
-                #search_result = next(self.search(target, size=1, filter='target'))
-                search_result = current_app.extensions['esquery'].target_search(target, size=1)
-               
-                if not search_result:
-                    idNotFoundList.append(target)
-                elif len(search_result.data) == 0:
-                    #print "For Target = " + target + "no ENS ID found"
-                    idNotFoundList.append(target)
-                else: 
-                    target_id = search_result.data[0]['id']
-                    #print "For Target = " + target + " ENS ID = " +target_id
-                    targetIdList.append(target_id)
-                        #logger.debug('{} resolved to id {}'.format(target, target_id))
-            else:
-                    targetIdList.append(target)
-        
-    resultList = [];
-    resultList.append(targetIdList)
-    resultList.append(idNotFoundList)
-    return resultList;
+
     
 

@@ -59,7 +59,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(first_result['approved_symbol'], 'BRAF')
         self.assertEqual(first_result['id'], 'ENSG00000157764')
         
-    @unittest.skip("testSearchFieldsPost")    
+    #@unittest.skip("testSearchFieldsPost")    
     def testSearchFieldsPost(self):
 
         response= self._make_request('/api/latest/public/search',
@@ -71,7 +71,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         
-        self.assertTrue(json_response['data'][0]['highlight'], '')
+        self.assertTrue(json_response['data'][0]['highlight'] == "")
         self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
         
         first_result = json_response['data'][0]['data']
@@ -101,7 +101,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(first_result['id'], 'ENSG00000157764')
     
     
-    @unittest.skip("testSearchFieldsWithHighlightPost")
+    #@unittest.skip("testSearchFieldsWithHighlightPost")
     def testSearchFieldsWithHighlightPost(self):
 
         response= self._make_request('/api/latest/public/search',

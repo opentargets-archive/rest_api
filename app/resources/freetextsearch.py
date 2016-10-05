@@ -1,6 +1,7 @@
 import flask
 import time
 from flask import current_app
+from flask import request
 from flask.ext import restful
 from flask.ext.restful import abort,reqparse
 from app.common import boilerplate
@@ -60,10 +61,13 @@ class FreeTextSearch(restful.Resource, Paginable):
                         if i != '':
                             drop =False
                     if drop:
-                        del args[k]
+                        del kwargs[k]
         print("free_text_search:post:args=" +str(kwargs))                
         searchphrase = kwargs.pop('q')
-        filter = kwargs.pop('filter') or ['all']
+        filter = ['all']
+        if ('filter' in kwargs):
+            filter = kwargs['filter']
+        
         if len(searchphrase)>1:
             res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
 
