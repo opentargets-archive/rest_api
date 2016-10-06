@@ -459,6 +459,9 @@ class esQuery():
                     "must": post_filters.values()
                 }
             }
+            
+        print "Evidence Query"
+        print ev_query_body
         #TODO : IMPORTANT - change the hardocoded doc_type
         res = self._cached_search(index=self._index_data,
                                   #doc_type = self._docname_data,
@@ -1871,6 +1874,7 @@ class SearchParams():
         self.evidence_filters[EvidenceFacetTypes.JOURNAL] = kwargs.get(EvidenceFacetTypes.JOURNAL)
         self.evidence_filters[EvidenceFacetTypes.PUB_DATE] = kwargs.get(EvidenceFacetTypes.PUB_DATE)
         self.evidence_filters[EvidenceFacetTypes.DATATYPE] = kwargs.get(EvidenceFacetTypes.DATATYPE)
+        self.evidence_filters[EvidenceFacetTypes.DISEASE] = kwargs.get(EvidenceFacetTypes.DISEASE)
 
 #         
         
@@ -2013,6 +2017,23 @@ class AggregationUnitDisease(AggregationUnit):
                     }
                 },
             }
+        }
+        
+
+class AggregationUnitEvidenceDisease(AggregationUnitDisease):
+
+    def build_agg(self, filters):
+        self.agg = self._get_disease_facet_aggregation(filters)
+
+    def _get_disease_facet_aggregation(self, filters):
+        return {
+                
+                    "terms": {
+                        "field": "disease.id",
+                        'size': 10,
+                    
+                }
+            
         }
 
 class AggregationUnitTherapeuticArea(AggregationUnit):
@@ -2305,43 +2326,7 @@ class AggregationUnitScoreRange(AggregationUnit):
                     }
                 }
 
-class AggregationUnitUniprotKW(AggregationUnit):
 
-    def build_query_filter(self):
-        if self.filter is not None:
-            self.query_filter = self._get_complex_uniprot_kw_filter(self.filter,
-                                                                    BooleanFilterOperator.OR)
-    def build_agg(self, filters):
-        self.agg = self._get_uniprot_keywords_facet_aggregation(filters)
-
-    def _get_uniprot_keywords_facet_aggregation(self, filters):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "significant_terms": {
-                        "field": "private.facets.uniprot_keywords",
-                        'size': 25,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-                    },
-                },
-            }
-        }
 
     def _get_complex_uniprot_kw_filter(self, kw, bol):
         pass
@@ -2639,6 +2624,7 @@ class AggregationBuilder(object):
         EvidenceFacetTypes.ABSTRACT : AggregationUnitAbstract,
         EvidenceFacetTypes.JOURNAL : AggregationUnitJournal,
         EvidenceFacetTypes.PUB_DATE : AggregationUnitPubDate,
+        EvidenceFacetTypes.DISEASE : AggregationUnitEvidenceDisease
     }
     
     _EVIDENCE_UNIT_MAP = {

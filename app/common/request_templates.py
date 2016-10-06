@@ -161,6 +161,7 @@ class EvidenceFacetTypes():
     JOURNAL = 'journal'
     PUB_DATE = 'pub_date'
     DATATYPE = 'datatype'
+    DISEASE = 'disease'
     
 
 class AssociationSortOptions:
