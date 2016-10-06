@@ -459,7 +459,7 @@ class esQuery():
                     "must": post_filters.values()
                 }
             }
-        
+        #TODO : IMPORTANT - change the hardocoded doc_type
         res = self._cached_search(index=self._index_data,
                                   #doc_type = self._docname_data,
                                  doc_type="evidencestring-europepmc",
@@ -1981,7 +1981,7 @@ class AggregationUnitDisease(AggregationUnit):
 
     def build_query_filter(self):
         if self.filter is not None:
-            self.query_filter = self.handler.get_complex_disease_filter(self.filter, is_direct=True)
+            self.query_filter = self.handler.get_complex_disease_filter(self.filter, is_direct=False)
 
     def build_agg(self, filters):
         self.agg = self._get_disease_facet_aggregation(filters)
@@ -2554,7 +2554,7 @@ class AggregationUnitJournal(AggregationUnit):
     def _get_journal_keywords_facet_aggregation(self, filters):
         #TODO : do not analyze medlineAbbreviation field
         return {
-                        "terms":{"field": "literature.journal.journal.medlineAbbreviation"}
+                        "terms":{"field": "literature.journal_data.journal.medlineAbbreviation"}
                        
                         
         }

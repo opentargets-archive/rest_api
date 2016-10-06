@@ -19,12 +19,18 @@ class EvidenceFacetsTestCase(GenericTestCase):
         datasource='europepmc'
         target_ibd = 'ENSG00000073756'
         disease_ibd = 'EFO_0003767'
+        target_als = 'ENSG00000089280'
+        disease_als = 'EFO_0000253'
+        target_parkinson = 'ENSG00000145335'
+        disease_parkinson='EFO_0002508'
+        target_cancer = 'ENSG00000066468'
+        disease_cancer='EFO_0000311'
         print "Testing Evidence Facets using Significant Terms Aggregations"
       
         response = self._make_request('/api/latest/public/evidence/filter',
-                                      data=json.dumps({'target':[target_ibd],
+                                      data=json.dumps({'target':[target_cancer],
                                             'datasource':[datasource],
-                                            'disease' :[disease_ibd],
+                                            'disease' :[disease_cancer],
                                             'direct':True,
                                             'facets':True,
                                             'size': 10
@@ -38,7 +44,7 @@ class EvidenceFacetsTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         print(json_response)
         print "Facets -------------"
-        print json_response['facets']
+        print json_response['facets']['journal']
         self.assertIsNotNone(json_response['facets'])
          
     def testEvidenceFacetsFiltering(self):
