@@ -138,7 +138,8 @@ class StagingConfig(Config):
 
 
 class ProductionConfig(Config):
-    ELASTICSEARCH_URL = 'http://${ELASTICSEARCH_SERVICE_HOST}:9200/'
+    ## kubernetes automatically defines variables such as this for a given service
+    ELASTICSEARCH_URL = 'http://' + os.environ.get('ELASTICSEARCH_SERVICE_HOST') +':9200/'
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
