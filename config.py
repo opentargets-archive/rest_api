@@ -138,9 +138,7 @@ class StagingConfig(Config):
 
 
 class ProductionConfig(Config):
-    ELASTICSEARCH_URL = 'http://elasticsearch-9200.production.cttv.local:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
+    ELASTICSEARCH_URL = 'http://${ELASTICSEARCH_SERVICE_HOST}:9200/'
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
