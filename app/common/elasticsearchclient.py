@@ -950,51 +950,6 @@ class esQuery():
         }
 
         return query_body
-    
-    def _get_target_name_query(self, searchphrase):
-        query_body = {"function_score": {
-            "score_mode": "multiply",
-            'query': {
-                'filtered': {
-                    'query': {
-                        "bool": {
-                            "should": [
-                                
-                                {"multi_match": {
-                                    "query": searchphrase,
-                                    "fields": ["name^3",
-                                               "description^2",
-                                               "id",
-                                               "approved_symbol"
-                                               ],
-                                    "analyzer": 'keyword',
-                                    # "fuzziness": "AUTO",
-                                    "tie_breaker": 0,
-                                    "type": "best_fields",
-                                    },
-                                }
-                            ]
-                        }
-                    },
-                    'filter': {
-                        
-                    }
-                },
-            },
-            "functions": [             
-                {
-                "field_value_factor":{
-                    "field": "association_counts.total",
-                    "factor": 0.01,
-                    "modifier": "sqrt",
-                    "missing": 1,
-                    # "weight": 0.01,
-                    }
-                }
-              ]
-            }
-        }
-        return query_body
 
     def _get_free_text_highlight(self):
         return {"fields": {
@@ -1503,27 +1458,26 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             
         '''
         
-        theHighlight = self._get_free_text_highlight()
+        the_highlight = self._get_free_text_highlight()
         source = SourceDataStructureOptions.getSource(params.datastructure, params)       
         if 'include' in source:
             params.requested_fields = source['include']
             if 'highlight' not in params.requested_fields:
-                theHighlight = None
+                the_highlight = None
                 
             
-        theBody = { 'query': self._get_free_text_query(searchphrase),
+        the_body = { 'query': self._get_free_text_query(searchphrase),
                     'size': params.size,
                     'from': params.start_from,
-                    '_source':source,                             
-                    
+                    '_source':source,                                                 
                     "explain": current_app.config['DEBUG']
                                          } 
-        if theHighlight is not None:
-            theBody['highlight'] = theHighlight
+        if the_highlight is not None:
+            the_body['highlight'] = the_highlight
             
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body= theBody,
+                                   body= the_body,
 
                                    )
 

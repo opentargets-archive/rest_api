@@ -12,7 +12,6 @@ from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from types import *
 import time
-from astropy.io.fits.card import UNDEFINED
 
 
 __author__ = 'andreap'
@@ -76,6 +75,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
 
         args = parser.parse_args()
+        self.remove_empty_params(args)
         data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
@@ -89,9 +89,11 @@ class FilterBy(restful.Resource):
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         test with: {"target":["ENSG00000136997"]},
+        TODO:create new tests that would check for the empty params being passed
         """
+        #Why is this fix_empty_strings function here - do not see it being used anywhere
         def fix_empty_strings(l):
-            new_l=[]
+            new_l=[] 
             if l:
                 for i in l:
                     if i:
@@ -100,15 +102,7 @@ class FilterBy(restful.Resource):
 
         start_time = time.time()
         args = request.get_json(force=True)
-        for k,v in args.items():
-            if isinstance(v, list):
-                if len(v)>0:
-                    drop = True
-                    for i in v:
-                        if i != '':
-                            drop =False
-                    if drop:
-                        del args[k]
+        self.remove_empty_params(args)
 
         #print("post:args=" +str(args))
         data = self.get_association(params=args)
@@ -130,6 +124,16 @@ class FilterBy(restful.Resource):
 
         return res
     
-
+    def remove_empty_params(self,args):
+        for k,v in args.items():
+            if isinstance(v, list):
+                if len(v)>0:
+                    drop = True
+                    for i in v:
+                        if i != '':
+                            drop =False
+                    if drop:
+                        del args[k]
+        
     
 

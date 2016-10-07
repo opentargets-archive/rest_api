@@ -23,10 +23,9 @@ class Result(object):
                  facets=None,
                  available_datatypes = [],
                  status = ['ok'],
-                 therapeutic_areas = [],
-                 excluded_target_list = []):
+                 therapeutic_areas = []):
+        
         '''
-
         :param res: elasticsearch query response
         :param params: get parameters
         :param data: data to display, use only to override default representation
@@ -42,8 +41,6 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
-        self.excluded_target_list = excluded_target_list
-
 
     def toDict(self):
         raise NotImplementedError
@@ -170,8 +167,8 @@ class PaginatedResult(Result):
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
                 # 'status' : self.status,
-                'therapeutic_areas': self.therapeutic_areas,
-                'excluded_target_list':self.excluded_target_list
+                'therapeutic_areas': self.therapeutic_areas
+                
                 }
 
 class EmptyPaginatedResult(Result):
