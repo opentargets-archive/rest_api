@@ -415,7 +415,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
         
-        '''create faceted evidence query with multiple filter conditions, 
+        '''create faceted evidence query with 
            aggregations and post-filters for enabling faceted search'''
 
         agg_builder = AggregationBuilder(self)
@@ -462,10 +462,9 @@ class esQuery():
             
         print "Evidence Query"
         print ev_query_body
-        #TODO : IMPORTANT - change the hardocoded doc_type
+       
         res = self._cached_search(index=self._index_data,
                                   #doc_type = self._docname_data,
-                                 doc_type="evidencestring-europepmc",
                                   body=ev_query_body,
                                   timeout="10m",
 
