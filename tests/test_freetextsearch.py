@@ -59,25 +59,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(first_result['approved_symbol'], 'BRAF')
         self.assertEqual(first_result['id'], 'ENSG00000157764')
         
-    #@unittest.skip("testSearchFieldsPost")    
-    def testSearchFieldsPost(self):
 
-        response= self._make_request('/api/latest/public/search',
-                                     data=json.dumps({'q':'braf', 'fields':['id', 'approved_symbol'], 'size':1}),
-                                     content_type='application/json',
-                                     method='POST',
-                                     token=self._AUTO_GET_TOKEN)
-
-        self.assertTrue(response.status_code == 200)
-        json_response = json.loads(response.data.decode('utf-8'))
-        
-        self.assertTrue(json_response['data'][0]['highlight'] == "")
-        self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
-        
-        first_result = json_response['data'][0]['data']
-        self.assertEqual(len(first_result), 2)
-        self.assertEqual(first_result['approved_symbol'], 'BRAF')
-        self.assertEqual(first_result['id'], 'ENSG00000157764')
     
     #@unittest.skip("testSearchFieldsWithHighlight")
     def testSearchFieldsWithHighlight(self):
@@ -99,32 +81,6 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(len(first_result), 2)
         self.assertEqual(first_result['approved_symbol'], 'BRAF')
         self.assertEqual(first_result['id'], 'ENSG00000157764')
-    
-    
-    #@unittest.skip("testSearchFieldsWithHighlightPost")
-    def testSearchFieldsWithHighlightPost(self):
-
-        response= self._make_request('/api/latest/public/search',
-                                     data=json.dumps({'q':'braf', 'fields':['id', 'approved_symbol', 'highlight']}),
-                                     content_type='application/json',
-                                     method='POST',
-                                     token=self._AUTO_GET_TOKEN)
-
-        self.assertTrue(response.status_code == 200)
-        json_response = json.loads(response.data.decode('utf-8'))
-        self.assertTrue(json_response['data'][0]['highlight'] is not '')
-        theHighlight = json_response['data'][0]['highlight']
-        
-        self.assertEqual(len(theHighlight), 11)
-        
-        self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
-        
-        first_result = json_response['data'][0]['data']
-        self.assertEqual(len(first_result), 2)
-        self.assertEqual(first_result['approved_symbol'], 'BRAF')
-        self.assertEqual(first_result['id'], 'ENSG00000157764')
-          
-   
 
 
     #@unittest.skip("testAsthma")

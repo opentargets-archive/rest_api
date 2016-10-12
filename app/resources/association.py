@@ -104,22 +104,20 @@ class FilterBy(restful.Resource):
         args = request.get_json(force=True)
         self.remove_empty_params(args)
 
-        #print("post:args=" +str(args))
+
         data = self.get_association(params=args)
         format = None
         if('format' in args):
             format = args['format']   
-        #print "format = " + str(format)
+
         return CTTVResponse.OK(data, format,
                                took=time.time() - start_time)
   
-    def get_association(self,params):        
-        
+    def get_association(self,params):
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
         except AttributeError,e:
-            print("AttributeError:" + message)
             abort(404, message=e.message)
 
         return res
