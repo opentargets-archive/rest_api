@@ -1451,20 +1451,36 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             elif t in FreeTextFilterOptions.__dict__.values():
                 doc_types.append(self._docname_search + '-' + t)
         return doc_types
-
+    
+    
     def _free_text_query(self, searchphrase, doc_types, params):
+        '''
+           If  'fields' parameter is passed, only these fields would be returned 
+           and 'highlights' would be added only if it is of the fields parameters.
+           If there is not a 'fields' parameter, then fields are included by default
+            
+        '''
+        
+        the_highlight = self._get_free_text_highlight()
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)       
+        if 'include' in source:
+            params.requested_fields = source['include']
+            if 'highlight' not in params.requested_fields:
+                the_highlight = None
+                
+            
+        the_body = { 'query': self._get_free_text_query(searchphrase),
+                    'size': params.size,
+                    'from': params.start_from,
+                    '_source':source,                                                 
+                    "explain": current_app.config['DEBUG']
+                                         } 
+        if the_highlight is not None:
+            the_body['highlight'] = the_highlight
+            
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body={'query': self._get_free_text_query(searchphrase),
-                                         'size': params.size,
-                                         'from': params.start_from,
-                                         '_source': SourceDataStructureOptions.getSource(
-                                                 SourceDataStructureOptions.FULL),
-                                         # "min_score": 0.,
-                                         "highlight": self._get_free_text_highlight(),
-                                         "explain": current_app.config['DEBUG'],
-
-                                         },
+                                   body= the_body,
 
                                    )
 

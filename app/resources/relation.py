@@ -41,7 +41,7 @@ class RelationDisease(restful.Resource):
         @rate_limit
         def get(self, disease_id):
             """
-            Given a target id, return related targets
+            Given a disease id, return related targets?
             """
             es = current_app.extensions['esquery']
             parser = boilerplate.get_parser()
