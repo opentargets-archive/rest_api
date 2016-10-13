@@ -20,6 +20,13 @@ build:
           python manage.py
           nosetests tests/test_auth.py
 
+deploy:
+    - internal/docker-push:
+        username: _json_key
+        password: $GCR_JSON_KEY_FILE
+        repository: eu.gcr.io/open-targets/rest_api
+        registry: https://eu.gcr.io
+
 #deploy:
 #  box: ubuntu:xenial
 #  steps:
