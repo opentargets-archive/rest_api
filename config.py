@@ -14,7 +14,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.environ.get('DATA_VERSION') or '16.08_'
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.08_')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
@@ -37,7 +37,7 @@ class Config:
     DEBUG = False
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
+    SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '1.2'
@@ -67,7 +67,7 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
-    REDIS_SERVER ='/tmp/api_redis.db'
+    REDIS_SERVER =os.getenv('REDIS_SERVER', '/tmp/api_redis.db')
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
@@ -87,59 +87,34 @@ class Config:
 
 
 class DevelopmentConfig(Config):
+    # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    # ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    ELASTICSEARCH_URL = 'http://193.62.54.18:9200/'
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://193.62.54.18:9200/')
     LOGSTASH_HOST = '127.0.0.1'
-    LOGSTASH_PORT = 5555
+    LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
 
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
 
-class DockerLinkedDevConfig(Config):
-    DEBUG = True
-    ELASTICSEARCH_URL = 'http://elastic:9201'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60
 
 class DockerLinkedConfig(Config):
-    ELASTICSEARCH_URL = 'http://elastic:9200'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elastic:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60
 
-class BiogenConfig(Config):
-    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or 'http://172.17.7.25:80'
-    APP_CACHE_EXPIRY_TIMEOUT = 60*60 #1hr
 
 class TestingConfig(Config):
     TESTING = True
-    # ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    ELASTICSEARCH_URL = 'http://mirror.targetvalidation.org:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://beta.targetvalidation.org:9200/')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
-
-class StagingConfig(Config):
-    ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
-
-    @classmethod
-    def init_app(cls, app):
-        Config.init_app(app)
-
-        #TODO: handle logs
 
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines variables such as this for a given service
-    ELASTICSEARCH_URL = 'http://' + os.environ.get('ELASTICSEARCH_SERVICE_HOST') +':9200/'
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL') or
+                        ''.join(['http://', os.getenv('ELASTICSEARCH_SERVICE_HOST'),':', os.getenv('ELASTICSEARCH_SERVICE_PORT')])
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
@@ -168,27 +143,26 @@ class ProductionConfig(Config):
 
 
 
+# we are not using the one below.
+# TODO: consider deleting it or whether it should belong to production directly
 
-class UnixConfig(ProductionConfig):
-    @classmethod
-    def init_app(cls, app):
-        ProductionConfig.init_app(app)
-
-        # log to syslog
-        import logging
-        from logging.handlers import SysLogHandler
-        syslog_handler = SysLogHandler()
-        syslog_handler.setLevel(logging.WARNING)
-        app.logger.addHandler(syslog_handler)
+# class UnixConfig(ProductionConfig):
+#     @classmethod
+#     def init_app(cls, app):
+#         ProductionConfig.init_app(app)
+#
+#         # log to syslog
+#         import logging
+#         from logging.handlers import SysLogHandler
+#         syslog_handler = SysLogHandler()
+#         syslog_handler.setLevel(logging.WARNING)
+#         app.logger.addHandler(syslog_handler)
 
 
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
-    'staging': StagingConfig,
-    'biogen': BiogenConfig,
     'production': ProductionConfig,
     'dockerlink': DockerLinkedConfig,
-    'dockerlinkdev': DockerLinkedDevConfig,
     'default': DevelopmentConfig
 }
