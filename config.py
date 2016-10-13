@@ -113,7 +113,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines variables such as this for a given service
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL') or
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL') or \
                         ''.join(['http://', os.getenv('ELASTICSEARCH_SERVICE_HOST'),':', os.getenv('ELASTICSEARCH_SERVICE_PORT')])
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
