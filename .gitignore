@@ -1,4 +1,6 @@
 /tmp
+local_config.py
+
 # Compiled source #
 ###################
 *.com

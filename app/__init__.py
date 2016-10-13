@@ -50,7 +50,7 @@ def log_exception_to_datadog(sender, exception, **extra):
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     app.config.from_object(config[config_name])
-    app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS",silent=True)
+    app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
@@ -67,7 +67,7 @@ def create_app(config_name):
     # logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
     # logger.error("hi", extra=dict(hi="hi"))
 
-
+    app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
