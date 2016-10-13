@@ -17,6 +17,7 @@ logstash==0.1.dev0
 MarkupSafe==0.23
 meld3==1.0.0
 Naked==0.1.30
+nose
 pycparser==2.10
 pycrypto==2.6.1
 python-json-logger==0.1.2
