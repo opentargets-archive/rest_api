@@ -7,7 +7,7 @@ build:
 
       # Pushing to 2 different registries
       # DockerHub
-      #- docker push opentargets/webapp:$BRANCH.$BUILD_NUMBER
+      - docker push opentargets/shippable-rest_api:$BRANCH
 
       # GCR.io
       - docker tag opentargets/rest_api:$BRANCH.$BUILD_NUMBER eu.gcr.io/open-targets/rest_api:$BRANCH.$BUILD_NUMBER
