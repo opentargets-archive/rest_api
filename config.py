@@ -112,9 +112,8 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    ## kubernetes automatically defines variables such as this for a given service
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL') or \
-                        ''.join(['http://', os.getenv('ELASTICSEARCH_SERVICE_HOST'),':', os.getenv('ELASTICSEARCH_SERVICE_PORT')])
+    ## kubernetes automatically defines DNS names for each service, at least on GKE
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
     @classmethod
