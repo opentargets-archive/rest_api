@@ -10,8 +10,8 @@ build:
       - docker push opentargets/shippable-rest_api:$BRANCH
 
       # GCR.io
-      - docker tag opentargets/rest_api:$BRANCH.$BUILD_NUMBER eu.gcr.io/open-targets/rest_api:$BRANCH.$BUILD_NUMBER
-      - docker push eu.gcr.io/open-targets/rest_api:$BRANCH.$BUILD_NUMBER
+#      - docker tag opentargets/rest_api:$BRANCH eu.gcr.io/open-targets/rest_api:$BRANCH
+#      - docker push eu.gcr.io/open-targets/rest_api:$BRANCH
 
   hub:
     - integrationName: hub_docker
