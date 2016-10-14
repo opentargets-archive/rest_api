@@ -8,6 +8,7 @@ To test locally
 - ```cd flask-rest-api```
 - ```pip install -r requirements.txt``` (possiby in a virtualenv)
 - ```python manage.py runserver``` runs the dev server. Do not use in production.
+- ```python manage.py runserver -p 8123``` runs the dev server on port `8123`
 - ```python manage.py test``` runs the test suites.
 
 By default the rest api is available at [http://localhost:5000](http://localhost:5000)
@@ -53,12 +54,3 @@ Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` t
 * Check that is running *
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
 You can check that is talking to Elasticsearch by using the /public/utils/stats method.
-
-Run Container talking to ES on Kubernetes
-=========================================
-You can pass the proxy address to the `ELASTICSEARCH_URL` variable:
-
-```sh
-kubectl proxy --port=8080 &
-docker run -d -p 8008:8008 -e "ELASTICSEARCH_URL=http://localhost:8080/api/v1/proxy/namespaces/default/services/elasticsearch:9200/" --privileged opentargets/rest_api:1.2.1-gke
-```

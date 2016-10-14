@@ -70,10 +70,11 @@ def profile(length=25, profile_dir=None):
                                       profile_dir=profile_dir)
     app.run(ssl_context=('data/cert/server.crt', 'data/cert/server.crt'))
 
-@manager.command
-def runserver(host="127.0.0.1", port=8008):
+# @manager.command
+@manager.option('-p', '--port', dest='myport', default='8008')
+def runserver(myport, host="127.0.0.1"):
     """Run a gevent-based WSGI server."""
-    port = int(port)
+    port = int(myport)
 
     wrapped_app = app
     if app.config.get("DEBUG", True):
