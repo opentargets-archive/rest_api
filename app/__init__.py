@@ -69,9 +69,9 @@ def create_app(config_name):
 
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
-    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
-    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
-    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)# user info
+    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
+    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER_PATH'], db=1) #cache, rate limit and internal things
+    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER_PATH'], db=2)# user info
     '''setup cache'''
     app.extensions['redis-service'].config_set('save','')
     app.extensions['redis-service'].config_set('appendonly', 'no')

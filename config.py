@@ -67,7 +67,7 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
-    REDIS_SERVER =os.getenv('REDIS_SERVER', '/tmp/api_redis.db')
+    REDIS_SERVER_PATH =os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
