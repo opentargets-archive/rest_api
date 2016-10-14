@@ -1,13 +1,21 @@
-language: python
+build:
+  cache: true
+  ci:
+    - echo 'we could do the auth tests, but everything else requires an elasticsearch'
+  post_ci:
+      - docker build -t="opentargets/rest_api:$BRANCH.$BUILD_NUMBER" .
 
-python:
-  - 2.7
+      # Pushing to 2 different registries
+      # DockerHub
+      - docker push opentargets/shippable-rest_api:$BRANCH
 
-install:
-  - pip install -r requirements.txt
+      # GCR.io
+#      - docker tag opentargets/rest_api:$BRANCH eu.gcr.io/open-targets/rest_api:$BRANCH
+#      - docker push eu.gcr.io/open-targets/rest_api:$BRANCH
 
-before_script:
-  - python manage.py runserver
+  hub:
+    - integrationName: hub_docker
+      type: docker
+    - integrationName: gcr_io
+      type: gcr
 
-script:
-  - python manage.py test
