@@ -13,7 +13,7 @@ class BaseDatadogSignal(object):
     def __init__(self):
         try:
             self.stats = current_app.extensions['datadog']
-        except KeyError
+        except KeyError:
             self.stats = None
 
 class RateLimitExceeded(BaseDatadogSignal):
