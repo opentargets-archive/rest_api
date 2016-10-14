@@ -14,8 +14,9 @@ By default the rest api is available at [http://localhost:5000](http://localhost
 
 Swagger YAML documentation is exposed at  [http://localhost:5000/api/docs/swagger.yaml](http://localhost:5000/api/docs/swagger.yaml)
 
-It expects to have an Elasticsearch instance on [http://localhost:9200](http://localhost:9200). Alternative configurations are available using the `CTTV_API_CONFIG` environment variable
-Valid `CTTV_API_CONFIG` options:
+It expects to have an Elasticsearch instance on [http://localhost:9200](http://localhost:9200). 
+Alternative configurations are available using the `OPENTARGETS_API_CONFIG` environment variable
+Valid `OPENTARGETS_API_CONFIG` options:
 
 - `development`: default option
 - `staging`: to be used in staging area
@@ -35,15 +36,29 @@ build the container from source
 docker build -t rest_api:local .
 ```
 
-run the container. Please use the correct link for the hostname `elastic`, either with the `--link` or the `--ad-host` option
+and then run the same container. 
+Notice you can specify the elasticsearch server using the ELASTICSEARCH_URL environment variable:
 ```bash
-docker run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "OPENTARGETS_API_CONFIG=dockerlink" rest_api:local
+docker run -d -p 8008:80 --name opentargets_rest_api -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged rest_api:local
 ```
 
-or get it from [quay.io](https://quay.io/repository/cttv/rest_api)
+or get it from [docker hub](https://hub.docker.com/r/opentargets/rest_api/builds/)
 ```bash
-docker run -d -p 8008:80 --name cttv_rest_api --add-host elastic:10.0.2.2 --ulimit nofile=65535:65535 -e "OPENTARGETS_API_CONFIG=dockerlink" quay.io/cttv/rest_api
+docker run -d -p 8008:8008 --name opentargets_rest_api -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged opentargets/rest_api
 
 ```
+Notice that if you try to map port 80 inside the container with `-p 8008:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
+Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
 
+* Check that is running *
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
+You can check that is talking to Elasticsearch by using the /public/utils/stats method.
+
+Run Container talking to ES on Kubernetes
+=========================================
+You can pass the proxy address to the `ELASTICSEARCH_URL` variable:
+
+```sh
+kubectl proxy --port=8080 &
+docker run -d -p 8008:8008 -e "ELASTICSEARCH_URL=http://localhost:8080/api/v1/proxy/namespaces/default/services/elasticsearch:9200/" --privileged opentargets/rest_api:1.2.1-gke
+```

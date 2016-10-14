@@ -1,4 +1,4 @@
-box: ubuntu:xenial
+box: python:2.7
 dev:
   steps:
     - pip-install
