@@ -94,10 +94,6 @@ class DevelopmentConfig(Config):
         Config.init_app(app)
 
 
-class DockerLinkedConfig(Config):
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elastic:9200')
-    APP_CACHE_EXPIRY_TIMEOUT = 60
-
 
 class TestingConfig(Config):
     TESTING = True
@@ -157,6 +153,5 @@ config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
-    'dockerlink': DockerLinkedConfig,
     'default': DevelopmentConfig
 }
