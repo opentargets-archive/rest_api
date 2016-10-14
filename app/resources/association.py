@@ -10,7 +10,9 @@ from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
+from types import *
 import time
+
 
 __author__ = 'andreap'
 
@@ -39,6 +41,7 @@ class Association(restful.Resource):
 
 class FilterBy(restful.Resource):
 
+
     @is_authenticated
     @rate_limit
     def get(self):
@@ -66,13 +69,13 @@ class FilterBy(restful.Resource):
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
         parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False")
-        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=False)
+        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Defaults to True", default=False)
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
         parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
 
-
         args = parser.parse_args()
+        self.remove_empty_params(args)
         data = self.get_association(params=args)
         return CTTVResponse.OK(data,
                                took=time.time() - start_time)
@@ -86,9 +89,11 @@ class FilterBy(restful.Resource):
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         test with: {"target":["ENSG00000136997"]},
+        TODO:create new tests that would check for the empty params being passed
         """
+        #Why is this fix_empty_strings function here - do not see it being used anywhere
         def fix_empty_strings(l):
-            new_l=[]
+            new_l=[] 
             if l:
                 for i in l:
                     if i:
@@ -97,6 +102,27 @@ class FilterBy(restful.Resource):
 
         start_time = time.time()
         args = request.get_json(force=True)
+        self.remove_empty_params(args)
+
+
+        data = self.get_association(params=args)
+        format = None
+        if('format' in args):
+            format = args['format']   
+
+        return CTTVResponse.OK(data, format,
+                               took=time.time() - start_time)
+  
+    def get_association(self,params):
+        es = current_app.extensions['esquery']
+        try:
+            res = es.get_associations(**params)
+        except AttributeError,e:
+            abort(404, message=e.message)
+
+        return res
+    
+    def remove_empty_params(self,args):
         for k,v in args.items():
             if isinstance(v, list):
                 if len(v)>0:
@@ -106,20 +132,6 @@ class FilterBy(restful.Resource):
                             drop =False
                     if drop:
                         del args[k]
-
-
-        data = self.get_association(params=args)
-        return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
-
-
-    def get_association(self,params):
-
-        es = current_app.extensions['esquery']
-        try:
-            res = es.get_associations(**params)
-        except AttributeError,e:
-            abort(404, message=e.message)
-
-        return res
+        
+    
 

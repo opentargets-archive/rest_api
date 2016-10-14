@@ -24,8 +24,8 @@ class Result(object):
                  available_datatypes = [],
                  status = ['ok'],
                  therapeutic_areas = []):
+        
         '''
-
         :param res: elasticsearch query response
         :param params: get parameters
         :param data: data to display, use only to override default representation
@@ -41,7 +41,6 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
-
 
     def toDict(self):
         raise NotImplementedError
@@ -169,6 +168,7 @@ class PaginatedResult(Result):
                 'from': self.params.start_from,
                 # 'status' : self.status,
                 'therapeutic_areas': self.therapeutic_areas
+                
                 }
 
 class EmptyPaginatedResult(Result):
