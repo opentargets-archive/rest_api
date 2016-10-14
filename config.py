@@ -72,11 +72,6 @@ class Config:
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
 
-    DATADOG_OPTIONS = None #{
-    #     'api_key':'c18195d82553654274bffddb25175967',
-    #     'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
-    # }
-    DATADOG_AGENT_HOST = 'dd-agent'#set to None to disable
     NO_CACHE_PARAMS = 'no_cache'
 
 

@@ -164,43 +164,6 @@ def create_app(config_name):
                 ip_resolver[net] = row['org']
     app.config['IP_RESOLVER'] = ip_resolver
 
-    '''setup datadog logging'''
-    if  Config.DATADOG_OPTIONS:
-        import datadog
-        datadog.initialize(**Config.DATADOG_OPTIONS)
-        stats = None
-        if app.config['TESTING']:
-            pass
-        elif app.config['DEBUG']:
-            stats = datadog.ThreadStats()#namespace='api')
-            stats.start(flush_interval=30, roll_up_interval=30)
-            log = logging.getLogger('dd.datadogpy')
-            log.setLevel(logging.DEBUG)
-            app.logger.info("using internal datadog agent in debug mode")
-        elif app.config['DATADOG_AGENT_HOST']:
-            datadog_agent_host = app.config['DATADOG_AGENT_HOST']
-            '''check host is reachable'''
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.connect((datadog_agent_host, 17123))
-                logger.info('datadog host %s is reachable'%datadog_agent_host)
-            except socket.error as e:
-                logger.error("Error on connect to datadog host %s: %s" % (datadog_agent_host,e))
-                datadog_agent_host = None
-            s.close()
-            if datadog_agent_host is not None:
-                stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
-                app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
-        app.extensions['datadog'] = stats
-        if stats is not None:
-            '''log errors to datadog'''
-            from flask import got_request_exception
-            got_request_exception.connect(log_exception_to_datadog, app)
-
-
-    else:
-         app.extensions['datadog'] = None
 
 
     '''compress http response'''
