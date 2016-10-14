@@ -11,7 +11,10 @@ import ujson as json
 
 class BaseDatadogSignal(object):
     def __init__(self):
-        self.stats = current_app.extensions['datadog']
+        try:
+            self.stats = current_app.extensions['datadog']
+        except KeyError
+            self.stats = None
 
 class RateLimitExceeded(BaseDatadogSignal):
     def __init__(self,
