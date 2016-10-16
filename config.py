@@ -34,7 +34,7 @@ class Config:
     ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + 'relation-data'
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
-    DEBUG = False
+    DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
     SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
