@@ -71,6 +71,8 @@ class Config:
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
+    USAGE_LIMIT_PATH = 'rate_limit.csv'
+    IP_RESOLVER_LIST_PATH = 'ip_list.csv'
 
     NO_CACHE_PARAMS = 'no_cache'
 
@@ -106,6 +108,8 @@ class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
+    USAGE_LIMIT_PATH = '/etc/restapi/rate_limit.csv'
+    IP_RESOLVER_LIST_PATH = '/etc/restapi/ip_list.csv'
 
     @classmethod
     def init_app(cls, app):

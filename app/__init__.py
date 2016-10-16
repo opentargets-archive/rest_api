@@ -138,7 +138,7 @@ def create_app(config_name):
     # limiter.init_app(app)# use redis to store limits
 
     '''Load api keys in redis'''
-    rate_limit_file = 'rate_limit.csv'
+    rate_limit_file = app.config['USAGE_LIMIT_PATH']
     if not os.path.exists(rate_limit_file):
         rate_limit_file = '../'+rate_limit_file
     if os.path.exists(rate_limit_file):
@@ -153,7 +153,7 @@ def create_app(config_name):
 
     '''load ip name resolution'''
     ip_resolver = defaultdict(lambda: "PUBLIC")
-    ip_list_file = 'ip_list.csv'
+    ip_list_file = app.config['IP_RESOLVER_LIST_PATH']
     if not os.path.exists(ip_list_file):
         ip_list_file = '../' + ip_list_file
     if os.path.exists(ip_list_file):
