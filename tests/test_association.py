@@ -13,7 +13,7 @@ from tests import GenericTestCase
 class AssociationTestCase(GenericTestCase):
 
 
-
+    #@unittest.skip("testAssociationID")
     def testAssociationID(self):
         id = 'ENSG00000157764-EFO_0000701'#braf-skin disease
         response = self._make_request('/api/latest/public/association',
@@ -24,7 +24,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertEqual(json_response['data'][0]['id'],id, 'association found')
 
 
-
+    #@unittest.skip("testAssociationFilterNone")
     def testAssociationFilterNone(self):
         response = self._make_request('/api/latest/public/association/filter',
                                       token=self._AUTO_GET_TOKEN)
@@ -33,6 +33,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),0, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
 
+    #@unittest.skip("testAssociationFilterTargetGet")
     def testAssociationFilterTargetGet(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
@@ -44,6 +45,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['target']['id'], target)
 
+    #@unittest.skip("testAssociationFilterTargetPost")
     def testAssociationFilterTargetPost(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
@@ -56,7 +58,23 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['target']['id'], target)
-
+    
+    def testAssociationFilterTargetsDiseaseGet(self):
+        target = ['ENSG00000113448','ENSG00000172057']
+        disease = 'EFO_0000270'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target,'disease':disease },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']),2, 'association retrieved')
+        if(json_response['data'][0]['target']['id'] == target[0]):
+            self.assertEqual(json_response['data'][1]['target']['id'], target[1])
+        elif(json_response['data'][0]['target']['id'] == target[1]):
+            self.assertEqual(json_response['data'][1]['target']['id'], target[0])
+        
+        
+    #@unittest.skip("testAssociationFilterTargetFacet")
     def testAssociationFilterTargetFacet(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',

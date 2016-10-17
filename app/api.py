@@ -24,7 +24,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources import evidence
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
-    from app.resources.freetextsearch import FreeTextSearch, AutoComplete, QuickSearch
+    from app.resources.freetextsearch import FreeTextSearch, BestHitSearch, AutoComplete, QuickSearch
     from app.resources import association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
@@ -59,6 +59,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/target/<string:target_id>')
     api.add_resource(Expression,
                      '/private/target/expression')
+    api.add_resource(BestHitSearch,
+                     '/private/besthitsearch')
     api.add_resource(FreeTextSearch,
                      '/public/search')
     api.add_resource(QuickSearch,
