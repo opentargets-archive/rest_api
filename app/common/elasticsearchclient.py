@@ -1533,34 +1533,34 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         '''
 
 
-        the_head = {'index':self._index_search, 'type':doc_types}
+        head = {'index':self._index_search, 'type':doc_types}
         multi_body = [];
-        the_highlight = self._get_free_text_highlight()
+        highlight = self._get_free_text_highlight()
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
 
         if 'include' in source:
             params.requested_fields = source['include']
             if 'highlight' not in params.requested_fields:
-                the_highlight = None
+                highlight = None
 
         for searchphrase in params.q:
-            the_body = {'query': self._get_free_text_query(searchphrase),
+            body = {'query': self._get_free_text_query(searchphrase),
                         'size': params.size,
                         'from': params.start_from,
                         '_source': source,
                         "explain": current_app.config['DEBUG']
                         }
-            if the_highlight is not None:
-                the_body['highlight'] = the_highlight
-            multi_body.append(the_head)
-            multi_body.append(the_body)
+            if highlight is not None:
+                body['highlight'] = highlight
+            multi_body.append(head)
+            multi_body.append(body)
         
 #         request = ''
 #         for each in multi_body:
 #             request += '%s \n' %json.dumps(each)    
 
         return self._cached_search(body=multi_body,
-                                   is_multi='true')
+                                   is_multi=True)
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
@@ -1683,14 +1683,17 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             res = self.cache.get(key)
         if res is None:
             start_time = time.time()
+
+            is_multi = False
+
             if('is_multi' in kwargs):
                 is_multi = kwargs.pop('is_multi')
-                if is_multi == 'true':
-                    res = self.handler.msearch(*args, **kwargs)
-                else:
-                    res = self.handler.search(*args,**kwargs)
+
+            if is_multi:
+                res = self.handler.msearch(*args, **kwargs)
             else:
-                res = self.handler.search(*args,**kwargs)
+                res = self.handler.search(*args, **kwargs)
+
             took = int(round(time.time() - start_time))
             self.cache.set(key, res, took*60)
         return res
