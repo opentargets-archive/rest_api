@@ -240,9 +240,12 @@ class esQuery():
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         
-        for res in results['responses']:
-            res_data = [];
-            for hit in res['hits']['hits']:
+        #there are len(params.q) responses - one per query
+        for i in range(len(results['responses'])):
+            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
+            res = results['responses'][i]
+            if(len(res['hits']['hits'])>0):
+                hit = res['hits']['hits'][0] #expect either 1 result or none
                 highlight = ''
                 if 'highlight' in hit:
                     highlight = hit['highlight']
@@ -250,9 +253,12 @@ class esQuery():
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
-                                 highlight=highlight)
-                res_data.append(datapoint)
-            data.append(res_data)
+                                 highlight=highlight,
+                                 q=name)
+            else:
+                datapoint = dict(id='',q=name)
+            data.append(datapoint)
+            
             
         return SimpleResult(results, params, data)
 
@@ -1531,8 +1537,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
            If there is not a 'fields' parameter, then fields are included by default
 
         '''
-
-
         head = {'index':self._index_search, 'type':doc_types}
         multi_body = [];
         highlight = self._get_free_text_highlight()
@@ -1545,7 +1549,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         for searchphrase in params.q:
             body = {'query': self._get_free_text_query(searchphrase),
-                        'size': params.size,
+                        'size': 1,
                         'from': params.start_from,
                         '_source': source,
                         "explain": current_app.config['DEBUG']

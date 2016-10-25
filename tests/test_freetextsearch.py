@@ -85,37 +85,52 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testBestHitSearchFields(self):
         response= self._make_request('/api/latest/private/besthitsearch',
-                                     data={'q':['braf', 'nr3c1'], 'fields':['id', 'approved_symbol'], 'size':1},
+                                     data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa']},
                                      token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         
-        self.assertEqual(len(json_response['data']), 2)
+        self.assertEqual(len(json_response['data']), 4)
         
         braf_data = json_response['data'][0];
-        self.assertEqual( braf_data[0]['highlight'], '')
-        self.assertEqual( braf_data[0]['id'], 'ENSG00000157764')
-        
-        first_result_braf =braf_data[0]['data']
+        self.assertEqual( braf_data['highlight'], '')
+        self.assertEqual( braf_data['id'], 'ENSG00000157764')
+        self.assertEqual(braf_data['q'], 'braf')
+
+        first_result_braf =braf_data['data']
         self.assertEqual(len(first_result_braf), 2)
         self.assertEqual(first_result_braf['approved_symbol'], 'BRAF')
         self.assertEqual(first_result_braf['id'], 'ENSG00000157764')
         
         nr3c1_data = json_response['data'][1];
-        self.assertEqual( nr3c1_data[0]['highlight'], '')
-        self.assertEqual( nr3c1_data[0]['id'], 'ENSG00000113580')
+        self.assertEqual( nr3c1_data['highlight'], '')
+        self.assertEqual( nr3c1_data['id'], 'ENSG00000113580')
         
-        first_result_nr3c1 =nr3c1_data[0]['data']
+        first_result_nr3c1 =nr3c1_data['data']
         self.assertEqual(len(first_result_nr3c1), 2)
         self.assertEqual(first_result_nr3c1['approved_symbol'], 'NR3C1')
         self.assertEqual(first_result_nr3c1['id'], 'ENSG00000113580')
+        
+        #test fuzzy result
+        fuzzy_result = json_response['data'][2];
+        self.assertEqual(fuzzy_result['q'], 'Rpl18a')
+        fuzzy_result_data = fuzzy_result['data']
+        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
+
+        #test empty result
+        empty_result = json_response['data'][3];
+        self.assertEqual(empty_result['q'], 'rippa')
+        self.assertEqual(empty_result['id'], '')
     
     #@unittest.skip("testBestHitSearchFieldsPost")    
     def testBestHitSearchFieldsPost(self):
-
+        
+        #passing some dummy fields 'fields':['field1', 'field2'] just to show 
+        #that they are going to be overwritten and data will have only two
+        # fields: approved_symbol and id
         response= self._make_request('/api/latest/private/besthitsearch',
-                                     data=json.dumps({'q':['braf', 'nr3c1'], 'fields':['id', 'approved_symbol'], 'size':1}),
+                                     data=json.dumps({'q':['braf', 'nr3c1', 'Rpl18a', 'rippa'], 'fields':['field1', 'field2']}),
                                      content_type='application/json',
                                      method='POST',
                                      token=self._AUTO_GET_TOKEN)
@@ -123,27 +138,37 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         
-        self.assertEqual(len(json_response['data']), 2)
+        self.assertEqual(len(json_response['data']), 4)
         
         braf_data = json_response['data'][0];
-        self.assertEqual( braf_data[0]['highlight'], '')
-        self.assertEqual( braf_data[0]['id'], 'ENSG00000157764')
+        self.assertEqual( braf_data['highlight'], '')
+        self.assertEqual( braf_data['id'], 'ENSG00000157764')
         
-        first_result_braf =braf_data[0]['data']
+        first_result_braf =braf_data['data']
         self.assertEqual(len(first_result_braf), 2)
         self.assertEqual(first_result_braf['approved_symbol'], 'BRAF')
         self.assertEqual(first_result_braf['id'], 'ENSG00000157764')
         
         nr3c1_data = json_response['data'][1];
-        self.assertEqual( nr3c1_data[0]['highlight'], '')
-        self.assertEqual( nr3c1_data[0]['id'], 'ENSG00000113580')
+        self.assertEqual( nr3c1_data['highlight'], '')
+        self.assertEqual( nr3c1_data['id'], 'ENSG00000113580')
         
-        first_result_nr3c1 =nr3c1_data[0]['data']
+        first_result_nr3c1 =nr3c1_data['data']
         self.assertEqual(len(first_result_nr3c1), 2)
         self.assertEqual(first_result_nr3c1['approved_symbol'], 'NR3C1')
         self.assertEqual(first_result_nr3c1['id'], 'ENSG00000113580')
         
+        #test fuzzy result
+        fuzzy_result = json_response['data'][2];
+        self.assertEqual(fuzzy_result['q'], 'Rpl18a')
+        fuzzy_result_data = fuzzy_result['data']
+        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
 
+        #test empty result
+        empty_result = json_response['data'][3];
+        self.assertEqual(empty_result['q'], 'rippa')
+        self.assertEqual(empty_result['id'], '')
+        
     #@unittest.skip("testAsthma")
     def testAsthma(self):
         response= self._make_request('/api/latest/public/search',

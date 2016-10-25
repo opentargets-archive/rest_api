@@ -44,7 +44,7 @@ class FreeTextSearch(restful.Resource, Paginable):
 class BestHitSearch(restful.Resource, Paginable):
     '''This is similar to freeTextSearch but different because it allows for a list of search queries instead of one query'''
     parser = boilerplate.get_parser()
-    #parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
+
     parser.add_argument('q', type=str, action='append', required=True, help="Query cannot be blank!")
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by gene or efo")
 
@@ -54,9 +54,13 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         Search for gene and disease
         Search with a parameter q = 'your query'
+        'fields':['id', 'approved_symbol']
         """
         start_time = time.time()
         kwargs = self.parser.parse_args()
+        kwargs.pop('size');
+        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
+        
         filter = kwargs.pop('filter') or ['all']
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
         return CTTVResponse.OK(res,
@@ -71,6 +75,9 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = request.get_json(force=True)
+        
+        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
+        
         filter = ['all']
         if ('filter' in kwargs):
             filter = kwargs['filter']
