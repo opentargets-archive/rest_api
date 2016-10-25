@@ -56,18 +56,25 @@ def create_app(config_name):
     api_version_minor = app.config['API_VERSION_MINOR']
 
 
-    log_level = logging.INFO
-    if app.config['DEBUG']:
-        log_level = logging.DEBUG
-    logger = logging.getLogger()
-    logHandler = logging.StreamHandler()
+    # log_level = logging.INFO
+    # if app.config['DEBUG']:
+    #     log_level = logging.DEBUG
+
+    # Flask has a default logger which works well and pushes to stderr
+    # if you want to add different handlers (to file, or logstash, or whatever)
+    # you can use code similar to the one below and set the error level accordingly.
+
+    # logHandler = logging.StreamHandler()
     # formatter = jsonlogger.JsonFormatter()
     # logHandler.setFormatter(formatter)
-    logger.addHandler(logHandler)
-    # logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
-    # logger.error("hi", extra=dict(hi="hi"))
+    # loghandler.setLevel(logging.INFO)
+    # app.logger.addHandler(logHandler)
+
+    # or for LOGSTASH
+    # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
 
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
+
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER_PATH'], db=1) #cache, rate limit and internal things
@@ -108,7 +115,7 @@ def create_app(config_name):
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
-                                        log_level=log_level,
+                                        log_level=app.logger.getEffectiveLevel(),
                                         cache=icache
                                         )
 
@@ -162,6 +169,8 @@ def create_app(config_name):
             for row in reader:
                 net = IPNetwork(row['ip'])
                 ip_resolver[net] = row['org']
+    else:
+        app.logger.warning('cannot find IP list for IP resolver. All traffic will be logged as PUBLIC')
     app.config['IP_RESOLVER'] = ip_resolver
 
 
