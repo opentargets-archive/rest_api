@@ -71,8 +71,8 @@ class Config:
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
-    USAGE_LIMIT_PATH = 'rate_limit.csv'
-    IP_RESOLVER_LIST_PATH = 'ip_list.csv'
+    USAGE_LIMIT_PATH = 'authconf/rate_limit.csv'
+    IP_RESOLVER_LIST_PATH = 'authconf/ip_list.csv'
 
     NO_CACHE_PARAMS = 'no_cache'
 
@@ -108,49 +108,15 @@ class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
-    USAGE_LIMIT_PATH = '/etc/restapi/rate_limit.csv'
-    IP_RESOLVER_LIST_PATH = '/etc/restapi/ip_list.csv'
+
 
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
 
-        #TODO: handle logs
-        #
-        # import logging
-        # from logging.handlers import SMTPHandler
-        # credentials = None
-        # secure = None
-        # if getattr(cls, 'MAIL_USERNAME', None) is not None:
-        #     credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
-        #     if getattr(cls, 'MAIL_USE_TLS', None):
-        #         secure = ()
-        # mail_handler = SMTPHandler(
-        #     mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
-        #     fromaddr=cls.FLASKY_MAIL_SENDER,
-        #     toaddrs=[cls.FLASKY_ADMIN],
-        #     subject=cls.FLASKY_MAIL_SUBJECT_PREFIX + ' Application Error',
-        #     credentials=credentials,
-        #     secure=secure)
-        # mail_handler.setLevel(logging.ERROR)
-        # app.logger.addHandler(mail_handler)
 
 
 
-# we are not using the one below.
-# TODO: consider deleting it or whether it should belong to production directly
-
-# class UnixConfig(ProductionConfig):
-#     @classmethod
-#     def init_app(cls, app):
-#         ProductionConfig.init_app(app)
-#
-#         # log to syslog
-#         import logging
-#         from logging.handlers import SysLogHandler
-#         syslog_handler = SysLogHandler()
-#         syslog_handler.setLevel(logging.WARNING)
-#         app.logger.addHandler(syslog_handler)
 
 
 config = {
