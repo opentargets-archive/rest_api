@@ -14,16 +14,17 @@ build:
 
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
-    - script:
-        name: API auth test
-        code: |
-          python manage.py
-          nosetests tests/test_auth.py
+#    - script:
+#        name: API auth test
+#        code: |
+#          python manage.py
+#          nosetests tests/test_auth.py
 
 deploy:
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
+        tag: $WERCKER_GIT_COMMIT
         repository: eu.gcr.io/open-targets/rest_api
         registry: https://eu.gcr.io
 
