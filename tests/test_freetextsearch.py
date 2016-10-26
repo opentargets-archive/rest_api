@@ -85,13 +85,14 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testBestHitSearchFields(self):
         response= self._make_request('/api/latest/private/besthitsearch',
-                                     data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa']},
+                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764']},
+     
                                      token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         
-        self.assertEqual(len(json_response['data']), 4)
+        self.assertEqual(len(json_response['data']), 5)
         
         braf_data = json_response['data'][0];
         self.assertEqual( braf_data['highlight'], '')
@@ -121,7 +122,18 @@ class FreeTextSearchTestCase(GenericTestCase):
         #test empty result
         empty_result = json_response['data'][3];
         self.assertEqual(empty_result['q'], 'rippa')
-        self.assertEqual(empty_result['id'], '')
+        self.assertEqual(empty_result['id'], 'not found')
+        
+        #test  when query is ENS ID
+        ens_data = json_response['data'][4];
+        self.assertEqual( ens_data['highlight'], '')
+        self.assertEqual( ens_data['id'], 'ENSG00000157764')
+        self.assertEqual(ens_data['q'], 'ENSG00000157764')
+
+        first_result_ens =ens_data['data']
+        self.assertEqual(len(first_result_ens), 2)
+        self.assertEqual(first_result_ens['approved_symbol'], 'BRAF')
+        self.assertEqual(first_result_ens['id'], 'ENSG00000157764')
     
     #@unittest.skip("testBestHitSearchFieldsPost")    
     def testBestHitSearchFieldsPost(self):
@@ -130,7 +142,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         #that they are going to be overwritten and data will have only two
         # fields: approved_symbol and id
         response= self._make_request('/api/latest/private/besthitsearch',
-                                     data=json.dumps({'q':['braf', 'nr3c1', 'Rpl18a', 'rippa'], 'fields':['field1', 'field2']}),
+                                     data=json.dumps({'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764'], 'fields':['field1', 'field2']}),
                                      content_type='application/json',
                                      method='POST',
                                      token=self._AUTO_GET_TOKEN)
@@ -138,7 +150,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         
-        self.assertEqual(len(json_response['data']), 4)
+        self.assertEqual(len(json_response['data']), 5)
         
         braf_data = json_response['data'][0];
         self.assertEqual( braf_data['highlight'], '')
@@ -167,7 +179,18 @@ class FreeTextSearchTestCase(GenericTestCase):
         #test empty result
         empty_result = json_response['data'][3];
         self.assertEqual(empty_result['q'], 'rippa')
-        self.assertEqual(empty_result['id'], '')
+        self.assertEqual(empty_result['id'], 'not found')
+        
+        #test  when query is ENS ID
+        ens_data = json_response['data'][4];
+        self.assertEqual( ens_data['highlight'], '')
+        self.assertEqual( ens_data['id'], 'ENSG00000157764')
+        self.assertEqual(ens_data['q'], 'ENSG00000157764')
+
+        first_result_ens =ens_data['data']
+        self.assertEqual(len(first_result_ens), 2)
+        self.assertEqual(first_result_ens['approved_symbol'], 'BRAF')
+        self.assertEqual(first_result_ens['id'], 'ENSG00000157764')
         
     #@unittest.skip("testAsthma")
     def testAsthma(self):

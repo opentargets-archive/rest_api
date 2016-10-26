@@ -243,20 +243,25 @@ class esQuery():
         #there are len(params.q) responses - one per query
         for i in range(len(results['responses'])):
             name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
+            lower_name = name.lower()
             res = results['responses'][i]
-            if(len(res['hits']['hits'])>0):
+            exact_match = False
+            if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
                 highlight = ''
                 if 'highlight' in hit:
                     highlight = hit['highlight']
+                if(lower_name == hit['_source']['approved_symbol'].lower() or lower_name == hit['_id'].lower):
+                    exact_match = True
                 datapoint = dict(type=hit['_type'],
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
                                  highlight=highlight,
-                                 q=name)
+                                 q=name,
+                                 exact=exact_match)
             else:
-                datapoint = dict(id='',q=name)
+                datapoint = dict(id='not found',q=name)
             data.append(datapoint)
             
             
@@ -1548,7 +1553,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 highlight = None
 
         for searchphrase in params.q:
-            body = {'query': self._get_free_text_query(searchphrase),
+            body = {'query': self._get_free_text_query(searchphrase.lower()),
                         'size': 1,
                         'from': params.start_from,
                         '_source': source,
