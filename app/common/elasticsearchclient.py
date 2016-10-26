@@ -261,7 +261,7 @@ class esQuery():
                                  q=name,
                                  exact=exact_match)
             else:
-                datapoint = dict(id='not found',q=name)
+                datapoint = dict(id=None,q=name)
             data.append(datapoint)
             
             

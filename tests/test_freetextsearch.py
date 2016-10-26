@@ -122,7 +122,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         #test empty result
         empty_result = json_response['data'][3];
         self.assertEqual(empty_result['q'], 'rippa')
-        self.assertEqual(empty_result['id'], 'not found')
+        self.assertEqual(empty_result['id'], None)
         
         #test  when query is ENS ID
         ens_data = json_response['data'][4];
@@ -164,7 +164,8 @@ class FreeTextSearchTestCase(GenericTestCase):
         nr3c1_data = json_response['data'][1];
         self.assertEqual( nr3c1_data['highlight'], '')
         self.assertEqual( nr3c1_data['id'], 'ENSG00000113580')
-        
+        self.assertEqual( nr3c1_data['exact'], True)
+
         first_result_nr3c1 =nr3c1_data['data']
         self.assertEqual(len(first_result_nr3c1), 2)
         self.assertEqual(first_result_nr3c1['approved_symbol'], 'NR3C1')
@@ -173,13 +174,16 @@ class FreeTextSearchTestCase(GenericTestCase):
         #test fuzzy result
         fuzzy_result = json_response['data'][2];
         self.assertEqual(fuzzy_result['q'], 'Rpl18a')
+        self.assertEqual(fuzzy_result['exact'], False)
+
         fuzzy_result_data = fuzzy_result['data']
         self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
+
 
         #test empty result
         empty_result = json_response['data'][3];
         self.assertEqual(empty_result['q'], 'rippa')
-        self.assertEqual(empty_result['id'], 'not found')
+        self.assertEqual(empty_result['id'], None)
         
         #test  when query is ENS ID
         ens_data = json_response['data'][4];
