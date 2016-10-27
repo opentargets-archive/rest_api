@@ -74,6 +74,7 @@ def create_app(config_name):
     # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
 
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
+    print('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data

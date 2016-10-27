@@ -77,6 +77,9 @@ def runserver(host="127.0.0.1", port=8008):
 
     wrapped_app = app
     if app.config.get("DEBUG", True):
+        #it is necessary to do this for the debug to work, since the classic
+        # flask debugger does not operate when running the app from
+        # a WSGIServer() call.
         wrapped_app = DebuggedApplication(app)
 
     server = WSGIServer(listener=(host, port), application=wrapped_app,)

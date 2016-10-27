@@ -20,7 +20,7 @@ build:
 #          python manage.py
 #          nosetests tests/test_auth.py
 
-deploy:
+push-to-gcr:
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
