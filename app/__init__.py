@@ -155,7 +155,9 @@ def create_app(config_name):
             for row in reader:
                 auth_key = AuthKey(**row)
                 app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+        print('succesfully loaded rate limit file')
     else:
+        print('cannot find rate limit file')
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
 
