@@ -217,6 +217,57 @@ class esQuery():
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
+
+    def best_hit_search(self,
+                         doc_filter=(FreeTextFilterOptions.ALL),
+                         **kwargs):
+        '''
+       similar to free_text_serach but can take multiple queries
+
+        :param searchphrase:
+        :param doc_filter:
+        :param kwargs:
+        :return:
+        '''
+
+        params = SearchParams(**kwargs)
+        params.q = kwargs.get('q', []) or []
+
+        if doc_filter is None:
+            doc_filter = [FreeTextFilterOptions.ALL]
+        doc_filter = self._get_search_doc_types(doc_filter)
+        results = self._best_hit_query(doc_filter, params)
+        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
+        data = []
+        
+        #there are len(params.q) responses - one per query
+        for i in range(len(results['responses'])):
+            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
+            lower_name = name.lower()
+            res = results['responses'][i]
+            exact_match = False
+            if(res['hits']['total']>0):
+                hit = res['hits']['hits'][0] #expect either 1 result or none
+                highlight = ''
+                if 'highlight' in hit:
+                    highlight = hit['highlight']
+                if(lower_name == hit['_source']['approved_symbol'].lower() or lower_name == hit['_id'].lower):
+                    exact_match = True
+                datapoint = dict(type=hit['_type'],
+                                 data=hit['_source'],
+                                 id=hit['_id'],
+                                 score=hit['_score'],
+                                 highlight=highlight,
+                                 q=name,
+                                 exact=exact_match)
+            else:
+                datapoint = dict(id=None,q=name)
+            data.append(datapoint)
+            
+            
+        return SimpleResult(results, params, data)
+
+
     def quick_search(self,
                      searchphrase,
                      **kwargs):
@@ -1484,6 +1535,42 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
                                    )
 
+    def _best_hit_query(self, doc_types, params):
+        '''
+           If  'fields' parameter is passed, only these fields would be returned
+           and 'highlights' would be added only if it is of the fields parameters.
+           If there is not a 'fields' parameter, then fields are included by default
+
+        '''
+        head = {'index':self._index_search, 'type':doc_types}
+        multi_body = [];
+        highlight = self._get_free_text_highlight()
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
+
+        if 'include' in source:
+            params.requested_fields = source['include']
+            if 'highlight' not in params.requested_fields:
+                highlight = None
+
+        for searchphrase in params.q:
+            body = {'query': self._get_free_text_query(searchphrase.lower()),
+                        'size': 1,
+                        'from': params.start_from,
+                        '_source': source,
+                        "explain": current_app.config['DEBUG']
+                        }
+            if highlight is not None:
+                body['highlight'] = highlight
+            multi_body.append(head)
+            multi_body.append(body)
+        
+#         request = ''
+#         for each in multi_body:
+#             request += '%s \n' %json.dumps(each)    
+
+        return self._cached_search(body=multi_body,
+                                   is_multi=True)
+
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
 
@@ -1605,7 +1692,17 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             res = self.cache.get(key)
         if res is None:
             start_time = time.time()
-            res = self.handler.search(*args,**kwargs)
+
+            is_multi = False
+
+            if('is_multi' in kwargs):
+                is_multi = kwargs.pop('is_multi')
+
+            if is_multi:
+                res = self.handler.msearch(*args, **kwargs)
+            else:
+                res = self.handler.search(*args, **kwargs)
+
             took = int(round(time.time() - start_time))
             self.cache.set(key, res, took*60)
         return res

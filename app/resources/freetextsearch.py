@@ -14,8 +14,6 @@ from app.common.response_templates import CTTVResponse
 __author__ = 'andreap'
 
 
-
-
 class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
@@ -42,6 +40,52 @@ class FreeTextSearch(restful.Resource, Paginable):
         else:
             abort(400, message = "Query is too short")
 
+
+class BestHitSearch(restful.Resource, Paginable):
+    '''This is similar to freeTextSearch but different because it allows for a list of search queries instead of one query'''
+    parser = boilerplate.get_parser()
+
+    parser.add_argument('q', type=str, action='append', required=True, help="Query cannot be blank!")
+    parser.add_argument('filter', type=str, required=False, action='append', help="filter by gene or efo")
+
+    @is_authenticated
+    @rate_limit
+    def get(self):
+        """
+        Search for gene and disease
+        Search with a parameter q = 'your query'
+        'fields':['id', 'approved_symbol']
+        """
+        start_time = time.time()
+        kwargs = self.parser.parse_args()
+        kwargs.pop('size');
+        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
+        
+        filter = kwargs.pop('filter') or ['all']
+        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
+        return CTTVResponse.OK(res,
+                                   took=time.time() - start_time)
+    
+    @is_authenticated
+    @rate_limit
+    def post(self):
+        """
+        Search for gene and disease
+        Search with a parameter q = 'your query'
+        """
+        start_time = time.time()
+        kwargs = request.get_json(force=True)
+        
+        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
+        
+        filter = ['all']
+        if ('filter' in kwargs):
+            filter = kwargs['filter']
+        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
+        return CTTVResponse.OK(res,
+                                   took=time.time() - start_time)
+    
+       
 
 
 
