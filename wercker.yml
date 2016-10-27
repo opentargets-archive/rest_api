@@ -26,7 +26,7 @@ push-to-gcr:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
         tag: $WERCKER_GIT_COMMIT
-        repository: eu.gcr.io/open-targets/rest_api
+        repository: eu.gcr.io/open-targets/rest-api
         registry: https://eu.gcr.io
 
 #deploy:
