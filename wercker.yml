@@ -25,6 +25,7 @@ push-to-gcr:
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
+        working-dir: $WERCKER_ROOT
         tag: $WERCKER_GIT_COMMIT
         repository: eu.gcr.io/open-targets/rest-api
         registry: https://eu.gcr.io
