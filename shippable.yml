@@ -3,15 +3,15 @@ build:
   ci:
     - echo 'we could do the auth tests, but everything else requires an elasticsearch'
   post_ci:
-      - docker build -t="opentargets/rest_api:$BRANCH.$BUILD_NUMBER" .
+      - docker build -t="opentargets/rest_api:shippable-$BRANCH.$BUILD_NUMBER" .
 
       # Pushing to 2 different registries
       # DockerHub
-      - docker push opentargets/shippable-rest_api:$BRANCH
+      - docker push opentargets/rest_api:shippable-$BRANCH.$BUILD_NUMBER
 
-      # GCR.io
-#      - docker tag opentargets/rest_api:$BRANCH eu.gcr.io/open-targets/rest_api:$BRANCH
-#      - docker push eu.gcr.io/open-targets/rest_api:$BRANCH
+#       GCR.io
+      - docker tag opentargets/rest_api:$BRANCH.$BUILD_NUMBER eu.gcr.io/open-targets/rest_api:shippable-$BRANCH.$BUILD_NUMBER
+      - docker push eu.gcr.io/open-targets/rest_api/shippable-$BRANCH.$BUILD_NUMBER
 
   hub:
     - integrationName: hub_docker

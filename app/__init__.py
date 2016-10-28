@@ -56,18 +56,26 @@ def create_app(config_name):
     api_version_minor = app.config['API_VERSION_MINOR']
 
 
-    log_level = logging.INFO
-    if app.config['DEBUG']:
-        log_level = logging.DEBUG
-    logger = logging.getLogger()
-    logHandler = logging.StreamHandler()
+    # log_level = logging.INFO
+    # if app.config['DEBUG']:
+    #     log_level = logging.DEBUG
+
+    # Flask has a default logger which works well and pushes to stderr
+    # if you want to add different handlers (to file, or logstash, or whatever)
+    # you can use code similar to the one below and set the error level accordingly.
+
+    # logHandler = logging.StreamHandler()
     # formatter = jsonlogger.JsonFormatter()
     # logHandler.setFormatter(formatter)
-    logger.addHandler(logHandler)
-    # logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
-    # logger.error("hi", extra=dict(hi="hi"))
+    # loghandler.setLevel(logging.INFO)
+    # app.logger.addHandler(logHandler)
+
+    # or for LOGSTASH
+    # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
 
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
+    print('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
+
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER_PATH'], db=1) #cache, rate limit and internal things
@@ -108,7 +116,7 @@ def create_app(config_name):
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
-                                        log_level=log_level,
+                                        log_level=app.logger.getEffectiveLevel(),
                                         cache=icache
                                         )
 
@@ -138,7 +146,7 @@ def create_app(config_name):
     # limiter.init_app(app)# use redis to store limits
 
     '''Load api keys in redis'''
-    rate_limit_file = 'rate_limit.csv'
+    rate_limit_file = app.config['USAGE_LIMIT_PATH']
     if not os.path.exists(rate_limit_file):
         rate_limit_file = '../'+rate_limit_file
     if os.path.exists(rate_limit_file):
@@ -147,13 +155,15 @@ def create_app(config_name):
             for row in reader:
                 auth_key = AuthKey(**row)
                 app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+        print('INFO - succesfully loaded rate limit file')
     else:
+        print('ERROR - cannot find rate limit file')
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
 
     '''load ip name resolution'''
     ip_resolver = defaultdict(lambda: "PUBLIC")
-    ip_list_file = 'ip_list.csv'
+    ip_list_file = app.config['IP_RESOLVER_LIST_PATH']
     if not os.path.exists(ip_list_file):
         ip_list_file = '../' + ip_list_file
     if os.path.exists(ip_list_file):
@@ -162,6 +172,8 @@ def create_app(config_name):
             for row in reader:
                 net = IPNetwork(row['ip'])
                 ip_resolver[net] = row['org']
+    else:
+        app.logger.warning('cannot find IP list for IP resolver. All traffic will be logged as PUBLIC')
     app.config['IP_RESOLVER'] = ip_resolver
 
 

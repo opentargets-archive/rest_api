@@ -39,7 +39,8 @@ info:
 
     ### Supported formats
 
-    The four methods above are all available via a `GET` request, and will serve outputs as `json`. Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
+    The four methods above are all available via a `GET` request, and will serve outputs as `JSON`.
+    Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
     Please note that alternative output formats are not supported in this interactive page. The response here will always be in `json` format.
 
     If you have complex queries with large number of parameters, you should
@@ -102,7 +103,7 @@ info:
     token = get_token(<appname>,<secret>)
 
     response = requests.get(API + 'association/filter',
-                        params={'disease'='EFO_0000270'},
+                        params={'disease':'EFO_0000270'},
                         headers={'Auth-Token': token})
 
     print(response.json())
@@ -112,10 +113,12 @@ info:
 
     Please refrain from _requesting a new token for each request_ you make. This would both impact your usage limit and slow down the calls.
 
-    Although *we never track the content of your API request*, we may monitor aggregated statistics on the usage of our API, so that we can improve its performance.
+    We *do not analyse* the nature of any specific API queries except for the purposes of improving the API performance.
+    Read more in our [privacy section](https://www.targetvalidation.org/terms_of_use#privacy).
 
-    We want to hear your opinion about the Target Validation Platform API. Can we make it more useful to you? Would you like additional methods to be avaiable? Do [get in touch]
-    (mailto:support@targetvalidation.org) and send your comments and suggestions.
+    We want to hear your opinion about the Target Validation Platform API.
+    Can we make it more useful to you? Would you like additional methods to be avaiable?
+    Do [get in touch](mailto:support@targetvalidation.org) and send your comments and suggestions.
 
     ### More examples
     Head to our [Getting started tutorial](https://blog.opentargets.org/api-getting-started-1) for more

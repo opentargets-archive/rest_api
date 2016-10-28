@@ -77,6 +77,9 @@ def runserver(host="127.0.0.1", port=8008):
 
     wrapped_app = app
     if app.config.get("DEBUG", True):
+        #it is necessary to do this for the debug to work, since the classic
+        # flask debugger does not operate when running the app from
+        # a WSGIServer() call.
         wrapped_app = DebuggedApplication(app)
 
     server = WSGIServer(listener=(host, port), application=wrapped_app,)
@@ -93,22 +96,14 @@ def runserver(host="127.0.0.1", port=8008):
     else:
         serve()
 
-#
-# @manager.command
-# def deploy():
-#     """Run deployment tasks."""
-#     from flask.ext.migrate import upgrade
-#     from app.models import Role, User
-#
-#     # migrate database to latest revision
-#     upgrade()
-#
-#     # create user roles
-#     Role.insert_roles()
-#
-#     # create self-follows for all users
-#     User.add_self_follows()
 
+#TODO: consolidate logs of all libraries involved
+# from logging import getLogger
+# loggers = [app.logger, getLogger('sqlalchemy'),
+#            getLogger('otherlibrary')]
+# for logger in loggers:
+#     logger.addHandler(mail_handler)
+#     logger.addHandler(file_handler)
 
 if __name__ == '__main__':
     manager.run()

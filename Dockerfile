@@ -37,8 +37,8 @@ COPY docker-conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker-conf/nginx.conf /etc/nginx/
 COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
 COPY docker-conf/nginx-servers.conf /etc/nginx/sites-enabled/
-COPY docker-conf/server.crt /var/www/app
-COPY docker-conf/server.key /var/www/app
+COPY docker-conf/server.crt /etc/ssl/nginx/
+COPY docker-conf/server.key /etc/ssl/nginx/
 
 #install app requirements
 RUN pip install -r /var/www/app/requirements.txt

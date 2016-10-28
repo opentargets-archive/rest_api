@@ -28,6 +28,19 @@ Valid `OPENTARGETS_API_CONFIG` options:
 see the `config.py` file for details
 
 
+## debugging
+We never run flask directly. Even in the manage.py script we spawn off a
+WSGIServer(). Hence Flask debug mode does not work out of the box. 
+
+To debug while running flask locally (ie. using `python manage.py runserver`) 
+one can pass `API_DEBUG=True` instead than the traditional `FLASK_DEBUG=True`
+environment variable to turn on the Flask debugger and increase the level of logging. 
+This works by wrapping the app in werkzeug middleware.
+More details on http://stackoverflow.com/questions/10364854/flask-debug-true-does-not-work-when-going-through-uwsgi
+
+However this will not work when the app is run by `uwsgi`, as it is in 
+the docker container and in production. This is intentional since DEBUG
+mode there would allow code injection.
 
 Run Docker Container
 ====================
