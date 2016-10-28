@@ -840,7 +840,8 @@ class esQuery():
                                                "gene_family_description",
                                                "efo_path_labels^0.1",
                                                "ortholog.*.symbol^0.5",
-                                               "ortholog.*.name^0.2"
+                                               "ortholog.*.name^0.2",
+                                               "chembl_drugs.*.synonym^0.5"
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -864,6 +865,7 @@ class esQuery():
                                                "efo_synonyms^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
+                                               "chembl_drugs.*.synonym^0.5"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
