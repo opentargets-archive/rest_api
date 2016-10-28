@@ -71,8 +71,8 @@ class Config:
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
-    USAGE_LIMIT_PATH = 'authconf/rate_limit.csv'
-    IP_RESOLVER_LIST_PATH = 'authconf/ip_list.csv'
+    USAGE_LIMIT_PATH = 'app/authconf/rate_limit.csv'
+    IP_RESOLVER_LIST_PATH = 'app/authconf/ip_list.csv'
 
     NO_CACHE_PARAMS = 'no_cache'
 
