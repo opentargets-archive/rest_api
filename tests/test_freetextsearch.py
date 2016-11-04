@@ -189,7 +189,8 @@ class FreeTextSearchTestCase(GenericTestCase):
         ens_data = json_response['data'][4];
         self.assertEqual( ens_data['highlight'], '')
         self.assertEqual( ens_data['id'], 'ENSG00000157764')
-        self.assertEqual(ens_data['q'], 'ENSG00000157764')
+        self.assertEqual( ens_data['q'], 'ENSG00000157764')
+        self.assertEqual( ens_data['exact'], True)
 
         first_result_ens =ens_data['data']
         self.assertEqual(len(first_result_ens), 2)
@@ -234,10 +235,9 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(empty_result['id'], None)
         
         #test  when query is ENS ID
-        ens_data = json_response['data'][4];
-        
+        ens_data = json_response['data'][4];   
         self.assertEqual( ens_data['id'], None)
-        self.assertEqual(ens_data['q'], 'ENSG00000157764')
+        self.assertEqual( ens_data['q'], 'ENSG00000157764')
         
         #test eff which can be desease or target depending on how search is done
         eff_data = json_response['data'][5];
@@ -245,7 +245,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(eff_data['exact'], False);
         self.assertEqual(len(eff_data['data']),2) #should only get name and id
         self.assertEqual(eff_data['data']['name'],'insulin resistance')
-        self.assertEqual(eff_data['data']['id'],'EFO_0002614')  
+        
     
     ##@unittest.skip("testBestHitSearchFieldsPostTarget")    
     def testBestHitSearchFieldsPostTarget(self):
@@ -273,9 +273,9 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual( braf_data['exact'], True)
         
         first_result_braf =braf_data['data']
-        self.assertEqual(len(first_result_braf), 2)
+        self.assertEqual(len(first_result_braf), 1)
         self.assertEqual(first_result_braf['approved_symbol'], 'BRAF')
-        self.assertEqual(first_result_braf['id'], 'ENSG00000157764')
+        
         
         nr3c1_data = json_response['data'][1];
         self.assertEqual( nr3c1_data['highlight'], '')
@@ -283,9 +283,9 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual( nr3c1_data['exact'], True)
 
         first_result_nr3c1 =nr3c1_data['data']
-        self.assertEqual(len(first_result_nr3c1), 2)
+        self.assertEqual(len(first_result_nr3c1), 1)
         self.assertEqual(first_result_nr3c1['approved_symbol'], 'NR3C1')
-        self.assertEqual(first_result_nr3c1['id'], 'ENSG00000113580')
+        
         
         #test fuzzy result
         fuzzy_result = json_response['data'][2];
@@ -305,17 +305,18 @@ class FreeTextSearchTestCase(GenericTestCase):
         ens_data = json_response['data'][4];
         self.assertEqual( ens_data['highlight'], '')
         self.assertEqual( ens_data['id'], 'ENSG00000157764')
-        self.assertEqual(ens_data['q'], 'ENSG00000157764')
-
+        self.assertEqual( ens_data['q'], 'ENSG00000157764')
+        self.assertEqual( ens_data['exact'], True)
+        
         first_result_ens =ens_data['data']
-        self.assertEqual(len(first_result_ens), 2)
+        self.assertEqual(len(first_result_ens), 1)
         self.assertEqual(first_result_ens['approved_symbol'], 'BRAF')
-        self.assertEqual(first_result_ens['id'], 'ENSG00000157764')
+    
         
         eff_data = json_response['data'][5];
         self.assertEqual(eff_data['q'], 'eff');
         self.assertEqual(eff_data['exact'], False);
-        self.assertEqual(len(eff_data['data']),2) #should only get name and id
+        self.assertEqual(len(eff_data['data']),1) #should only get name and id
         self.assertEqual(eff_data['data']['approved_symbol'],'UBE2D3')
         
     #@unittest.skip("testAsthma")

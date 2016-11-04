@@ -243,7 +243,7 @@ class esQuery():
         #there are len(params.q) responses - one per query
         for i in range(len(results['responses'])):
             name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
-            #print "name =" + name 
+            print "name =" + name 
             lower_name = name.lower()
             res = results['responses'][i]
             exact_match = False
@@ -253,15 +253,17 @@ class esQuery():
                 fields = kwargs['fields'];
                 if 'highlight' in hit:
                     highlight = hit['highlight']
-                if (lower_name == hit['_id'].lower):
+                
+                id_lower = hit['_id'].lower()
+                type_ = hit['_type']
+                if (lower_name == id_lower):
                     exact_match = True
-                elif 'search-object-target' in doc_filter:
-                    if('approved_symbol' in hit['_source'] and lower_name == hit['_source']['approved_symbol'].lower()):
+                elif (type_ == 'search-object-target' and lower_name == hit['_source']['approved_symbol'].lower()):
                         exact_match = True
-                elif 'search-object-disease' in doc_filter:
-                    if('name' in hit['_source'] and lower_name == hit['_source']['name'].lower()):
+                elif(type_ == 'search-object-disease' and lower_name == hit['_source']['name'].lower()):
                         exact_match = True
-                datapoint = dict(type=hit['_type'],
+                        
+                datapoint = dict(type= type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],

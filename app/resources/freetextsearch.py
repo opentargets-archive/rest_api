@@ -83,9 +83,9 @@ class BestHitSearch(restful.Resource, Paginable):
         
         filter = [kwargs.pop('filter')] or ['all']
         if 'target' in filter:
-            kwargs['fields'] = ['id','approved_symbol']; #do not want any other fields
+            kwargs['fields'] = ['approved_symbol']; #do not want any other fields
         elif 'disease' in filter:
-            kwargs['fields'] = ['id','name'];
+            kwargs['fields'] = ['name'];
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
