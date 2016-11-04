@@ -59,9 +59,14 @@ class BestHitSearch(restful.Resource, Paginable):
         start_time = time.time()
         kwargs = self.parser.parse_args()
         kwargs.pop('size');
-        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
+       
+        
         
         filter = kwargs.pop('filter') or ['all']
+        if 'target' in filter:
+            kwargs['fields'] = ['id','approved_symbol']; #do not want any other fields
+        elif 'disease' in filter:
+            kwargs['fields'] = ['id','name'];
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
@@ -76,11 +81,11 @@ class BestHitSearch(restful.Resource, Paginable):
         start_time = time.time()
         kwargs = request.get_json(force=True)
         
-        kwargs['fields'] = ['id', 'approved_symbol']; #do not want any other fields
-        
-        filter = ['all']
-        if ('filter' in kwargs):
-            filter = kwargs['filter']
+        filter = [kwargs.pop('filter')] or ['all']
+        if 'target' in filter:
+            kwargs['fields'] = ['id','approved_symbol']; #do not want any other fields
+        elif 'disease' in filter:
+            kwargs['fields'] = ['id','name'];
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
