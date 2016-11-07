@@ -245,12 +245,9 @@ class esQuery():
         data = []
         
         #there are len(params.q) responses - one per query
-        #for i in range(len(results['responses'])):
         for i,res in enumerate(results['responses']):
-            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
-            #print "name =" + name 
-            lower_name = name.lower()
-            #res = results['responses'][i]
+            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have                
+            lower_name = name.lower()    
             exact_match = False
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
