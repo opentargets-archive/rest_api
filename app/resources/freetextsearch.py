@@ -62,12 +62,12 @@ class BestHitSearch(restful.Resource, Paginable):
        
         
         
-        filter = kwargs.pop('filter') or ['all']
-        if 'target' in filter:
-            kwargs['fields'] = ['id','approved_symbol']; #do not want any other fields
-        elif 'disease' in filter:
-            kwargs['fields'] = ['id','name'];
-        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
+        filter_ = kwargs.pop('filter') or ['all']
+        if 'target' in filter_:
+            kwargs['fields'] = ['id','approved_symbol'] #do not want any other fields
+        elif 'disease' in filter_:
+            kwargs['fields'] = ['id','name']
+        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
     
@@ -81,12 +81,12 @@ class BestHitSearch(restful.Resource, Paginable):
         start_time = time.time()
         kwargs = request.get_json(force=True)
         
-        filter = [kwargs.pop('filter')] or ['all']
-        if 'target' in filter:
+        filter_ = [kwargs.pop('filter')] or ['all']
+        if 'target' in filter_:
             kwargs['fields'] = ['approved_symbol']; #do not want any other fields
-        elif 'disease' in filter:
+        elif 'disease' in filter_:
             kwargs['fields'] = ['name'];
-        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter, **kwargs)
+        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
     

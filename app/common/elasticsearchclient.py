@@ -48,6 +48,10 @@ class FreeTextFilterOptions():
     PUBLICATION = 'pub'
     SNP = 'snp'
     GENERIC = 'generic'
+    
+class SearchObjectTypes():
+    TARGET = 'search-object-target'
+    DISEASE = 'search-object-disease'
 
 
 class ESResultStatus(object):
@@ -241,26 +245,27 @@ class esQuery():
         data = []
         
         #there are len(params.q) responses - one per query
-        for i in range(len(results['responses'])):
+        #for i in range(len(results['responses'])):
+        for i,res in enumerate(results['responses']):
             name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
-            print "name =" + name 
+            #print "name =" + name 
             lower_name = name.lower()
-            res = results['responses'][i]
+            #res = results['responses'][i]
             exact_match = False
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
                 highlight = ''
-                fields = kwargs['fields'];
+                fields = kwargs.get('fields', []) or []
                 if 'highlight' in hit:
                     highlight = hit['highlight']
                 
                 id_lower = hit['_id'].lower()
                 type_ = hit['_type']
-                if (lower_name == id_lower):
+                if lower_name == id_lower:
                     exact_match = True
-                elif (type_ == 'search-object-target' and lower_name == hit['_source']['approved_symbol'].lower()):
+                elif type_ == SearchObjectTypes.TARGET and lower_name == hit['_source']['approved_symbol'].lower():
                         exact_match = True
-                elif(type_ == 'search-object-disease' and lower_name == hit['_source']['name'].lower()):
+                elif type_ == SearchObjectTypes.DISEASE and lower_name == hit['_source']['name'].lower():
                         exact_match = True
                         
                 datapoint = dict(type= type_,
