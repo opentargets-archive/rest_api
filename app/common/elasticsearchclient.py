@@ -48,6 +48,10 @@ class FreeTextFilterOptions():
     PUBLICATION = 'pub'
     SNP = 'snp'
     GENERIC = 'generic'
+    
+class SearchObjectTypes():
+    TARGET = 'search-object-target'
+    DISEASE = 'search-object-disease'
 
 
 class ESResultStatus(object):
@@ -241,19 +245,27 @@ class esQuery():
         data = []
         
         #there are len(params.q) responses - one per query
-        for i in range(len(results['responses'])):
-            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have       
-            lower_name = name.lower()
-            res = results['responses'][i]
+        for i,res in enumerate(results['responses']):
+            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have                
+            lower_name = name.lower()    
             exact_match = False
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
                 highlight = ''
+                fields = kwargs.get('fields', []) or []
                 if 'highlight' in hit:
                     highlight = hit['highlight']
-                if(lower_name == hit['_source']['approved_symbol'].lower() or lower_name == hit['_id'].lower):
+                
+                id_lower = hit['_id'].lower()
+                type_ = hit['_type']
+                if lower_name == id_lower:
                     exact_match = True
-                datapoint = dict(type=hit['_type'],
+                elif type_ == SearchObjectTypes.TARGET and lower_name == hit['_source']['approved_symbol'].lower():
+                        exact_match = True
+                elif type_ == SearchObjectTypes.DISEASE and lower_name == hit['_source']['name'].lower():
+                        exact_match = True
+                        
+                datapoint = dict(type= type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
@@ -1553,6 +1565,8 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             params.requested_fields = source['include']
             if 'highlight' not in params.requested_fields:
                 highlight = None
+        else:
+            highlight = None
 
         for searchphrase in params.q:
             body = {'query': self._get_free_text_query(searchphrase.lower()),
