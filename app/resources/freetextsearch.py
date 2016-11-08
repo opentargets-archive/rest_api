@@ -18,8 +18,8 @@ class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('filter', type=str, required=False,  action='append', help="filter by gene or efo")
-    
-    
+
+
     @is_authenticated
     @rate_limit
     def get(self ):
@@ -59,18 +59,18 @@ class BestHitSearch(restful.Resource, Paginable):
         start_time = time.time()
         kwargs = self.parser.parse_args()
         kwargs.pop('size');
-       
-        
-        
+
+
+
         filter_ = kwargs.pop('filter') or ['all']
         if 'target' in filter_:
-            kwargs['fields'] = ['id','approved_symbol'] #do not want any other fields
+            kwargs['fields'] = ['approved_symbol'] #do not want any other fields
         elif 'disease' in filter_:
-            kwargs['fields'] = ['id','name']
+            kwargs['fields'] = ['name']
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
-    
+
     @is_authenticated
     @rate_limit
     def post(self):
@@ -80,7 +80,7 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = request.get_json(force=True)
-        
+
         filter_ = [kwargs.pop('filter')] or ['all']
         if 'target' in filter_:
             kwargs['fields'] = ['approved_symbol']; #do not want any other fields
@@ -89,8 +89,8 @@ class BestHitSearch(restful.Resource, Paginable):
         res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
-    
-       
+
+
 
 
 
@@ -141,4 +141,3 @@ class AutoComplete(restful.Resource):
             return CTTVResponse.OK(res)
         else:
             abort(400, message = "Query is too short")
-
