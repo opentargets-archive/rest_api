@@ -1,37 +1,36 @@
-import base64
 import hashlib
-import pickle
-import pprint
-import socket
-from collections import defaultdict
-import copy
-
-import logging
-import numpy as np
-import json
-
-import time
-
-# import ujson as json
 import json as json
-
+import logging
+import socket
 import sys
-
+import time
+from collections import defaultdict
 from datetime import datetime
-from flask import current_app, request
+
+import numpy as np
 from elasticsearch import helpers
+from flask import current_app, request
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
-    AssociationSortOptions, EvidenceSortOptions
-from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
+
 from app.common.request_templates import FilterTypes
+from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
+from app.common.response_templates import Association, DataStats, Relation, RelationTypes
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
 
 __author__ = 'andreap'
 
+KEYWORD_MAPPING_FIELDS = ["name",
+                          "id",
+                          "approved_symbol",
+                          "symbol_synonyms",
+                          "uniprot_accessions",
+                          "hgnc_id",
+                          "ensembl_gene_id",
+                          "efo_url",
+                          ]
 
 class BooleanFilterOperator():
     AND = 'must'
@@ -251,20 +250,18 @@ class esQuery():
             exact_match = False
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
-                highlight = ''
-                fields = kwargs.get('fields', []) or []
-                if 'highlight' in hit:
-                    highlight = hit['highlight']
+                highlight = hit.get('highlight', None)
                 
                 id_lower = hit['_id'].lower()
                 type_ = hit['_type']
-                if lower_name == id_lower:
-                    exact_match = True
-                elif type_ == SearchObjectTypes.TARGET and lower_name == hit['_source']['approved_symbol'].lower():
-                        exact_match = True
-                elif type_ == SearchObjectTypes.DISEASE and lower_name == hit['_source']['name'].lower():
-                        exact_match = True
-                        
+                if highlight:
+                    for filed_name, matched_strings in highlight.items():
+                        if filed_name in KEYWORD_MAPPING_FIELDS:
+                            for string in matched_strings:
+                                if string.lower() == '<em>%s</em>'%lower_name:
+                                    exact_match = True
+                                    break
+
                 datapoint = dict(type= type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
@@ -883,6 +880,48 @@ class esQuery():
 
 
 
+    def _get_exact_mapping_query(self, searchphrase):
+        query_body = {
+            'query': {
+                'filtered': {
+                    'query': {
+                        "bool": {
+                            "should": [
+                                {"multi_match": {
+                                    "query": searchphrase,
+                                    "fields": ["name^3",
+                                               "description^2",
+                                               "id",
+                                               "approved_symbol",
+                                               "symbol_synonyms",
+                                               "name_synonyms",
+                                               "uniprot_accessions",
+                                               "hgnc_id",
+                                               "ensembl_gene_id",
+                                               "efo_path_codes",
+                                               "efo_url",
+                                               "efo_synonyms^0.1",
+                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.id",
+                                               "drugs.*.synonym^0.5"
+                                               ],
+                                    "analyzer": 'keyword',
+                                    # "fuzziness": "AUTO",
+                                    "tie_breaker": 0,
+                                    "type": "best_fields",
+                                    },
+                                }
+                            ]
+                        }
+                    }
+
+                },
+
+            }
+        }
+
+        return query_body
+
     def _get_free_text_query(self, searchphrase):
         query_body = {"function_score": {
             "score_mode": "multiply",
@@ -910,7 +949,7 @@ class esQuery():
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0.0,
                                     "type": "phrase_prefix",
-                                    }
+                                }
                                 },
                                 {"multi_match": {
                                     "query": searchphrase,
@@ -934,7 +973,7 @@ class esQuery():
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0,
                                     "type": "best_fields",
-                                    },
+                                },
                                 },
                                 # {"multi_match": {
                                 #     "query": searchphrase,
@@ -980,20 +1019,20 @@ class esQuery():
             },
             "functions": [
                 # "path_score": {
-                  #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                  #   "lang": "groovy",
-                  # },
-                  # "script_score": {
-                  #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                  #   "lang": "groovy",
-                  # }
+                #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
+                #   "lang": "groovy",
+                # },
+                # "script_score": {
+                #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
+                #   "lang": "groovy",
+                # }
                 {
-                "field_value_factor":{
-                    "field": "association_counts.total",
-                    "factor": 0.01,
-                    "modifier": "sqrt",
-                    "missing": 1,
-                    # "weight": 0.01,
+                    "field_value_factor": {
+                        "field": "association_counts.total",
+                        "factor": 0.01,
+                        "modifier": "sqrt",
+                        "missing": 1,
+                        # "weight": 0.01,
                     }
                 },
                 # {
@@ -1005,15 +1044,14 @@ class esQuery():
                 #     # "weight": 0.5,
                 #     }
                 # }
-              ],
+            ],
             # "filter": {
             #     "exists": {
             #       "field": "min_path_len"
             #     }
             #   }
 
-
-            }
+        }
 
         }
 
@@ -1044,6 +1082,13 @@ class esQuery():
             "ortholog.*.id":{}
         }
         }
+
+    def _get_mapping_highlights(self):
+        highlight =  {"fields": {}}
+        for key in KEYWORD_MAPPING_FIELDS:
+            highlight['fields'][key]={}
+
+        return highlight
 
 
     def _get_datasource_init_list(self, params=None):
@@ -1557,35 +1602,28 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         '''
         head = {'index':self._index_search, 'type':doc_types}
-        multi_body = [];
-        highlight = self._get_free_text_highlight()
+        multi_body = []
+        highlight = self._get_mapping_highlights()
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
 
         if 'include' in source:
             params.requested_fields = source['include']
-            if 'highlight' not in params.requested_fields:
-                highlight = None
-        else:
-            highlight = None
 
         for searchphrase in params.q:
+            # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
             body = {'query': self._get_free_text_query(searchphrase.lower()),
-                        'size': 1,
-                        'from': params.start_from,
-                        '_source': source,
-                        "explain": current_app.config['DEBUG']
-                        }
-            if highlight is not None:
-                body['highlight'] = highlight
+                    'size': 1,
+                    'from': params.start_from,
+                    '_source': source,
+                    "explain": current_app.config['DEBUG'],
+                    'highlight': highlight,
+                    }
+
             multi_body.append(head)
             multi_body.append(body)
-        
-#         request = ''
-#         for each in multi_body:
-#             request += '%s \n' %json.dumps(each)    
 
         return self._cached_search(body=multi_body,
-                                   is_multi=True)
+                               is_multi=True)
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
@@ -1704,15 +1742,18 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         key = str(args)+str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
         res = None
+        is_multi = False
+
+        if ('is_multi' in kwargs):
+            is_multi = kwargs.pop('is_multi')
+
         if not no_cache:
-            res = self.cache.get(key)
+            if is_multi:
+                res = self.handler.msearch(*args, **kwargs)
+            else:
+                res = self.handler.search(*args, **kwargs)
         if res is None:
             start_time = time.time()
-
-            is_multi = False
-
-            if('is_multi' in kwargs):
-                is_multi = kwargs.pop('is_multi')
 
             if is_multi:
                 res = self.handler.msearch(*args, **kwargs)
