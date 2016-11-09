@@ -251,8 +251,6 @@ class esQuery():
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
                 highlight = hit.get('highlight', None)
-                
-                id_lower = hit['_id'].lower()
                 type_ = hit['_type']
                 if highlight:
                     for filed_name, matched_strings in highlight.items():
