@@ -1364,7 +1364,6 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertEqual(len(json_response['data']), 1)
-        self.assertEqual(json_response['data'][0]['highlight'], '')
         self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
         
         first_result = json_response['data'][0]['data']
@@ -1378,15 +1377,15 @@ class FreeTextSearchTestCase(GenericTestCase):
     def testSearchFieldsWithHighlight(self):
 
         response= self._make_request('/api/latest/public/search',
-                                     data={'q':'braf', 'fields':['id', 'approved_symbol', 'highlight']},
+                                     data={'q':'braf', 'fields':['id', 'approved_symbol']},
                                      token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertTrue(json_response['data'][0]['highlight'] is not '')
-        theHighlight = json_response['data'][0]['highlight']
+        highlight = json_response['data'][0]['highlight']
         
-        self.assertEqual(len(theHighlight), 11)
+        self.assertGreater(len(highlight), 0)
         
         self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
         
@@ -1458,6 +1457,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     def testBestHitSearchFieldsTarget(self):
         response= self._make_request('/api/latest/private/besthitsearch',
                                     data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'],
+                                          'fields':'approved_symbol',
                                            'filter':'target'},
                                     token=self._AUTO_GET_TOKEN)
 
@@ -1558,14 +1558,11 @@ class FreeTextSearchTestCase(GenericTestCase):
     
     ##@unittest.skip("testBestHitSearchFieldsPostTarget")    
     def testBestHitSearchFieldsPostTarget(self):
-        
-        #passing some dummy fields 'fields':['field1', 'field2'] just to show 
-        #that they are going to be overwritten and data will have only two
-        # fields: approved_symbol and id
+
         response= self._make_request('/api/latest/private/besthitsearch',
                                      data=json.dumps({
                                             'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'], 
-                                            'fields':['field1', 'field2'], 
+                                            'fields':['approved_symbol', ],
                                             'filter':'target'}),
                                      content_type='application/json',
                                      method='POST',

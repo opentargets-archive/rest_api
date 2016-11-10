@@ -17,7 +17,7 @@ __author__ = 'andreap'
 class FreeTextSearch(restful.Resource, Paginable):
     parser =boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
-    parser.add_argument('filter', type=str, required=False,  action='append', help="filter by gene or efo")
+    parser.add_argument('filter', type=str, required=False,  action='append', help="filter by target or disease")
 
 
     @is_authenticated
@@ -31,9 +31,9 @@ class FreeTextSearch(restful.Resource, Paginable):
 
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
-        filter = kwargs.pop('filter') or ['all']
+        filter_ = kwargs.pop('filter') or ['all']
         if len(searchphrase)>1:
-            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter, **kwargs)
+            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter= filter_, **kwargs)
 
             return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
@@ -41,12 +41,12 @@ class FreeTextSearch(restful.Resource, Paginable):
             abort(400, message = "Query is too short")
 
 
-class BestHitSearch(restful.Resource, Paginable):
+class BestHitSearch(restful.Resource):
     '''This is similar to freeTextSearch but different because it allows for a list of search queries instead of one query'''
     parser = boilerplate.get_parser()
 
     parser.add_argument('q', type=str, action='append', required=True, help="Query cannot be blank!")
-    parser.add_argument('filter', type=str, required=False, action='append', help="filter by gene or efo")
+    parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
 
     @is_authenticated
     @rate_limit
@@ -58,16 +58,10 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = self.parser.parse_args()
-        kwargs.pop('size');
-
-
-
+        kwargs.pop('size')
+        searchphrases = kwargs.pop('q')
         filter_ = kwargs.pop('filter') or ['all']
-        if 'target' in filter_:
-            kwargs['fields'] = ['approved_symbol'] #do not want any other fields
-        elif 'disease' in filter_:
-            kwargs['fields'] = ['name']
-        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
+        res = current_app.extensions['esquery'].best_hit_search(searchphrases,  doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
 
@@ -80,13 +74,9 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = request.get_json(force=True)
-
         filter_ = [kwargs.pop('filter')] or ['all']
-        if 'target' in filter_:
-            kwargs['fields'] = ['approved_symbol']; #do not want any other fields
-        elif 'disease' in filter_:
-            kwargs['fields'] = ['name'];
-        res = current_app.extensions['esquery'].best_hit_search( doc_filter=filter_, **kwargs)
+        searchphrases = kwargs.pop('q')
+        res = current_app.extensions['esquery'].best_hit_search(searchphrases, doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
 

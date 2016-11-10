@@ -47,7 +47,7 @@ class FreeTextFilterOptions():
     PUBLICATION = 'pub'
     SNP = 'snp'
     GENERIC = 'generic'
-    
+
 class SearchObjectTypes():
     TARGET = 'search-object-target'
     DISEASE = 'search-object-disease'
@@ -209,7 +209,7 @@ class esQuery():
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
-            highlight = ''
+            highlight = None
             if 'highlight' in hit:
                 highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
@@ -220,12 +220,12 @@ class esQuery():
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
-
     def best_hit_search(self,
-                         doc_filter=(FreeTextFilterOptions.ALL),
-                         **kwargs):
+                        searchphrases,
+                        doc_filter=(FreeTextFilterOptions.ALL),
+                        **kwargs):
         '''
-       similar to free_text_serach but can take multiple queries
+        similar to free_text_serach but can take multiple queries
 
         :param searchphrase:
         :param doc_filter:
@@ -234,27 +234,26 @@ class esQuery():
         '''
 
         params = SearchParams(**kwargs)
-        params.q = kwargs.get('q', []) or []
 
         if doc_filter is None:
             doc_filter = [FreeTextFilterOptions.ALL]
         doc_filter = self._get_search_doc_types(doc_filter)
-        results = self._best_hit_query(doc_filter, params)
+        results = self._best_hit_query(searchphrases,doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        
+
         #there are len(params.q) responses - one per query
         for i,res in enumerate(results['responses']):
-            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have                
-            lower_name = name.lower()    
+            searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
+            lower_name = searchphrase.lower()
             exact_match = False
-            if(res['hits']['total']>0):
-                hit = res['hits']['hits'][0] #expect either 1 result or none
+            if 'total' in res['hits'] and res['hits']['total']:
+                hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
                 if highlight:
-                    for filed_name, matched_strings in highlight.items():
-                        if filed_name in KEYWORD_MAPPING_FIELDS:
+                    for field_name, matched_strings in highlight.items():
+                        if field_name in KEYWORD_MAPPING_FIELDS:
                             for string in matched_strings:
                                 if string.lower() == '<em>%s</em>'%lower_name:
                                     exact_match = True
@@ -265,13 +264,14 @@ class esQuery():
                                  id=hit['_id'],
                                  score=hit['_score'],
                                  highlight=highlight,
-                                 q=name,
+                                 q=searchphrase,
                                  exact=exact_match)
             else:
-                datapoint = dict(id=None,q=name)
+                datapoint = dict(id=None,
+                                 q=searchphrase)
             data.append(datapoint)
-            
-            
+
+
         return SimpleResult(results, params, data)
 
 
@@ -1550,17 +1550,16 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
 
 
-    def _get_search_doc_types(self, filter):
+    def _get_search_doc_types(self, filter_):
         doc_types = []
-        for t in filter:
+        for t in filter_:
             t = t.lower()
             if t == FreeTextFilterOptions.ALL:
                 return []
             elif t in FreeTextFilterOptions.__dict__.values():
                 doc_types.append(self._docname_search + '-' + t)
         return doc_types
-    
-    
+
     def _free_text_query(self, searchphrase, doc_types, params):
         '''
            If  'fields' parameter is passed, only these fields would be returned 
@@ -1568,31 +1567,28 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
            If there is not a 'fields' parameter, then fields are included by default
             
         '''
-        
-        the_highlight = self._get_free_text_highlight()
-        source = SourceDataStructureOptions.getSource(params.datastructure, params)       
-        if 'include' in source:
-            params.requested_fields = source['include']
-            if 'highlight' not in params.requested_fields:
-                the_highlight = None
-                
-            
-        the_body = { 'query': self._get_free_text_query(searchphrase),
-                    'size': params.size,
-                    'from': params.start_from,
-                    '_source':source,                                                 
-                    "explain": current_app.config['DEBUG']
-                                         } 
-        if the_highlight is not None:
-            the_body['highlight'] = the_highlight
-            
+
+        highlight = self._get_free_text_highlight()
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"] = params.fields
+
+        body = {'query': self._get_free_text_query(searchphrase),
+                'size': params.size,
+                'from': params.start_from,
+                '_source': source_filter,
+                "explain": current_app.config['DEBUG']
+                }
+        if highlight is not None:
+            body['highlight'] = highlight
+
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body= the_body,
+                                   body=body,
 
                                    )
 
-    def _best_hit_query(self, doc_types, params):
+    def _best_hit_query(self, searchphrases, doc_types, params):
         '''
            If  'fields' parameter is passed, only these fields would be returned
            and 'highlights' would be added only if it is of the fields parameters.
@@ -1602,17 +1598,17 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         head = {'index':self._index_search, 'type':doc_types}
         multi_body = []
         highlight = self._get_mapping_highlights()
-        source = SourceDataStructureOptions.getSource(params.datastructure, params)
 
-        if 'include' in source:
-            params.requested_fields = source['include']
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"] = params.fields
 
-        for searchphrase in params.q:
+        for searchphrase in searchphrases:
             # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
             body = {'query': self._get_free_text_query(searchphrase.lower()),
                     'size': 1,
                     'from': params.start_from,
-                    '_source': source,
+                    '_source': source_filter,
                     "explain": current_app.config['DEBUG'],
                     'highlight': highlight,
                     }
