@@ -48,7 +48,7 @@ class FreeTextFilterOptions():
     PUBLICATION = 'pub'
     SNP = 'snp'
     GENERIC = 'generic'
-    
+
 class SearchObjectTypes():
     TARGET = 'search-object-target'
     DISEASE = 'search-object-disease'
@@ -243,11 +243,11 @@ class esQuery():
         results = self._best_hit_query(doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        
+
         #there are len(params.q) responses - one per query
         for i,res in enumerate(results['responses']):
-            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have                
-            lower_name = name.lower()    
+            name = params.q[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
+            lower_name = name.lower()
             exact_match = False
             if(res['hits']['total']>0):
                 hit = res['hits']['hits'][0] #expect either 1 result or none
@@ -255,7 +255,7 @@ class esQuery():
                 fields = kwargs.get('fields', []) or []
                 if 'highlight' in hit:
                     highlight = hit['highlight']
-                
+
                 id_lower = hit['_id'].lower()
                 type_ = hit['_type']
                 if lower_name == id_lower:
@@ -264,7 +264,7 @@ class esQuery():
                         exact_match = True
                 elif type_ == SearchObjectTypes.DISEASE and lower_name == hit['_source']['name'].lower():
                         exact_match = True
-                        
+
                 datapoint = dict(type= type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
@@ -275,8 +275,8 @@ class esQuery():
             else:
                 datapoint = dict(id=None,q=name)
             data.append(datapoint)
-            
-            
+
+
         return SimpleResult(results, params, data)
 
 
@@ -648,7 +648,7 @@ class esQuery():
         if filter_data_conditions:
             ass_query_body['post_filter'] = {
                 "bool": {
-                    "must": filter_data_conditions.values()
+                    "must": [i for i in filter_data_conditions.values() if i]
                 }
             }
 
@@ -721,6 +721,7 @@ class esQuery():
                                  facets=data['facets'],
                                  available_datatypes=self.datatypes.available_datatypes,
                                  )
+
 
     def get_complex_target_filter(self,
                                   targets,
@@ -1516,33 +1517,33 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             elif t in FreeTextFilterOptions.__dict__.values():
                 doc_types.append(self._docname_search + '-' + t)
         return doc_types
-    
-    
+
+
     def _free_text_query(self, searchphrase, doc_types, params):
         '''
-           If  'fields' parameter is passed, only these fields would be returned 
+           If  'fields' parameter is passed, only these fields would be returned
            and 'highlights' would be added only if it is of the fields parameters.
            If there is not a 'fields' parameter, then fields are included by default
-            
+
         '''
-        
+
         the_highlight = self._get_free_text_highlight()
-        source = SourceDataStructureOptions.getSource(params.datastructure, params)       
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
         if 'include' in source:
             params.requested_fields = source['include']
             if 'highlight' not in params.requested_fields:
                 the_highlight = None
-                
-            
+
+
         the_body = { 'query': self._get_free_text_query(searchphrase),
                     'size': params.size,
                     'from': params.start_from,
-                    '_source':source,                                                 
+                    '_source':source,
                     "explain": current_app.config['DEBUG']
-                                         } 
+                                         }
         if the_highlight is not None:
             the_body['highlight'] = the_highlight
-            
+
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
                                    body= the_body,
@@ -1579,10 +1580,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 body['highlight'] = highlight
             multi_body.append(head)
             multi_body.append(body)
-        
+
 #         request = ''
 #         for each in multi_body:
-#             request += '%s \n' %json.dumps(each)    
+#             request += '%s \n' %json.dumps(each)
 
         return self._cached_search(body=multi_body,
                                    is_multi=True)
@@ -2050,6 +2051,7 @@ class SearchParams():
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
+        self.filters[FilterTypes.TARGETS_ENRICHMENT] = kwargs.get(FilterTypes.TARGETS_ENRICHMENT, False)
 
 
         datasource_filter = []
@@ -2099,7 +2101,7 @@ class AggregationUnit(object):
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
         for filter_type, filter_value in filters.items():
-            if filter_type != key:
+            if filter_type != key and filter_value:
                 conditions.append(filter_value)
         return conditions
 
@@ -2273,6 +2275,44 @@ class AggregationUnitIsDirect(AggregationUnit):
         return {
             "term": {"is_direct": is_direct}
         }
+
+class AggregationUnitTargetEnrichment(AggregationUnit):
+
+    def build_query_filter(self):
+        pass
+
+
+    def build_agg(self, filters):
+        self.agg = self._get_targets_enrichment_aggregation(filters)
+
+        #filters['target']['terms']['target.id'],
+
+    def _get_targets_enrichment_aggregation(self, filters):
+        q = {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TARGETS_ENRICHMENT, filters),
+                }
+            },
+            "aggregations": {
+                "data": {
+                    "significant_terms": {
+                        "field": "disease.id",
+                        "size": 50
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        }
+                    }
+
+                }
+            }
+        }
+
+        return q
 
 class AggregationUnitUniprotKW(AggregationUnit):
 
@@ -2634,6 +2674,7 @@ class AggregationBuilder(object):
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
         FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
+        FilterTypes.TARGETS_ENRICHMENT: AggregationUnitTargetEnrichment,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
@@ -2649,7 +2690,6 @@ class AggregationBuilder(object):
 
 
     def load_params(self, params):
-
 
 
         '''define and init units'''
@@ -2673,8 +2713,8 @@ class AggregationBuilder(object):
                         self.aggs[agg] = self.units[agg].agg
 
 
-    def _get_AggregationUnit(self,str):
-        return getattr(sys.modules[__name__], str)
+    # def _get_AggregationUnit(self,str):
+    #     return getattr(sys.modules[__name__], str)
 
     def _get_aggs_not_to_be_returned(self,params):
         '''avoid calculate a big facet if only one parameter is passed'''

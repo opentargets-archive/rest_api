@@ -155,6 +155,7 @@ class FilterTypes():
     ECO='eco'
     IS_DIRECT='direct'
     THERAPEUTIC_AREA='therapeutic_area'
+    TARGETS_ENRICHMENT='targets_enrichment'
 
 
 
