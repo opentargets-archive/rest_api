@@ -1,12 +1,6 @@
-import decimal
-import unittest
 import ujson as json
-import requests
-import time
+import unittest
 
-from flask import url_for
-
-from app import create_app
 from tests import GenericTestCase
 
 
@@ -292,6 +286,36 @@ class AssociationTestCase(GenericTestCase):
         full_response = response.data.decode('utf-8')
         '''check response size is equal to requeste size +header and empty final line'''
         self.assertEqual(len(full_response.split('\n')), (size + 2))
+
+    def testAssociationFilterTargetEnrichmentGet(self):
+        target = ["ENSG00000073756", "ENSG00000095303", "ENSG00000280151", "ENSG00000108219", "ENSG00000198369",
+                  "ENSG00000105401", "ENSG00000134882", "ENSG00000104998", "ENSG00000181915", "ENSG00000119919",
+                  "ENSG00000105397", "ENSG00000178623", "ENSG00000107968", "ENSG00000133195", "ENSG00000171522",
+                  "ENSG00000116288", "ENSG00000169508", "ENSG00000143365", "ENSG00000095110", "ENSG00000109787",
+                  "ENSG00000179344", "ENSG00000153064", "ENSG00000108094", "ENSG00000116833", "ENSG00000151151",
+                  "ENSG00000111537", "ENSG00000114859", "ENSG00000012779", "ENSG00000169220", "ENSG00000103375",
+                  "ENSG00000189067", "ENSG00000108423", "ENSG00000133703", "ENSG00000138031", "ENSG00000178828",
+                  "ENSG00000197114", "ENSG00000130592", "ENSG00000100368", "ENSG00000164308", "ENSG00000111424",
+                  "ENSG00000108688", "ENSG00000181634", "ENSG00000164512", "ENSG00000182256", "ENSG00000113327",
+                  "ENSG00000163285", "ENSG00000079263", "ENSG00000115232", "ENSG00000100311", "ENSG00000143622"]
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target, 'facets': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']), 2, 'association retrieved')
+        self.assertTrue('facets' in json_response)
+        self.assertTrue('targets_enrichment' in json_response['facets'])
+        enrichment_data = json_response['facets']['targets_enrichment']['buckets']
+        self.assertGreater(len(enrichment_data), 0)
+        for bucket in enrichment_data:
+            disease_id = bucket['key']
+            disease_response = self._make_request('/api/latest/public/association/filter',
+                                                  data={'disease': [disease_id], 'size': 0},
+                                                  token=self._AUTO_GET_TOKEN)
+            json_disease_response = json.loads(disease_response.data.decode('utf-8'))
+            total = json_disease_response['total']
+            self.assertAlmostEqual(bucket['bg_count'], total, delta=3)
 
 
 

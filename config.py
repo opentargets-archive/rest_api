@@ -86,7 +86,7 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://193.62.54.18:9200/')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -99,7 +99,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://beta.targetvalidation.org:9200/')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
