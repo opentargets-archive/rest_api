@@ -298,6 +298,86 @@ class AssociationTestCase(GenericTestCase):
                   "ENSG00000197114", "ENSG00000130592", "ENSG00000100368", "ENSG00000164308", "ENSG00000111424",
                   "ENSG00000108688", "ENSG00000181634", "ENSG00000164512", "ENSG00000182256", "ENSG00000113327",
                   "ENSG00000163285", "ENSG00000079263", "ENSG00000115232", "ENSG00000100311", "ENSG00000143622"]
+#         target = '''ENSG00000120907
+# ENSG00000170214
+# ENSG00000171873
+# ENSG00000150594
+# ENSG00000163288
+# ENSG00000102287
+# ENSG00000145863
+# ENSG00000166736
+# ENSG00000125384
+# ENSG00000112038
+# ENSG00000138039
+# ENSG00000109158
+# ENSG00000170820
+# ENSG00000268089
+# ENSG00000186297
+# ENSG00000112964
+# ENSG00000095303
+# ENSG00000117601
+# ENSG00000160951
+# ENSG00000073756
+# ENSG00000094755
+# ENSG00000011677
+# ENSG00000187730
+# ENSG00000166206
+# ENSG00000164270
+# ENSG00000228716
+# ENSG00000149295
+# ENSG00000180914
+# ENSG00000022355
+# ENSG00000050628
+# ENSG00000082175
+# ENSG00000091831
+# ENSG00000184160
+# ENSG00000145864
+# ENSG00000163285
+# ENSG00000274286
+# ENSG00000113327
+# ENSG00000182256
+# ENSG00000151834
+# ENSG00000111424
+# ENSG00000012504
+# ENSG00000153253
+# ENSG00000169432
+# ENSG00000171522
+# ENSG00000185313
+# ENSG00000136546
+# ENSG00000196876
+# ENSG00000168356
+# ENSG00000183873
+# ENSG00000144285
+# ENSG00000007314
+# ENSG00000136531
+# ENSG00000137869
+# ENSG00000169313
+# ENSG00000105605
+# ENSG00000075429
+# ENSG00000130433
+# ENSG00000142408
+# ENSG00000141837
+# ENSG00000100346
+# ENSG00000067191
+# ENSG00000108878
+# ENSG00000007402
+# ENSG00000081248
+# ENSG00000166862
+# ENSG00000102001
+# ENSG00000157388
+# ENSG00000165995
+# ENSG00000151067
+# ENSG00000153956
+# ENSG00000157445
+# ENSG00000006283
+# ENSG00000151062
+# ENSG00000196557
+# ENSG00000182389
+# ENSG00000167535
+# ENSG00000148408
+# ENSG00000075461
+# ENSG00000198216
+# ENSG00000006116'''.split()
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'target': target, 'facets': True},
                                       token=self._AUTO_GET_TOKEN)
@@ -308,6 +388,8 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('targets_enrichment' in json_response['facets'])
         enrichment_data = json_response['facets']['targets_enrichment']['buckets']
         self.assertGreater(len(enrichment_data), 0)
+        all_fine = len(enrichment_data)
+
         for bucket in enrichment_data:
             disease_id = bucket['key']
             disease_response = self._make_request('/api/latest/public/association/filter',
@@ -315,7 +397,18 @@ class AssociationTestCase(GenericTestCase):
                                                   token=self._AUTO_GET_TOKEN)
             json_disease_response = json.loads(disease_response.data.decode('utf-8'))
             total = json_disease_response['total']
-            self.assertAlmostEqual(bucket['bg_count'], total, delta=3)
+            print bucket['score'], bucket['bg_count'], total
+
+            try:
+                self.assertAlmostEqual(bucket['bg_count'], total, delta=int(round(total/5)),
+                                       msg="Wrong background count %s: bg_count = %i, real = %i" % (disease_id,
+                                                                                                    bucket['bg_count'],
+                                                                                                    total))
+            except AssertionError as e:
+                print e
+                all_fine -=1
+        print len(enrichment_data) - all_fine, 'errors'
+        self.assertIs(all_fine, len(enrichment_data))
 
 
 
