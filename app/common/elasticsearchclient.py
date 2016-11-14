@@ -651,7 +651,7 @@ class esQuery():
                     "must": [i for i in filter_data_conditions.values() if i]
                 }
             }
-
+        # print json.dumps(ass_query_body, indent=4)
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
                                        timeout="20m",
@@ -2298,15 +2298,14 @@ class AggregationUnitTargetEnrichment(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "disease.id",
-                        "size": 50
+                        # "min_doc_count": 10,
+                        # "size": 50,
+                        # "shard_size": 100,
+
+            #             "script_heuristic": {
+            #   "script": "27000-_superset_freq"
+            # }
                     },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        }
-                    }
 
                 }
             }
