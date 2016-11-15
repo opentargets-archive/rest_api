@@ -1529,7 +1529,10 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip(" testBestHitSearchFieldsDisease")
     def testBestHitSearchFieldsDisease(self):
         response= self._make_request('/api/latest/private/besthitsearch',
-                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'], 'filter':'disease'},
+                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'],
+                                          'filter':'disease',
+                                          'fields': 'name',
+                                          },
                                     token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
@@ -1564,7 +1567,6 @@ class FreeTextSearchTestCase(GenericTestCase):
         eff_data = json_response['data'][5]
         self.assertEqual(eff_data['q'], 'eff')
         self.assertEqual(eff_data['exact'], False)
-        self.assertEqual(len(eff_data['data']),1) #should only get name
         self.assertEqual(eff_data['data']['name'],'insulin resistance')
         
     
