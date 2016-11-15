@@ -209,14 +209,16 @@ class esQuery():
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
-            highlight = None
-            if 'highlight' in hit:
-                highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
                              data=hit['_source'],
                              id=hit['_id'],
                              score=hit['_score'],
-                             highlight=highlight)
+                             )
+            if params.highlight:
+                highlight = None
+                if 'highlight' in hit:
+                    highlight = hit['highlight']
+                datapoint['highlight'] = highlight
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
@@ -263,9 +265,10 @@ class esQuery():
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
-                                 highlight=highlight,
                                  q=searchphrase,
                                  exact=exact_match)
+                if params.highlight:
+                    datapoint['highlight']=highlight
             else:
                 datapoint = dict(id=None,
                                  q=searchphrase)
@@ -2118,6 +2121,7 @@ class SearchParams():
 
         self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
+        self.highlight = kwargs.get('highlight', True)
 
 
 class AggregationUnit(object):

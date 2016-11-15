@@ -10,6 +10,8 @@ from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
+from flask.ext.restful.inputs import boolean
+
 
 __author__ = 'andreap'
 
@@ -18,7 +20,7 @@ class FreeTextSearch(restful.Resource, Paginable):
     parser = boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank")
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
-    parser.add_argument('highlight', type=bool, required=False,
+    parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
     parser.add_argument('fields', type=str, action='append', required=False,
                         help="specify the fields to return for each object")
@@ -51,7 +53,7 @@ class BestHitSearch(restful.Resource, Paginable):
 
     parser.add_argument('q', type=str, action='append', required=True, help="Query cannot be blank")
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
-    parser.add_argument('highlight', type=bool, required=False,
+    parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
 
     @is_authenticated
@@ -92,7 +94,7 @@ class QuickSearch(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank")
     parser.add_argument('size', type=int, required=False, help="number of objects to be returned per type")
-    parser.add_argument('highlight', type=bool, required=False,
+    parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
 
     @is_authenticated
