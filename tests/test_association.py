@@ -144,6 +144,66 @@ class AssociationTestCase(GenericTestCase):
             entry_disease_id = json_response['data'][i]['disease']['id']
             self.assertEqual(entry_disease_id, disease, 'association is direct')
 
+    def testAssociationFiltersearch(self):
+        target = 'ENSG00000157764'
+        '''test partial term'''
+        search_query = 'lymph'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 2)
+
+        '''test first term'''
+        search_query = 'lymphoid'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target,
+                                              'size':0,
+                                            'search' : search_query },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'],2)
+
+        '''test case sensitivity'''
+        target = 'ENSG00000157764'
+        search_query = 'LymPhoid'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query,
+                                            'no_cache': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 2)
+
+        '''test empty space'''
+        search_query = 'lymphoid '
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 2)
+
+        '''test multi word'''
+        search_query = 'lymphoid neoplasm'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 1)
+
+
 
     def testAssociationFilterOrder(self):
 

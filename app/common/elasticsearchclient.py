@@ -620,8 +620,13 @@ class esQuery():
         '''boolean query joining multiple conditions with an AND'''
         query_body = { "match_all": {}}
         if params.search:
-            query_body = { "wildcard": { "_all":  '%s*'%params.search } }#could use '*%*' to match anywhere, but it is a very slow query
-
+            query_body = {
+                "multi_match": {
+                    "fields": ["target.*", "disease.*", "private.*"],
+                    "query": params.search,
+                    "type": "phrase_prefix"
+                }
+            }
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
@@ -707,6 +712,7 @@ class esQuery():
                                      facets=data['facets'],
                                      available_datatypes=self.datatypes.available_datatypes,
                                      therapeutic_areas = ta_scores
+
                                      )
             except KeyError:
                 current_app.logger.debug('fields containing therapeutic area information not available')
@@ -2048,6 +2054,8 @@ class SearchParams():
 
         self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
         self.search = kwargs.get('search')
+        if self.search:
+            self.search=self.search.lower().strip()
 
         self.gte = kwargs.get('gte')
 
