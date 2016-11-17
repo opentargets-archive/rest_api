@@ -1,37 +1,37 @@
-import base64
 import hashlib
-import pickle
-import pprint
-import socket
-from collections import defaultdict
-import copy
-
-import logging
-import numpy as np
-import json
-
-import time
-
-# import ujson as json
 import json as json
-
+import logging
+import socket
 import sys
-
+import time
+from collections import defaultdict
 from datetime import datetime
-from flask import current_app, request
+
+import numpy as np
 from elasticsearch import helpers
+from flask import current_app, request
 from pythonjsonlogger import jsonlogger
-from app.common.request_templates import SourceDataStructureOptions, FilterTypes, \
-    AssociationSortOptions, EvidenceSortOptions
-from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, EmptyPaginatedResult, RawResult
+
 from app.common.request_templates import FilterTypes
+from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
+from app.common.response_templates import Association, DataStats, Relation, RelationTypes
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
 from app.resources.hypergeometric import HypergeometricTest
 
 __author__ = 'andreap'
+
+KEYWORD_MAPPING_FIELDS = ["name",
+                          "id",
+                          "approved_symbol",
+                          "symbol_synonyms",
+                          "uniprot_accessions",
+                          "hgnc_id",
+                          "ensembl_gene_id",
+                          "efo_url",
+                          ]
 
 
 class BooleanFilterOperator():
@@ -216,14 +216,16 @@ class esQuery():
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         for hit in res['hits']['hits']:
-            highlight = ''
-            if 'highlight' in hit:
-                highlight = hit['highlight']
             datapoint = dict(type=hit['_type'],
                              data=hit['_source'],
                              id=hit['_id'],
                              score=hit['_score'],
-                             highlight=highlight)
+                             )
+            if params.highlight:
+                highlight = None
+                if 'highlight' in hit:
+                    highlight = hit['highlight']
+                datapoint['highlight'] = highlight
             data.append(datapoint)
         return PaginatedResult(res, params, data)
 
@@ -231,7 +233,6 @@ class esQuery():
                            query,
                            enrichment_method,
                            M=0):
-        print query
 
         if M <= 10 or enrichment_method is None:
             return []
@@ -350,10 +351,11 @@ class esQuery():
         return sorted(enrichment, key=lambda k: k["score"])
 
     def best_hit_search(self,
+                        searchphrases,
                         doc_filter=(FreeTextFilterOptions.ALL),
                         **kwargs):
         '''
-       similar to free_text_serach but can take multiple queries
+        similar to free_text_serach but can take multiple queries
 
         :param searchphrase:
         :param doc_filter:
@@ -362,46 +364,43 @@ class esQuery():
         '''
 
         params = SearchParams(**kwargs)
-        params.q = kwargs.get('q', []) or []
 
         if doc_filter is None:
             doc_filter = [FreeTextFilterOptions.ALL]
         doc_filter = self._get_search_doc_types(doc_filter)
-        results = self._best_hit_query(doc_filter, params)
+        results = self._best_hit_query(searchphrases, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
 
         # there are len(params.q) responses - one per query
         for i, res in enumerate(results['responses']):
-            name = params.q[
+            searchphrase = searchphrases[
                 i]  # even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
-            lower_name = name.lower()
+            lower_name = searchphrase.lower()
             exact_match = False
-            if (res['hits']['total'] > 0):
-                hit = res['hits']['hits'][0]  # expect either 1 result or none
-                highlight = ''
-                fields = kwargs.get('fields', []) or []
-                if 'highlight' in hit:
-                    highlight = hit['highlight']
-
-                id_lower = hit['_id'].lower()
+            if 'total' in res['hits'] and res['hits']['total']:
+                hit = res['hits']['hits'][0]
+                highlight = hit.get('highlight', None)
                 type_ = hit['_type']
-                if lower_name == id_lower:
-                    exact_match = True
-                elif type_ == SearchObjectTypes.TARGET and lower_name == hit['_source']['approved_symbol'].lower():
-                    exact_match = True
-                elif type_ == SearchObjectTypes.DISEASE and lower_name == hit['_source']['name'].lower():
-                    exact_match = True
+                if highlight:
+                    for field_name, matched_strings in highlight.items():
+                        if field_name in KEYWORD_MAPPING_FIELDS:
+                            for string in matched_strings:
+                                if string.lower() == '<em>%s</em>' % lower_name:
+                                    exact_match = True
+                                    break
 
                 datapoint = dict(type=type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
-                                 highlight=highlight,
-                                 q=name,
+                                 q=searchphrase,
                                  exact=exact_match)
+                if params.highlight:
+                    datapoint['highlight'] = highlight
             else:
-                datapoint = dict(id=None, q=name)
+                datapoint = dict(id=None,
+                                 q=searchphrase)
             data.append(datapoint)
 
         return SimpleResult(results, params, data)
@@ -750,9 +749,13 @@ class esQuery():
         '''boolean query joining multiple conditions with an AND'''
         query_body = {"match_all": {}}
         if params.search:
-            query_body = {"wildcard": {
-                "_all": '%s*' % params.search}}  # could use '*%*' to match anywhere, but it is a very slow query
-
+            query_body = {
+                "multi_match": {
+                    "fields": ["target.*", "disease.*", "private.*"],
+                    "query": params.search,
+                    "type": "phrase_prefix"
+                }
+            }
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
@@ -850,8 +853,8 @@ class esQuery():
                                        enrichment,
                                        facets=data['facets'],
                                        available_datatypes=self.datatypes.available_datatypes,
-                                       therapeutic_areas=ta_scores
-                                       )
+                                       therapeutic_areas=ta_scores)
+
             except KeyError:
                 current_app.logger.debug('fields containing therapeutic area information not available')
 
@@ -1019,6 +1022,48 @@ class esQuery():
             }
         return dict()
 
+    def _get_exact_mapping_query(self, searchphrase):
+        query_body = {
+            'query': {
+                'filtered': {
+                    'query': {
+                        "bool": {
+                            "should": [
+                                {"multi_match": {
+                                    "query": searchphrase,
+                                    "fields": ["name^3",
+                                               "description^2",
+                                               "id",
+                                               "approved_symbol",
+                                               "symbol_synonyms",
+                                               "name_synonyms",
+                                               "uniprot_accessions",
+                                               "hgnc_id",
+                                               "ensembl_gene_id",
+                                               "efo_path_codes",
+                                               "efo_url",
+                                               "efo_synonyms^0.1",
+                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.id",
+                                               "drugs.*.synonym^0.5"
+                                               ],
+                                    "analyzer": 'keyword',
+                                    # "fuzziness": "AUTO",
+                                    "tie_breaker": 0,
+                                    "type": "best_fields",
+                                },
+                                }
+                            ]
+                        }
+                    }
+
+                },
+
+            }
+        }
+
+        return query_body
+
     def _get_free_text_query(self, searchphrase):
         query_body = {"function_score": {
             "score_mode": "multiply",
@@ -1179,6 +1224,13 @@ class esQuery():
             "ortholog.*.id": {}
         }
         }
+
+    def _get_mapping_highlights(self):
+        highlight = {"fields": {}}
+        for key in KEYWORD_MAPPING_FIELDS:
+            highlight['fields'][key] = {}
+
+        return highlight
 
     def _get_datasource_init_list(self, params=None):
         datatype_list = []  # ["'all':[]"]
@@ -1634,9 +1686,9 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return conditions
 
-    def _get_search_doc_types(self, filter):
+    def _get_search_doc_types(self, filter_):
         doc_types = []
-        for t in filter:
+        for t in filter_:
             t = t.lower()
             if t == FreeTextFilterOptions.ALL:
                 return []
@@ -1652,29 +1704,25 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         '''
 
-        the_highlight = self._get_free_text_highlight()
-        source = SourceDataStructureOptions.getSource(params.datastructure, params)
-        if 'include' in source:
-            params.requested_fields = source['include']
-            if 'highlight' not in params.requested_fields:
-                the_highlight = None
+        highlight = self._get_free_text_highlight()
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"] = params.fields
 
-        the_body = {'query': self._get_free_text_query(searchphrase),
-                    'size': params.size,
-                    'from': params.start_from,
-                    '_source': source,
-                    "explain": current_app.config['DEBUG']
-                    }
-        if the_highlight is not None:
-            the_body['highlight'] = the_highlight
+        body = {'query': self._get_free_text_query(searchphrase),
+                'size': params.size,
+                'from': params.start_from,
+                '_source': source_filter,
+                "explain": current_app.config['DEBUG']
+                }
+        if highlight is not None:
+            body['highlight'] = highlight
 
         return self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body=the_body,
+                                   body=body)
 
-                                   )
-
-    def _best_hit_query(self, doc_types, params):
+    def _best_hit_query(self, searchphrases, doc_types, params):
         '''
            If  'fields' parameter is passed, only these fields would be returned
            and 'highlights' would be added only if it is of the fields parameters.
@@ -1682,32 +1730,25 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         '''
         head = {'index': self._index_search, 'type': doc_types}
-        multi_body = [];
-        highlight = self._get_free_text_highlight()
-        source = SourceDataStructureOptions.getSource(params.datastructure, params)
+        multi_body = []
+        highlight = self._get_mapping_highlights()
 
-        if 'include' in source:
-            params.requested_fields = source['include']
-            if 'highlight' not in params.requested_fields:
-                highlight = None
-        else:
-            highlight = None
+        source_filter = SourceDataStructureOptions.getSource(params.datastructure)
+        if params.fields:
+            source_filter["include"] = params.fields
 
-        for searchphrase in params.q:
+        for searchphrase in searchphrases:
+            # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
             body = {'query': self._get_free_text_query(searchphrase.lower()),
                     'size': 1,
                     'from': params.start_from,
-                    '_source': source,
-                    "explain": current_app.config['DEBUG']
+                    '_source': source_filter,
+                    "explain": current_app.config['DEBUG'],
+                    'highlight': highlight,
                     }
-            if highlight is not None:
-                body['highlight'] = highlight
+
             multi_body.append(head)
             multi_body.append(body)
-
-        # request = ''
-        #         for each in multi_body:
-        #             request += '%s \n' %json.dumps(each)
 
         return self._cached_search(body=multi_body,
                                    is_multi=True)
@@ -1825,15 +1866,18 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         key = str(args) + str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
         res = None
+        is_multi = False
+
+        if ('is_multi' in kwargs):
+            is_multi = kwargs.pop('is_multi')
+
         if not no_cache:
-            res = self.cache.get(key)
+            if is_multi:
+                res = self.handler.msearch(*args, **kwargs)
+            else:
+                res = self.handler.search(*args, **kwargs)
         if res is None:
             start_time = time.time()
-
-            is_multi = False
-
-            if ('is_multi' in kwargs):
-                is_multi = kwargs.pop('is_multi')
 
             if is_multi:
                 res = self.handler.msearch(*args, **kwargs)
@@ -2135,6 +2179,8 @@ class SearchParams():
         self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT + '.' + AssociationSortOptions.OVERALL]) or [
             ScoringMethods.DEFAULT + '.' + AssociationSortOptions.OVERALL]
         self.search = kwargs.get('search')
+        if self.search:
+            self.search = self.search.lower().strip()
 
         self.gte = kwargs.get('gte')
 
@@ -2175,7 +2221,6 @@ class SearchParams():
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
 
-
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
         if ds_params is not None:
@@ -2199,6 +2244,7 @@ class SearchParams():
 
         self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
+        self.highlight = kwargs.get('highlight', True)
 
 
 class AggregationUnit(object):

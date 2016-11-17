@@ -2,7 +2,8 @@
 swagger: '2.0'
 
 info:
-  version: "1.2.1"
+  version: 1.3.0
+  title: Target Validation Platform REST API
   description: |
 
     The Target Validation Platform API ('Application Programming Interface')
@@ -125,7 +126,9 @@ info:
     examples on how to use the API and for some code snippets, which can be used to construct more complex queries.
   license:
     name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
   contact:
+    name: Target Validation Platform Support
     email: support@targetvalidation.org
   termsOfService: |
     Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
