@@ -20,6 +20,7 @@ class Result(object):
                  res,
                  params = None,
                  data=None,
+                 targets_enrichment=None,
                  facets=None,
                  available_datatypes = [],
                  status = ['ok'],
@@ -41,6 +42,7 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
+        self.targets_enrichment = targets_enrichment
 
     def toDict(self):
         raise NotImplementedError
@@ -166,6 +168,7 @@ class PaginatedResult(Result):
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
+                'disease_enrichment': self.targets_enrichment,
                 # 'status' : self.status,
                 'therapeutic_areas': self.therapeutic_areas
                 

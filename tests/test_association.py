@@ -287,7 +287,7 @@ class AssociationTestCase(GenericTestCase):
         '''check response size is equal to requeste size +header and empty final line'''
         self.assertEqual(len(full_response.split('\n')), (size + 2))
 
-    def testAssociationFilterTargetEnrichmentGet(self):
+    def testAssociationTargetEnrichmentGet(self):
         target = ["ENSG00000073756", "ENSG00000095303", "ENSG00000280151", "ENSG00000108219", "ENSG00000198369",
                   "ENSG00000105401", "ENSG00000134882", "ENSG00000104998", "ENSG00000181915", "ENSG00000119919",
                   "ENSG00000105397", "ENSG00000178623", "ENSG00000107968", "ENSG00000133195", "ENSG00000171522",
@@ -378,40 +378,33 @@ class AssociationTestCase(GenericTestCase):
 # ENSG00000075461
 # ENSG00000198216
 # ENSG00000006116'''.split()
+#         response = self._make_request('/api/latest/public/association/filter',
+#                                       data={'target': target, 'facets': True},
+#                                       token=self._AUTO_GET_TOKEN)
         response = self._make_request('/api/latest/public/association/filter',
-                                      data={'target': target, 'facets': True},
+                                      data={'target': target,
+                                            'facets': False,
+                                            'targets_enrichment': "simple",
+                                            'size': 0,
+                                            'no_cache': True
+                                            },
                                       token=self._AUTO_GET_TOKEN)
+
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
-        self.assertGreaterEqual(len(json_response['data']), 2, 'association retrieved')
-        self.assertTrue('facets' in json_response)
-        self.assertTrue('targets_enrichment' in json_response['facets'])
-        enrichment_data = json_response['facets']['targets_enrichment']['buckets']
-        self.assertGreater(len(enrichment_data), 0)
-        all_fine = len(enrichment_data)
 
-        for bucket in enrichment_data:
-            disease_id = bucket['key']
-            disease_response = self._make_request('/api/latest/public/association/filter',
-                                                  data={'disease': [disease_id], 'size': 0},
-                                                  token=self._AUTO_GET_TOKEN)
-            json_disease_response = json.loads(disease_response.data.decode('utf-8'))
-            total = json_disease_response['total']
-            print bucket['score'], bucket['bg_count'], total
+        self.assertIn('disease_enrichment', json_response)
 
-            try:
-                self.assertAlmostEqual(bucket['bg_count'], total, delta=int(round(total/5)),
-                                       msg="Wrong background count %s: bg_count = %i, real = %i" % (disease_id,
-                                                                                                    bucket['bg_count'],
-                                                                                                    total))
-            except AssertionError as e:
-                print e
-                all_fine -=1
-        print len(enrichment_data) - all_fine, 'errors'
-        self.assertIs(all_fine, len(enrichment_data))
+        self.assertIsNotNone(json_response['disease_enrichment'])
 
-
-
+        min_score = 0
+        for disease in json_response['disease_enrichment']:
+            self.assertIsNotNone(disease['score'])
+            score = disease['score']
+            self.assertGreaterEqual(score, min_score)
+            min_score = score
+            self.assertIsNotNone(disease['counts'])
+            self.assertIsNotNone(disease['label'])
 
 if __name__ == "__main__":
      unittest.main()

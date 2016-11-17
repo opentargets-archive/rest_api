@@ -73,7 +73,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
         parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
         parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
-        parser.add_argument('targets_enrichment', type=boolean, required=False, help="disease enrichment analysis for a set of targets")
+        parser.add_argument('targets_enrichment', type=str, required=False, help="disease enrichment analysis for a set of targets")
 
         args = parser.parse_args()
         self.remove_empty_params(args)
@@ -105,7 +105,6 @@ class FilterBy(restful.Resource):
         args = request.get_json(force=True)
         self.remove_empty_params(args)
 
-
         data = self.get_association(params=args)
         format = None
         if('format' in args):
@@ -114,7 +113,7 @@ class FilterBy(restful.Resource):
         return CTTVResponse.OK(data, format,
                                took=time.time() - start_time)
 
-    def get_association(self,params):
+    def get_association(self, params):
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
