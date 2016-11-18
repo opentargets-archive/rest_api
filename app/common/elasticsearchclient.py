@@ -2,16 +2,12 @@ import hashlib
 import json as json
 import logging
 import socket
-import sys
 import time
 from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
-from elasticsearch import helpers
-from flask import current_app, request
-from pythonjsonlogger import jsonlogger
-
+from app.common.hypergeometric import HypergeometricTest
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
 from app.common.response_templates import Association, DataStats, Relation, RelationTypes
@@ -19,7 +15,9 @@ from app.common.results import PaginatedResult, SimpleResult, CountedResult, Raw
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
-from app.resources.hypergeometric import HypergeometricTest
+from elasticsearch import helpers
+from flask import current_app, request
+from pythonjsonlogger import jsonlogger
 
 __author__ = 'andreap'
 
