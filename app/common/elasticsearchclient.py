@@ -2121,7 +2121,11 @@ class SearchParams():
 
         self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
-        self.highlight = kwargs.get('highlight', True)
+
+        highlight_default = True
+        self.highlight = kwargs.get('highlight', highlight_default)
+        if self.highlight is None:
+            self.highlight = highlight_default
 
 
 class AggregationUnit(object):

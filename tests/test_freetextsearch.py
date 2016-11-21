@@ -1377,13 +1377,11 @@ class FreeTextSearchTestCase(GenericTestCase):
     # @unittest.skip("testSearchFieldsWithHighlight")
     def testSearchFieldsWithHighlight(self):
 
-        response= self._make_request('/api/latest/public/search',
-                                     data={'q':'braf', 'fields':['id', 'approved_symbol']},
-                                     token=self._AUTO_GET_TOKEN)
         response = self._make_request('/api/latest/public/search',
                                       data={'q': 'braf',
                                             'fields': ['id', 'approved_symbol'],
-                                            'highlight': True},
+                                            # 'highlight': True,
+                                            },
                                       token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
