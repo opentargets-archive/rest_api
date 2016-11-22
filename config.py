@@ -40,8 +40,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '1.2'
-    API_VERSION_MINOR = '1.2.1'
+    API_VERSION = '1.3'
+    API_VERSION_MINOR = '1.3.0'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -99,7 +99,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://beta.targetvalidation.org:9200/')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
