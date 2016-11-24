@@ -1813,7 +1813,21 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         "division and proliferation more rapidly than normal and continues to grow "
                                         "after the stimuli that initiated the new growth cease.",
                                         20000)
-    
+
+    def testQuickSearchHumira(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'humira'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        'TNF',
+                                        'tumor necrosis factor',
+                                        None,
+                                        2000)
+
     @unittest.skip("testAutocomplete")
     def testAutocomplete(self):
         response= self._make_request('/api/latest/private/autocomplete',
