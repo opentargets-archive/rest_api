@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: 1.3.0
+  version: 2.0.0
   title: Target Validation Platform REST API
   description: |
 
