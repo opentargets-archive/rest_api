@@ -1,4 +1,6 @@
 import csv
+import random
+import string
 from collections import defaultdict
 
 #from app.common.auth import AuthKey
@@ -14,7 +16,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.08_')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12_')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
@@ -37,7 +39,7 @@ class Config:
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
+    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '2.0'
