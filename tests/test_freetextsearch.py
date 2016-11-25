@@ -1573,7 +1573,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
         response= self._make_request('/api/latest/private/besthitsearch',
                                      data=json.dumps({
-                                            'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'], 
+                                            'q':['braf', 'nr3c1', 'bra', 'rippa', 'ENSG00000157764', 'eff'],
                                             'fields':['approved_symbol', ],
                                             'filter':'target'}),
                                      content_type='application/json',
@@ -1605,11 +1605,11 @@ class FreeTextSearchTestCase(GenericTestCase):
         
         #test fuzzy result
         fuzzy_result = json_response['data'][2]
-        self.assertEqual(fuzzy_result['q'], 'Rpl18a')
+        self.assertEqual(fuzzy_result['q'], 'bra')
         self.assertEqual(fuzzy_result['exact'], False)
 
         fuzzy_result_data = fuzzy_result['data']
-        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RpL18A')
+        self.assertEqual(fuzzy_result_data['approved_symbol'], 'BRAF')
 
 
         #test empty result
