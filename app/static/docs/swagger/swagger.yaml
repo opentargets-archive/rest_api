@@ -14,8 +14,10 @@ info:
     You can make calls to the latest version of our API using the base URL
      `https://www.targetvalidation.org/api/latest`. We do not accept unencrypted 
      `http` calls, so make sure you use `https` in the address instead. 
-    If you want to point to a specific version of the API, eg 1.1, your call will be
-      `https://www.targetvalidation.org/api/1.1`.
+    If you want to point to a specific version of the API, eg `2.0`, you can call it directly
+      `https://www.targetvalidation.org/api/2.0`. **However, please note** that at the moment, we only 
+      serve the latest version of the API. If you were interested in querying an old version 
+      please do [let us know](mailto:support@targetvalidation.org) and we can support you.
 
     We list below the methods available to query directly from our API using 
     an interactive and easy-to-use interface. For every request you create below, 
