@@ -584,6 +584,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
+        #TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
                                   body={"filter": {
                                             "ids": {"values": associationid},
@@ -2097,6 +2098,7 @@ class SearchParams():
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
+        self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
 
 
         datasource_filter = []
@@ -2497,6 +2499,81 @@ class AggregationUnitPathway(AggregationUnit):
 
         return dict()
 
+
+class AggregationUnitTargetClass(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_target_class_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_target_class_aggregation(filters)
+
+    def _get_target_class_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TARGET_CLASS, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.target_class.level1.id",
+                        'size': 20,
+                    },
+
+                    "aggs": {
+                        "target_class": {
+                            "terms": {
+                                "field": "private.facets.target_class.level2.id",
+                                'size': 20,
+                            },
+                            "aggs": {
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_target_class_filter(self, target_class_ids):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param target_class_ids: list of target class ids strings
+        :return: boolean filter
+        '''
+        if target_class_ids:
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
+                    {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
+                ]
+                }
+            }
+
+        return dict()
+
 class AggregationUnitScoreRange(AggregationUnit):
 
     def build_query_filter(self):
@@ -2686,6 +2763,7 @@ class AggregationBuilder(object):
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
         FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
+        FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,

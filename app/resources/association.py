@@ -63,6 +63,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('datasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
         parser.add_argument('datatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('pathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
+        parser.add_argument('target_class', type=str, action='append', required=False, help="consider only targets in this class")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
