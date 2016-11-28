@@ -9,6 +9,7 @@ from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
+from app.common.request_templates import FilterTypes
 from app.common.response_templates import CTTVResponse
 from types import *
 import time
@@ -63,7 +64,7 @@ class FilterBy(restful.Resource):
         parser.add_argument('datasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
         parser.add_argument('datatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
         parser.add_argument('pathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
-        parser.add_argument('target_class', type=str, action='append', required=False, help="consider only targets in this class")
+        parser.add_argument(FilterTypes.TARGET_CLASS, type=str, action='append', required=False, help="consider only targets in this class")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")

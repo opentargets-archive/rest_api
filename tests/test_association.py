@@ -7,6 +7,7 @@ import time
 from flask import url_for
 
 from app import create_app
+from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
 
 
@@ -106,17 +107,35 @@ class AssociationTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertIsNotNone(json_response['facets'])
         self.assertIn('target_class', json_response['facets'])
-        first_filter = json_response['facets']['target_class']['buckets'][0]
+        first_filter = json_response['facets'][FilterTypes.TARGET_CLASS]['buckets'][0]
+        self.assertIn('key', first_filter)
+        self.assertIn('label', first_filter)
+        self.assertTrue(first_filter['label'])
+        self.assertIn(FilterTypes.TARGET_CLASS, first_filter)
+        first_sub_filter = first_filter[FilterTypes.TARGET_CLASS]['buckets'][0]
+        self.assertIn('key', first_sub_filter)
+        self.assertIn('label', first_sub_filter)
+        self.assertTrue(first_sub_filter['label'])
         expected_results = first_filter['doc_count']
         query_key = first_filter['key']
         filtered_response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
                                             'facets': True,
-                                            'target_class':query_key,
+                                            FilterTypes.TARGET_CLASS : query_key,
                                             },
                                       token=self._AUTO_GET_TOKEN)
         json_filtered_response = json.loads(filtered_response.data.decode('utf-8'))
         self.assertEqual(json_filtered_response['total'], expected_results)
+        expected_results_sub = first_sub_filter['doc_count']
+        query_key_sub = first_sub_filter['key']
+        filtered_response_sub = self._make_request('/api/latest/public/association/filter',
+                                               data={'disease': disease,
+                                                     'facets': True,
+                                                     FilterTypes.TARGET_CLASS: query_key_sub,
+                                                     },
+                                               token=self._AUTO_GET_TOKEN)
+        json_filtered_response_sub = json.loads(filtered_response_sub.data.decode('utf-8'))
+        self.assertEqual(json_filtered_response_sub['total'], expected_results_sub)
 
 
 

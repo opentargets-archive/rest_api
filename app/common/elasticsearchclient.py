@@ -1296,6 +1296,8 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
+                    if 'label' in bucket:
+                        bucket['label'] = bucket['label']['buckets'][0]['key']
                     if facet == FilterTypes.PATHWAY:
                         reactome_ids.append(bucket['key'])
                         if 'pathway' in bucket:
@@ -1305,6 +1307,13 @@ class esQuery():
                                     reactome_ids.append(sub_bucket['key'])
                     elif facet == FilterTypes.THERAPEUTIC_AREA:
                         therapeutic_areas.append(bucket['key'].upper())
+                    elif facet == FilterTypes.TARGET_CLASS:
+                        if FilterTypes.TARGET_CLASS in bucket:
+                            if 'buckets' in bucket[FilterTypes.TARGET_CLASS]:
+                                sub_facet_buckets = bucket[FilterTypes.TARGET_CLASS]['buckets']
+                                for sub_bucket in sub_facet_buckets:
+                                    if 'label' in sub_bucket:
+                                        sub_bucket['label'] = sub_bucket['label']['buckets'][0]['key']
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
@@ -2524,12 +2533,24 @@ class AggregationUnitTargetClass(AggregationUnit):
                     },
 
                     "aggs": {
-                        "target_class": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.target_class.level1.label",
+                                'size': 1,
+                            },
+                        },
+                        FilterTypes.TARGET_CLASS: {
                             "terms": {
                                 "field": "private.facets.target_class.level2.id",
                                 'size': 20,
                             },
                             "aggs": {
+                                "label": {
+                                    "terms": {
+                                        "field": "private.facets.target_class.level2.label",
+                                        'size': 1,
+                                    },
+                                },
                                 "unique_target_count": {
                                     "cardinality": {
                                         "field": "target.id",
