@@ -249,7 +249,7 @@ class esQuery():
             searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'total' in res['hits'] and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
@@ -2397,7 +2397,7 @@ class AggregationUnitGO(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.GO, filters),
                 }
             },
             "aggs": {
@@ -2405,8 +2405,16 @@ class AggregationUnitGO(AggregationUnit):
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
                         'size': 25,
+                        "percentage": {
+                        },
                     },
                     "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.go.*.term",
+                                'size': 1,
+                            },
+                        },
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
