@@ -628,7 +628,8 @@ class esQuery():
                 "multi_match": {
                     "fields": ["target.*", "disease.*", "private.*"],
                     "query": params.search,
-                    "type": "phrase_prefix"
+                    "type": "phrase_prefix",
+                    "lenient": True,
                 }
             }
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
@@ -2405,8 +2406,7 @@ class AggregationUnitGO(AggregationUnit):
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
                         'size': 25,
-                        "percentage": {
-                        },
+
                     },
                     "aggs": {
                         "label": {
