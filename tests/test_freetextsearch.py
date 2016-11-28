@@ -1814,6 +1814,20 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         None,
                                         2000)
 
+    def testQuickSearchSildenafil(self):
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'SILDENAFIL'},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        'PDE5A',
+                                        'phosphodiesterase 5A',
+                                        None,
+                                        200)
+
+
+
     @unittest.skip("testAutocomplete")
     def testAutocomplete(self):
         response= self._make_request('/api/latest/private/autocomplete',
