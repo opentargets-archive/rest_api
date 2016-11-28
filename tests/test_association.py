@@ -248,7 +248,7 @@ class AssociationTestCase(GenericTestCase):
 
 
 
-    def testAssociationFilterOrder(self):
+    def testAssociationFilterOrderByScore(self):
 
         disease = 'EFO_0000270'
         score_type='association_score.overall'
@@ -285,6 +285,40 @@ class AssociationTestCase(GenericTestCase):
             self.assertGreaterEqual(sorted_scores[i+1],
                                     sorted_scores[i],
                                     )
+
+    def testAssociationFilterOrderByDiseaseLabel(self):
+        target = 'ENSG00000157764'
+        sort_string = '~disease.efo_info.label'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'direct': True,
+                                            'sort': sort_string,
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        sorted_disease_labels = [d['disease']['efo_info']['label'] for d in json_response['data']]
+        for i in range(len(sorted_disease_labels) - 1):
+            self.assertLessEqual(sorted_disease_labels[i],
+                                 sorted_disease_labels[i+1],
+                                )
+        sort_string = 'disease.efo_info.label'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'direct': True,
+                                            'sort': sort_string,
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        sorted_disease_labels = [d['disease']['efo_info']['label'] for d in json_response['data']]
+        for i in range(len(sorted_disease_labels) - 1):
+            self.assertGreaterEqual(sorted_disease_labels[i],
+                                 sorted_disease_labels[i + 1],
+                                 )
+
 
     def testAssociationFilterSearch(self):
 

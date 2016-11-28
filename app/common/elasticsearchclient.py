@@ -1733,12 +1733,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         digested=[]
         for s in params.sort:
             order = 'desc'
+            mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
                 s=s[1:]
+                mode = 'min'
             if s.startswith('association_score'):
                 s= s.replace('association_score', params.association_score_method)
-            digested.append({s : {"order": order}})
+            digested.append({s : {"order": order,
+                                  "mode": mode}})
         return digested
 
 
