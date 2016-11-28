@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: 1.3.0
+  version: 2.0.0
   title: Target Validation Platform REST API
   description: |
 
@@ -402,7 +402,12 @@ paths:
           type: string
         - name: pathway
           in: query
-          description: a reactome pathway identifier (returning only those targets linked to the pathway specified)
+          description: a reactome pathway identifier (returning only those targets linked to the specified pathway)
+          required: false
+          type: string
+        - name: target_class
+          in: query
+          description: a chembl target class identifier (returning only those targets belonging to the specified class)
           required: false
           type: string
         - name: uniprotkw

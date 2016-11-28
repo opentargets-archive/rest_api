@@ -249,7 +249,7 @@ class esQuery():
             searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'total' in res['hits'] and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
@@ -584,6 +584,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
+        #TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
                                   body={"filter": {
                                             "ids": {"values": associationid},
@@ -627,7 +628,8 @@ class esQuery():
                 "multi_match": {
                     "fields": ["target.*", "disease.*", "private.*"],
                     "query": params.search,
-                    "type": "phrase_prefix"
+                    "type": "phrase_prefix",
+                    "lenient": True,
                 }
             }
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
@@ -910,7 +912,7 @@ class esQuery():
                                                "efo_synonyms^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -950,7 +952,7 @@ class esQuery():
                                                "efo_path_labels^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.name^0.2",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5"
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -974,7 +976,7 @@ class esQuery():
                                                "efo_synonyms^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -1086,7 +1088,8 @@ class esQuery():
             "efo_path_labels": {},
             "ortholog.*.symbol": {},
             "ortholog.*.name": {},
-            "ortholog.*.id":{}
+            "ortholog.*.id":{},
+            "drugs.*":{},
         }
         }
 
@@ -1294,6 +1297,8 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
+                    if 'label' in bucket:
+                        bucket['label'] = bucket['label']['buckets'][0]['key']
                     if facet == FilterTypes.PATHWAY:
                         reactome_ids.append(bucket['key'])
                         if 'pathway' in bucket:
@@ -1303,6 +1308,13 @@ class esQuery():
                                     reactome_ids.append(sub_bucket['key'])
                     elif facet == FilterTypes.THERAPEUTIC_AREA:
                         therapeutic_areas.append(bucket['key'].upper())
+                    elif facet == FilterTypes.TARGET_CLASS:
+                        if FilterTypes.TARGET_CLASS in bucket:
+                            if 'buckets' in bucket[FilterTypes.TARGET_CLASS]:
+                                sub_facet_buckets = bucket[FilterTypes.TARGET_CLASS]['buckets']
+                                for sub_bucket in sub_facet_buckets:
+                                    if 'label' in sub_bucket:
+                                        sub_bucket['label'] = sub_bucket['label']['buckets'][0]['key']
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
@@ -1721,12 +1733,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         digested=[]
         for s in params.sort:
             order = 'desc'
+            mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
                 s=s[1:]
+                mode = 'min'
             if s.startswith('association_score'):
                 s= s.replace('association_score', params.association_score_method)
-            digested.append({s : {"order": order}})
+            digested.append({s : {"order": order,
+                                  "mode": mode}})
         return digested
 
 
@@ -2096,6 +2111,7 @@ class SearchParams():
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
+        self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
 
 
         datasource_filter = []
@@ -2385,7 +2401,7 @@ class AggregationUnitGO(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.GO, filters),
                 }
             },
             "aggs": {
@@ -2393,8 +2409,15 @@ class AggregationUnitGO(AggregationUnit):
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
                         'size': 25,
+
                     },
                     "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.go.*.term",
+                                'size': 1,
+                            },
+                        },
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
@@ -2490,6 +2513,93 @@ class AggregationUnitPathway(AggregationUnit):
                 "should": [
                     {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
                     {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
+                ]
+                }
+            }
+
+        return dict()
+
+
+class AggregationUnitTargetClass(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_target_class_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_target_class_aggregation(filters)
+
+    def _get_target_class_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TARGET_CLASS, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.target_class.level1.id",
+                        'size': 20,
+                    },
+
+                    "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.target_class.level1.label",
+                                'size': 1,
+                            },
+                        },
+                        FilterTypes.TARGET_CLASS: {
+                            "terms": {
+                                "field": "private.facets.target_class.level2.id",
+                                'size': 20,
+                            },
+                            "aggs": {
+                                "label": {
+                                    "terms": {
+                                        "field": "private.facets.target_class.level2.label",
+                                        'size': 1,
+                                    },
+                                },
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_target_class_filter(self, target_class_ids):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param target_class_ids: list of target class ids strings
+        :return: boolean filter
+        '''
+        if target_class_ids:
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
+                    {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
                 ]
                 }
             }
@@ -2685,6 +2795,7 @@ class AggregationBuilder(object):
         FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
         FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
+        FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
