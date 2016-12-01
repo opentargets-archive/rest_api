@@ -910,7 +910,6 @@ class esQuery():
                                                "efo_synonyms^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -950,7 +949,8 @@ class esQuery():
                                                "efo_path_labels^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.name^0.2",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5",
+                                               "phenotypes.^0.2",
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -974,7 +974,8 @@ class esQuery():
                                                "efo_synonyms^0.1",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5",
+                                               "phenotypes.^0.2"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
