@@ -10,6 +10,9 @@ import itertools
 import unicodecsv as csv
 from io import BytesIO
 import json
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 __author__ = 'andreap'
 
@@ -125,7 +128,10 @@ class Result(object):
                     else:
                         v = json.dumps(v, encoding='utf-8')
             if isinstance(v, str):
-                v= unicode(v)
+                try:
+                    v= unicode(v)
+                except UnicodeDecodeError:
+                    pass
             if not isinstance(v, unicode):
                 v= json.dumps(v, encoding='utf-8')
             return_dict[unicode(k)] = unicode(v)

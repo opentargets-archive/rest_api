@@ -1,4 +1,6 @@
 import csv
+import random
+import string
 from collections import defaultdict
 
 #from app.common.auth import AuthKey
@@ -14,7 +16,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.08_')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12_')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
@@ -37,11 +39,11 @@ class Config:
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
+    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '1.3'
-    API_VERSION_MINOR = '1.3.0'
+    API_VERSION = '2.0'
+    API_VERSION_MINOR = '2.0.0'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -86,7 +88,7 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://193.62.54.18:9200/')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
