@@ -1,16 +1,14 @@
 import collections
-import logging
+import json
+import sys
+from io import BytesIO
+
+import unicodecsv as csv
+from dicttoxml import dicttoxml
 
 from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
-from dicttoxml import dicttoxml
-import collections
-import pprint
-import itertools
-import unicodecsv as csv
-from io import BytesIO
-import json
-import sys
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -25,6 +23,7 @@ class Result(object):
                  data=None,
                  facets=None,
                  available_datatypes = [],
+                 suggest=None,
                  status = ['ok'],
                  therapeutic_areas = []):
         
@@ -44,6 +43,7 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
+        self.suggest = suggest
 
     def toDict(self):
         raise NotImplementedError
@@ -179,6 +179,15 @@ class PaginatedResult(Result):
 
 class EmptyPaginatedResult(Result):
     def toDict(self):
+        if self.suggest:
+            return {'data': [],
+                    'suggest': self.suggest,
+                    'facets': [],
+                    'total': 0,
+                    'took': 0,
+                    'size': 0,
+                    'from': 0,
+                    }
 
         return {'data': [],
                 'facets':[],
@@ -215,6 +224,10 @@ class RawResult(Result):
 
 class EmptySimpleResult(Result):
     def toDict(self):
+        if self.suggest:
+            return {'data': [],
+                   'suggest':self.suggest,
+                    }
         return {'data':[],
                 # 'status' : self.status,
                 }

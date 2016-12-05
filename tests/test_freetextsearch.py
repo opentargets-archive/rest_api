@@ -1814,17 +1814,64 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         None,
                                         2000)
 
-    def testQuickSearchSildenafil(self):
-        response = self._make_request('/api/latest/private/quicksearch',
-                                      data={'q': 'SILDENAFIL'},
+    def testSearchSildenafil(self):
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'SILDENAFIL',
+                                            'filter': 'target'},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        first_result = json_response['data'][0]['data']
+        self.assertEqual(first_result['name'], 'PDE5A')
+        self.assertEqual(first_result['full_name'], 'phosphodiesterase 5A')
+        self.assertGreaterEqual(first_result['association_counts']['total'], 200)
+
+    def testQuickSearchALS(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'als'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
         self._assert_quicksearch_result(json_response,
-                                        'PDE5A',
-                                        'phosphodiesterase 5A',
+                                        'amyotrophic lateral sclerosis',
                                         None,
-                                        200)
+                                        None,
+                                        2000)
+
+    def testQuickSearchSLE(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'sle'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        'systemic lupus erythematosus',
+                                        None,
+                                        None,
+                                        2000)
+    def testQuickSearchSuggestionAsthma(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'astma'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIn('asthma', json_response['suggest'])
+
+    def testQuickSearchSuggestionPArkinson(self):
+            response = self._make_request('/api/latest/private/quicksearch',
+                                          data={'q': 'prakison'},
+                                          token=self._AUTO_GET_TOKEN)
+
+            self.assertTrue(response.status_code == 200)
+            json_response = json.loads(response.data.decode('utf-8'))
+            self.assertIn('parkison', json_response['suggest'])
 
 
 
