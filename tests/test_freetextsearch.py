@@ -1829,17 +1829,16 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testQuickSearchALS(self):
 
-        response = self._make_request('/api/latest/private/quicksearch',
+        response = self._make_request('/api/latest/public/search',
                                       data={'q': 'als'},
                                       token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
-        self._assert_quicksearch_result(json_response,
-                                        'amyotrophic lateral sclerosis',
-                                        None,
-                                        None,
-                                        2000)
+        second_result = json_response['data'][1]['data']
+        self.assertEqual(second_result['name'], 'amyotrophic lateral sclerosis')
+        self.assertGreaterEqual(second_result['association_counts']['total'], 2000)
+
 
     def testQuickSearchSLE(self):
 

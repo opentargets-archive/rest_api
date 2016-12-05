@@ -209,7 +209,7 @@ class esQuery():
         res = self._free_text_query(searchphrase, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        if 'total' in res['hits'] and res['hits']['total']:
+        if 'hits' in res and res['hits']['total']:
             for hit in res['hits']['hits']:
                 datapoint = dict(type=hit['_type'],
                                  data=hit['_source'],
@@ -254,7 +254,7 @@ class esQuery():
             searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'total' in res['hits'] and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
