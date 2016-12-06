@@ -1851,6 +1851,40 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(second_result['name'], 'chronic obstructive pulmonary disease')
         self.assertGreaterEqual(second_result['association_counts']['total'], 1400)
 
+    def testSearchPhenotypesJointSwelling(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'joint swelling'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'spondyloarthropathy')
+
+    def testSearchPhenotypesHyperlordosis(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'Hyperlordosis'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'Duchenne and Becker muscular dystrophy')
+
+    def testSearchPhenotypesProgressiveJointDestruction(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'progressive joint destruction'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'rheumatoid arthritis')
+
+
 
     def testQuickSearchSLE(self):
 
