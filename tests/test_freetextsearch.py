@@ -1827,7 +1827,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(first_result['full_name'], 'phosphodiesterase 5A')
         self.assertGreaterEqual(first_result['association_counts']['total'], 200)
 
-    def testQuickSearchALS(self):
+    def testSearchALS(self):
 
         response = self._make_request('/api/latest/public/search',
                                       data={'q': 'als'},
@@ -1835,9 +1835,21 @@ class FreeTextSearchTestCase(GenericTestCase):
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
-        second_result = json_response['data'][1]['data']
+        second_result = json_response['data'][0]['data']
         self.assertEqual(second_result['name'], 'amyotrophic lateral sclerosis')
         self.assertGreaterEqual(second_result['association_counts']['total'], 2000)
+
+    def testSearchCOPD(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'COPD'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'chronic obstructive pulmonary disease')
+        self.assertGreaterEqual(second_result['association_counts']['total'], 1400)
 
 
     def testQuickSearchSLE(self):
@@ -1853,6 +1865,9 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         None,
                                         None,
                                         2000)
+
+
+
     def testQuickSearchSuggestionAsthma(self):
 
         response = self._make_request('/api/latest/private/quicksearch',
@@ -1870,7 +1885,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
             self.assertTrue(response.status_code == 200)
             json_response = json.loads(response.data.decode('utf-8'))
-            self.assertIn('parkison', json_response['suggest'])
+            self.assertIn('parkinson', json_response['suggest'])
 
 
 
