@@ -15,7 +15,8 @@ from pythonjsonlogger import jsonlogger
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
 from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult, EmptySimpleResult, \
+    EmptyPaginatedResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
@@ -208,19 +209,23 @@ class esQuery():
         res = self._free_text_query(searchphrase, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        for hit in res['hits']['hits']:
-            datapoint = dict(type=hit['_type'],
-                             data=hit['_source'],
-                             id=hit['_id'],
-                             score=hit['_score'],
-                             )
-            if params.highlight:
-                highlight = None
-                if 'highlight' in hit:
-                    highlight = hit['highlight']
-                datapoint['highlight'] = highlight
-            data.append(datapoint)
-        return PaginatedResult(res, params, data)
+        if 'hits' in res and res['hits']['total']:
+            for hit in res['hits']['hits']:
+                datapoint = dict(type=hit['_type'],
+                                 data=hit['_source'],
+                                 id=hit['_id'],
+                                 score=hit['_score'],
+                                 )
+                if params.highlight:
+                    highlight = None
+                    if 'highlight' in hit:
+                        highlight = hit['highlight']
+                    datapoint['highlight'] = highlight
+                data.append(datapoint)
+            return PaginatedResult(res, params, data)
+        if 'suggest' in res:
+            suggestions = self._digest_suggest(res)
+            return EmptyPaginatedResult(None, suggest=suggestions)
 
     def best_hit_search(self,
                         searchphrases,
@@ -249,7 +254,7 @@ class esQuery():
             searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'total' in res['hits'] and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
@@ -349,8 +354,23 @@ class esQuery():
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
                                 data[opt].append(format_datapoint(hit))
+        else:
+            if 'suggest' in res:
+                suggestions = self._digest_suggest(res)
+
+            return EmptySimpleResult(None, suggest=suggestions)
+
 
         return SimpleResult(None, params, data)
+
+    def _digest_suggest(self, res):
+        suggestions = []
+        for suggest_field in res['suggest'].values():
+            for i in suggest_field:
+                for option in i['options']:
+                    if option not in suggestions:
+                        suggestions.append(option['text'])
+        return suggestions
 
     def autocomplete(self,
                      searchphrase,
@@ -909,7 +929,7 @@ class esQuery():
                                                "ensembl_gene_id",
                                                "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms^0.1",
+                                               "efo_synonyms^0.5",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
                                                ],
@@ -952,7 +972,7 @@ class esQuery():
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.name^0.2",
                                                "drugs.*^0.5",
-                                               "phenotypes.^0.2",
+                                               "phenotypes.*^0.3",
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -973,11 +993,11 @@ class esQuery():
                                                "ensembl_gene_id",
                                                "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms^0.1",
+                                               "efo_synonyms",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*^0.5",
-                                               "phenotypes.^0.2"
+                                               "drugs.",
+                                               "phenotypes.*^0.3"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -1091,7 +1111,7 @@ class esQuery():
             "ortholog.*.name": {},
             "ortholog.*.id":{},
             "drugs.*":{},
-            "phenotypes":{},
+            "phenotypes.*":{},
         }
         }
 
@@ -1600,16 +1620,17 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 'size': params.size,
                 'from': params.start_from,
                 '_source': source_filter,
-                "explain": current_app.config['DEBUG']
+                "explain": current_app.config['DEBUG'],
+                "suggest": self._get_free_text_suggestions(searchphrase)
                 }
         if highlight is not None:
             body['highlight'] = highlight
 
-        return self._cached_search(index=self._index_search,
+        res = self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
                                    body=body,
-
                                    )
+        return res
 
     def _best_hit_query(self, searchphrases, doc_types, params):
         '''
@@ -2040,6 +2061,21 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         if scored_diseases:
             data = sorted(scored_diseases.items(), key=lambda x: x[1], reverse=True)
         return data
+
+    def _get_free_text_suggestions(self, searchphrase):
+        return {
+            "text": searchphrase,
+            # "label": {
+            #     "term": {
+            #         "field": "approved_symbol"
+            #     }
+            # },
+            "name": {
+                "term": {
+                    "field": "name"
+                }
+            },
+        }
 
 
 class SearchParams():

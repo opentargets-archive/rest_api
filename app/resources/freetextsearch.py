@@ -66,9 +66,10 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = self.parser.parse_args()
-        kwargs.pop('size')
         filter_ = kwargs.pop('filter') or ['all']
         searchphrases = kwargs.pop('q')
+        if len(searchphrases) > 500:
+            raise AttributeError('request size too big')
         res = current_app.extensions['esquery'].best_hit_search(searchphrases, doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
@@ -84,6 +85,8 @@ class BestHitSearch(restful.Resource, Paginable):
         kwargs = request.get_json(force=True)
         filter_ = [kwargs.pop('filter')] or ['all']
         searchphrases = kwargs.pop('q')
+        if len(searchphrases) > 500:
+            raise AttributeError('request size too big')
 
         res = current_app.extensions['esquery'].best_hit_search(searchphrases, doc_filter=filter_, **kwargs)
         return CTTVResponse.OK(res,
