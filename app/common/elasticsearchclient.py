@@ -969,7 +969,7 @@ class esQuery():
                                                "name_synonyms",
                                                "gene_family_description",
                                                "efo_path_labels^0.1",
-                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.symbol^0.2",
                                                "ortholog.*.name^0.2",
                                                "drugs.*^0.5",
                                                "phenotypes.*^0.3",
@@ -983,7 +983,7 @@ class esQuery():
                                 {"multi_match": {
                                     "query": searchphrase,
                                     "fields": ["name^3",
-                                               "description^2",
+                                               "description",
                                                "id",
                                                "approved_symbol",
                                                "symbol_synonyms",
@@ -993,10 +993,10 @@ class esQuery():
                                                "ensembl_gene_id",
                                                "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms",
-                                               "ortholog.*.symbol^0.5",
-                                               "ortholog.*.id",
-                                               "drugs.",
+                                               "efo_synonyms^2",
+                                               "ortholog.*.symbol^0.2",
+                                               "ortholog.*.id^0.2",
+                                               "drugs.*^0.5",
                                                "phenotypes.*^0.3"
                                                ],
                                     "analyzer": 'keyword',
@@ -1059,7 +1059,7 @@ class esQuery():
                 {
                     "field_value_factor": {
                         "field": "association_counts.total",
-                        "factor": 0.01,
+                        "factor": 0.05,
                         "modifier": "sqrt",
                         "missing": 1,
                         # "weight": 0.01,
