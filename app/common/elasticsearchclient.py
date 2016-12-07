@@ -645,34 +645,38 @@ class esQuery():
         query_body = { "match_all": {}}
         if params.search:
             query_body = {
-                "bool": {
-                    "should": [
-                        {"multi_match": {
-                            "query": params.search,
-                            "fields": ["target.*",
-                                       "disease.*",
-                                       # "private.*",
-                                       ],
-                            "type": "phrase_prefix",
-                            "lenient": True,
-                            "analyzer": 'whitespace',
-
-                        }
-                        },
-                        {"multi_match": {
-                            "query": params.search,
-                            "fields": ["target.*",
-                                       "disease.*",
-                                       # "private.*",
-                                       ],
-                            "analyzer": 'keyword',
-                            "type": "best_fields",
-                            "lenient": True,
-                        }
-                        },
-                    ],
+                "match_phrase_prefix": {
+                    "private.facets.free_text_search": params.search
                 }
             }
+            #     "bool": {
+            #         "should": [
+            #             {"multi_match": {
+            #                 "query": params.search,
+            #                 "fields": ["target.*",
+            #                            "disease.*",
+            #                            # "private.*",
+            #                            ],
+            #                 "type": "phrase_prefix",
+            #                 "lenient": True,
+            #                 "analyzer": 'whitespace',
+            #
+            #             }
+            #             },
+            #             {"multi_match": {
+            #                 "query": params.search,
+            #                 "fields": ["target.*",
+            #                            "disease.*",
+            #                            # "private.*",
+            #                            ],
+            #                 "analyzer": 'keyword',
+            #                 "type": "best_fields",
+            #                 "lenient": True,
+            #             }
+            #             },
+            #         ],
+            #     }
+            # }
 
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
