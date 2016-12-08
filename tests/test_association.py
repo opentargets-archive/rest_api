@@ -246,6 +246,33 @@ class AssociationTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(json_response['total'], 1)
 
+        '''restrict by SOD1'''
+        disease = 'EFO_0000253'
+        search_query = 'SOD1'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': 1,
+                                            'search': search_query,
+                                            'no_cache': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 1)
+        self.assertEqual(json_response['data'][0]['target']['gene_info']['symbol'], search_query)
+
+        '''restrict by threrapeutic area'''
+        target = 'ENSG00000099769'
+        search_query = 'endocri'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query,
+                                            'no_cache': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 3)
+
 
 
     def testAssociationFilterOrderByScore(self):
