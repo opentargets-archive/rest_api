@@ -88,7 +88,7 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -101,14 +101,14 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
 

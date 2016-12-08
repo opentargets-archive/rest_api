@@ -206,7 +206,7 @@ class SimpleResult(Result):
     '''
 
     def toDict(self):
-        if  self.data is None:
+        if not self.data:
             try:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
             except:
