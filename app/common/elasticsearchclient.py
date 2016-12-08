@@ -223,9 +223,11 @@ class esQuery():
                     datapoint['highlight'] = highlight
                 data.append(datapoint)
             return PaginatedResult(res, params, data)
-        if 'suggest' in res:
+        elif 'suggest' in res:
             suggestions = self._digest_suggest(res)
             return EmptyPaginatedResult(None, suggest=suggestions)
+        else:
+            return EmptyPaginatedResult(None)
 
     def best_hit_search(self,
                         searchphrases,
