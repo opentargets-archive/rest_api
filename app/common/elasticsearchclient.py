@@ -358,7 +358,7 @@ class esQuery():
             if 'suggest' in res:
                 suggestions = self._digest_suggest(res)
 
-            return EmptySimpleResult(None, suggest=suggestions)
+            return EmptySimpleResult(None, data = {}, suggest=suggestions)
 
 
         return SimpleResult(None, params, data)

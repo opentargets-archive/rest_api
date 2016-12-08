@@ -21,7 +21,7 @@ class Result(object):
     def __init__(self,
                  res,
                  params = None,
-                 data=None,
+                 data=[],
                  facets=None,
                  available_datatypes = [],
                  suggest=None,
@@ -68,7 +68,7 @@ class Result(object):
     def toCSV(self, delimiter = '\t'):
         NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
         output = BytesIO()
-        if self.data is None:
+        if not self.data:
             self.flatten(self.toDict())  # populate data if empty
         if self.data and isinstance(self.data[0], dict):
             key_set = set()
@@ -150,7 +150,7 @@ class Result(object):
 
 class PaginatedResult(Result):
     def toDict(self):
-        if self.data is None:
+        if not self.data :
             if self.params.datastructure == SourceDataStructureOptions.COUNT:
                 return {'total': self.res['hits']['total'],
                         'took': self.res['took']
@@ -227,12 +227,12 @@ class RawResult(Result):
 class EmptySimpleResult(Result):
     def toDict(self):
         if self.suggest:
-            return {'data': [],
+            return {'data': self.data,
                     'suggest':self.suggest,
                     'data_version': Config.DATA_VERSION,
 
                     }
-        return {'data':[],
+        return {'data': self.data,
                 'data_version' : Config.DATA_VERSION,
                 }
 
