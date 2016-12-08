@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
-from elasticsearch import helpers
+from elasticsearch import helpers, TransportError
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
 
@@ -355,6 +355,7 @@ class esQuery():
                             if hit['_id'] not in returned_ids[opt]:
                                 data[opt].append(format_datapoint(hit))
         else:
+            suggestions = []
             if 'suggest' in res:
                 suggestions = self._digest_suggest(res)
 
@@ -1652,10 +1653,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         if highlight is not None:
             body['highlight'] = highlight
 
-        res = self._cached_search(index=self._index_search,
+        try:
+            res = self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
                                    body=body,
                                    )
+        except TransportError as e :#TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
+            if e.error == u'search_phase_execution_exception':
+                return {}
+            raise
         return res
 
     def _best_hit_query(self, searchphrases, doc_types, params):
