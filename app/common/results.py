@@ -1,16 +1,15 @@
 import collections
-import logging
+import json
+import sys
+from io import BytesIO
+
+import unicodecsv as csv
+from dicttoxml import dicttoxml
 
 from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
-from dicttoxml import dicttoxml
-import collections
-import pprint
-import itertools
-import unicodecsv as csv
-from io import BytesIO
-import json
-import sys
+from config import Config
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -25,6 +24,7 @@ class Result(object):
                  data=None,
                  facets=None,
                  available_datatypes = [],
+                 suggest=None,
                  status = ['ok'],
                  therapeutic_areas = []):
         
@@ -44,6 +44,7 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
+        self.suggest = suggest
 
     def toDict(self):
         raise NotImplementedError
@@ -173,12 +174,22 @@ class PaginatedResult(Result):
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
                 # 'status' : self.status,
-                'therapeutic_areas': self.therapeutic_areas
-                
+                'therapeutic_areas': self.therapeutic_areas,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 class EmptyPaginatedResult(Result):
     def toDict(self):
+        if self.suggest:
+            return {'data': [],
+                    'suggest': self.suggest,
+                    'facets': [],
+                    'total': 0,
+                    'took': 0,
+                    'size': 0,
+                    'from': 0,
+                    'data_version': Config.DATA_VERSION,
+                    }
 
         return {'data': [],
                 'facets':[],
@@ -186,7 +197,7 @@ class EmptyPaginatedResult(Result):
                 'took': 0,
                 'size': 0,
                 'from': 0,
-                # 'status' : self.status,
+                'data_version': Config.DATA_VERSION,
         }
 
 
@@ -201,7 +212,7 @@ class SimpleResult(Result):
             except:
                 raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data,
-                # 'status' : self.status,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 class RawResult(Result):
@@ -215,8 +226,14 @@ class RawResult(Result):
 
 class EmptySimpleResult(Result):
     def toDict(self):
+        if self.suggest:
+            return {'data': [],
+                    'suggest':self.suggest,
+                    'data_version': Config.DATA_VERSION,
+
+                    }
         return {'data':[],
-                # 'status' : self.status,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 
@@ -240,10 +257,10 @@ class CountedResult(Result):
                     'facets': self.facets,
                     'total': self.total,
                     'available_datatypes': self.available_datatypes,
-                    # 'status' : self.status,
-            }
+                    'data_version': Config.DATA_VERSION,
+                    }
         return {'data': self.data,
                 'total': self.total,
                 'available_datatypes': self.available_datatypes,
-                # 'status' : self.status,
+                'data_version' : Config.DATA_VERSION,
         }
