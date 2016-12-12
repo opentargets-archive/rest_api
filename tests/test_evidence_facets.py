@@ -12,7 +12,7 @@ from tests import GenericTestCase
 
 class EvidenceFacetsTestCase(GenericTestCase):
     
-    def testEvidenceFacetsSigTerms(self):
+    def testEvidenceFacets(self):
         #target = 'ENSG00000157764'
         #dataype = 'literature'
         #disease = 'EFO_0000616'
@@ -25,8 +25,7 @@ class EvidenceFacetsTestCase(GenericTestCase):
         disease_parkinson='EFO_0002508'
         target_cancer = 'ENSG00000066468'
         disease_cancer='EFO_0000311'
-        print "Testing Evidence Facets using Significant Terms Aggregations"
-      
+
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data=json.dumps({'target':[target_cancer],
                                             'datasource':[datasource],
@@ -42,11 +41,15 @@ class EvidenceFacetsTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         
         json_response = json.loads(response.data.decode('utf-8'))
-        print(json_response)
-        print "Facets -------------"
-        print json_response['facets']['journal']
         self.assertIsNotNone(json_response['facets'])
-         
+
+        self.assertGreater(len(json_response['facets']['journal']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['meshterms']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['disease']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['pub_date']['buckets']),0)
+        #self.assertGreater(len(json_response['facets']['abstract']['buckets']), 0)
+
+
     def testEvidenceFacetsFiltering(self):
         target = 'ENSG00000157764'
         #dataype = 'literature'

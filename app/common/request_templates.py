@@ -163,6 +163,7 @@ class EvidenceFacetTypes():
     PUB_DATE = 'pub_date'
     DATATYPE = 'datatype'
     DISEASE = 'disease'
+    MESHTERMS = 'meshterms'
     
 
 class AssociationSortOptions:
