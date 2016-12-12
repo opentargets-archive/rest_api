@@ -155,6 +155,7 @@ class FilterTypes():
     ECO='eco'
     IS_DIRECT='direct'
     THERAPEUTIC_AREA='therapeutic_area'
+    TARGET_CLASS='target_class'
 
 class EvidenceFacetTypes():
     ABSTRACT = 'abstract'

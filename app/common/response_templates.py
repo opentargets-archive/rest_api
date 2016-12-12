@@ -6,6 +6,7 @@ from app.common.datadog_signals import LogApiCallWeight
 from app.common.datatypes import DataTypes
 from app.common.rate_limit import increment_call_rate, RateLimiter, ceil_dt_to_future_time
 from app.common.scoring_conf import ScoringMethods
+from config import Config
 
 __author__ = 'andreap'
 
@@ -163,7 +164,7 @@ class Association(object):
 class DataStats(object):
 
     def __init__(self):
-        pass
+        self.data_version=Config.DATA_VERSION
 
     def __str__(self):
         return json.dumps(self.__dict__)

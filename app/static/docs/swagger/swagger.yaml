@@ -2,7 +2,8 @@
 swagger: '2.0'
 
 info:
-  version: "1.2.0"
+  version: 2.0.0
+  title: Target Validation Platform REST API
   description: |
 
     The Target Validation Platform API ('Application Programming Interface')
@@ -13,8 +14,10 @@ info:
     You can make calls to the latest version of our API using the base URL
      `https://www.targetvalidation.org/api/latest`. We do not accept unencrypted 
      `http` calls, so make sure you use `https` in the address instead. 
-    If you want to point to a specific version of the API, eg 1.1, your call will be
-      `https://www.targetvalidation.org/api/1.1`.
+    If you want to point to a specific version of the API, eg `2.0`, you can call it directly
+      `https://www.targetvalidation.org/api/2.0`. **However, please note** that at the moment, we only 
+      serve the latest version of the API. If you were interested in querying an old version 
+      please do [let us know](mailto:support@targetvalidation.org) and we can support you.
 
     We list below the methods available to query directly from our API using 
     an interactive and easy-to-use interface. For every request you create below, 
@@ -39,7 +42,8 @@ info:
 
     ### Supported formats
 
-    The four methods above are all available via a `GET` request, and will serve outputs as `json`. Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
+    The four methods above are all available via a `GET` request, and will serve outputs as `JSON`.
+    Alternative output formats such `xml`, `csv` and `tab` are also available for some of the methods.
     Please note that alternative output formats are not supported in this interactive page. The response here will always be in `json` format.
 
     If you have complex queries with large number of parameters, you should
@@ -102,7 +106,7 @@ info:
     token = get_token(<appname>,<secret>)
 
     response = requests.get(API + 'association/filter',
-                        params={'disease'='EFO_0000270'},
+                        params={'disease':'EFO_0000270'},
                         headers={'Auth-Token': token})
 
     print(response.json())
@@ -112,17 +116,21 @@ info:
 
     Please refrain from _requesting a new token for each request_ you make. This would both impact your usage limit and slow down the calls.
 
-    Although *we never track the content of your API request*, we may monitor aggregated statistics on the usage of our API, so that we can improve its performance.
+    We *do not analyse* the nature of any specific API queries except for the purposes of improving the API performance.
+    Read more in our [privacy section](https://www.targetvalidation.org/terms_of_use#privacy).
 
-    We want to hear your opinion about the Target Validation Platform API. Can we make it more useful to you? Would you like additional methods to be avaiable? Do [get in touch]
-    (mailto:support@targetvalidation.org) and send your comments and suggestions.
+    We want to hear your opinion about the Target Validation Platform API.
+    Can we make it more useful to you? Would you like additional methods to be avaiable?
+    Do [get in touch](mailto:support@targetvalidation.org) and send your comments and suggestions.
 
     ### More examples
     Head to our [Getting started tutorial](https://blog.opentargets.org/api-getting-started-1) for more
     examples on how to use the API and for some code snippets, which can be used to construct more complex queries.
   license:
     name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
   contact:
+    name: Target Validation Platform Support
     email: support@targetvalidation.org
   termsOfService: |
     Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
@@ -222,11 +230,11 @@ paths:
       tags:
         - public
       description: |
-        The filter method allows to retrieve the specific data that support a connection between targets and diseases.
+        The filter method allows to retrieve the specific data that supports a connection between targets and diseases.
         Filters can be used to restrict the results by source and type of data,
         or limit results to targets which are part of a particular pathway .
-        Minimum and maximum score can be specified as well as the type of evidence linking target and disease.
-        Notice multiple genes and disease can be specified in the same request.
+        Minimum and maximum scores can be specified as well as the type of evidence linking target and disease.
+        Notice multiple genes and diseases can be specified in the same request.
       parameters:
         - name: target
           in: query
@@ -396,7 +404,12 @@ paths:
           type: string
         - name: pathway
           in: query
-          description: a reactome pathway identifier (returning only those targets linked to the pathway specified)
+          description: a reactome pathway identifier (returning only those targets linked to the specified pathway)
+          required: false
+          type: string
+        - name: target_class
+          in: query
+          description: a chembl target class identifier (returning only those targets belonging to the specified class)
           required: false
           type: string
         - name: uniprotkw

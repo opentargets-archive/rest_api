@@ -50,27 +50,36 @@ def log_exception_to_datadog(sender, exception, **extra):
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     app.config.from_object(config[config_name])
+    app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
 
 
-    log_level = logging.INFO
-    if app.config['DEBUG']:
-        log_level = logging.DEBUG
-    logger = logging.getLogger()
-    logHandler = logging.StreamHandler()
+    # log_level = logging.INFO
+    # if app.config['DEBUG']:
+    #     log_level = logging.DEBUG
+
+    # Flask has a default logger which works well and pushes to stderr
+    # if you want to add different handlers (to file, or logstash, or whatever)
+    # you can use code similar to the one below and set the error level accordingly.
+
+    # logHandler = logging.StreamHandler()
     # formatter = jsonlogger.JsonFormatter()
     # logHandler.setFormatter(formatter)
-    logger.addHandler(logHandler)
-    # logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
-    # logger.error("hi", extra=dict(hi="hi"))
+    # loghandler.setLevel(logging.INFO)
+    # app.logger.addHandler(logHandler)
+
+    # or for LOGSTASH
+    # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
+
+    app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
+    print('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
 
-
-    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER'], db=0) #served data
-    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER'], db=1) #cache, rate limit and internal things
-    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER'], db=2)# user info
+    app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
+    app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER_PATH'], db=1) #cache, rate limit and internal things
+    app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER_PATH'], db=2)# user info
     '''setup cache'''
     app.extensions['redis-service'].config_set('save','')
     app.extensions['redis-service'].config_set('appendonly', 'no')
@@ -107,7 +116,7 @@ def create_app(config_name):
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
-                                        log_level=log_level,
+                                        log_level=app.logger.getEffectiveLevel(),
                                         cache=icache
                                         )
 
@@ -137,7 +146,7 @@ def create_app(config_name):
     # limiter.init_app(app)# use redis to store limits
 
     '''Load api keys in redis'''
-    rate_limit_file = 'rate_limit.csv'
+    rate_limit_file = app.config['USAGE_LIMIT_PATH']
     if not os.path.exists(rate_limit_file):
         rate_limit_file = '../'+rate_limit_file
     if os.path.exists(rate_limit_file):
@@ -146,13 +155,15 @@ def create_app(config_name):
             for row in reader:
                 auth_key = AuthKey(**row)
                 app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+        print('INFO - succesfully loaded rate limit file')
     else:
+        print('ERROR - cannot find rate limit file')
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
 
 
     '''load ip name resolution'''
     ip_resolver = defaultdict(lambda: "PUBLIC")
-    ip_list_file = 'ip_list.csv'
+    ip_list_file = app.config['IP_RESOLVER_LIST_PATH']
     if not os.path.exists(ip_list_file):
         ip_list_file = '../' + ip_list_file
     if os.path.exists(ip_list_file):
@@ -161,45 +172,10 @@ def create_app(config_name):
             for row in reader:
                 net = IPNetwork(row['ip'])
                 ip_resolver[net] = row['org']
+    else:
+        app.logger.warning('cannot find IP list for IP resolver. All traffic will be logged as PUBLIC')
     app.config['IP_RESOLVER'] = ip_resolver
 
-    '''setup datadog logging'''
-    if  Config.DATADOG_OPTIONS:
-        import datadog
-        datadog.initialize(**Config.DATADOG_OPTIONS)
-        stats = None
-        if app.config['TESTING']:
-            pass
-        elif app.config['DEBUG']:
-            stats = datadog.ThreadStats()#namespace='api')
-            stats.start(flush_interval=30, roll_up_interval=30)
-            log = logging.getLogger('dd.datadogpy')
-            log.setLevel(logging.DEBUG)
-            app.logger.info("using internal datadog agent in debug mode")
-        elif app.config['DATADOG_AGENT_HOST']:
-            datadog_agent_host = app.config['DATADOG_AGENT_HOST']
-            '''check host is reachable'''
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.connect((datadog_agent_host, 17123))
-                logger.info('datadog host %s is reachable'%datadog_agent_host)
-            except socket.error as e:
-                logger.error("Error on connect to datadog host %s: %s" % (datadog_agent_host,e))
-                datadog_agent_host = None
-            s.close()
-            if datadog_agent_host is not None:
-                stats = datadog.dogstatsd.base.DogStatsd(datadog_agent_host)
-                app.logger.info("using external datadog agent resolving %s"%datadog_agent_host)
-        app.extensions['datadog'] = stats
-        if stats is not None:
-            '''log errors to datadog'''
-            from flask import got_request_exception
-            got_request_exception.connect(log_exception_to_datadog, app)
-
-
-    else:
-         app.extensions['datadog'] = None
 
 
     '''compress http response'''

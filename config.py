@@ -1,4 +1,6 @@
 import csv
+import random
+import string
 from collections import defaultdict
 
 #from app.common.auth import AuthKey
@@ -14,34 +16,34 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.environ.get('DATA_VERSION') or '16.08_'
-    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
+    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
-    ELASTICSEARCH_ECO_INDEX_NAME = DATA_VERSION+'eco-data'
+    ELASTICSEARCH_ECO_INDEX_NAME = DATA_VERSION+'_eco-data'
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
-    ELASTICSEARCH_GENE_NAME_INDEX_NAME = DATA_VERSION+'gene-data'
+    ELASTICSEARCH_GENE_NAME_INDEX_NAME = DATA_VERSION+'_gene-data'
     ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genedata'
-    ELASTICSEARCH_EXPRESSION_INDEX_NAME = DATA_VERSION+'expression-data'
+    ELASTICSEARCH_EXPRESSION_INDEX_NAME = DATA_VERSION+'_expression-data'
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
-    ELASTICSEARCH_REACTOME_INDEX_NAME = DATA_VERSION+'reactome-data'
+    ELASTICSEARCH_REACTOME_INDEX_NAME = DATA_VERSION+'_reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'_association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
-    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'_search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
-    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + 'relation-data'
+    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + '_relation-data'
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
-    DEBUG = False
+    DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.environ.get('SECRET_KEY') or u'C=41d6xo]4940NP,9jwF@@v0KDdTtO'
+    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '1.2'
-    API_VERSION_MINOR = '1.2.0'
+    API_VERSION = '2.0'
+    API_VERSION_MINOR = '2.0.0'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -67,16 +69,13 @@ class Config:
                     'allowed_domains': ['www.ebi.ac.uk'],
                     'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
                     }
-    REDIS_SERVER ='/tmp/api_redis.db'
+    REDIS_SERVER_PATH =os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
+    USAGE_LIMIT_PATH = 'app/authconf/rate_limit.csv'
+    IP_RESOLVER_LIST_PATH = 'app/authconf/ip_list.csv'
 
-    DATADOG_OPTIONS = {
-        'api_key':'c18195d82553654274bffddb25175967',
-        'app_key':'ecf593e0469694fd1a78f2672c33f3bd5a2f1825'
-    }
-    DATADOG_AGENT_HOST = 'dd-agent'#set to None to disable
     NO_CACHE_PARAMS = 'no_cache'
 
 
@@ -87,109 +86,44 @@ class Config:
 
 
 class DevelopmentConfig(Config):
+    # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    # ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    ELASTICSEARCH_URL = 'http://193.62.54.18:9200/'
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     LOGSTASH_HOST = '127.0.0.1'
-    LOGSTASH_PORT = 5555
+    LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
 
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
 
-class DockerLinkedDevConfig(Config):
-    DEBUG = True
-    ELASTICSEARCH_URL = 'http://elastic:9201'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60
 
-class DockerLinkedConfig(Config):
-    ELASTICSEARCH_URL = 'http://elastic:9200'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60
-
-class BiogenConfig(Config):
-    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or 'http://172.17.7.25:80'
-    APP_CACHE_EXPIRY_TIMEOUT = 60*60 #1hr
 
 class TestingConfig(Config):
     TESTING = True
-    # ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    ELASTICSEARCH_URL = 'http://mirror.targetvalidation.org:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
-class StagingConfig(Config):
-    ELASTICSEARCH_URL = 'http://elasticsearch.internal.cttv.local:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
-
-    @classmethod
-    def init_app(cls, app):
-        Config.init_app(app)
-
-        #TODO: handle logs
-
 
 class ProductionConfig(Config):
-    ELASTICSEARCH_URL = 'http://elasticsearch-9200.production.cttv.local:9200/'
-    LOGSTASH_HOST = '192.168.0.168'
-    LOGSTASH_PORT = 5000
+    ## kubernetes automatically defines DNS names for each service, at least on GKE
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
+
 
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
 
-        #TODO: handle logs
-        #
-        # import logging
-        # from logging.handlers import SMTPHandler
-        # credentials = None
-        # secure = None
-        # if getattr(cls, 'MAIL_USERNAME', None) is not None:
-        #     credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
-        #     if getattr(cls, 'MAIL_USE_TLS', None):
-        #         secure = ()
-        # mail_handler = SMTPHandler(
-        #     mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
-        #     fromaddr=cls.FLASKY_MAIL_SENDER,
-        #     toaddrs=[cls.FLASKY_ADMIN],
-        #     subject=cls.FLASKY_MAIL_SUBJECT_PREFIX + ' Application Error',
-        #     credentials=credentials,
-        #     secure=secure)
-        # mail_handler.setLevel(logging.ERROR)
-        # app.logger.addHandler(mail_handler)
 
 
 
-
-class UnixConfig(ProductionConfig):
-    @classmethod
-    def init_app(cls, app):
-        ProductionConfig.init_app(app)
-
-        # log to syslog
-        import logging
-        from logging.handlers import SysLogHandler
-        syslog_handler = SysLogHandler()
-        syslog_handler.setLevel(logging.WARNING)
-        app.logger.addHandler(syslog_handler)
 
 
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
-    'staging': StagingConfig,
-    'biogen': BiogenConfig,
     'production': ProductionConfig,
-    'dockerlink': DockerLinkedConfig,
-    'dockerlinkdev': DockerLinkedDevConfig,
     'default': DevelopmentConfig
 }

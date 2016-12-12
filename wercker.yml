@@ -1,0 +1,44 @@
+box: python:2.7
+dev:
+  steps:
+    - pip-install
+    - internal/watch:
+        code: python manage.py
+        reload: true
+# Build definition
+build:
+  # The steps that will be executed on build
+  steps:
+    # A step that executes `pip install` command
+    - pip-install
+
+    # A custom script step, name value is used in the UI
+    # and the code value contains the command that get executed
+#    - script:
+#        name: API auth test
+#        code: |
+#          python manage.py
+#          nosetests tests/test_auth.py
+
+push-to-gcr:
+  steps:
+    - internal/docker-push:
+        username: _json_key
+        password: $GCR_JSON_KEY_FILE
+        working-dir: $WERCKER_ROOT
+        tag: $WERCKER_GIT_COMMIT
+        repository: eu.gcr.io/open-targets/rest-api
+        registry: https://eu.gcr.io
+
+#deploy:
+#  box: ubuntu:xenial
+#  steps:
+#   # Use the scratch step to build a container from scratch based on the files present
+#    - internal/docker-push:
+#      username: $DOCKER_USERNAME
+#      password: $DOCKER_PASSWORD
+#      cmd: supervisord
+#      entrypoint: docker-conf/docker-entrypoint.sh
+#      tag: $WERCKER_GIT_COMMIT
+#      ports: "80","443","8008","8009"
+#      repository: opentargets/wercker-restapi
