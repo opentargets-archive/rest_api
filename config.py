@@ -44,7 +44,7 @@ class Config:
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = '2.0'
-    API_VERSION_MINOR = '2.0.0'
+    API_VERSION_MINOR = '2.0.1'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
