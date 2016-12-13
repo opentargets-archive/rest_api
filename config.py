@@ -17,6 +17,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
@@ -88,7 +89,6 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -101,14 +101,12 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
 

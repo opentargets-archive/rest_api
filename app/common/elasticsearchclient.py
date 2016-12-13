@@ -2271,7 +2271,7 @@ class AggregationUnitTarget(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "target.id",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2309,7 +2309,7 @@ class AggregationUnitDisease(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "disease.id",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2433,7 +2433,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
-                        'size': 25,
+                        'size': 50,
                         "chi_square": {"include_negatives": True,
                                 "background_is_superset": False},
                     },
@@ -2480,7 +2480,7 @@ class AggregationUnitGO(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
-                        'size': 25,
+                        'size': 50,
 
                     },
                     "aggs": {
@@ -2612,7 +2612,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.target_class.level1.id",
-                        'size': 20,
+                        'size': 25,
                     },
 
                     "aggs": {
@@ -2625,7 +2625,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                         FilterTypes.TARGET_CLASS: {
                             "terms": {
                                 "field": "private.facets.target_class.level2.id",
-                                'size': 20,
+                                'size': 50,
                             },
                             "aggs": {
                                 "label": {
@@ -2796,12 +2796,13 @@ class AggregationUnitDatasource(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.datatype",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "datasource": {
                             "terms": {
                                 "field": "private.facets.datasource",
+                                'size': 25,
                             },
                             "aggs": {
                                 "unique_target_count": {
