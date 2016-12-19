@@ -1,3 +1,4 @@
+from app.resources.relation import  Relations
 from app.resources.utils import LogEvent
 
 __author__ = 'andreap'
@@ -31,7 +32,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
-    from app.resources.relation import RelationTarget, RelationDisease
+    from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
     from app.resources.stats import Stats
 
     # api.add_resource(AvailableGenes,
@@ -81,9 +82,11 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/stats')
     api.add_resource(LogEvent,
                      '/private/utils/logevent')
-    api.add_resource(RelationTarget,
+    api.add_resource(RelationTargetSingle,
                      '/private/relation/target/<string:target_id>')
-    api.add_resource(RelationDisease,
+    api.add_resource(Relations,
+                     '/private/relation')
+    api.add_resource(RelationDiseaseSingle,
                      '/private/relation/disease/<string:disease_id>')
     #
     # api.add_resource(ProxyEnsembl,
