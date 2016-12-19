@@ -1807,7 +1807,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         return {
                 "range" : {
                     'scores.association_score' : {
-                        "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                        "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                         "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                         }
                     }
@@ -2690,7 +2690,7 @@ class AggregationUnitScoreRange(AggregationUnit):
             return {
                         "range" : {
                             params.association_score_method+"."+params.scorevalue_types[0] : {
-                                "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                                "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                 "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                             }
                         }
@@ -2701,7 +2701,7 @@ class AggregationUnitScoreRange(AggregationUnit):
                         'must': [{
                                 "range" : {
                                     params.association_score_method+"."+st : {
-                                        "gt": params.filters[FilterTypes.SCORE_RANGE][0],
+                                        "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                         "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                                     }
                                 }
