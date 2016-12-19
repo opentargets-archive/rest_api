@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: 1.3.0
+  version: 2.0.1
   title: Target Validation Platform REST API
   description: |
 
@@ -14,8 +14,10 @@ info:
     You can make calls to the latest version of our API using the base URL
      `https://www.targetvalidation.org/api/latest`. We do not accept unencrypted 
      `http` calls, so make sure you use `https` in the address instead. 
-    If you want to point to a specific version of the API, eg 1.1, your call will be
-      `https://www.targetvalidation.org/api/1.1`.
+    If you want to point to a specific version of the API, eg `2.0`, you can call it directly
+      `https://www.targetvalidation.org/api/2.0`. **However, please note** that at the moment, we only 
+      serve the latest version of the API. If you were interested in querying an old version 
+      please do [let us know](mailto:support@targetvalidation.org) and we can support you.
 
     We list below the methods available to query directly from our API using 
     an interactive and easy-to-use interface. For every request you create below, 
@@ -402,7 +404,12 @@ paths:
           type: string
         - name: pathway
           in: query
-          description: a reactome pathway identifier (returning only those targets linked to the pathway specified)
+          description: a reactome pathway identifier (returning only those targets linked to the specified pathway)
+          required: false
+          type: string
+        - name: target_class
+          in: query
+          description: a chembl target class identifier (returning only those targets belonging to the specified class)
           required: false
           type: string
         - name: uniprotkw

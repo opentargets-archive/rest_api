@@ -115,8 +115,8 @@ def create_app(config_name):
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
-                                        docname_search_target=app.config['ELASTICSEARCH_DATA_SEARCH_TARGET_DOC_NAME'],
-                                        docname_search_disease=app.config['ELASTICSEARCH_DATA_SEARCH_DISEASE_DOC_NAME'],
+                                        # docname_search_target=app.config['ELASTICSEARCH_DATA_SEARCH_TARGET_DOC_NAME'],
+                                        # docname_search_disease=app.config['ELASTICSEARCH_DATA_SEARCH_DISEASE_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
                                         log_level=app.logger.getEffectiveLevel(),
                                         cache=icache

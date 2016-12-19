@@ -9,6 +9,7 @@ from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
+from app.common.request_templates import FilterTypes
 from app.common.response_templates import CTTVResponse
 from types import *
 import time
@@ -19,7 +20,7 @@ __author__ = 'andreap'
 class Association(restful.Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
+    parser.add_argument('id', type=str, action='append', required=True, )
 
     @is_authenticated
     @rate_limit
@@ -52,28 +53,30 @@ class FilterBy(restful.Resource):
         """
         start_time = time.time()
         parser = boilerplate.get_parser()
-        parser.add_argument('target', type=str, action='append', required=False, help="target in target.id")
+        parser.add_argument('target', type=str, action='append', required=False,)
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('disease', type=str, action='append', required=False, help="efo code in disease.id")
+        parser.add_argument('disease', type=str, action='append', required=False, )
         # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
-        parser.add_argument('therapeutic_area', type=str, action='append', required=False, help="efo code of the therapeutic area")
-        parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
-        parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
-        parser.add_argument('scorevalue_types', type=str, required=False, action='append', help="score types to apply min and max score filter")
-        parser.add_argument('datasource', type=str, action='append', required=False,help="datasources to consider to calculate the association score")
-        parser.add_argument('datatype', type=str, action='append', required=False,  help="datatype to consider to calculate the association score")
-        parser.add_argument('pathway', type=str, action='append', required=False, help="consider only genes linked to this pathway")
-        parser.add_argument('uniprotkw', type=str, action='append', required=False, help="consider only genes linked to this uniprot keyword")
+        parser.add_argument('therapeutic_area', type=str, action='append', required=False, )
+        parser.add_argument('scorevalue_min', type=float, required=False, )
+        parser.add_argument('scorevalue_max', type=float, required=False, )
+        parser.add_argument('scorevalue_types', type=str, required=False, action='append',)
+        parser.add_argument('datasource', type=str, action='append', required=False,)
+        parser.add_argument('datatype', type=str, action='append', required=False, )
+        parser.add_argument('pathway', type=str, action='append', required=False, )
+        parser.add_argument(FilterTypes.TARGET_CLASS, type=int, action='append', )
+        parser.add_argument('uniprotkw', type=str, action='append', required=False,)
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
-        parser.add_argument('direct', type=boolean, required=False, help="return the full efo tree if True or just direct links to an EFO code if False")
-        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Defaults to True", default=False)
-        parser.add_argument('sort', type=str,  required=False, action='append', help="sort the results by this score type")
-        parser.add_argument('search', type=str,  required=False, help="filter the results by fulltext matching")
-        parser.add_argument('cap_scores', type=boolean, required=False, help="cap scores to 1 if bigger than that")
+
         parser.add_argument('targets_enrichment', type=str, required=False, help="disease enrichment analysis for a set of targets")
+        parser.add_argument('direct', type=boolean, required=False,)
+        parser.add_argument('facets', type=boolean, required=False,  default=False)
+        parser.add_argument('sort', type=str,  required=False, action='append',)
+        parser.add_argument('search', type=str,  required=False, )
+        parser.add_argument('cap_scores', type=boolean, required=False, )
 
         args = parser.parse_args()
         self.remove_empty_params(args)

@@ -1,4 +1,6 @@
 import csv
+import random
+import string
 from collections import defaultdict
 
 #from app.common.auth import AuthKey
@@ -14,36 +16,35 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.08_')
-    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'evidence-data*'
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
+    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'efo-data'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
-    ELASTICSEARCH_ECO_INDEX_NAME = DATA_VERSION+'eco-data'
+    ELASTICSEARCH_ECO_INDEX_NAME = DATA_VERSION+'_eco-data'
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
-    ELASTICSEARCH_GENE_NAME_INDEX_NAME = DATA_VERSION+'gene-data'
+    ELASTICSEARCH_GENE_NAME_INDEX_NAME = DATA_VERSION+'_gene-data'
     ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genedata'
-    ELASTICSEARCH_EXPRESSION_INDEX_NAME = DATA_VERSION+'expression-data'
+    ELASTICSEARCH_EXPRESSION_INDEX_NAME = DATA_VERSION+'_expression-data'
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
-    ELASTICSEARCH_REACTOME_INDEX_NAME = DATA_VERSION+'reactome-data'
+    ELASTICSEARCH_REACTOME_INDEX_NAME = DATA_VERSION+'_reactome-data'
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'_association-data'
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
-    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'search-data'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'_search-data'
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
-    ELASTICSEARCH_DATA_SEARCH_TARGET_DOC_NAME = 'search-object-target'
-    ELASTICSEARCH_DATA_SEARCH_DISEASE_DOC_NAME = 'search-object-disease'
-    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + 'relation-data'
+    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + '_relation-data'
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.getenv('SECRET_KEY', u'C=41d6xo]4940NP,9jwF@@v0KDdTtO')
+    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '1.3'
-    API_VERSION_MINOR = '1.3.0'
+    API_VERSION = '2.0'
+    API_VERSION_MINOR = '2.0.1'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
     '''datatype configuration'''
@@ -88,7 +89,7 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
+    # ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 1
@@ -101,14 +102,12 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
 

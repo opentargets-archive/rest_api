@@ -8,10 +8,15 @@ from datetime import datetime
 
 import numpy as np
 from app.common.hypergeometric import HypergeometricTest
+from elasticsearch import helpers, TransportError
+from flask import current_app, request
+from pythonjsonlogger import jsonlogger
+
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
 from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult
+from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult, EmptySimpleResult, \
+    EmptyPaginatedResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
@@ -213,19 +218,25 @@ class esQuery():
         res = self._free_text_query(searchphrase, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        for hit in res['hits']['hits']:
-            datapoint = dict(type=hit['_type'],
-                             data=hit['_source'],
-                             id=hit['_id'],
-                             score=hit['_score'],
-                             )
-            if params.highlight:
-                highlight = None
-                if 'highlight' in hit:
-                    highlight = hit['highlight']
-                datapoint['highlight'] = highlight
-            data.append(datapoint)
-        return PaginatedResult(res, params, data)
+        if 'hits' in res and res['hits']['total']:
+            for hit in res['hits']['hits']:
+                datapoint = dict(type=hit['_type'],
+                                 data=hit['_source'],
+                                 id=hit['_id'],
+                                 score=hit['_score'],
+                                 )
+                if params.highlight:
+                    highlight = None
+                    if 'highlight' in hit:
+                        highlight = hit['highlight']
+                    datapoint['highlight'] = highlight
+                data.append(datapoint)
+            return PaginatedResult(res, params, data)
+        elif 'suggest' in res:
+            suggestions = self._digest_suggest(res)
+            return EmptyPaginatedResult(None, suggest=suggestions)
+        else:
+            return EmptyPaginatedResult(None)
 
     def targets_enrichment(self,
                            query,
@@ -376,7 +387,7 @@ class esQuery():
                 i]  # even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'total' in res['hits'] and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 type_ = hit['_type']
@@ -474,8 +485,24 @@ class esQuery():
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
                                 data[opt].append(format_datapoint(hit))
+        else:
+            suggestions = []
+            if 'suggest' in res:
+                suggestions = self._digest_suggest(res)
+
+            return EmptySimpleResult(None, data = {}, suggest=suggestions)
+
 
         return SimpleResult(None, params, data)
+
+    def _digest_suggest(self, res):
+        suggestions = []
+        for suggest_field in res['suggest'].values():
+            for i in suggest_field:
+                for option in i['options']:
+                    if option not in suggestions:
+                        suggestions.append(option['text'])
+        return suggestions
 
     def autocomplete(self,
                      searchphrase,
@@ -709,6 +736,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
+        #TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
                                   body={"filter": {
                                       "ids": {"values": associationid},
@@ -748,12 +776,39 @@ class esQuery():
         query_body = {"match_all": {}}
         if params.search:
             query_body = {
-                "multi_match": {
-                    "fields": ["target.*", "disease.*", "private.*"],
-                    "query": params.search,
-                    "type": "phrase_prefix"
+                "match_phrase_prefix": {
+                    "private.facets.free_text_search": params.search
                 }
             }
+            #     "bool": {
+            #         "should": [
+            #             {"multi_match": {
+            #                 "query": params.search,
+            #                 "fields": ["target.*",
+            #                            "disease.*",
+            #                            # "private.*",
+            #                            ],
+            #                 "type": "phrase_prefix",
+            #                 "lenient": True,
+            #                 "analyzer": 'whitespace',
+            #
+            #             }
+            #             },
+            #             {"multi_match": {
+            #                 "query": params.search,
+            #                 "fields": ["target.*",
+            #                            "disease.*",
+            #                            # "private.*",
+            #                            ],
+            #                 "analyzer": 'keyword',
+            #                 "type": "best_fields",
+            #                 "lenient": True,
+            #             }
+            #             },
+            #         ],
+            #     }
+            # }
+
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
@@ -1040,10 +1095,9 @@ class esQuery():
                                                "ensembl_gene_id",
                                                "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms^0.1",
+                                               "efo_synonyms^0.5",
                                                "ortholog.*.symbol^0.5",
                                                "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -1081,9 +1135,10 @@ class esQuery():
                                                "name_synonyms",
                                                "gene_family_description",
                                                "efo_path_labels^0.1",
-                                               "ortholog.*.symbol^0.5",
+                                               "ortholog.*.symbol^0.2",
                                                "ortholog.*.name^0.2",
-                                               "drugs.*.synonym^0.5"
+                                               "drugs.*^0.5",
+                                               "phenotypes.*^0.3",
                                                ],
                                     "analyzer": 'standard',
                                     # "fuzziness": "AUTO",
@@ -1094,7 +1149,7 @@ class esQuery():
                                 {"multi_match": {
                                     "query": searchphrase,
                                     "fields": ["name^3",
-                                               "description^2",
+                                               "description",
                                                "id",
                                                "approved_symbol",
                                                "symbol_synonyms",
@@ -1104,10 +1159,11 @@ class esQuery():
                                                "ensembl_gene_id",
                                                "efo_path_codes",
                                                "efo_url",
-                                               "efo_synonyms^0.1",
-                                               "ortholog.*.symbol^0.5",
-                                               "ortholog.*.id",
-                                               "drugs.*.synonym^0.5"
+                                               "efo_synonyms^2",
+                                               "ortholog.*.symbol^0.2",
+                                               "ortholog.*.id^0.2",
+                                               "drugs.*^0.5",
+                                               "phenotypes.*^0.3"
                                                ],
                                     "analyzer": 'keyword',
                                     # "fuzziness": "AUTO",
@@ -1169,7 +1225,7 @@ class esQuery():
                 {
                     "field_value_factor": {
                         "field": "association_counts.total",
-                        "factor": 0.01,
+                        "factor": 0.05,
                         "modifier": "sqrt",
                         "missing": 1,
                         # "weight": 0.01,
@@ -1219,7 +1275,9 @@ class esQuery():
             "efo_path_labels": {},
             "ortholog.*.symbol": {},
             "ortholog.*.name": {},
-            "ortholog.*.id": {}
+            "ortholog.*.id":{},
+            "drugs.*":{},
+            "phenotypes.*":{},
         }
         }
 
@@ -1426,6 +1484,8 @@ class esQuery():
             if 'buckets' in facets[facet]:
                 facet_buckets = facets[facet]['buckets']
                 for bucket in facet_buckets:
+                    if 'label' in bucket:
+                        bucket['label'] = bucket['label']['buckets'][0]['key']
                     if facet == FilterTypes.PATHWAY:
                         reactome_ids.append(bucket['key'])
                         if 'pathway' in bucket:
@@ -1435,6 +1495,13 @@ class esQuery():
                                     reactome_ids.append(sub_bucket['key'])
                     elif facet == FilterTypes.THERAPEUTIC_AREA:
                         therapeutic_areas.append(bucket['key'].upper())
+                    elif facet == FilterTypes.TARGET_CLASS:
+                        if FilterTypes.TARGET_CLASS in bucket:
+                            if 'buckets' in bucket[FilterTypes.TARGET_CLASS]:
+                                sub_facet_buckets = bucket[FilterTypes.TARGET_CLASS]['buckets']
+                                for sub_bucket in sub_facet_buckets:
+                                    if 'label' in sub_bucket:
+                                        sub_bucket['label'] = sub_bucket['label']['buckets'][0]['key']
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
@@ -1711,14 +1778,22 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 'size': params.size,
                 'from': params.start_from,
                 '_source': source_filter,
-                "explain": current_app.config['DEBUG']
+                "explain": current_app.config['DEBUG'],
+                "suggest": self._get_free_text_suggestions(searchphrase)
                 }
         if highlight is not None:
             body['highlight'] = highlight
 
-        return self._cached_search(index=self._index_search,
+        try:
+            res = self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body=body)
+                                   body=body,
+                                   )
+        except TransportError as e :#TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
+            if e.error == u'search_phase_execution_exception':
+                return {}
+            raise
+        return res
 
     def _best_hit_query(self, searchphrases, doc_types, params):
         '''
@@ -1842,12 +1917,15 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         digested = []
         for s in params.sort:
             order = 'desc'
+            mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
-                s = s[1:]
+                s=s[1:]
+                mode = 'min'
             if s.startswith('association_score'):
-                s = s.replace('association_score', params.association_score_method)
-            digested.append({s: {"order": order}})
+                s= s.replace('association_score', params.association_score_method)
+            digested.append({s : {"order": order,
+                                  "mode": mode}})
         return digested
 
     def _get_evidence_score_range_filter(self, params):
@@ -2144,6 +2222,21 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             data = sorted(scored_diseases.items(), key=lambda x: x[1], reverse=True)
         return data
 
+    def _get_free_text_suggestions(self, searchphrase):
+        return {
+            "text": searchphrase,
+            # "label": {
+            #     "term": {
+            #         "field": "approved_symbol"
+            #     }
+            # },
+            "name": {
+                "term": {
+                    "field": "name"
+                }
+            },
+        }
+
 
 class SearchParams():
     _max_search_result_limit = 10000
@@ -2218,6 +2311,7 @@ class SearchParams():
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
+        self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -2242,7 +2336,11 @@ class SearchParams():
 
         self.facets = kwargs.get('facets', False) or False
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
-        self.highlight = kwargs.get('highlight', True)
+
+        highlight_default = True
+        self.highlight = kwargs.get('highlight', highlight_default)
+        if self.highlight is None:
+            self.highlight = highlight_default
 
 
 class AggregationUnit(object):
@@ -2298,7 +2396,7 @@ class AggregationUnitTarget(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "target.id",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2338,16 +2436,11 @@ class AggregationUnitDisease(AggregationUnit):
 
     def get_disease_aggregation(self, size=10):
         return {
-            "data": {
-                "terms": {
-                    "field": "disease.id",
-                    'size': size,
-                },
-                "aggs": {
-                    "unique_target_count": {
-                        "cardinality": {
-                            "field": "target.id",
-                            "precision_threshold": 1000},
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "disease.id",
+                        'size': size,
                     },
                     "unique_disease_count": {
                         "cardinality": {
@@ -2467,7 +2560,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
-                        'size': 25,
+                        'size': 50,
                         "chi_square": {"include_negatives": True,
                                        "background_is_superset": False},
                     },
@@ -2505,16 +2598,23 @@ class AggregationUnitGO(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.GO, filters),
                 }
             },
             "aggs": {
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
-                        'size': 25,
+                        'size': 50,
+
                     },
                     "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.go.*.term",
+                                'size': 1,
+                            },
+                        },
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
@@ -2613,6 +2713,92 @@ class AggregationUnitPathway(AggregationUnit):
 
         return dict()
 
+
+class AggregationUnitTargetClass(AggregationUnit):
+
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_target_class_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_target_class_aggregation(filters)
+
+    def _get_target_class_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TARGET_CLASS, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.target_class.level1.id",
+                        'size': 25,
+                    },
+
+                    "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.target_class.level1.label",
+                                'size': 1,
+                            },
+                        },
+                        FilterTypes.TARGET_CLASS: {
+                            "terms": {
+                                "field": "private.facets.target_class.level2.id",
+                                'size': 50,
+                            },
+                            "aggs": {
+                                "label": {
+                                    "terms": {
+                                        "field": "private.facets.target_class.level2.label",
+                                        'size': 1,
+                                    },
+                                },
+                                "unique_target_count": {
+                                    "cardinality": {
+                                        "field": "target.id",
+                                        "precision_threshold": 1000},
+                                },
+                                "unique_disease_count": {
+                                    "cardinality": {
+                                        "field": "disease.id",
+                                        "precision_threshold": 1000},
+                                },
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+    def _get_target_class_filter(self, target_class_ids):
+        '''
+        http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+        :param target_class_ids: list of target class ids strings
+        :return: boolean filter
+        '''
+        if target_class_ids:
+            return {"bool": {
+                "should": [
+                    {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
+                    {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
+                ]
+                }
+            }
+
+        return dict()
 
 class AggregationUnitScoreRange(AggregationUnit):
     def build_query_filter(self):
@@ -2730,12 +2916,13 @@ class AggregationUnitDatasource(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.datatype",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "datasource": {
                             "terms": {
                                 "field": "private.facets.datasource",
+                                'size': 25,
                             },
                             "aggs": {
                                 "unique_target_count": {
@@ -2802,6 +2989,7 @@ class AggregationBuilder(object):
         FilterTypes.SCORE_RANGE: AggregationUnitScoreRange,
         FilterTypes.THERAPEUTIC_AREA: AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
+        FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,

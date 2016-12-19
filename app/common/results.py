@@ -1,15 +1,17 @@
 import collections
-import logging
+import json
+import sys
+from io import BytesIO
+
+import unicodecsv as csv
+from dicttoxml import dicttoxml
 
 from app.common.request_templates import SourceDataStructureOptions
 from app.common.response_templates import ResponseType
-from dicttoxml import dicttoxml
-import collections
-import pprint
-import itertools
-import unicodecsv as csv
-from io import BytesIO
-import json
+from config import Config
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 __author__ = 'andreap'
 
@@ -19,10 +21,11 @@ class Result(object):
     def __init__(self,
                  res,
                  params = None,
-                 data=None,
-                 targets_enrichment=None,
+                 data=[],
+                 targets_enrichment=[],
                  facets=None,
                  available_datatypes = [],
+                 suggest=None,
                  status = ['ok'],
                  therapeutic_areas = []):
         
@@ -43,6 +46,7 @@ class Result(object):
         self.status = status
         self.therapeutic_areas= therapeutic_areas
         self.targets_enrichment = targets_enrichment
+        self.suggest = suggest
 
     def toDict(self):
         raise NotImplementedError
@@ -66,7 +70,7 @@ class Result(object):
     def toCSV(self, delimiter = '\t'):
         NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
         output = BytesIO()
-        if self.data is None:
+        if not self.data:
             self.flatten(self.toDict())  # populate data if empty
         if self.data and isinstance(self.data[0], dict):
             key_set = set()
@@ -127,7 +131,10 @@ class Result(object):
                     else:
                         v = json.dumps(v, encoding='utf-8')
             if isinstance(v, str):
-                v= unicode(v)
+                try:
+                    v= unicode(v)
+                except UnicodeDecodeError:
+                    pass
             if not isinstance(v, unicode):
                 v= json.dumps(v, encoding='utf-8')
             return_dict[unicode(k)] = unicode(v)
@@ -145,7 +152,7 @@ class Result(object):
 
 class PaginatedResult(Result):
     def toDict(self):
-        if self.data is None:
+        if not self.data :
             if self.params.datastructure == SourceDataStructureOptions.COUNT:
                 return {'total': self.res['hits']['total'],
                         'took': self.res['took']
@@ -170,12 +177,22 @@ class PaginatedResult(Result):
                 'from': self.params.start_from,
                 'disease_enrichment': self.targets_enrichment,
                 # 'status' : self.status,
-                'therapeutic_areas': self.therapeutic_areas
-                
+                'therapeutic_areas': self.therapeutic_areas,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 class EmptyPaginatedResult(Result):
     def toDict(self):
+        if self.suggest:
+            return {'data': [],
+                    'suggest': self.suggest,
+                    'facets': [],
+                    'total': 0,
+                    'took': 0,
+                    'size': 0,
+                    'from': 0,
+                    'data_version': Config.DATA_VERSION,
+                    }
 
         return {'data': [],
                 'facets':[],
@@ -183,7 +200,7 @@ class EmptyPaginatedResult(Result):
                 'took': 0,
                 'size': 0,
                 'from': 0,
-                # 'status' : self.status,
+                'data_version': Config.DATA_VERSION,
         }
 
 
@@ -192,13 +209,13 @@ class SimpleResult(Result):
     '''
 
     def toDict(self):
-        if  self.data is None:
+        if not self.data:
             try:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
             except:
                 raise AttributeError('some data is needed to be returned in a SimpleResult')
         return {'data': self.data,
-                # 'status' : self.status,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 class RawResult(Result):
@@ -212,8 +229,14 @@ class RawResult(Result):
 
 class EmptySimpleResult(Result):
     def toDict(self):
-        return {'data':[],
-                # 'status' : self.status,
+        if self.suggest:
+            return {'data': self.data,
+                    'suggest':self.suggest,
+                    'data_version': Config.DATA_VERSION,
+
+                    }
+        return {'data': self.data,
+                'data_version' : Config.DATA_VERSION,
                 }
 
 
@@ -237,10 +260,10 @@ class CountedResult(Result):
                     'facets': self.facets,
                     'total': self.total,
                     'available_datatypes': self.available_datatypes,
-                    # 'status' : self.status,
-            }
+                    'data_version': Config.DATA_VERSION,
+                    }
         return {'data': self.data,
                 'total': self.total,
                 'available_datatypes': self.available_datatypes,
-                # 'status' : self.status,
+                'data_version' : Config.DATA_VERSION,
         }

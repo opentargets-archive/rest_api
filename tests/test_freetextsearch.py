@@ -1375,13 +1375,11 @@ class FreeTextSearchTestCase(GenericTestCase):
     # @unittest.skip("testSearchFieldsWithHighlight")
     def testSearchFieldsWithHighlight(self):
 
-        response= self._make_request('/api/latest/public/search',
-                                     data={'q':'braf', 'fields':['id', 'approved_symbol']},
-                                     token=self._AUTO_GET_TOKEN)
         response = self._make_request('/api/latest/public/search',
                                       data={'q': 'braf',
                                             'fields': ['id', 'approved_symbol'],
-                                            'highlight': True},
+                                            # 'highlight': True,
+                                            },
                                       token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
@@ -1442,7 +1440,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         fuzzy_result = json_response['data'][2]
         self.assertEqual(fuzzy_result['q'], 'Rpl18a')
         fuzzy_result_data = fuzzy_result['data']
-        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
+        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RpL18A')
  
         #test empty result
         empty_result = json_response['data'][3]
@@ -1499,7 +1497,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         fuzzy_result = json_response['data'][2]
         self.assertEqual(fuzzy_result['q'], 'Rpl18a')
         fuzzy_result_data = fuzzy_result['data']
-        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
+        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RpL18A')
 
         #test empty result
         empty_result = json_response['data'][3]
@@ -1573,7 +1571,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
         response= self._make_request('/api/latest/private/besthitsearch',
                                      data=json.dumps({
-                                            'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'], 
+                                            'q':['braf', 'nr3c1', 'bra', 'rippa', 'ENSG00000157764', 'eff'],
                                             'fields':['approved_symbol', ],
                                             'filter':'target'}),
                                      content_type='application/json',
@@ -1605,11 +1603,11 @@ class FreeTextSearchTestCase(GenericTestCase):
         
         #test fuzzy result
         fuzzy_result = json_response['data'][2]
-        self.assertEqual(fuzzy_result['q'], 'Rpl18a')
+        self.assertEqual(fuzzy_result['q'], 'bra')
         self.assertEqual(fuzzy_result['exact'], False)
 
         fuzzy_result_data = fuzzy_result['data']
-        self.assertNotEqual(fuzzy_result_data['approved_symbol'], 'RPL18A')
+        self.assertEqual(fuzzy_result_data['approved_symbol'], 'BRAF')
 
 
         #test empty result
@@ -1704,7 +1702,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self._assert_search_result(json_response,
                                    'asthma',
                                    'asthma',
-                                   "A bronchial disease that is characterized by chronic inflammation and narrowing of the airways, which is caused by a combination of environmental and genetic factors resulting in recurring periods of wheezing (a whistling sound while breathing), chest tightness, shortness of breath, mucus production and coughing. The symptoms appear due to a variety of triggers such as allergens, irritants, respiratory infections, weather changes, excercise, stress, reflux disease, medications, foods and emotional anxiety.",
+                                   None,
                                    2086)
 
 
@@ -1751,10 +1749,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self._assert_quicksearch_result(json_response,
                                    'BRAF',
                                    'B-Raf proto-oncogene, serine/threonine kinase',
-                                   'Protein kinase involved in the transduction of mitogenic signals from the cell'
-                                   ' membrane to the nucleus. May play a role in the postsynaptic responses of '
-                                   'hippocampal neuron. Phosphorylates MAP2K1, and thereby contributes to the MAP '
-                                   'kinase signal transduction pathway.',
+                                   None,
                                    680)
 
     #@unittest.skip("testQuickSearchBrafOrtholog_misp")
@@ -1769,10 +1764,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self._assert_quicksearch_result(json_response,
                                    'BRAF',
                                    'B-Raf proto-oncogene, serine/threonine kinase',
-                                   'Protein kinase involved in the transduction of mitogenic signals from the cell'
-                                   ' membrane to the nucleus. May play a role in the postsynaptic responses of '
-                                   'hippocampal neuron. Phosphorylates MAP2K1, and thereby contributes to the MAP '
-                                   'kinase signal transduction pathway.',
+                                   None,
                                    680)
         
         
@@ -1788,13 +1780,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self._assert_quicksearch_result(json_response,
                                    'asthma',
                                    'asthma',
-                                   "A bronchial disease that is characterized by chronic inflammation and narrowing of "
-                                   "the airways, which is caused by a combination of environmental and genetic factors "
-                                   "resulting in recurring periods of wheezing (a whistling sound while breathing), "
-                                   "chest tightness, shortness of breath, mucus production and coughing. The symptoms "
-                                   "appear due to a variety of triggers such as allergens, irritants, respiratory "
-                                   "infections, weather changes, excercise, stress, reflux disease, medications, "
-                                   "foods and emotional anxiety.",
+                                   None,
                                    2086)
 
     #@unittest.skip("testQuickSearchCancer")
@@ -1809,11 +1795,132 @@ class FreeTextSearchTestCase(GenericTestCase):
         self._assert_quicksearch_result(json_response,
                                         'cancer',
                                         'cancer',
-                                        "A malignant neoplasm in which new abnormal tissue grow by excessive cellular "
-                                        "division and proliferation more rapidly than normal and continues to grow "
-                                        "after the stimuli that initiated the new growth cease.",
+                                        None,
                                         20000)
-    
+
+    def testQuickSearchHumira(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'humira'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        'TNF',
+                                        'tumor necrosis factor',
+                                        None,
+                                        2000)
+
+    def testSearchSildenafil(self):
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'SILDENAFIL',
+                                            'filter': 'target'},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        first_result = json_response['data'][0]['data']
+        self.assertEqual(first_result['name'], 'PDE5A')
+        self.assertEqual(first_result['full_name'], 'phosphodiesterase 5A')
+        self.assertGreaterEqual(first_result['association_counts']['total'], 200)
+
+    def testSearchALS(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'als'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'amyotrophic lateral sclerosis')
+        self.assertGreaterEqual(second_result['association_counts']['total'], 2000)
+
+    def testSearchCOPD(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'COPD'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'chronic obstructive pulmonary disease')
+        self.assertGreaterEqual(second_result['association_counts']['total'], 1400)
+
+    def testSearchPhenotypesJointSwelling(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'joint swelling'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'spondyloarthropathy')
+
+    def testSearchPhenotypesHyperlordosis(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'Hyperlordosis'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'Duchenne and Becker muscular dystrophy')
+
+    def testSearchPhenotypesProgressiveJointDestruction(self):
+
+        response = self._make_request('/api/latest/public/search',
+                                      data={'q': 'progressive joint destruction'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        second_result = json_response['data'][0]['data']
+        self.assertEqual(second_result['name'], 'rheumatoid arthritis')
+
+
+
+    def testQuickSearchSLE(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'sle'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        'systemic lupus erythematosus',
+                                        None,
+                                        None,
+                                        2000)
+
+
+
+    def testQuickSearchSuggestionAsthma(self):
+
+        response = self._make_request('/api/latest/private/quicksearch',
+                                      data={'q': 'astma'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIn('asthma', json_response['suggest'])
+
+    def testQuickSearchSuggestionPArkinson(self):
+            response = self._make_request('/api/latest/private/quicksearch',
+                                          data={'q': 'prakison'},
+                                          token=self._AUTO_GET_TOKEN)
+
+            self.assertTrue(response.status_code == 200)
+            json_response = json.loads(response.data.decode('utf-8'))
+            self.assertIn('parkinson', json_response['suggest'])
+
+
+
     @unittest.skip("testAutocomplete")
     def testAutocomplete(self):
         response= self._make_request('/api/latest/private/autocomplete',

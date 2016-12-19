@@ -1,3 +1,2 @@
 app_name,secret,domain,short_window_rate,long_window_rate,users_allowed,reference
-cttv-web-app,2J23T20O31UyepRj7754pEA2osMOYfFK,*.targetvalidation.org|www.targetvalidation.org|targetvalidation.org,40000,2400000,true,mp@ebi.ac.uk
 test,test,,2000,120000,true,andreap@ebi.ac.uk

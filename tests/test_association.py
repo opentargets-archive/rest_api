@@ -1,6 +1,8 @@
 import ujson as json
 import unittest
 
+from app import create_app
+from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
 
 
@@ -89,6 +91,48 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['disease']['id'], disease)
+
+    def testAssociationFilterDiseaseTargetClassFacet(self):
+        disease = 'EFO_0000311'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'facets': True,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['facets'])
+        self.assertIn('target_class', json_response['facets'])
+        first_filter = json_response['facets'][FilterTypes.TARGET_CLASS]['buckets'][0]
+        self.assertIn('key', first_filter)
+        self.assertIn('label', first_filter)
+        self.assertTrue(first_filter['label'])
+        self.assertIn(FilterTypes.TARGET_CLASS, first_filter)
+        first_sub_filter = first_filter[FilterTypes.TARGET_CLASS]['buckets'][0]
+        self.assertIn('key', first_sub_filter)
+        self.assertIn('label', first_sub_filter)
+        self.assertTrue(first_sub_filter['label'])
+        expected_results = first_filter['doc_count']
+        query_key = first_filter['key']
+        filtered_response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease':disease,
+                                            'facets': True,
+                                            FilterTypes.TARGET_CLASS : query_key,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        json_filtered_response = json.loads(filtered_response.data.decode('utf-8'))
+        self.assertEqual(json_filtered_response['total'], expected_results)
+        expected_results_sub = first_sub_filter['doc_count']
+        query_key_sub = first_sub_filter['key']
+        filtered_response_sub = self._make_request('/api/latest/public/association/filter',
+                                               data={'disease': disease,
+                                                     'facets': True,
+                                                     FilterTypes.TARGET_CLASS: query_key_sub,
+                                                     },
+                                               token=self._AUTO_GET_TOKEN)
+        json_filtered_response_sub = json.loads(filtered_response_sub.data.decode('utf-8'))
+        self.assertEqual(json_filtered_response_sub['total'], expected_results_sub)
+
+
 
     def testAssociationFilterDiseasePost(self):
         disease = 'EFO_0000311'
@@ -197,9 +241,36 @@ class AssociationTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(json_response['total'], 1)
 
+        '''restrict by SOD1'''
+        disease = 'EFO_0000253'
+        search_query = 'SOD1'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': 1,
+                                            'search': search_query,
+                                            'no_cache': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 1)
+        self.assertEqual(json_response['data'][0]['target']['gene_info']['symbol'], search_query)
+
+        '''restrict by threrapeutic area'''
+        target = 'ENSG00000099769'
+        search_query = 'endocri'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'size': 0,
+                                            'search': search_query,
+                                            'no_cache': True},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(json_response['total'], 3)
 
 
-    def testAssociationFilterOrder(self):
+
+    def testAssociationFilterOrderByScore(self):
 
         disease = 'EFO_0000270'
         score_type='association_score.overall'
@@ -236,6 +307,40 @@ class AssociationTestCase(GenericTestCase):
             self.assertGreaterEqual(sorted_scores[i+1],
                                     sorted_scores[i],
                                     )
+
+    def testAssociationFilterOrderByDiseaseLabel(self):
+        target = 'ENSG00000157764'
+        sort_string = '~disease.efo_info.label'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'direct': True,
+                                            'sort': sort_string,
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        sorted_disease_labels = [d['disease']['efo_info']['label'] for d in json_response['data']]
+        for i in range(len(sorted_disease_labels) - 1):
+            self.assertLessEqual(sorted_disease_labels[i],
+                                 sorted_disease_labels[i+1],
+                                )
+        sort_string = 'disease.efo_info.label'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target': target,
+                                            'direct': True,
+                                            'sort': sort_string,
+                                            'size': '30',
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        sorted_disease_labels = [d['disease']['efo_info']['label'] for d in json_response['data']]
+        for i in range(len(sorted_disease_labels) - 1):
+            self.assertGreaterEqual(sorted_disease_labels[i],
+                                 sorted_disease_labels[i + 1],
+                                 )
+
 
     def testAssociationFilterSearch(self):
 

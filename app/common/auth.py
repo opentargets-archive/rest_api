@@ -119,6 +119,7 @@ class TokenAuthentication():
         except SignatureExpired, se:
             time_offset = (datetime.now()- se.date_signed).total_seconds()
             current_app.logger.error('token expired: %s. signature date %s. offset with current date = %s'%(se.message,str(se.date_signed),str(time_offset)))
+            current_app.logger.error('current date %s, token date %s'%(str(datetime.now()), str(se.date_signed)))
             if -1<= time_offset < 0:#allow for 1 seconds out of sync machines
                 current_app.logger.info('token time offset within grace period. allowing auth')
                 return json.loads(cipher.decrypt(se.payload))
