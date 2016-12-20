@@ -398,8 +398,11 @@ class esQuery():
             data = res['suggest'][0]['options']
         return SimpleResult(None, params, data)
 
-    def get_gene_info(self, gene_ids, facets=False, **kwargs):
+    def get_gene_info(self, gene_ids, **kwargs):
         params = SearchParams(**kwargs)
+
+        facets = kwargs.get('facets') or False
+
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
