@@ -2945,10 +2945,16 @@ class AggregationUnitEvidenceMeshTerms(AggregationUnit):
 
     def _get_meshterms_facet_aggregation(self, filters):
 
-        return {
-            "terms": {"field": "private.facets.literature.mesh_headings"}
+        return {"terms":
+                    {"field": "private.facets.literature.mesh_headings.id", "size": 20},
+                        "aggs":
+                            {"label":
+                                 {"terms":
+                                      {"field": "private.facets.literature.mesh_headings.label", "size": 1}
+                                  }
+                             }
+                }
 
-        }
 
     def _get_complex_meshterms_kw_filter(self, kw, bol):
         pass
@@ -2961,14 +2967,14 @@ class AggregationUnitEvidenceMeshTerms(AggregationUnit):
         if kw:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "match": {"private.facets.literature'.mesh_headings": kw}
+                    "match": {"private.facets.literature.mesh_headings": kw}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "match": {
-                                      "private.facets.literature'.mesh_headings": term}
+                                      "private.facets.literature.mesh_headings": term}
                               }
                               for term in kw]
                     }
