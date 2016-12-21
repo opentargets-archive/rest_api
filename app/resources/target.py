@@ -46,8 +46,6 @@ class TargetInfo(restful.Resource):
         es = current_app.extensions['esquery']
 
         kwargs = request.get_json(force=True)
-        print "kwargs"
-        print kwargs
         target_ids = kwargs.pop('id', []) or []
 
         res = es.get_gene_info(target_ids, **kwargs)

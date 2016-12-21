@@ -401,16 +401,11 @@ class esQuery():
     def get_gene_info(self, gene_ids, **kwargs):
         params = SearchParams(**kwargs)
 
-        facets = kwargs.get('facets') or False
-
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
-        aggs = {}
-        if facets:
-            aggs = self._get_gene_info_agg()
 
         if gene_ids:
             res = self._cached_search(index=self._index_genename,
@@ -432,8 +427,6 @@ class esQuery():
                                           '_source': source_filter,
                                           'size': params.size,
                                           'from': params.start_from,
-                                          'aggs': aggs,
-
                                       }
                                       )
             if res['hits']['total']:
@@ -1285,35 +1278,6 @@ class esQuery():
             data = res['aggregations']["efo_codes"]["buckets"]
             efo_with_data = list(set([i['key'] for i in data]))
         return efo_with_data
-
-    def _get_gene_info_agg(self, filters={}):
-
-        return {
-            "pathway": {
-                "filter": {
-                    "bool": {
-                        "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
-                    }
-                },
-                "aggs": {
-                    "data": {
-                        "terms": {
-                            "field": "private.facets.reactome.pathway_type_code",
-                            'size': 10,
-                        },
-
-                        "aggs": {
-                            "pathway": {
-                                "terms": {
-                                    "field": "private.facets.reactome.pathway_code",
-                                    'size': 10,
-                                },
-                            }
-                        },
-                    }
-                }
-            }
-        }
 
     def _get_genes_for_pathway_code(self, pathway_codes):
         data = []
