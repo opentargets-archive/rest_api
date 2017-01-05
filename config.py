@@ -79,6 +79,8 @@ class Config:
 
     NO_CACHE_PARAMS = 'no_cache'
 
+    MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', None)
+
 
 
     @staticmethod

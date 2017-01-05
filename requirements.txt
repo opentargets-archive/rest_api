@@ -39,3 +39,5 @@ gevent==1.1.0
 unicodecsv
 blinker==1.4
 ipaddr==2.1.11
+mixpanel
+mixpanel-py-async
