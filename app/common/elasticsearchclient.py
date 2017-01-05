@@ -398,16 +398,14 @@ class esQuery():
             data = res['suggest'][0]['options']
         return SimpleResult(None, params, data)
 
-    def get_gene_info(self, gene_ids, facets=False, **kwargs):
+    def get_gene_info(self, gene_ids, **kwargs):
         params = SearchParams(**kwargs)
+
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
             source_filter["include"] = params.fields
-        aggs = {}
-        if facets:
-            aggs = self._get_gene_info_agg()
 
         if gene_ids:
             res = self._cached_search(index=self._index_genename,
@@ -429,8 +427,6 @@ class esQuery():
                                           '_source': source_filter,
                                           'size': params.size,
                                           'from': params.start_from,
-                                          'aggs': aggs,
-
                                       }
                                       )
             if res['hits']['total']:
@@ -1226,35 +1222,6 @@ class esQuery():
             efo_with_data = list(set([i['key'] for i in data]))
         return efo_with_data
 
-    def _get_gene_info_agg(self, filters={}):
-
-        return {
-            "pathway": {
-                "filter": {
-                    "bool": {
-                        "must": self._get_complimentary_facet_filters(FilterTypes.PATHWAY, filters),
-                    }
-                },
-                "aggs": {
-                    "data": {
-                        "terms": {
-                            "field": "private.facets.reactome.pathway_type_code",
-                            'size': 10,
-                        },
-
-                        "aggs": {
-                            "pathway": {
-                                "terms": {
-                                    "field": "private.facets.reactome.pathway_code",
-                                    'size': 10,
-                                },
-                            }
-                        },
-                    }
-                }
-            }
-        }
-
     def _get_genes_for_pathway_code(self, pathway_codes):
         data = []
         res = self._cached_search(index=self._index_genename,
@@ -1737,13 +1704,14 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _get_evidence_score_range_filter(self, params):
         return {
-            "range": {
-                'scores.association_score': {
-                    "gt": params.filters[FilterTypes.SCORE_RANGE][0],
-                    "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                "range" : {
+                    'scores.association_score' : {
+                        "gte": params.filters[FilterTypes.SCORE_RANGE][0],
+                        "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                        }
+                    }
+
                 }
-            }
-        }
 
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
@@ -1846,187 +1814,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                data,
                                )
 
-    def get_targets_related_to_target(self, target_id):
-
-        disease_profile = self._get_associated_diseases([target_id])
-        scored_relations = self._get_associated_target_for_disease_profile(disease_profile)
-        # scored_relations = self._score_relation(target_id,matching_targets)
-
-        relations = [Relation(target_id, i[0], RelationTypes.SHARED_DISEASES, value=i[1]).to_dict() for i in
-                     scored_relations[:100]]
-        return CountedResult(None, data=relations)
-
-    def _get_associated_diseases(self, target_ids):
-        data = []
-        res = self._cached_search(index=self._index_association,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "must": [
-                                                          self.get_complex_target_filter(target_ids),
-                                                          {"term": {"is_direct": True}},
-                                                          {"range": {"harmonic-sum.overall": {
-                                                              "gte": 0.1,
-                                                          }
-                                                          }
-                                                          }
-                                                      ]
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': 10000,
-                                      '_source': ["disease.id", "harmonic-sum.overall"],
-
-                                  })
-        if res['hits']['total']:
-            data = dict([[hit['_source']['disease']['id'], hit['_source']['harmonic-sum']['overall']] for hit in
-                         res['hits']['hits']])
-        return data
-
-    def _get_associated_target_for_disease_profile(self, disease_profile):
-        def cap_float(f):
-            if f > 1:
-                return 1.
-            return f
-
-        data = []
-
-        res = helpers.scan(client=self.handler,
-                           query={
-                               "query": {
-                                   "filtered": {
-                                       "filter": {
-                                           "bool": {
-                                               "must": [
-                                                   self.get_complex_disease_filter(disease_profile.keys(),
-                                                                                   is_direct=True),
-                                                   {"range": {"harmonic-sum.overall": {
-                                                       "gte": 0.1,
-                                                   }
-                                                   }
-                                                   }
-                                               ]
-                                           }
-                                       }
-                                   }
-                               },
-                               'size': 10000,
-                               '_source': ["target.id", "disease.id", "harmonic-sum.overall"],
-
-                           },
-                           scroll='1h',
-                           # doc_type=Config.ELASTICSEARCH_VALIDATED_DATA_DOC_NAME,
-                           index=self._index_association,
-                           timeout="10m",
-                           )
-
-        scored_targets = dict()
-        for hit in res:
-            # print hit['_source']['harmonic-sum']['overall'], disease_profile[hit['_source']['disease']['id']], (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease']['id']])))/len(disease_profile)
-            target = hit['_source']['target']['id']
-            score = (1 - cap_float(abs(
-                hit['_source']['harmonic-sum']['overall'] - disease_profile[hit['_source']['disease']['id']]))) / len(
-                disease_profile)
-            if target not in scored_targets:
-                scored_targets[target] = 0.
-            scored_targets[target] += score
-        if scored_targets:
-            data = sorted(scored_targets.items(), key=lambda x: x[1], reverse=True)
-        return data
-
-    def get_diseases_related_to_disease(self, disease_id):
-
-        target_profile = self._get_associated_targets([disease_id])
-        scored_relations = self._get_associated_diseases_for_target_profile(target_profile)
-
-        relations = [Relation(disease_id, i[0], RelationTypes.SHARED_TARGETS, value=i[1]).to_dict() for i in
-                     scored_relations[:100]]
-        return CountedResult(None, data=relations)
-
-    def _get_associated_targets(self, disease_ids):
-        data = []
-        res = self._cached_search(index=self._index_association,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "must": [
-                                                          self.get_complex_disease_filter(disease_ids, is_direct=True),
-                                                          {"term": {"is_direct": True}},
-                                                          {"range": {"harmonic-sum.overall": {
-                                                              "gte": 0.1,
-                                                          }
-                                                          }
-                                                          }
-                                                      ]
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': 10000,
-                                      '_source': ["target.id", "harmonic-sum.overall"],
-
-                                  })
-        if res['hits']['total']:
-            data = dict([[hit['_source']['target']['id'], hit['_source']['harmonic-sum']['overall']] for hit in
-                         res['hits']['hits']])
-        return data
-
-    def _get_associated_diseases_for_target_profile(self, target_profile):
-        def cap_float(f):
-            if f > 1:
-                return 1.
-            return f
-
-        data = []
-
-        res = helpers.scan(client=self.handler,
-                           query={
-                               "query": {
-                                   "filtered": {
-                                       "filter": {
-                                           "bool": {
-                                               "must": [
-                                                   self.get_complex_target_filter(target_profile.keys()),
-                                                   {"range": {"harmonic-sum.overall": {
-                                                       "gte": 0.1,
-                                                   }
-                                                   }
-                                                   }
-                                               ]
-                                           }
-                                       }
-                                   }
-                               },
-                               'size': 10000,
-                               '_source': ["target.id", "disease.id", "harmonic-sum.overall"],
-
-                           },
-                           scroll='1h',
-                           # doc_type=Config.ELASTICSEARCH_VALIDATED_DATA_DOC_NAME,
-                           index=self._index_association,
-                           timeout="10m",
-                           )
-
-        scored_diseases = dict()
-        for hit in res:
-            # print hit['_source']['harmonic-sum']['overall'], disease_profile[hit['_source']['disease']['id']],
-            # (1-cap_float(abs(hit['_source']['harmonic-sum']['overall']-disease_profile[hit['_source']['disease'][
-            # 'id']])))/len(disease_profile)
-            disease = hit['_source']['disease']['id']
-            score = (1 - cap_float(abs(
-                hit['_source']['harmonic-sum']['overall'] - target_profile[hit['_source']['target']['id']]))) / len(
-                target_profile)
-            if disease not in scored_diseases:
-                scored_diseases[disease] = 0.
-            scored_diseases[disease] += score
-        if scored_diseases:
-            data = sorted(scored_diseases.items(), key=lambda x: x[1], reverse=True)
-        return data
 
     def _get_free_text_suggestions(self, searchphrase):
         return {
@@ -2209,7 +1996,7 @@ class AggregationUnitTarget(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "target.id",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2247,7 +2034,7 @@ class AggregationUnitDisease(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "disease.id",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2385,7 +2172,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
-                        'size': 25,
+                        'size': 50,
                         "chi_square": {"include_negatives": True,
                                        "background_is_superset": False},
                     },
@@ -2430,7 +2217,7 @@ class AggregationUnitGO(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
-                        'size': 25,
+                        'size': 50,
 
                     },
                     "aggs": {
@@ -2558,7 +2345,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.target_class.level1.id",
-                        'size': 20,
+                        'size': 25,
                     },
 
                     "aggs": {
@@ -2571,7 +2358,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                         FilterTypes.TARGET_CLASS: {
                             "terms": {
                                 "field": "private.facets.target_class.level2.id",
-                                'size': 20,
+                                'size': 50,
                             },
                             "aggs": {
                                 "label": {
@@ -2634,26 +2421,30 @@ class AggregationUnitScoreRange(AggregationUnit):
     def _get_association_score_range_filter(params):
         if len(params.scorevalue_types) == 1:
             return {
-                "range": {
-                    params.association_score_method + "." + params.scorevalue_types[0]: {
-                        "gt": params.filters[FilterTypes.SCORE_RANGE][0],
-                        "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                        "range" : {
+                            params.association_score_method+"."+params.scorevalue_types[0] : {
+                                "gte": params.filters[FilterTypes.SCORE_RANGE][0],
+                                "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                            }
+                        }
+
                     }
-                }
-            }
+
         else:
             return {
-                "bool": {
-                    'must': [{
-                                 "range": {
-                                     params.association_score_method + "." + st: {
-                                         "gt": params.filters[FilterTypes.SCORE_RANGE][0],
-                                         "lte": params.filters[FilterTypes.SCORE_RANGE][1]
-                                     }
-                                 }
-                             }
-                             for st in params.scorevalue_types]
-                }
+
+                    "bool": {
+                        'must': [{
+                                "range" : {
+                                    params.association_score_method+"."+st : {
+                                        "gte": params.filters[FilterTypes.SCORE_RANGE][0],
+                                        "lte": params.filters[FilterTypes.SCORE_RANGE][1]
+                                    }
+                                }
+                              }
+                              for st in params.scorevalue_types]
+                    }
+
             }
 
 
@@ -2741,12 +2532,13 @@ class AggregationUnitDatasource(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.datatype",
-                        'size': 10,
+                        'size': 25,
                     },
                     "aggs": {
                         "datasource": {
                             "terms": {
                                 "field": "private.facets.datasource",
+                                'size': 25,
                             },
                             "aggs": {
                                 "unique_target_count": {
