@@ -43,9 +43,9 @@ class EvidenceFacetsTestCase(GenericTestCase):
         self.assertIsNotNone(json_response['facets'])
 
         self.assertGreater(len(json_response['facets']['journal']['data']['buckets']),0)
-        self.assertGreater(len(json_response['facets']['meshterms']['data']['buckets']),0)
         self.assertGreater(len(json_response['facets']['disease']['data']['buckets']),0)
         self.assertGreater(len(json_response['facets']['pub_date']['data']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['meshterms']['data']['buckets']), 0)
 
 
 

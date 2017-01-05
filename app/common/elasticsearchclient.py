@@ -496,8 +496,8 @@ class esQuery():
         '''create faceted evidence query with
            aggregations and post-filters for enabling faceted search'''
 
-        agg_builder = AggregationBuilder(self)
-        agg_builder.load_params(params, 'evidence')
+        agg_builder = AggregationBuilder(self, 'evidence')
+        agg_builder.load_params(params)
         conditions = agg_builder.filters.values()
         aggs = agg_builder.aggs
         filter_data_conditions = agg_builder.filters
@@ -585,8 +585,8 @@ class esQuery():
 
         '''create multiple condition boolean query'''
 
-        agg_builder = AggregationBuilder(self)
-        agg_builder.load_params(params,'association')
+        agg_builder = AggregationBuilder(self,'association')
+        agg_builder.load_params(params)
         aggs = agg_builder.aggs
         filter_data_conditions = agg_builder.filters
 
@@ -1950,10 +1950,12 @@ class AggregationUnit(object):
                  filter,
                  params,
                  handler,
+                 facet_type,
                  compute_aggs=False):
         self.filter = filter
         self.params = params
         self.handler = handler
+        self.facet_type=facet_type
         self.compute_aggs = compute_aggs
         self.query_filter = {}
         self.agg = {}
@@ -2048,23 +2050,6 @@ class AggregationUnitDisease(AggregationUnit):
                 },
             }
         }
-
-
-class AggregationUnitEvidenceDisease(AggregationUnitDisease):
-    def build_agg(self, filters):
-        self.agg = self._get_disease_facet_aggregation(filters)
-
-    def _get_disease_facet_aggregation(self, filters):
-        return {
-
-            "terms": {
-                "field": "disease.id",
-                'size': 10,
-
-            }
-
-        }
-
 
 class AggregationUnitTherapeuticArea(AggregationUnit):
     def build_query_filter(self):
@@ -2511,7 +2496,11 @@ class AggregationUnitDatasource(AggregationUnit):
                 else:
                     requested_datasources.append(d)
             requested_datasources = list(set(requested_datasources))
-            self.query_filter = self._get_complex_datasource_filter(requested_datasources,
+            if self.facet_type == 'evidence':
+                self.query_filter = self.handler._get_complex_datasource_filter_evidencestring(requested_datasources,
+                                                                    BooleanFilterOperator.OR)
+            else:
+                self.query_filter = self._get_complex_datasource_filter(requested_datasources,
                                                                     BooleanFilterOperator.OR)
 
     def build_agg(self, filters):
@@ -2584,6 +2573,8 @@ class AggregationUnitDatasource(AggregationUnit):
                 }
             }
         return dict()
+
+
 
 
 class AggregationUnitAbstract(AggregationUnit):
@@ -2898,24 +2889,23 @@ class AggregationBuilder(object):
         FilterTypes.ABSTRACT: AggregationUnitAbstract,
         FilterTypes.JOURNAL: AggregationUnitJournal,
         FilterTypes.PUB_DATE: AggregationUnitPubDate,
-        FilterTypes.DISEASE: AggregationUnitEvidenceDisease,
         FilterTypes.MESHTERMS: AggregationUnitEvidenceMeshTerms
 
     }
 
-    def __init__(self, handler):
+    def __init__(self, handler,facet_type):
+        self.facet_type = facet_type
         self.handler = handler
         self.filter_types = FilterTypes().__dict__
         self.units = {}
         self.aggs = {}
         self.filters = {}
-        self.post_filters = {}
 
-    def load_params(self, params, facet_type):
+    def load_params(self, params):
 
-        if facet_type == 'association':
+        if self.facet_type == 'association':
             unit_map = self._UNIT_MAP
-        elif facet_type == 'evidence':
+        elif self.facet_type == 'evidence':
             unit_map = self._EVIDENCE_UNIT_MAP
 
 
@@ -2924,6 +2914,7 @@ class AggregationBuilder(object):
             self.units[unit_type] = unit_map[unit_type](params.filters[unit_type],
                                                               params,
                                                               self.handler,
+                                                              self.facet_type,
                                                               compute_aggs=params.facets)
         '''get filters'''
         for query_filter in unit_map:
