@@ -30,7 +30,6 @@ class EvidenceFacetsTestCase(GenericTestCase):
                                       data=json.dumps({'target':[target_cancer],
                                             'datasource':[datasource],
                                             'disease' :[disease_cancer],
-                                            'direct':True,
                                             'facets':True,
                                             'size': 10
                                             }),content_type='application/json',
@@ -43,11 +42,11 @@ class EvidenceFacetsTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertIsNotNone(json_response['facets'])
 
-        self.assertGreater(len(json_response['facets']['journal']['buckets']),0)
-        self.assertGreater(len(json_response['facets']['meshterms']['buckets']),0)
-        self.assertGreater(len(json_response['facets']['disease']['buckets']),0)
-        self.assertGreater(len(json_response['facets']['pub_date']['buckets']),0)
-        #self.assertGreater(len(json_response['facets']['abstract']['buckets']), 0)
+        self.assertGreater(len(json_response['facets']['journal']['data']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['meshterms']['data']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['disease']['data']['buckets']),0)
+        self.assertGreater(len(json_response['facets']['pub_date']['data']['buckets']),0)
+
 
 
     def testEvidenceFacetsFiltering(self):
@@ -66,7 +65,6 @@ class EvidenceFacetsTestCase(GenericTestCase):
                                             'datasource':[datasource],
                                             'disease' :[disease_ibd],
                                             'abstract':abstract,
-                                            'direct':True,
                                             'facets':True,
                                             'size': 10
                                             }),content_type='application/json',
@@ -96,7 +94,6 @@ class EvidenceFacetsTestCase(GenericTestCase):
                                       data=json.dumps({'target':[target_ibd],
                                             'datasource':[datasource],
                                             'disease' :[disease_ibd],
-                                            'direct':True,
                                             'facets':False,
                                             'size': 10
                                             }),content_type='application/json',

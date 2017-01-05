@@ -12,7 +12,7 @@ from elasticsearch import helpers, TransportError
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
 
-from app.common.request_templates import FilterTypes, EvidenceFacetTypes
+from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
 from app.common.response_templates import Association, DataStats, Relation, RelationTypes
 from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult, EmptySimpleResult, \
@@ -497,10 +497,12 @@ class esQuery():
            aggregations and post-filters for enabling faceted search'''
 
         agg_builder = AggregationBuilder(self)
-        agg_builder.build_evidence_query(params)
+        agg_builder.load_params(params, 'evidence')
         conditions = agg_builder.filters.values()
         aggs = agg_builder.aggs
-        post_filters = agg_builder.post_filters
+        filter_data_conditions = agg_builder.filters
+        query_body = {"match_all": {}}
+
 
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
 
@@ -514,13 +516,7 @@ class esQuery():
             source_filter["include"] = params.fields
 
         ev_query_body = {
-            "query": {
-
-                        "bool": {
-                            "must": conditions
-                        },
-
-            },
+            "query":  query_body,
             'size': params.size,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params),
@@ -531,10 +527,12 @@ class esQuery():
         if aggs:
             ev_query_body['aggs'] = aggs
         # filter out the results as requested, this will not be applied to the facets aggregation
-        if post_filters:
+        if filter_data_conditions:
+
             ev_query_body['post_filter'] = {
                 "bool": {
-                    "must": post_filters.values()
+                    "must": filter_data_conditions.values()
+
                 }
             }
 
@@ -588,7 +586,7 @@ class esQuery():
         '''create multiple condition boolean query'''
 
         agg_builder = AggregationBuilder(self)
-        agg_builder.load_params(params)
+        agg_builder.load_params(params,'association')
         aggs = agg_builder.aggs
         filter_data_conditions = agg_builder.filters
 
@@ -1903,14 +1901,13 @@ class SearchParams():
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
         self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
+        self.filters[FilterTypes.ABSTRACT] = kwargs.get(FilterTypes.ABSTRACT)
+        self.filters[FilterTypes.JOURNAL] = kwargs.get(FilterTypes.JOURNAL)
+        self.filters[FilterTypes.PUB_DATE] = kwargs.get(FilterTypes.PUB_DATE)
+        self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
+        self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
+        self.filters[FilterTypes.MESHTERMS] = kwargs.get(FilterTypes.MESHTERMS)
 
-        self.evidence_filters = dict()
-        self.evidence_filters[EvidenceFacetTypes.ABSTRACT] = kwargs.get(EvidenceFacetTypes.ABSTRACT)
-        self.evidence_filters[EvidenceFacetTypes.JOURNAL] = kwargs.get(EvidenceFacetTypes.JOURNAL)
-        self.evidence_filters[EvidenceFacetTypes.PUB_DATE] = kwargs.get(EvidenceFacetTypes.PUB_DATE)
-        self.evidence_filters[EvidenceFacetTypes.DATATYPE] = kwargs.get(EvidenceFacetTypes.DATATYPE)
-        self.evidence_filters[EvidenceFacetTypes.DISEASE] = kwargs.get(EvidenceFacetTypes.DISEASE)
-        self.evidence_filters[EvidenceFacetTypes.MESHTERMS] = kwargs.get(EvidenceFacetTypes.MESHTERMS)
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -2600,14 +2597,40 @@ class AggregationUnitAbstract(AggregationUnit):
 
     def _get_abstract_keywords_facet_aggregation(self, filters):
         return {
-            "significant_terms": {"field": "private.facets.abstract_lemmas.value"},
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.ABSTRACT, filters),
+                }
+            },
+
             "aggs": {
-                "cluster_terms": {
+                "data": {
+
                     "significant_terms": {
                         "field": "private.facets.abstract_lemmas.value",
-                        "size": 5
+                        "size": 25,
+                        "chi_square": {"include_negatives": True,
+                                       "background_is_superset": False},
+                    },
+                    "aggs": {
+                        "cluster_terms": {
+                            "significant_terms": {
+                                "field": "private.facets.abstract_lemmas.value",
+                                "size": 5
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
                     }
-                }
+                },
             }
 
         }
@@ -2622,7 +2645,6 @@ class AggregationUnitAbstract(AggregationUnit):
         if kw:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    # "match": {"evidence.evidence_codes_info.label": kw}
                     # TODO : use fuzzy query instead??
                     "match": {"literature.abstract": kw}
 
@@ -2632,7 +2654,6 @@ class AggregationUnitAbstract(AggregationUnit):
                     "bool": {
                         bol: [{
                                   "match": {
-                                      #    "evidence.evidence_codes_info.label": [term]}
                                       "literature.abstract": term}
                               }
                               for term in kw]
@@ -2652,14 +2673,36 @@ class AggregationUnitPubDate(AggregationUnit):
 
     def _pub_date_facet_aggregation(self, filters):
         return {
-            "terms": {
-                "field": "literature.date",
-                'size': 25,
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.PUB_DATE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "literature.date",
+                        'size': 25,
+                 },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
             }
         }
 
+
     def _get_complex_pub_date_filter(self, kw, bol):
-        pass
+
         '''
         :param kw: list of publication date kw strings
         :param bol: boolean operator to use for combining filters
@@ -2696,12 +2739,36 @@ class AggregationUnitJournal(AggregationUnit):
     def _get_journal_keywords_facet_aggregation(self, filters):
         # TODO : do not analyze medlineAbbreviation field
         return {
-            "terms": {"field": "literature.journal_data.medlineAbbreviation"}
-
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.JOURNAL, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "literature.journal_data.medlineAbbreviation",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
         }
 
+
     def _get_complex_journal_kw_filter(self, kw, bol):
-        pass
+
         '''
         :param kw: list of journal kw strings
         :param bol: boolean operator to use for combining filters
@@ -2737,15 +2804,41 @@ class AggregationUnitEvidenceMeshTerms(AggregationUnit):
 
     def _get_meshterms_facet_aggregation(self, filters):
 
-        return {"terms":
-                    {"field": "private.facets.literature.mesh_headings.id", "size": 20},
-                        "aggs":
-                            {"label":
-                                 {"terms":
-                                      {"field": "private.facets.literature.mesh_headings.label", "size": 1}
-                                  }
-                             }
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.MESHTERMS, filters),
                 }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.literature.mesh_headings.id",
+                        'size': 25,
+
+                    },
+                    "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.literature.mesh_headings.label",
+                                'size': 1,
+                            },
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
 
 
     def _get_complex_meshterms_kw_filter(self, kw, bol):
@@ -2773,32 +2866,6 @@ class AggregationUnitEvidenceMeshTerms(AggregationUnit):
                 }
         return dict()
 
-
-
-class AggregationUnitEvidenceDatasource(AggregationUnit):
-    def build_query_filter(self):
-        if self.filter is not None:
-            requested_datasources = []
-            for d in self.filter:
-                if d in self.handler.datatypes.datatypes:
-                    requested_datasources.extend(self.handler.datatypes.get_datasources(d))
-                else:
-                    requested_datasources.append(d)
-            requested_datasources = list(set(requested_datasources))
-            self.query_filter = self.handler._get_complex_datasource_filter_evidencestring(requested_datasources,
-                                                                                           BooleanFilterOperator.OR)
-
-    def build_agg(self, filters):
-        self.agg = self.get_datatype_facet_aggregation(filters)
-
-    def get_datatype_facet_aggregation(self, filters):
-
-        return {
-            "terms": {
-                "field": "sourceID",
-                'size': 25,
-            }
-        }
 class AggregationBuilder(object):
     '''
     handles the construction of an aggregation query based on a set of filters
@@ -2822,19 +2889,17 @@ class AggregationBuilder(object):
                              FilterTypes.SCORE_RANGE,
                              ]
 
-    _EVIDENCE_FACET_MAP = {
-        # EvidenceFacetTypes.DATATYPE : AggregationUnitDatasource,
-        EvidenceFacetTypes.ABSTRACT: AggregationUnitAbstract,
-        EvidenceFacetTypes.JOURNAL: AggregationUnitJournal,
-        EvidenceFacetTypes.PUB_DATE: AggregationUnitPubDate,
-        EvidenceFacetTypes.DISEASE: AggregationUnitEvidenceDisease,
-        EvidenceFacetTypes.MESHTERMS: AggregationUnitEvidenceMeshTerms
-    }
-
     _EVIDENCE_UNIT_MAP = {
-        FilterTypes.DATATYPE: AggregationUnitEvidenceDatasource,
+        FilterTypes.DATATYPE: AggregationUnitDatasource,
         FilterTypes.DISEASE: AggregationUnitDisease,
         FilterTypes.TARGET: AggregationUnitTarget,
+        FilterTypes.PATHWAY: AggregationUnitPathway,
+        FilterTypes.UNIPROT_KW: AggregationUnitUniprotKW,
+        FilterTypes.ABSTRACT: AggregationUnitAbstract,
+        FilterTypes.JOURNAL: AggregationUnitJournal,
+        FilterTypes.PUB_DATE: AggregationUnitPubDate,
+        FilterTypes.DISEASE: AggregationUnitEvidenceDisease,
+        FilterTypes.MESHTERMS: AggregationUnitEvidenceMeshTerms
 
     }
 
@@ -2846,23 +2911,29 @@ class AggregationBuilder(object):
         self.filters = {}
         self.post_filters = {}
 
-    def load_params(self, params):
+    def load_params(self, params, facet_type):
+
+        if facet_type == 'association':
+            unit_map = self._UNIT_MAP
+        elif facet_type == 'evidence':
+            unit_map = self._EVIDENCE_UNIT_MAP
+
 
         '''define and init units'''
-        for unit_type in self._UNIT_MAP:
-            self.units[unit_type] = self._UNIT_MAP[unit_type](params.filters[unit_type],
+        for unit_type in unit_map:
+            self.units[unit_type] = unit_map[unit_type](params.filters[unit_type],
                                                               params,
                                                               self.handler,
                                                               compute_aggs=params.facets)
         '''get filters'''
-        for query_filter in self._UNIT_MAP:
+        for query_filter in unit_map:
             self.filters[query_filter] = self.units[query_filter].query_filter
 
         '''get aggregations if requested'''
         if params.facets:
             aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
             '''get available aggregations'''
-            for agg in self._UNIT_MAP:
+            for agg in unit_map:
                 if agg not in aggs_not_to_be_returned:
                     self.units[agg].build_agg(self.filters)
                     if self.units[agg].agg:
@@ -2882,31 +2953,7 @@ class AggregationBuilder(object):
             aggs_not_to_be_returned = filters_to_apply[0]
         return aggs_not_to_be_returned
 
-    def build_evidence_query(self, params):
-
-        ''' build filter conditions '''
-
-        for filter_condition in self._EVIDENCE_UNIT_MAP:
-            self.filters[filter_condition] = self._EVIDENCE_UNIT_MAP[filter_condition](params.filters[filter_condition],
-                                                                                       params,
-                                                                                       self.handler,
-                                                                                       compute_aggs=params.facets).query_filter
-
-        ''' build aggregations units for facets'''
-        if params.facets:
-            for key, agg_unit in self._EVIDENCE_FACET_MAP.iteritems():
-                self.units[key] = agg_unit(params.evidence_filters[key], params, self.handler,
-                                           compute_aggs=params.facets)
-                ''' build facet query '''
-                self.units[key].build_agg(self.filters)
-                if self.units[key].agg:
-                    self.aggs[key] = self.units[key].agg
-                ''' build post-filter query for faceted search '''
-                if params.evidence_filters[key]:
-                    self.post_filters[key] = self.units[key].query_filter
-
-
-                    #
+                   #
         # def _get_go_facet_aggregation(self, filters):
         #     pass
 
