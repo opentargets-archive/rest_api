@@ -29,7 +29,6 @@ class Association(restful.Resource):
         Get an associations from its id
         Can be used to request in batch if multiple ids are passed
         """
-        start_time = time.time()
         args = self.parser.parse_args()
         evidenceids = args['id'][:1000]
         es = current_app.extensions['esquery']
@@ -37,8 +36,7 @@ class Association(restful.Resource):
         res = es.get_associations_by_id(evidenceids)
         if not res:
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
-        return CTTVResponse.OK(res,
-                               took=time.time() - start_time)
+        return CTTVResponse.OK(res)
 
 class FilterBy(restful.Resource):
 
@@ -51,7 +49,6 @@ class FilterBy(restful.Resource):
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         """
-        start_time = time.time()
         parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False,)
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -81,8 +78,7 @@ class FilterBy(restful.Resource):
         args = parser.parse_args()
         self.remove_empty_params(args)
         data = self.get_association(params=args)
-        return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
+        return CTTVResponse.OK(data)
 
 
     @is_authenticated

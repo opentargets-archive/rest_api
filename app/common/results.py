@@ -223,8 +223,12 @@ class RawResult(Result):
     '''
 
     def toDict(self):
+        if isinstance(self.res, dict):
+            return self.res
         return json.loads(self.res)
     def toJSON(self):
+        if isinstance(self.res, dict):
+            return json.dumps(self.res)
         return self.res
 
 class EmptySimpleResult(Result):

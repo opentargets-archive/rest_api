@@ -901,7 +901,7 @@ class esQuery():
                                        enrichment,
                                        facets=data['facets'],
                                        available_datatypes=self.datatypes.available_datatypes,
-                                       therapeutic_areas=ta_scores.append,
+                                       therapeutic_areas=ta_scores,
                                        )
 
             except KeyError:
@@ -2174,25 +2174,25 @@ class AggregationUnitDisease(AggregationUnit):
 
     def get_disease_aggregation(self, size=25):
         return {
-            "aggs": {
                 "data": {
                     "terms": {
                         "field": "disease.id",
                         'size': size,
                     },
-                    "unique_disease_count": {
-                        "cardinality": {
-                            "field": "disease.id",
-                            "precision_threshold": 1000},
-                    },
-                    "sum_scores": {
-                        "sum": {
-                            "field": "harmonic_sum.association_score.overall",
+                    "aggs": {
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
                         },
-                    },
+                        "sum_scores": {
+                            "sum": {
+                                "field": "harmonic_sum.association_score.overall",
+                            },
+                        },
+                    }
                 }
             }
-        }
 
 
 class AggregationUnitTherapeuticArea(AggregationUnit):
@@ -2744,7 +2744,10 @@ class AggregationBuilder(object):
 
         '''define and init units'''
         for unit_type in self._UNIT_MAP:
-            self.units[unit_type] = self._UNIT_MAP[unit_type]()
+            self.units[unit_type] = self._UNIT_MAP[unit_type](params.filters[unit_type],
+                                                              params,
+                                                              self.handler,
+                                                              compute_aggs=params.facets)
         '''get filters'''
         for query_filter in self._UNIT_MAP:
             self.filters[query_filter] = self.units[query_filter].query_filter
