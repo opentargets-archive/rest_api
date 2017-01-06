@@ -2956,7 +2956,7 @@ class AggregationBuilder(object):
                         self.aggs[agg] = self.units[agg].agg
 
         '''handle post-filters for evidence'''
-        for query_filter in self._EVIDENCE_FACET_MAP:
+        for query_filter in unit_map:
             self.post_filters[query_filter] = self.units[query_filter].query_filter
 
 
