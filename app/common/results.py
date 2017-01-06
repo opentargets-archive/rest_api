@@ -26,7 +26,8 @@ class Result(object):
                  available_datatypes = [],
                  suggest=None,
                  status = ['ok'],
-                 therapeutic_areas = []):
+                 therapeutic_areas = [],
+                 total = 0):
         
         '''
         :param res: elasticsearch query response
@@ -45,6 +46,7 @@ class Result(object):
         self.status = status
         self.therapeutic_areas= therapeutic_areas
         self.suggest = suggest
+        self.total = total
 
     def toDict(self):
         raise NotImplementedError
@@ -167,7 +169,7 @@ class PaginatedResult(Result):
             if self.res and 'aggregations' in self.res:
                 self.facets = self.res['aggregations']
 
-        return {'data': self.data,
+        result= {'data': self.data,
                 'facets':self.facets,
                 'total': self.res['hits']['total'],
                 'took': self.res['took'],
@@ -177,6 +179,7 @@ class PaginatedResult(Result):
                 'therapeutic_areas': self.therapeutic_areas,
                 'data_version' : Config.DATA_VERSION,
                 }
+        return result
 
 class EmptyPaginatedResult(Result):
     def toDict(self):

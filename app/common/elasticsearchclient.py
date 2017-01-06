@@ -497,10 +497,9 @@ class esQuery():
            aggregations and post-filters for enabling faceted search'''
 
         agg_builder = AggregationBuilder(self, 'evidence')
-        agg_builder.load_params(params)
-        conditions = agg_builder.filters.values()
+        agg_builder.build_evidence_query(params)
         aggs = agg_builder.aggs
-        filter_data_conditions = agg_builder.filters
+        post_filters = agg_builder.post_filters
         query_body = {"match_all": {}}
 
 
@@ -527,11 +526,11 @@ class esQuery():
         if aggs:
             ev_query_body['aggs'] = aggs
         # filter out the results as requested, this will not be applied to the facets aggregation
-        if filter_data_conditions:
+        if post_filters:
 
             ev_query_body['post_filter'] = {
                 "bool": {
-                    "must": filter_data_conditions.values()
+                    "must": post_filters.values()
 
                 }
             }
@@ -657,7 +656,7 @@ class esQuery():
                                        timeout="20m",
                                        request_timeout=60 * 20,
                                        # routing=use gene here
-                                       query_cache=True,
+                                       #query_cache=True,
                                        )
         aggregation_results = {}
 
@@ -1905,7 +1904,7 @@ class SearchParams():
         self.filters[FilterTypes.JOURNAL] = kwargs.get(FilterTypes.JOURNAL)
         self.filters[FilterTypes.PUB_DATE] = kwargs.get(FilterTypes.PUB_DATE)
         self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
-        self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
+        self.filters[FilterTypes.DISEASE_KW] = kwargs.get(FilterTypes.DISEASE_KW)
         self.filters[FilterTypes.MESHTERMS] = kwargs.get(FilterTypes.MESHTERMS)
 
 
@@ -2147,7 +2146,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
                 }
             },
             "aggs": {
@@ -2880,17 +2879,21 @@ class AggregationBuilder(object):
                              FilterTypes.SCORE_RANGE,
                              ]
 
-    _EVIDENCE_UNIT_MAP = {
+    _EVIDENCE_FILTER_MAP = {
         FilterTypes.DATATYPE: AggregationUnitDatasource,
         FilterTypes.DISEASE: AggregationUnitDisease,
         FilterTypes.TARGET: AggregationUnitTarget,
         FilterTypes.PATHWAY: AggregationUnitPathway,
-        FilterTypes.UNIPROT_KW: AggregationUnitUniprotKW,
+        FilterTypes.UNIPROT_KW: AggregationUnitUniprotKW
+    }
+
+    _EVIDENCE_FACET_MAP = {
+        FilterTypes.DISEASE_KW: AggregationUnitDisease,
+
         FilterTypes.ABSTRACT: AggregationUnitAbstract,
         FilterTypes.JOURNAL: AggregationUnitJournal,
         FilterTypes.PUB_DATE: AggregationUnitPubDate,
         FilterTypes.MESHTERMS: AggregationUnitEvidenceMeshTerms
-
     }
 
     def __init__(self, handler,facet_type):
@@ -2900,14 +2903,36 @@ class AggregationBuilder(object):
         self.units = {}
         self.aggs = {}
         self.filters = {}
+        self.post_filters = {}
 
     def load_params(self, params):
 
-        if self.facet_type == 'association':
-            unit_map = self._UNIT_MAP
-        elif self.facet_type == 'evidence':
-            unit_map = self._EVIDENCE_UNIT_MAP
+        '''define and init units'''
+        for unit_type in self._UNIT_MAP:
+            self.units[unit_type] = self._UNIT_MAP[unit_type](params.filters[unit_type],
+                                                              params,
+                                                              self.handler,
+                                                              self.facet_type,
+                                                              compute_aggs=params.facets)
+        '''get filters'''
+        for query_filter in self._UNIT_MAP:
+            self.filters[query_filter] = self.units[query_filter].query_filter
 
+        '''get aggregations if requested'''
+        if params.facets:
+            aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
+            '''get available aggregations'''
+            for agg in self._UNIT_MAP:
+                if agg not in aggs_not_to_be_returned:
+                    self.units[agg].build_agg(self.filters)
+                    if self.units[agg].agg:
+                        self.aggs[agg] = self.units[agg].agg
+
+
+    def build_evidence_query(self, params):
+
+        unit_map = self._EVIDENCE_FILTER_MAP.copy()
+        unit_map.update(self._EVIDENCE_FACET_MAP)
 
         '''define and init units'''
         for unit_type in unit_map:
@@ -2917,18 +2942,25 @@ class AggregationBuilder(object):
                                                               self.facet_type,
                                                               compute_aggs=params.facets)
         '''get filters'''
-        for query_filter in unit_map:
+        for query_filter in self._EVIDENCE_FILTER_MAP:
             self.filters[query_filter] = self.units[query_filter].query_filter
 
         '''get aggregations if requested'''
         if params.facets:
             aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
             '''get available aggregations'''
-            for agg in unit_map:
+            for agg in self._EVIDENCE_FACET_MAP:
                 if agg not in aggs_not_to_be_returned:
                     self.units[agg].build_agg(self.filters)
                     if self.units[agg].agg:
                         self.aggs[agg] = self.units[agg].agg
+
+        '''handle post-filters for evidence'''
+        for query_filter in self._EVIDENCE_FACET_MAP:
+            self.post_filters[query_filter] = self.units[query_filter].query_filter
+
+
+
 
     def _get_AggregationUnit(self, str):
         return getattr(sys.modules[__name__], str)
