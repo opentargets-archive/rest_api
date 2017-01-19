@@ -1860,17 +1860,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
-        res = None
         is_multi = False
 
         if ('is_multi' in kwargs):
             is_multi = kwargs.pop('is_multi')
 
-        if not no_cache:
+        if no_cache:
             if is_multi:
                 res = self.handler.msearch(*args, **kwargs)
             else:
                 res = self.handler.search(*args, **kwargs)
+            return res
+
+        res = self.cache.get(key)
         if res is None:
             start_time = time.time()
 
