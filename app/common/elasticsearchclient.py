@@ -343,7 +343,13 @@ class esQuery():
             k = bg["association_counts"]["total"]
             x = disease["unique_target_count"]["value"]
 
-            pval = HypergeometricTest.run(N, M, k, x)
+            key = str(N) + "_" + str(M) + "_" + str(k) + "_" + str(x);
+            pval = self.cache.get(key)
+            if pval is None:
+                start_time = time.time()
+                pval = HypergeometricTest.run(N, M, k, x)
+                took = int(round(time.time() - start_time))
+                self.cache.set(key, pval, took)
 
             enrichment.append({
                 "id": id_,
