@@ -2020,7 +2020,7 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
-        self.enrichment_method = kwargs.get('targets_enrichment', "simple")
+        self.enrichment_method = kwargs.get('targets_enrichment')
 
         self.fields = kwargs.get('fields')
         self.requested_fields = None  # to be populated after
