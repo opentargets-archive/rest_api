@@ -43,10 +43,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '2.0'
-    API_VERSION_MINOR = '2.0.2'
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_RECORD_QUERIES = True
+    API_VERSION = os.getenv('API_VERSION','2.0')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.0.2')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
@@ -74,8 +72,11 @@ class Config:
 
     USAGE_LIMIT_DEFAULT_SHORT = 3000
     USAGE_LIMIT_DEFAULT_LONG = 1200000
-    USAGE_LIMIT_PATH = 'app/authconf/rate_limit.csv'
-    IP_RESOLVER_LIST_PATH = 'app/authconf/ip_list.csv'
+    SECRET_PATH = os.getenv('SECRET_PATH', 'app/authconf/')
+    SECRET_RATE_LIMIT_FILE = os.getenv('SECRET_RATE_LIMIT_FILE', 'rate_limit.csv')
+    SECRET_IP_RESOLVER_FILE = os.getenv('SECRET_IP_RESOLVER_FILE', 'ip_list.csv')
+    USAGE_LIMIT_PATH = os.path.join(SECRET_PATH, SECRET_RATE_LIMIT_FILE)
+    IP_RESOLVER_LIST_PATH = os.path.join(SECRET_PATH, SECRET_IP_RESOLVER_FILE)
 
     NO_CACHE_PARAMS = 'no_cache'
 
