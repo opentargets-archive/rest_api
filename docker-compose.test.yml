@@ -1,0 +1,5 @@
+sut:
+  image: this
+  environment:
+    - ELASTICSEARCH_URL='http://elasticsearch:9200'
+  command: python manage.py test
