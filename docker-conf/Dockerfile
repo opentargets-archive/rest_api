@@ -27,6 +27,8 @@ RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor && \
  ln -sf /dev/stdout /var/log/nginx/access.log && \
  ln -sf /dev/stderr /var/log/nginx/error.log
 
+WORKDIR /var/www/app
+
 
 
 #copy configuration files

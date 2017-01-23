@@ -1,4 +1,4 @@
-box: python:2.7
+box: quay.io/cttv/rest_api_base
 dev:
   steps:
     - pip-install
@@ -55,6 +55,15 @@ build:
         name: API target endpoint test
         code: |
           if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_target.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+
+    - script:
+        name: test service is up
+        code: |
+          curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null
+    - script:
+        name: test swagger UI is up
+        code: |
+          curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null
 
 push-to-gcr:
   steps:
