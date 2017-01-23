@@ -14,11 +14,12 @@ build:
 
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
-#    - script:
-#        name: API auth test
-#        code: |
-#          python manage.py
-#          nosetests tests/test_auth.py
+    - script:
+        name: API auth test
+        code: |
+          nosetests tests/test_auth.py
+          nosetests tests/test_rate_limit.py
+          nosetests tests/test_cache.py
 
 push-to-gcr:
   steps:
@@ -26,7 +27,7 @@ push-to-gcr:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
         working-dir: $WERCKER_ROOT
-        tag: $WERCKER_GIT_COMMIT
+        tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
         repository: eu.gcr.io/open-targets/rest-api
         registry: https://eu.gcr.io
 
