@@ -63,8 +63,8 @@ push-to-gcr:
         password: $GCR_JSON_KEY_FILE
         working-dir: $WERCKER_ROOT
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
-        repository: eu.gcr.io/open-targets/rest-api
-        registry: https://eu.gcr.io
+        repository: $GCR_REPO
+        registry: $GCR_HOST
 
 #deploy:
 #  box: ubuntu:xenial
