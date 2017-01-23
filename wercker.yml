@@ -26,35 +26,35 @@ build:
     - script:
         name: API cache test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_cache.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_cache.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API association endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_association.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_association.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API evidence endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_evidence.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_evidence.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API efo endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_efo.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_efo.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API expression endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_expression.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_expression.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API freetextsearch endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_freetextsearch.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_freetextsearch.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API stats endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_stats.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_stats.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
     - script:
         name: API target endpoint test
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; nosetests then tests/test_target.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_target.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
 
 push-to-gcr:
   steps:
