@@ -30,12 +30,12 @@ RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor && \
 
 
 #copy configuration files
-COPY docker-conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker-conf/nginx.conf /etc/nginx/
-COPY docker-conf/nginx-rest-api.conf /etc/nginx/sites-enabled/
-COPY docker-conf/nginx-servers.conf /etc/nginx/sites-enabled/
-COPY docker-conf/server.crt /etc/ssl/nginx/
-COPY docker-conf/server.key /etc/ssl/nginx/
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY nginx.conf /etc/nginx/
+COPY nginx-rest-api.conf /etc/nginx/sites-enabled/
+COPY nginx-servers.conf /etc/nginx/sites-enabled/
+COPY server.crt /etc/ssl/nginx/
+COPY server.key /etc/ssl/nginx/
 
 
 #install swagger ui
@@ -47,7 +47,7 @@ RUN cd /var/www &&  \
 EXPOSE 80 443 8008 8009
 
 #define entrypoint
-COPY docker-conf/docker-entrypoint.sh /
+COPY docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
