@@ -8,28 +8,24 @@ dev:
     - internal/watch:
         code: python manage.py
         reload: true
+
 # Build definition
 build:
   # The steps that will be executed on build
   steps:
-    # A step that executes `pip install` command
     - pip-install
-    - script:
-        name: move src code
-        code: |
-          cp -r $WERCKER_SOURCE_DIR /var/www/app
-          ls /var/www/app
-    # A custom script step, name value is used in the UI
-    # and the code value contains the command that get executed
+    # run tests that don't require es
     - script:
         name: API auth test
         code: |
           nosetests tests/test_auth.py
-          nosetests tests/test_cache.py
     - script:
         name: API rate limit test
         code: |
           nosetests tests/test_rate_limit.py
+test-with-es:
+  # run tests in the api that requires an es instance
+  steps:
     - script:
         name: API cache test
         code: |
@@ -63,6 +59,8 @@ build:
         code: |
           if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests tests/test_target.py; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
 
+test-supervisord:
+  steps:
     - script:
         name: test service is up
         code: |
@@ -78,6 +76,7 @@ push-to-gcr:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
         working-dir: $WERCKER_ROOT
+        entrypoint: docker-entrypoint.sh
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
         repository: $GCR_REPO
         registry: $GCR_HOST
