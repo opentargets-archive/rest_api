@@ -64,13 +64,13 @@ test-supervisord:
     - script:
         name: test service is up
         code: |
-          supervisord &
+          $BINDIR/supervisord &
           sleep 5
           curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null
     - script:
         name: test swagger UI is up
         code: |
-          supervisord &
+          $BINDIR/supervisord &
           sleep 5
           curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null
 
