@@ -17,7 +17,7 @@ build:
     - script:
         name: move src code
         code: |
-          cp $WERCKER_SOURCE_DIR /var/www/app
+          cp -r $WERCKER_SOURCE_DIR /var/www/app
           ls /var/www/app
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
