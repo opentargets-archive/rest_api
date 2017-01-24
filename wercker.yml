@@ -1,4 +1,7 @@
-box: quay.io/cttv/rest_api_base
+box:
+  id: quay.io/cttv/rest_api_base
+  tag: latest
+  registry: quay.io
 dev:
   steps:
     - pip-install
