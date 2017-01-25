@@ -6,4 +6,4 @@ OUTPUT="$(sysctl net.core.somaxconn)"
 echo OUTPUT
 export SOCKET_MAX_CONN="${OUTPUT##* }"
 
-exec "$@"./
+exec "$@"
