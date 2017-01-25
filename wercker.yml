@@ -50,10 +50,11 @@ push-to-gcr:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
         working-dir: $WERCKER_ROOT
-        entrypoint: docker-entrypoint.sh
+        entrypoint: /docker-entrypoint.sh
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
         repository: $GCR_REPO
         registry: $GCR_HOST
+        cmd: supervisord
         ports: "80 443 8008 8009"
 
 push-to-quay:
@@ -65,7 +66,7 @@ push-to-quay:
         repository: $QUAY_REPO
         registry: $QUAY_HOST
         working-dir: $WERCKER_ROOT
-        entrypoint: docker-entrypoint.sh
+        entrypoint: /docker-entrypoint.sh
         cmd: supervisord
         ports: "80 443 8008 8009"
 
