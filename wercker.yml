@@ -62,10 +62,11 @@ push-to-quay:
         username: $QUAY_USERNAME
         password: $QUAY_PASSWORD
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
-        repository: $QUAY_REPO quay.io/knuth/foo
-        registry: $QUAY_HOST https://quay.io
+        repository: $QUAY_REPO
+        registry: $QUAY_HOST
         working-dir: $WERCKER_ROOT
         entrypoint: docker-entrypoint.sh
+        cmd: supervisord
         ports: "80 443 8008 8009"
 
 #deploy:
