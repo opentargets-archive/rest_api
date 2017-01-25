@@ -36,17 +36,13 @@ test-with-es:
 test-supervisord:
   steps:
     - script:
-        name: test service is up
+        name: test services are started by supervisord
         code: |
           /usr/bin/supervisord &
-          sleep 5
+          sleep 10
           curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null
-    - script:
-        name: test swagger UI is up
-        code: |
-          /usr/bin/supervisord &
-          sleep 5
           curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null
+
 
 push-to-gcr:
   steps:
