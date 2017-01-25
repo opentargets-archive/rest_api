@@ -1,6 +1,6 @@
 box:
   id: quay.io/cttv/rest_api_base
-  tag: latest
+  tag: $WERCKER_GIT_BRANCH
   registry: quay.io
 dev:
   steps:
