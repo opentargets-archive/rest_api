@@ -16,35 +16,6 @@ def get_parser():
 
     return parser
 
-def get_swagger_parameters():
-    _swagger_params = [
-        {
-          "name": "size",
-          "description": "maximum amount of results to return. Defaults to 10, max is 1000",
-          "required": False,
-          "allowMultiple": False,
-          "dataType": "integer",
-          "paramType": "query"
-        },
-        {
-          "name": "from",
-          "description": "How many initial results should be skipped. Defaults to 0",
-          "required": False,
-          "allowMultiple": False,
-          "dataType": "integer",
-          "paramType": "query"
-        },
-        {
-          "name": "format",
-          "description": "Format to get data back. Can be 'json', 'xml' or 'table' ",
-          "required": False,
-          "allowMultiple": False,
-          "dataType": "string",
-          "paramType": "query"
-        },
-    ]
-    return _swagger_params
-
 
 class Paginable():
     '''
@@ -52,7 +23,6 @@ class Paginable():
     If you want to add more parameters use the methods above directly
     '''
     parser = get_parser() #TODO: in theory parser inheritance should work but is not working, check used version of flask-restful: https://flask-restful.readthedocs.org/en/0.3.0/reqparse.html#parser-inheritance
-    _swagger_parameters = get_swagger_parameters()
 
 
 
