@@ -35,6 +35,11 @@ test-with-es:
 
 test-supervisord:
   steps:
+    - pip-install
+    # run tests that don't require es
+    - script:
+        name: move source
+          cp -r /pipeline/source/* /var/www/app/
     - script:
         name: test services are started by supervisord
         code: |
@@ -46,6 +51,11 @@ test-supervisord:
 
 push-to-gcr:
   steps:
+    - pip-install
+    # run tests that don't require es
+    - script:
+        name: move source
+          cp -r /pipeline/source/* /var/www/app/
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
@@ -59,6 +69,11 @@ push-to-gcr:
 
 push-to-quay:
   steps:
+    - pip-install
+    # run tests that don't require es
+    - script:
+        name: move source
+          cp -r /pipeline/source/* /var/www/app/
     - internal/docker-push:
         username: $QUAY_USERNAME
         password: $QUAY_PASSWORD
