@@ -2,6 +2,8 @@
 FLASK App for the CTTV CoreDB REST API
 ======================================
 
+[![wercker status](https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/m/master "wercker status")](https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19)
+
 To test locally
 
 - clone repository
