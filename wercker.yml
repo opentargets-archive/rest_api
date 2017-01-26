@@ -28,10 +28,11 @@ build:
 test-with-es:
   # run tests in the api that requires an es instance
   steps:
+    - pip-install
     - script:
         name: API run all tests
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
 
 test-supervisord:
   steps:
@@ -43,8 +44,23 @@ test-supervisord:
           cp -r /pipeline/source/* /var/www/app/
           /usr/bin/supervisord &
           sleep 10
-          curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null
-          curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null
+          OK_CODE="200"
+          PING_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null)
+          if [ "$PING_CODE" == "$OK_CODE" ]
+            then
+              echo "API ping OK"
+            else
+              echo -e "ERROR: ping http code:"$PING_CODE
+              exit 1
+            fi
+          API_DOCS_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null)
+          if [ "$API_DOCS_CODE" == "$OK_CODE" ]
+            then
+              echo "API DOCS OK"
+            else
+              echo -e "ERROR: api docs http code:"$API_DOCS_CODE
+              exit 1
+            fi
 
 
 push-to-gcr:

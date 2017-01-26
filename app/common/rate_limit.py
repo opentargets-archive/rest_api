@@ -4,7 +4,8 @@ from flask.ext.restful import abort, wraps
 from flask import current_app, request
 
 from app.common.auth import get_token_payload, AuthKey
-from app.common.datadog_signals import RateLimitExceeded, LogApiCallCount
+from app.common.signals import RateLimitExceeded, LogApiCallCount
+from app.common.utils import get_remote_addr
 from config import Config
 
 '''
@@ -76,20 +77,7 @@ class RateLimiter(object):
 
     @staticmethod
     def get_remote_addr():
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            remote_addr = real_ip
-        elif not request.headers.getlist("X-Forwarded-For"):
-            if request.remote_addr is None:
-                remote_addr = '127.0.0.1'
-            else:
-                remote_addr = request.remote_addr
-        else:
-            #securely log all the forwarded ips.
-            #can be improved if a fixed number of proxied is known http://esd.io/blog/flask-apps-heroku-real-ip-spoofing.html
-            #TODO: change to a known number of proxy if env is production
-            remote_addr = ','.join(request.headers.getlist("X-Forwarded-For"))
-        return str(remote_addr)
+        return get_remote_addr()
 
 
 
