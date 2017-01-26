@@ -2813,30 +2813,3 @@ class AggregationBuilder(object):
     #
     #     }
 
-
-class esStore(object):
-    def __init__(self,
-                 es,
-                 eventlog_index,
-                 cache,
-                 ):
-        self.es = es
-        self.eventlog_index = eventlog_index
-        self.cache = cache
-
-    def store_event(self, event):
-        event['org_from_ip'] = self.get_ip_org(event['ip'])
-        index_name = self.eventlog_index + '_' + '-'.join(map(str, datetime.now().isocalendar()[:2]))
-        self.es.index(index=index_name,
-                      doc_type='event',
-                      body=event)
-
-    def get_ip_org(self, ip):
-        host_from_ip = self.cache.get(ip)
-        if host_from_ip is None:
-            try:
-                host_from_ip = socket.gethostbyaddr(ip)[0]
-                self.cache.set(ip, host_from_ip, 24 * 60 * 60)
-            except:
-                pass
-        return host_from_ip

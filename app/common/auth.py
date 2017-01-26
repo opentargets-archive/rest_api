@@ -10,7 +10,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 import json
 
-from app.common.datadog_signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid, \
+from app.common.signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid, \
     LogApiTokenServed
 from app.common.exceptions import TokenExpired
 from config import Config

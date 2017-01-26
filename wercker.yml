@@ -1,34 +1,103 @@
-box: python:2.7
+box:
+  id: quay.io/cttv/rest_api_base
+  tag: $WERCKER_GIT_BRANCH
+  registry: quay.io
 dev:
   steps:
     - pip-install
     - internal/watch:
         code: python manage.py
         reload: true
+
 # Build definition
 build:
   # The steps that will be executed on build
   steps:
-    # A step that executes `pip install` command
     - pip-install
+    # run tests that don't require es
+    - script:
+        name: API auth test
+        code: |
+          nosetests tests/test_auth.py
+    - script:
+        name: API rate limit test
+        code: |
+          nosetests tests/test_rate_limit.py
+#    - internal/store-container
 
-    # A custom script step, name value is used in the UI
-    # and the code value contains the command that get executed
-#    - script:
-#        name: API auth test
-#        code: |
-#          python manage.py
-#          nosetests tests/test_auth.py
+test-with-es:
+  # run tests in the api that requires an es instance
+  steps:
+    - pip-install
+    - script:
+        name: API run all tests
+        code: |
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
+
+test-supervisord:
+  steps:
+    - pip-install
+    # run tests that don't require es
+    - script:
+        name: test services are started by supervisord
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+          /usr/bin/supervisord &
+          sleep 10
+          OK_CODE="200"
+          PING_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null)
+          if [ "$PING_CODE" == "$OK_CODE" ]
+            then
+              echo "API ping OK"
+            else
+              echo -e "ERROR: ping http code:"$PING_CODE
+              exit 1
+            fi
+          API_DOCS_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null)
+          if [ "$API_DOCS_CODE" == "$OK_CODE" ]
+            then
+              echo "API DOCS OK"
+            else
+              echo -e "ERROR: api docs http code:"$API_DOCS_CODE
+              exit 1
+            fi
+
 
 push-to-gcr:
   steps:
+    - pip-install
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
-        working-dir: $WERCKER_ROOT
-        tag: $WERCKER_GIT_COMMIT
-        repository: eu.gcr.io/open-targets/rest-api
-        registry: https://eu.gcr.io
+        working-dir: /var/www/app
+        entrypoint: /docker-entrypoint.sh
+        tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
+        repository: $GCR_REPO
+        registry: $GCR_HOST
+        cmd: supervisord
+        ports: "80 443 8008 8009"
+
+push-to-quay:
+  steps:
+    - pip-install
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+    - internal/docker-push:
+        username: $QUAY_USERNAME
+        password: $QUAY_PASSWORD
+        tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
+        repository: $QUAY_REPO
+        registry: $QUAY_HOST
+        working-dir: /var/www/app
+        entrypoint: /docker-entrypoint.sh
+        cmd: supervisord
+        ports: "80 443 8008 8009"
 
 #deploy:
 #  box: ubuntu:xenial
