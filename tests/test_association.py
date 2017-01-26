@@ -74,12 +74,48 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterTargetFacet(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
-                                      data={'target':target, 'facets':True, 'no_cache':True},
+                                      data={'target':target, 'facets':"true", 'no_cache':True},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertEqual(json_response['data'][0]['target']['id'], target)
         self.assertIsNotNone(json_response['facets'])
+
+    def testAssociationsSpecificFacet(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['facets'])
+        self.assertTrue('disease' in json_response['facets'])
+        self.assertFalse('datatype' in json_response['facets'])
+
+    def testAssociationDefaultDiseaseFacetSize(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['facets'])
+        self.assertTrue('disease' in json_response['facets'])
+        self.assertEqual(len(json_response['facets']['disease']['buckets']), 25)
+
+
+    def testAssociationsFacetSize(self):
+        target = 'ENSG00000157764'
+        facets_size = 50
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target, 'facets':"disease", 'facets_size': facets_size, 'no_cache':True, 'size':0},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['facets'])
+        self.assertTrue('disease' in json_response['facets'])
+        self.assertEqual(len(json_response['facets']['disease']['buckets']), facets_size)
+
 
     def testAssociationFilterDiseaseGet(self):
         disease = 'EFO_0000311'
@@ -96,7 +132,7 @@ class AssociationTestCase(GenericTestCase):
         disease = 'EFO_0000311'
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
-                                            'facets': True,
+                                            'facets': "true",
                                             },
                                       token=self._AUTO_GET_TOKEN)
         json_response = json.loads(response.data.decode('utf-8'))
@@ -115,7 +151,7 @@ class AssociationTestCase(GenericTestCase):
         query_key = first_filter['key']
         filtered_response = self._make_request('/api/latest/public/association/filter',
                                       data={'disease':disease,
-                                            'facets': True,
+                                            'facets': "true",
                                             FilterTypes.TARGET_CLASS : query_key,
                                             },
                                       token=self._AUTO_GET_TOKEN)
@@ -125,7 +161,7 @@ class AssociationTestCase(GenericTestCase):
         query_key_sub = first_sub_filter['key']
         filtered_response_sub = self._make_request('/api/latest/public/association/filter',
                                                data={'disease': disease,
-                                                     'facets': True,
+                                                     'facets': "true",
                                                      FilterTypes.TARGET_CLASS: query_key_sub,
                                                      },
                                                token=self._AUTO_GET_TOKEN)
@@ -465,7 +501,7 @@ class AssociationTestCase(GenericTestCase):
                   "ENSG00000163285", "ENSG00000079263", "ENSG00000115232", "ENSG00000100311", "ENSG00000143622"]
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'target': target,
-                                            'facets': False,
+                                            'facets': "false",
                                             'size': 0,
                                             'method': 'POST',
                                             'no_cache': True
@@ -490,7 +526,7 @@ class AssociationTestCase(GenericTestCase):
                   "ENSG00000163285", "ENSG00000079263", "ENSG00000115232", "ENSG00000100311", "ENSG00000143622"]
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'target': target,
-                                            'facets': False,
+                                            'facets': "false",
                                             'targets_enrichment': "simple",
                                             'size': 0,
                                             'no_cache': True

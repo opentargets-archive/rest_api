@@ -70,7 +70,8 @@ class FilterBy(restful.Resource):
 
         parser.add_argument('targets_enrichment', type=str, required=False, help="disease enrichment analysis for a set of targets")
         parser.add_argument('direct', type=boolean, required=False,)
-        parser.add_argument('facets', type=boolean, required=False,  default=False)
+        parser.add_argument('facets', type=str, required=False,  default="")
+        parser.add_argument('facets_size', type=int, required=False, default=0)
         parser.add_argument('sort', type=str,  required=False, action='append',)
         parser.add_argument('search', type=str,  required=False, )
         parser.add_argument('cap_scores', type=boolean, required=False, )

@@ -2080,7 +2080,9 @@ class SearchParams():
         self.disease = kwargs.get('disease', []) or []
         self.eco = kwargs.get('eco', []) or []
 
-        self.facets = kwargs.get('facets', False) or False
+        self.facets = kwargs.get('facets', "false") or "false"
+        self.facets_size = kwargs.get('facets_size', None) or None
+
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
         highlight_default = True
@@ -2122,6 +2124,15 @@ class AggregationUnit(object):
         pass
         # raise NotImplementedError
 
+    def get_default_size(self):
+        raise NotImplementedError
+
+    def get_size(self):
+        default_size = self.get_default_size()
+        facet_size = self.params.facets_size
+        return facet_size or default_size
+
+
 
 class AggregationUnitTarget(AggregationUnit):
     def build_query_filter(self):
@@ -2130,6 +2141,9 @@ class AggregationUnitTarget(AggregationUnit):
 
     def build_agg(self, filters):
         self.agg = self._get_target_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 25
 
     def _get_target_facet_aggregation(self, filters):
         return {
@@ -2142,7 +2156,7 @@ class AggregationUnitTarget(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "target.id",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2169,6 +2183,9 @@ class AggregationUnitDisease(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_disease_facet_aggregation(filters)
 
+    def get_default_size(self):
+        return 25
+
     def _get_disease_facet_aggregation(self, filters):
         return {
             "filter": {
@@ -2177,15 +2194,14 @@ class AggregationUnitDisease(AggregationUnit):
                 }
             },
             "aggs": self.get_disease_aggregation(),
-
         }
 
-    def get_disease_aggregation(self, size=25):
+    def get_disease_aggregation(self):
         return {
                 "data": {
                     "terms": {
                         "field": "disease.id",
-                        'size': size,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_disease_count": {
@@ -2211,6 +2227,9 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_disease_facet_aggregation(filters)
 
+    def get_default_size(self):
+        return 25
+
     def _get_disease_facet_aggregation(self, filters):
         return {
             "filter": {
@@ -2222,7 +2241,7 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "disease.efo_info.therapeutic_area.codes",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2252,6 +2271,9 @@ class AggregationUnitIsDirect(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_is_direct_facet_aggregation(filters)
 
+    def get_default_size(self):
+        return 10
+
     def _get_is_direct_facet_aggregation(self, filters):
         return {
             "filter": {
@@ -2263,7 +2285,7 @@ class AggregationUnitIsDirect(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "is_direct",
-                        'size': 10,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2295,6 +2317,9 @@ class AggregationUnitUniprotKW(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_uniprot_facet_aggregation(filters)
 
+    def get_default_size(self):
+        return 50
+
     def _get_uniprot_facet_aggregation(self, filters):
         return {
             "filter": {
@@ -2306,7 +2331,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
-                        'size': 50,
+                        'size': self.get_size(),
                         "chi_square": {"include_negatives": True,
                                        "background_is_superset": False},
                     },
@@ -2340,6 +2365,9 @@ class AggregationUnitGO(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_go_facet_aggregation(filters)
 
+    def get_default_size(self):
+        return 50
+
     def _get_go_facet_aggregation(self, filters):
         return {
             "filter": {
@@ -2351,7 +2379,7 @@ class AggregationUnitGO(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
-                        'size': 50,
+                        'size': self.get_size(),
 
                     },
                     "aggs": {
@@ -2390,6 +2418,10 @@ class AggregationUnitPathway(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_pathway_facet_aggregation(filters)
 
+    # TODO: Only the pathway_type_code is affected by the default size, the pathway_code is not (see below)
+    def get_default_size(self):
+        return 20
+
     def _get_pathway_facet_aggregation(self, filters={}):
         return {
             "filter": {
@@ -2401,7 +2433,7 @@ class AggregationUnitPathway(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.reactome.pathway_type_code",
-                        'size': 20,
+                        'size': self.get_size(),
                     },
 
                     "aggs": {
@@ -2469,6 +2501,10 @@ class AggregationUnitTargetClass(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_target_class_aggregation(filters)
 
+    # TODO: Only the target_class.level1.id is affected by the default size, there are others not affected (see below)
+    def get_default_size(self):
+        return 25
+
     def _get_target_class_aggregation(self, filters={}):
         return {
             "filter": {
@@ -2480,7 +2516,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.target_class.level1.id",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
 
                     "aggs": {
@@ -2649,6 +2685,11 @@ class AggregationUnitDatasource(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self.get_datatype_facet_aggregation(filters)
 
+    # TODO: Only the datatype length is affected by the default size, the datasource is not (see below)
+    def get_default_size(self):
+        return 20
+
+
     def get_datatype_facet_aggregation(self, filters):
 
         return {
@@ -2661,7 +2702,7 @@ class AggregationUnitDatasource(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.datatype",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "datasource": {
@@ -2749,26 +2790,27 @@ class AggregationBuilder(object):
         self.filters = {}
 
     def load_params(self, params):
-
         '''define and init units'''
+        facets = params.facets != "false"
         for unit_type in self._UNIT_MAP:
             self.units[unit_type] = self._UNIT_MAP[unit_type](params.filters[unit_type],
                                                               params,
                                                               self.handler,
-                                                              compute_aggs=params.facets)
+                                                              compute_aggs=facets)
         '''get filters'''
         for query_filter in self._UNIT_MAP:
             self.filters[query_filter] = self.units[query_filter].query_filter
 
         '''get aggregations if requested'''
-        if params.facets:
+        if params.facets != "false":
             aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
             '''get available aggregations'''
             for agg in self._UNIT_MAP:
                 if agg not in aggs_not_to_be_returned:
-                    self.units[agg].build_agg(self.filters)
-                    if self.units[agg].agg:
-                        self.aggs[agg] = self.units[agg].agg
+                    if params.facets == "true" or params.facets == agg:
+                        self.units[agg].build_agg(self.filters)
+                        if self.units[agg].agg:
+                            self.aggs[agg] = self.units[agg].agg
 
 
     def _get_AggregationUnit(self,str):
@@ -2783,6 +2825,7 @@ class AggregationBuilder(object):
         aggs_not_to_be_returned = []
         if len(filters_to_apply) == 1:  # do not return facet if only one filter is applied
             aggs_not_to_be_returned = filters_to_apply[0]
+
         return aggs_not_to_be_returned
 
 
