@@ -28,6 +28,7 @@ build:
 test-with-es:
   # run tests in the api that requires an es instance
   steps:
+    - pip-install
     - script:
         name: API run all tests
         code: |
