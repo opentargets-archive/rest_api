@@ -66,10 +66,14 @@ test-supervisord:
 push-to-gcr:
   steps:
     - pip-install
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -R $WERCKER_ROOT/* /var/www/app
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
-        working-dir: $WERCKER_ROOT
+        working-dir: /var/www/app
         entrypoint: /docker-entrypoint.sh
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
         repository: $GCR_REPO
@@ -80,13 +84,17 @@ push-to-gcr:
 push-to-quay:
   steps:
     - pip-install
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -R $WERCKER_ROOT/* /var/www/app
     - internal/docker-push:
         username: $QUAY_USERNAME
         password: $QUAY_PASSWORD
         tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH
         repository: $QUAY_REPO
         registry: $QUAY_HOST
-        working-dir: $WERCKER_ROOT
+        working-dir: /var/www/app
         entrypoint: /docker-entrypoint.sh
         cmd: supervisord
         ports: "80 443 8008 8009"
