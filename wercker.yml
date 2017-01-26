@@ -44,8 +44,8 @@ test-supervisord:
           cp -r /pipeline/source/* /var/www/app/
           /usr/bin/supervisord &
           sleep 10
-          OK_CODE = "200"
-          PING_CODE = $(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null)
+          OK_CODE="200"
+          PING_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null)
           if [$PING_CODE = $OK_CODE]
             then
               echo "API ping OK"
@@ -53,7 +53,7 @@ test-supervisord:
               echo -e "ERROR: ping http code:"$PING_CODE
               exit 1
             fi
-          API_DOCS_CODE = $(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null)
+          API_DOCS_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null)
           if [$API_DOCS_CODE = $OK_CODE]
             then
               echo "API DOCS OK"
