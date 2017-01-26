@@ -31,7 +31,7 @@ test-with-es:
     - script:
         name: API run all tests
         code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; then nosetests; else echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; fi
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
 
 test-supervisord:
   steps:
