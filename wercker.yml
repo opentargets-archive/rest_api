@@ -24,6 +24,16 @@ build:
         code: |
           nosetests tests/test_rate_limit.py
 #    - internal/store-container
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+    - script:
+      name: export latest or dev tag
+      code: |
+        [ "$WERCKER_GIT_BRANCH" = "master" ] \
+        && export LATEST_FLAG=latest \
+        || export LATEST_FLAG=dev
 
 test-with-es:
   # run tests in the api that requires an es instance
@@ -87,6 +97,7 @@ push-to-registries:
         entrypoint: /docker-entrypoint.sh
         cmd: supervisord
         ports: "80 443 8008 8009"
+        disable-sync: true
 
     - internal/docker-push:
         username: _json_key
@@ -98,6 +109,29 @@ push-to-registries:
         registry: $GCR_HOST
         cmd: supervisord
         ports: "80 443 8008 8009"
+        disable-sync: true
+
+deploy-to-kubernetes:
+  steps:
+  # https://github.com/wercker/step-bash-template
+  # This Wercker step will look for files in our repo with a .template extension.
+  # It will expand any environment variables in those files, then remove the
+  # template extension.
+  - bash-template
+  - script:
+    name: Prepare Kubernetes files
+    code: |
+      mkdir $WERCKER_OUTPUT_DIR/kubernetes
+      mv docker-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
+  - riceo/kubectl:
+    name: deploy to kubernetes
+    server: $KUBERNETES_MASTER
+    gcloud-key-json: $GCP_KEY_JSON
+    gke-cluster-name: $GKE_CLUSTER_NAME
+    gke-cluster-zone: $GKE_CLUSTER_ZONE
+    gke-cluster-project: $GKE_CLUSTER_PROJECT
+    command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
+
 
 #deploy:
 #  box: ubuntu:xenial
