@@ -41,7 +41,7 @@ test-supervisord:
     - script:
         name: test services are started by supervisord
         code: |
-          cp -r /pipeline/source/* /var/www/app/
+          cp -r $WERCKER_ROOT/* /var/www/app/
           /usr/bin/supervisord &
           sleep 10
           OK_CODE="200"
@@ -69,7 +69,7 @@ push-to-gcr:
     - script:
         name: copy to /var/www/app working dir
         code: |
-          cp -R $WERCKER_ROOT/* /var/www/app
+          cp -r $WERCKER_ROOT/* /var/www/app/
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
@@ -87,7 +87,7 @@ push-to-quay:
     - script:
         name: copy to /var/www/app working dir
         code: |
-          cp -R $WERCKER_ROOT/* /var/www/app
+          cp -r $WERCKER_ROOT/* /var/www/app/
     - internal/docker-push:
         username: $QUAY_USERNAME
         password: $QUAY_PASSWORD
