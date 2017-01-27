@@ -117,13 +117,16 @@ deploy-to-kubernetes:
   # This Wercker step will look for files in our repo with a .template extension.
   # It will expand any environment variables in those files, then remove the
   # template extension.
-  - bash-template
+  - bash-template:
+    input: "kube-conf/*.template"
   - script:
     name: Prepare Kubernetes files
     code: |
       mkdir $WERCKER_OUTPUT_DIR/kubernetes
-      mv $WERCKER_ROOT/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
+      mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
   - riceo/kubectl:
+    username: _json_key
+    password: $GCR_JSON_KEY_FILE
     name: deploy to kubernetes
     server: $KUBERNETES_MASTER
     gcloud-key-json: $GCP_KEY_JSON
