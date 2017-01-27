@@ -125,11 +125,9 @@ deploy-to-kubernetes:
       mkdir $WERCKER_OUTPUT_DIR/kubernetes
       mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
   - riceo/kubectl:
-    username: _json_key
-    password: $GCR_JSON_KEY_FILE
     name: deploy to kubernetes
     server: $KUBERNETES_MASTER
-    gcloud-key-json: $GCP_KEY_JSON
+    gcloud-key-json: $GCR_JSON_KEY_FILE
     gke-cluster-name: $GKE_CLUSTER_NAME
     gke-cluster-zone: $GKE_CLUSTER_ZONE
     gke-cluster-project: $GKE_CLUSTER_PROJECT
