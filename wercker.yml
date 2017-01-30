@@ -159,7 +159,7 @@ deploy-to-kubernetes:
     gke-cluster-name: $GKE_CLUSTER_NAME
     gke-cluster-zone: $GKE_CLUSTER_ZONE
     gke-cluster-project: $GKE_CLUSTER_PROJECT
-    raw-args: >/tmp/kube_tag_${WERCKER_GIT_BRANCH}
+    raw-args: ">/tmp/kube_tag_${WERCKER_GIT_BRANCH}"
     command: get -o template deploy api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
   - script:
         name: test the deployment is up with the right commit
