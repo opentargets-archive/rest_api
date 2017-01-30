@@ -116,7 +116,7 @@ deploy:
       gke-cluster-name: $GKE_CLUSTER_NAME
       gke-cluster-zone: $GKE_CLUSTER_ZONE
       gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: delete deploy api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
+      command: delete deployment api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
     - riceo/kubectl:
       name: deploy to kubernetes
       server: $KUBERNETES_MASTER
