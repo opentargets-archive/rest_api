@@ -15,9 +15,6 @@ spec:
         environment: staging
     spec:
       volumes:
-      - name: cert-volume
-        secret:
-          secretName: ssl-proxy-secret
       - name: auth-volume
         secret:
           secretName: rest-auth

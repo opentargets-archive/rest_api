@@ -14,5 +14,4 @@ spec:
   selector:
     app: rest-api
     branch: ${WERCKER_GIT_BRANCH}
-    tag: ${WERCKER_GIT_COMMIT}
     environment: staging

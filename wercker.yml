@@ -35,19 +35,7 @@ build:
         && export LATEST_FLAG=latest \
         || export LATEST_FLAG=dev
 
-test-with-es:
-  # run tests in the api that requires an es instance
-  steps:
-    - pip-install
-    - script:
-        name: API run all tests
-        code: |
-          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
-
-test-supervisord:
-  steps:
-    - pip-install
-    # run tests that don't require es
+    # test supervisord is configured properly
     - script:
         name: test services are started by supervisord
         code: |
@@ -73,8 +61,9 @@ test-supervisord:
             fi
 
 
-push-to-registries:
+deploy:
   steps:
+    #prepare container
     - pip-install
     - script:
         name: copy to /var/www/app working dir
@@ -87,6 +76,7 @@ push-to-registries:
         && export LATEST_FLAG=latest \
         || export LATEST_FLAG=dev
 
+    #push to registries
     - internal/docker-push:
         username: $QUAY_USERNAME
         password: $QUAY_PASSWORD
@@ -111,70 +101,72 @@ push-to-registries:
         ports: "80 443 8008 8009"
         disable-sync: true
 
-deploy-to-kubernetes:
+    #deploy to kubernentes
+    - bash-template:
+      input: "kube-conf/*.template"
+    - script:
+      name: Prepare Kubernetes files
+      code: |
+        mkdir $WERCKER_OUTPUT_DIR/kubernetes
+        mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
+    - riceo/kubectl:
+      name: deploy to kubernetes
+      server: $KUBERNETES_MASTER
+      gcloud-key-json: $GCR_JSON_KEY_FILE
+      gke-cluster-name: $GKE_CLUSTER_NAME
+      gke-cluster-zone: $GKE_CLUSTER_ZONE
+      gke-cluster-project: $GKE_CLUSTER_PROJECT
+      command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
+    - script:
+          name: wait for kubernetes to start the services
+          code: |
+            sleep 20
+    - riceo/kubectl:
+      name: make sure the deployment is up
+      server: $KUBERNETES_MASTER
+      gcloud-key-json: $GCR_JSON_KEY_FILE
+      gke-cluster-name: $GKE_CLUSTER_NAME
+      gke-cluster-zone: $GKE_CLUSTER_ZONE
+      gke-cluster-project: $GKE_CLUSTER_PROJECT
+      command: get deploy api-${WERCKER_GIT_BRANCH}
+    - riceo/kubectl:
+      name: make sure the service is up
+      server: $KUBERNETES_MASTER
+      gcloud-key-json: $GCR_JSON_KEY_FILE
+      gke-cluster-name: $GKE_CLUSTER_NAME
+      gke-cluster-zone: $GKE_CLUSTER_ZONE
+      gke-cluster-project: $GKE_CLUSTER_PROJECT
+      command: get service api-${WERCKER_GIT_BRANCH}
+    - riceo/kubectl:
+      name: make sure the service is up
+      server: $KUBERNETES_MASTER
+      gcloud-key-json: $GCR_JSON_KEY_FILE
+      gke-cluster-name: $GKE_CLUSTER_NAME
+      gke-cluster-zone: $GKE_CLUSTER_ZONE
+      gke-cluster-project: $GKE_CLUSTER_PROJECT
+      raw-args: ">/tmp/kube_tag_${WERCKER_GIT_BRANCH}"
+      command: get -o template deploy api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
+    - script:
+          name: test the deployment is up with the right commit
+          code: |
+            DEPLOYED_COMMIT=$(<file/tmp/kube_tag_${WERCKER_GIT_BRANCH})
+            if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
+              then
+                echo "deployment up"
+              else
+                echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
+                exit 1
+              fi
+
+
+test-with-es:
+  # run tests in the api that requires an es instance
   steps:
-  # https://github.com/wercker/step-bash-template
-  # This Wercker step will look for files in our repo with a .template extension.
-  # It will expand any environment variables in those files, then remove the
-  # template extension.
-  - bash-template:
-    input: "kube-conf/*.template"
-  - script:
-    name: Prepare Kubernetes files
-    code: |
-      mkdir $WERCKER_OUTPUT_DIR/kubernetes
-      mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
-  - riceo/kubectl:
-    name: deploy to kubernetes
-    server: $KUBERNETES_MASTER
-    gcloud-key-json: $GCR_JSON_KEY_FILE
-    gke-cluster-name: $GKE_CLUSTER_NAME
-    gke-cluster-zone: $GKE_CLUSTER_ZONE
-    gke-cluster-project: $GKE_CLUSTER_PROJECT
-    command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
-  - script:
-        name: wait for kubernetes to start the services
+    - pip-install
+    - script:
+        name: API run all tests
         code: |
-          sleep 20
-  - riceo/kubectl:
-    name: make sure the deployment is up
-    server: $KUBERNETES_MASTER
-    gcloud-key-json: $GCR_JSON_KEY_FILE
-    gke-cluster-name: $GKE_CLUSTER_NAME
-    gke-cluster-zone: $GKE_CLUSTER_ZONE
-    gke-cluster-project: $GKE_CLUSTER_PROJECT
-    command: get deploy api-${WERCKER_GIT_BRANCH}
-  - riceo/kubectl:
-    name: make sure the service is up
-    server: $KUBERNETES_MASTER
-    gcloud-key-json: $GCR_JSON_KEY_FILE
-    gke-cluster-name: $GKE_CLUSTER_NAME
-    gke-cluster-zone: $GKE_CLUSTER_ZONE
-    gke-cluster-project: $GKE_CLUSTER_PROJECT
-    command: get service api-${WERCKER_GIT_BRANCH}
-  - riceo/kubectl:
-    name: make sure the service is up
-    server: $KUBERNETES_MASTER
-    gcloud-key-json: $GCR_JSON_KEY_FILE
-    gke-cluster-name: $GKE_CLUSTER_NAME
-    gke-cluster-zone: $GKE_CLUSTER_ZONE
-    gke-cluster-project: $GKE_CLUSTER_PROJECT
-    raw-args: ">/tmp/kube_tag_${WERCKER_GIT_BRANCH}"
-    command: get -o template deploy api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
-  - script:
-        name: test the deployment is up with the right commit
-        code: |
-          DEPLOYED_COMMIT=$(<file/tmp/kube_tag_${WERCKER_GIT_BRANCH})
-          if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
-            then
-              echo "deployment up"
-            else
-              echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
-              exit 1
-            fi
-
-
-
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
 #deploy:
 #  box: ubuntu:xenial
 #  steps:
