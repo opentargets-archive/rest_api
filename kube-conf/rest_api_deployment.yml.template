@@ -32,8 +32,6 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /etc/ssl/nginx
-          name: cert-volume
         - mountPath: /var/www/app/app/authconf
           name: auth-volume
         env:
