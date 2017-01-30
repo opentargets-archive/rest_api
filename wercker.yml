@@ -116,7 +116,7 @@ deploy:
       gke-cluster-name: $GKE_CLUSTER_NAME
       gke-cluster-zone: $GKE_CLUSTER_ZONE
       gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: delete deployment,service api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
+      command: delete deployment api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
     - riceo/kubectl:
       name: deploy to kubernetes
       server: $KUBERNETES_MASTER
@@ -154,17 +154,17 @@ deploy:
       gke-cluster-project: $GKE_CLUSTER_PROJECT
       raw-args: ">${$WERCKER_OUTPUT_DIR}/kube_tag_${WERCKER_GIT_BRANCH}"
       command: get -o template deployment api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
-    - script:
-          name: test the deployment is up with the right commit
-          code: |
-            DEPLOYED_COMMIT=$(<$WERCKER_OUTPUT_DIR/kube_tag_${WERCKER_GIT_BRANCH})
-            if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
-              then
-                echo $DEPLOYED_COMMIT" deployment up"
-              else
-                echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
-                exit 1
-              fi
+#    - script:
+#          name: test the deployment is up with the right commit
+#          code: |
+#            DEPLOYED_COMMIT=$(<$WERCKER_OUTPUT_DIR/kube_tag_${WERCKER_GIT_BRANCH})
+#            if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
+#              then
+#                echo $DEPLOYED_COMMIT" deployment up"
+#              else
+#                echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
+#                exit 1
+#              fi
 
 
 test-with-es:
