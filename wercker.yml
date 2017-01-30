@@ -110,6 +110,14 @@ deploy:
         mkdir $WERCKER_OUTPUT_DIR/kubernetes
         mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
     - riceo/kubectl:
+      name: remove previous deployment
+      server: $KUBERNETES_MASTER
+      gcloud-key-json: $GCR_JSON_KEY_FILE
+      gke-cluster-name: $GKE_CLUSTER_NAME
+      gke-cluster-zone: $GKE_CLUSTER_ZONE
+      gke-cluster-project: $GKE_CLUSTER_PROJECT
+      command: delete deploy api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
+    - riceo/kubectl:
       name: deploy to kubernetes
       server: $KUBERNETES_MASTER
       gcloud-key-json: $GCR_JSON_KEY_FILE
