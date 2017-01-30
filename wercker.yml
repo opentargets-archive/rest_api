@@ -136,7 +136,7 @@ deploy:
       gke-cluster-name: $GKE_CLUSTER_NAME
       gke-cluster-zone: $GKE_CLUSTER_ZONE
       gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: get deploy api-${WERCKER_GIT_BRANCH}
+      command: get deployment api-${WERCKER_GIT_BRANCH}
     - riceo/kubectl:
       name: make sure the service is up
       server: $KUBERNETES_MASTER
@@ -153,14 +153,14 @@ deploy:
       gke-cluster-zone: $GKE_CLUSTER_ZONE
       gke-cluster-project: $GKE_CLUSTER_PROJECT
       raw-args: ">/tmp/kube_tag_${WERCKER_GIT_BRANCH}"
-      command: get -o template deploy api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
+      command: get -o template deployment api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
     - script:
           name: test the deployment is up with the right commit
           code: |
             DEPLOYED_COMMIT=$(<file/tmp/kube_tag_${WERCKER_GIT_BRANCH})
             if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
               then
-                echo "deployment up"
+                echo $DEPLOYED_COMMIT" deployment up"
               else
                 echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
                 exit 1
