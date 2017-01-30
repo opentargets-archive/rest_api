@@ -13,6 +13,10 @@ dev:
 build:
   # The steps that will be executed on build
   steps:
+    - mbrevda/github-status:
+      token: $GITHUB_TOKEN
+      context: rest_api_build
+      msg: build in process
     - pip-install
     # run tests that don't require es
     - script:
@@ -59,6 +63,13 @@ build:
               echo -e "ERROR: api docs http code:"$API_DOCS_CODE
               exit 1
             fi
+     after-steps:
+    - mbrevda/github-status:
+      token: $GITHUB_TOKEN
+      context: rest_api_build
+      msg: build completed
+      fail: an error has occurred while building
+      url: https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/s/$WERCKER_GIT_BRANCH
 
 
 deploy:
