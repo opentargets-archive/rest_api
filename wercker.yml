@@ -118,8 +118,8 @@ deploy:
 
 deploy-to-kubernentes:
   steps:
-    - maestrohealthcaretechnologies/wait-github-statuses
-          status_contexts: rest_api_container
+    - maestrohealthcaretechnologies/wait-github-statuses:
+      status_contexts: rest_api_container
     #deploy to kubernentes
     - bash-template:
       input: "kube-conf/*.template"
