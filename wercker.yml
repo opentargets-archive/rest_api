@@ -13,10 +13,6 @@ dev:
 build:
   # The steps that will be executed on build
   steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_build
-      msg: build in process
     - pip-install
     # run tests that don't require es
     - script:
@@ -111,7 +107,19 @@ deploy:
         cmd: supervisord
         ports: "80 443 8008 8009"
         disable-sync: true
+  after-steps:
+    - mbrevda/github-status:
+      token: $GITHUB_TOKEN
+      context: rest_api_container
+      msg: container pushed
+      fail: an error has occurred building containers
+      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
 
+
+deploy-to-kubernentes:
+  steps:
+    - maestrohealthcaretechnologies/wait-github-statuses
+          status_contexts: rest_api_container
     #deploy to kubernentes
     - bash-template:
       input: "kube-conf/*.template"
@@ -176,7 +184,13 @@ deploy:
 #                echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
 #                exit 1
 #              fi
-
+  after-steps:
+    - mbrevda/github-status:
+      token: $GITHUB_TOKEN
+      context: rest_api_deployment
+      msg: deployment completed
+      fail: an error has occurred while deploying
+      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
 
 test-with-es:
   # run tests in the api that requires an es instance
