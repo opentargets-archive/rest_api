@@ -1,5 +1,5 @@
 box:
-  id: quay.io/cttv/rest_api_base
+  id: quay.io/opentargets/rest_api_base
   tag: $WERCKER_GIT_BRANCH
   registry: quay.io
 dev:
