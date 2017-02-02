@@ -1,0 +1,46 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: api-${WERCKER_GIT_BRANCH}
+  labels:
+    commit: ${WERCKER_GIT_COMMIT}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rest-api
+        branch: ${WERCKER_GIT_BRANCH}
+        commit: ${WERCKER_GIT_COMMIT}
+        environment: staging
+    spec:
+      volumes:
+      - name: auth-volume
+        secret:
+          secretName: rest-auth
+      containers:
+      - name: rest-api
+        image: "${GCR_REPO}:${WERCKER_GIT_COMMIT}"
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            # Path to probe; should be cheap, but representative of typical behavior
+            path: /api/latest/public/utils/ping
+            port: 8008
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/www/app/app/authconf
+          name: auth-volume
+        env:
+        - name: OPENTARGETS_API_CONFIG
+          value: "production"
+#        - name: OPENTARGETS_DATA_VERSION
+#          value: "16.12_"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: apisecretkey
+              key: secret_key
