@@ -13,6 +13,13 @@ dev:
 build:
   # The steps that will be executed on build
   steps:
+    - script:
+        name: API auth test
+        code: |
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"pending\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"wercker/build\"}";
+          curl -H "Authorization: token $WERCKER_GITHUB_BUILD_NOTIFY_TOKEN" \
+            -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE \
+            https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     # run tests that don't require es
     - script:
