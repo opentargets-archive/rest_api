@@ -17,7 +17,7 @@ build:
         name: log status in github
         code: |
           export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"pending\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"wercker/build\"}";
-          curl -H "Authorization: token $GITHUB_TOKEN" -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+          curl -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     # run tests that don't require es
     - script:
