@@ -16,7 +16,16 @@ build:
     - script:
         name: log status in github
         code: |
-          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"pending\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"continous-integration/wercker-build\"}";
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
           curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     # run tests that don't require es
@@ -64,12 +73,39 @@ build:
               echo -e "ERROR: api docs http code:"$API_DOCS_CODE
               exit 1
             fi
+  after-steps:
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
 
-
+          export GITHUB_CONTEXT="continous-integration/wercker-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
 
 deploy:
   steps:
     #prepare container
+     - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     - script:
         name: copy to /var/www/app working dir
@@ -107,12 +143,21 @@ deploy:
         ports: "80 443 8008 8009"
         disable-sync: true
   after-steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_container
-      msg: container pushed
-      fail: an error has occurred building containers
-      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+
 
 
 deploy-to-kubernentes:
