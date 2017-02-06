@@ -14,12 +14,10 @@ build:
   # The steps that will be executed on build
   steps:
     - script:
-        name: API auth test
+        name: log status in github
         code: |
           export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"pending\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"wercker/build\"}";
-          curl -H "Authorization: token $WERCKER_GITHUB_BUILD_NOTIFY_TOKEN" \
-            -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE \
-            https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+          curl -H "Authorization: token $GITHUB_TOKEN" -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     # run tests that don't require es
     - script:
@@ -66,13 +64,7 @@ build:
               echo -e "ERROR: api docs http code:"$API_DOCS_CODE
               exit 1
             fi
-  after-steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_build
-      msg: build completed
-      fail: an error has occurred while building
-      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
+
 
 
 deploy:
