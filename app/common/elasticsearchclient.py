@@ -560,7 +560,7 @@ class esQuery():
                                       },
 
                                           '_source': source_filter,
-                                          'size': params.size,
+                                          'size': len(gene_ids),
                                           'from': params.start_from,
                                       }
                                       )
