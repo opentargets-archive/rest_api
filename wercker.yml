@@ -13,6 +13,21 @@ dev:
 build:
   # The steps that will be executed on build
   steps:
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          echo WERCKER_GITHUB_BUILD_NOTIFY_STATE
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     # run tests that don't require es
     - script:
@@ -60,17 +75,39 @@ build:
               exit 1
             fi
   after-steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_build
-      msg: build completed
-      fail: an error has occurred while building
-      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
 
+          export GITHUB_CONTEXT="continous-integration/wercker-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
 
 deploy:
   steps:
     #prepare container
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          echo WERCKER_GITHUB_BUILD_NOTIFY_STATE
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
     - pip-install
     - script:
         name: copy to /var/www/app working dir
@@ -108,89 +145,22 @@ deploy:
         ports: "80 443 8008 8009"
         disable-sync: true
   after-steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_container
-      msg: container pushed
-      fail: an error has occurred building containers
-      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="success";
+          else
+              export WERCKER_PIPELINE_STATUS="pending";
+          fi
+
+          export GITHUB_CONTEXT="continous-integration/wercker-container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
 
 
-deploy-to-kubernentes:
-  steps:
-    - maestrohealthcaretechnologies/wait-github-statuses:
-      status_contexts: rest_api_container
-    #deploy to kubernentes
-    - bash-template:
-      input: "kube-conf/*.template"
-    - script:
-      name: Prepare Kubernetes files
-      code: |
-        mkdir $WERCKER_OUTPUT_DIR/kubernetes
-        mv $WERCKER_ROOT/kube-conf/rest_api_*.yml $WERCKER_OUTPUT_DIR/kubernetes
-    - riceo/kubectl:
-      name: remove previous deployment
-      server: $KUBERNETES_MASTER
-      gcloud-key-json: $GCR_JSON_KEY_FILE
-      gke-cluster-name: $GKE_CLUSTER_NAME
-      gke-cluster-zone: $GKE_CLUSTER_ZONE
-      gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: delete deployment api-${WERCKER_GIT_BRANCH} --ignore-not-found --now
-    - riceo/kubectl:
-      name: deploy to kubernetes
-      server: $KUBERNETES_MASTER
-      gcloud-key-json: $GCR_JSON_KEY_FILE
-      gke-cluster-name: $GKE_CLUSTER_NAME
-      gke-cluster-zone: $GKE_CLUSTER_ZONE
-      gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
-    - script:
-          name: wait for kubernetes to start the services
-          code: |
-            sleep 20
-    - riceo/kubectl:
-      name: make sure the deployment is up
-      server: $KUBERNETES_MASTER
-      gcloud-key-json: $GCR_JSON_KEY_FILE
-      gke-cluster-name: $GKE_CLUSTER_NAME
-      gke-cluster-zone: $GKE_CLUSTER_ZONE
-      gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: get deployment api-${WERCKER_GIT_BRANCH}
-    - riceo/kubectl:
-      name: make sure the service is up
-      server: $KUBERNETES_MASTER
-      gcloud-key-json: $GCR_JSON_KEY_FILE
-      gke-cluster-name: $GKE_CLUSTER_NAME
-      gke-cluster-zone: $GKE_CLUSTER_ZONE
-      gke-cluster-project: $GKE_CLUSTER_PROJECT
-      command: get service api-${WERCKER_GIT_BRANCH}
-    - riceo/kubectl:
-      name: make sure the service is up
-      server: $KUBERNETES_MASTER
-      gcloud-key-json: $GCR_JSON_KEY_FILE
-      gke-cluster-name: $GKE_CLUSTER_NAME
-      gke-cluster-zone: $GKE_CLUSTER_ZONE
-      gke-cluster-project: $GKE_CLUSTER_PROJECT
-      raw-args: ">${$WERCKER_OUTPUT_DIR}/kube_tag_${WERCKER_GIT_BRANCH}"
-      command: get -o template deployment api-${WERCKER_GIT_BRANCH} --template={{.metadata.labels.commit}}
-#    - script:
-#          name: test the deployment is up with the right commit
-#          code: |
-#            DEPLOYED_COMMIT=$(<$WERCKER_OUTPUT_DIR/kube_tag_${WERCKER_GIT_BRANCH})
-#            if [ "$DEPLOYED_COMMIT" == "${WERCKER_GIT_COMMIT}" ]
-#              then
-#                echo $DEPLOYED_COMMIT" deployment up"
-#              else
-#                echo -e "ERROR: wrong commit is deployed"$DEPLOYED_COMMIT
-#                exit 1
-#              fi
-  after-steps:
-    - mbrevda/github-status:
-      token: $GITHUB_TOKEN
-      context: rest_api_deployment
-      msg: deployment completed
-      fail: an error has occurred while deploying
-      url: https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19
 
 test-with-es:
   # run tests in the api that requires an es instance

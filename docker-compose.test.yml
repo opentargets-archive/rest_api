@@ -1,8 +1,0 @@
-sut:
-  image: this
-  privileged: true
-  external_links:
-    - es-singlenode-29428e6e:elasticsearch
-  environment:
-    - ELASTICSEARCH_URL='http://elasticsearch:9200'
-  command: python manage.py test
