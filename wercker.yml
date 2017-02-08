@@ -1,12 +1,13 @@
 box:
-  id: quay.io/cttv/rest_api_base
-  tag: $WERCKER_GIT_BRANCH
+  id: quay.io/opentargets/opentargets_rest_api_base
+  tag: 0.1
   registry: quay.io
+
 dev:
   steps:
     - pip-install
     - internal/watch:
-        code: python manage.py
+        code: python manage.py runserver
         reload: true
 
 # Build definition
@@ -135,6 +136,7 @@ deploy:
         cmd: supervisord
         ports: "80 443 8008 8009"
         disable-sync: true
+
   after-steps:
     - script:
         name: log status in github
