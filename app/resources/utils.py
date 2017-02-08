@@ -16,7 +16,7 @@ class Ping(restful.Resource):
 
     @rate_limit
     def get(self ):
-        return CTTVResponse.OK(RawResult('pong'))
+        return CTTVResponse.OK(RawResult('pang'))
 
 class Version(restful.Resource):
     parser = reqparse.RequestParser()
