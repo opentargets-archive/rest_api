@@ -70,8 +70,8 @@ class Config:
                     }
     REDIS_SERVER_PATH =os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
 
-    USAGE_LIMIT_DEFAULT_SHORT = 3000
-    USAGE_LIMIT_DEFAULT_LONG = 1200000
+    USAGE_LIMIT_DEFAULT_SHORT = int(os.getenv('USAGE_LIMIT_DEFAULT_SHORT', '3000'))
+    USAGE_LIMIT_DEFAULT_LONG = int(os.getenv('USAGE_LIMIT_DEFAULT_LONG', '1200000'))
     SECRET_PATH = os.getenv('SECRET_PATH', 'app/authconf/')
     SECRET_RATE_LIMIT_FILE = os.getenv('SECRET_RATE_LIMIT_FILE', 'rate_limit.csv')
     SECRET_IP_RESOLVER_FILE = os.getenv('SECRET_IP_RESOLVER_FILE', 'ip_list.csv')
