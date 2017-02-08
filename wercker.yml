@@ -1,4 +1,7 @@
-box: quay.io/opentargets/rest_api_base:0.1
+box:
+  id: quay.io/opentargets/opentargets_rest_api_base
+  tag: 0.1
+  registry: quay.io
 
 dev:
   steps:
@@ -133,7 +136,7 @@ deploy:
         cmd: supervisord
         ports: "80 443 8008 8009"
         disable-sync: true
-        
+
   after-steps:
     - script:
         name: log status in github
