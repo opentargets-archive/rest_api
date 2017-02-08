@@ -22,6 +22,7 @@ class Result(object):
                  res,
                  params = None,
                  data=[],
+                 targets_enrichment=[],
                  facets=None,
                  available_datatypes = [],
                  suggest=None,
@@ -44,6 +45,7 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
+        self.targets_enrichment = targets_enrichment
         self.suggest = suggest
 
     def toDict(self):
@@ -173,6 +175,7 @@ class PaginatedResult(Result):
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
+                'disease_enrichment': self.targets_enrichment,
                 # 'status' : self.status,
                 'therapeutic_areas': self.therapeutic_areas,
                 'data_version' : Config.DATA_VERSION,
@@ -220,8 +223,12 @@ class RawResult(Result):
     '''
 
     def toDict(self):
+        if isinstance(self.res, dict):
+            return self.res
         return json.loads(self.res)
     def toJSON(self):
+        if isinstance(self.res, dict):
+            return json.dumps(self.res)
         return self.res
 
 class EmptySimpleResult(Result):

@@ -29,7 +29,6 @@ class Association(restful.Resource):
         Get an associations from its id
         Can be used to request in batch if multiple ids are passed
         """
-        start_time = time.time()
         args = self.parser.parse_args()
         evidenceids = args['id'][:1000]
         es = current_app.extensions['esquery']
@@ -37,8 +36,7 @@ class Association(restful.Resource):
         res = es.get_associations_by_id(evidenceids)
         if not res:
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
-        return CTTVResponse.OK(res,
-                               took=time.time() - start_time)
+        return CTTVResponse.OK(res)
 
 class FilterBy(restful.Resource):
 
@@ -51,7 +49,6 @@ class FilterBy(restful.Resource):
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         """
-        start_time = time.time()
         parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False,)
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -70,8 +67,11 @@ class FilterBy(restful.Resource):
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
         # parser.add_argument('outputstructure', type=str, required=False, help="Return the output in a list with 'flat' or in a hierarchy with 'tree' (only works when searching for gene)", choices=['flat','tree'])
+
+        parser.add_argument('targets_enrichment', type=str, required=False, help="disease enrichment analysis for a set of targets")
         parser.add_argument('direct', type=boolean, required=False,)
-        parser.add_argument('facets', type=boolean, required=False,  default=False)
+        parser.add_argument('facets', type=str, required=False,  default="")
+        parser.add_argument('facets_size', type=int, required=False, default=0)
         parser.add_argument('sort', type=str,  required=False, action='append',)
         parser.add_argument('search', type=str,  required=False, )
         parser.add_argument('cap_scores', type=boolean, required=False, )
@@ -79,8 +79,7 @@ class FilterBy(restful.Resource):
         args = parser.parse_args()
         self.remove_empty_params(args)
         data = self.get_association(params=args)
-        return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
+        return CTTVResponse.OK(data)
 
 
     @is_authenticated
@@ -95,7 +94,7 @@ class FilterBy(restful.Resource):
         """
         #Why is this fix_empty_strings function here - do not see it being used anywhere
         def fix_empty_strings(l):
-            new_l=[] 
+            new_l=[]
             if l:
                 for i in l:
                     if i:
@@ -106,16 +105,15 @@ class FilterBy(restful.Resource):
         args = request.get_json(force=True)
         self.remove_empty_params(args)
 
-
         data = self.get_association(params=args)
         format = None
         if('format' in args):
-            format = args['format']   
+            format = args['format']
 
         return CTTVResponse.OK(data, format,
                                took=time.time() - start_time)
-  
-    def get_association(self,params):
+
+    def get_association(self, params):
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
@@ -123,7 +121,7 @@ class FilterBy(restful.Resource):
             abort(404, message=e.message)
 
         return res
-    
+
     def remove_empty_params(self,args):
         for k,v in args.items():
             if isinstance(v, list):
@@ -134,6 +132,3 @@ class FilterBy(restful.Resource):
                             drop =False
                     if drop:
                         del args[k]
-        
-    
-
