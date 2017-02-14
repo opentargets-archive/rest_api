@@ -1,4 +1,7 @@
 import json
+from pprint import pprint
+
+import time
 
 from tests import GenericTestCase
 
@@ -16,16 +19,19 @@ class AssociationTestCase(GenericTestCase):
                   "ENSG00000197114", "ENSG00000130592", "ENSG00000100368", "ENSG00000164308", "ENSG00000111424",
                   "ENSG00000108688", "ENSG00000181634", "ENSG00000164512", "ENSG00000182256", "ENSG00000113327",
                   "ENSG00000163285", "ENSG00000079263", "ENSG00000115232", "ENSG00000100311", "ENSG00000143622"]
+        start_time = time.time()
         response = self._make_request('/api/latest/private/enrichment/targets',
                                       data={'target': target,
                                             'method': 'POST',
                                             'no_cache': True
                                             },
                                       token=self._AUTO_GET_TOKEN)
+        print 'time: ', time.time()-start_time
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
-        self.assertIn('disease_enrichment', json_response)
-        self.assertTrue(len(json_response['disease_enrichment']) == 0)
+        pprint(json_response)
+        self.assertIn('data', json_response)
+        self.assertTrue(len(json_response['data']) == 0)
 
 
     def testAssociationTargetEnrichmentGet(self):
@@ -49,12 +55,12 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
 
-        self.assertIn('disease_enrichment', json_response)
+        self.assertIn('data', json_response)
 
-        self.assertIsNotNone(json_response['disease_enrichment'])
+        self.assertIsNotNone(json_response['data'])
 
         min_score = 0
-        for disease in json_response['disease_enrichment']:
+        for disease in json_response['data']:
             self.assertIsNotNone(disease['score'])
             score = disease['score']
             self.assertGreaterEqual(score, min_score)
