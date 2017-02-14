@@ -6,6 +6,7 @@ import sys
 import time
 from collections import defaultdict
 from datetime import datetime
+from pprint import pprint
 
 import numpy as np
 from app.common.hypergeometric import HypergeometricTest
@@ -239,12 +240,32 @@ class esQuery():
         else:
             return EmptyPaginatedResult(None)
 
-    def targets_enrichment(self,
-                           query,
-                           enrichment_method,
-                           M=0):
+    def get_enrichment_for_targets(self,
+                           targets):
 
-        if M <= 10 or enrichment_method is None:
+        '''
+        N is the population size - all_targets
+        K is the number of success states in the population,
+        n is the number of draws, - targets_in_set
+        k is the number of observed successes, - all_targets_in_disease
+        Args:
+            query: list of targets
+
+        Returns:
+
+        '''
+
+        # enrichment_query = {
+        #     'match_all': {}
+        # }
+        # if filter_data_conditions:
+        #     enrichment_query = {
+        #         "bool": {
+        #             "must": [i for i in filter_data_conditions.values() if i]
+        #         }
+        #     }
+        M=len(targets)
+        if M <= 10  :
             return []
 
         # We get the 3 numbers
@@ -303,7 +324,7 @@ class esQuery():
         foreground = self._cached_search(index=self._index_association,
                                          doc_type=self._docname_association,
                                          body={
-                                             "query": query,
+                                             "query": self.get_complex_target_filter(targets),
                                              "size": 0,
                                              "aggregations": {
                                                  "data": {
@@ -343,13 +364,14 @@ class esQuery():
             k = bg["association_counts"]["total"]
             x = disease["unique_target_count"]["value"]
 
-            key = str(N) + "_" + str(M) + "_" + str(k) + "_" + str(x);
+            key = '_'.join(map(str,[N,M,k,x]))
             pval = self.cache.get(key)
             if pval is None:
                 start_time = time.time()
                 pval = HypergeometricTest.run(N, M, k, x)
                 took = int(round(time.time() - start_time))
-                self.cache.set(key, pval, took)
+                # print took
+                self.cache.set(key, pval, 60)
 
             enrichment.append({
                 "id": id_,
@@ -363,7 +385,8 @@ class esQuery():
                 "score": pval
             })
 
-        return sorted(enrichment, key=lambda k: k["score"])
+        enriched = sorted(enrichment, key=lambda k: k["score"])
+        return SimpleResult(None, data=enriched)
 
     def best_hit_search(self,
                         searchphrases,
@@ -861,17 +884,7 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
-        enrichment_query = {
-            'match_all': {}
-        }
-        if filter_data_conditions:
-            enrichment_query = {
-                "bool": {
-                    "must": [i for i in filter_data_conditions.values() if i]
-                }
-            }
 
-        enrichment = self.targets_enrichment(enrichment_query, params.enrichment_method, len(params.target))
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
@@ -904,7 +917,6 @@ class esQuery():
                 return PaginatedResult(ass_data,
                                        params,
                                        data['data'],
-                                       enrichment,
                                        facets=data['facets'],
                                        available_datatypes=self.datatypes.available_datatypes,
                                        therapeutic_areas=ta_scores,
@@ -916,7 +928,6 @@ class esQuery():
         return PaginatedResult(ass_data,
                                params,
                                data['data'],
-                               enrichment,
                                facets=data['facets'],
                                available_datatypes=self.datatypes.available_datatypes,
                                )

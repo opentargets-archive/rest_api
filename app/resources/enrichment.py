@@ -32,7 +32,7 @@ class EnrichmentTargets(restful.Resource):
         """
 
         args = self.parser.parse_args()
-        targets = args['targets'][:MAX_ELEMENT_SIZE]
+        targets = args['target'][:MAX_ELEMENT_SIZE]
         return self.get_enrichment_for_targets(targets)
 
     @is_authenticated
@@ -45,7 +45,7 @@ class EnrichmentTargets(restful.Resource):
 
         args = request.get_json(force=True)
         self.remove_empty_params(args)
-        targets = args['targets'][:MAX_ELEMENT_SIZE]
+        targets = args['target'][:MAX_ELEMENT_SIZE]
 
 
         return self.get_enrichment_for_targets(targets)

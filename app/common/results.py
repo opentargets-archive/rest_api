@@ -175,8 +175,6 @@ class PaginatedResult(Result):
                 'took': self.res['took'],
                 'size': len(self.data) or 0,
                 'from': self.params.start_from,
-                'disease_enrichment': self.targets_enrichment,
-                # 'status' : self.status,
                 'therapeutic_areas': self.therapeutic_areas,
                 'data_version' : Config.DATA_VERSION,
                 }
