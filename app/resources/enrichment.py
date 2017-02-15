@@ -17,7 +17,7 @@ import time
 
 __author__ = 'andreap'
 
-MAX_ELEMENT_SIZE = 100
+MAX_ELEMENT_SIZE = 200
 
 class EnrichmentTargets(restful.Resource):
 
@@ -32,6 +32,8 @@ class EnrichmentTargets(restful.Resource):
         """
 
         args = self.parser.parse_args()
+        if len(args['target']) > MAX_ELEMENT_SIZE:
+            abort(404, message='maximum number of targets allowed is %i' % MAX_ELEMENT_SIZE)
         targets = args['target'][:MAX_ELEMENT_SIZE]
         return self.get_enrichment_for_targets(targets)
 
@@ -45,6 +47,8 @@ class EnrichmentTargets(restful.Resource):
 
         args = request.get_json(force=True)
         self.remove_empty_params(args)
+        if len(args['target']) > MAX_ELEMENT_SIZE:
+            abort(404, message='maximum number of targets allowed is %i' % MAX_ELEMENT_SIZE)
         targets = args['target'][:MAX_ELEMENT_SIZE]
 
 
