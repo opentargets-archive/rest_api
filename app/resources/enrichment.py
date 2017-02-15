@@ -17,7 +17,7 @@ import time
 
 __author__ = 'andreap'
 
-MAX_ELEMENT_SIZE = 200
+MAX_ELEMENT_SIZE = 1000
 
 class EnrichmentTargets(restful.Resource):
 

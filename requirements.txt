@@ -41,3 +41,5 @@ blinker==1.4
 ipaddr==2.1.11
 mixpanel
 mixpanel-py-async
+jmespath==0.9.1
+scipy==0.18.0

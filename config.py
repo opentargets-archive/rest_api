@@ -95,7 +95,7 @@ class DevelopmentConfig(Config):
     # ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 1
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
     @classmethod
     def init_app(cls, app):

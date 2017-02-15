@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 from pprint import pprint
 
+import jmespath
 import numpy as np
 from app.common.hypergeometric import HypergeometricTest
 from elasticsearch import helpers, TransportError
@@ -25,7 +26,9 @@ from config import Config
 from elasticsearch import helpers
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
-
+import os
+import pickle
+from scipy.stats import hypergeom
 __author__ = 'andreap'
 
 KEYWORD_MAPPING_FIELDS = ["name",
@@ -134,8 +137,8 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
-                 docname_search_target=None,
-                 docname_search_disease=None,
+                 # docname_search_target=None,
+                 # docname_search_disease=None,
                  docname_relation=None,
                  cache=None,
                  log_level=logging.DEBUG):
@@ -170,8 +173,8 @@ class esQuery():
         self._docname_reactome = docname_reactome
         self._docname_association = docname_association
         self._docname_search = docname_search
-        self._docname_search_target = docname_search_target
-        self._docname_search_disease = docname_search_disease
+        self._docname_search_target = docname_search + '-target',
+        self._docname_search_disease = docname_search + '-disease'
         self._docname_relation = docname_relation
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
@@ -255,138 +258,127 @@ class esQuery():
 
         '''
 
-        # enrichment_query = {
-        #     'match_all': {}
-        # }
-        # if filter_data_conditions:
-        #     enrichment_query = {
-        #         "bool": {
-        #             "must": [i for i in filter_data_conditions.values() if i]
-        #         }
-        #     }
+        entry_time = time.time()
+        query_cache_key = hashlib.md5(''.join(sorted(list(set(targets))))).hexdigest()
+        data = None
         M=len(targets)
-        if M <= 10  :
-            return []
+        if M <2  :
+            data = []
 
-        # We get the 3 numbers
-        # The total number of targets with associations
+        data = self.cache.get(query_cache_key)
 
-        all_targets = self._cached_search(index=self._index_search,
-                                          doc_type=self._docname_search_target,
-                                          body={
-                                              "query": {
-                                                  "filtered": {
-                                                      "filter": {
-                                                          "range": {
-                                                              "association_counts.total": {
-                                                                  "gte": 1
+        if data is None:
+            # We get the 3 numbers
+            # The total number of targets with associations
+            start_time = time.time()
+            all_targets = self._cached_search(index=self._index_search,
+                                              doc_type=self._docname_search_target,
+                                              body={
+                                                  "query": {
+                                                      "filtered": {
+                                                          "filter": {
+                                                              "range": {
+                                                                  "association_counts.total": {
+                                                                      "gte": 1
+                                                                  }
                                                               }
                                                           }
                                                       }
                                                   }
-                                              }
-                                          },
-                                          size=0)
-        N = all_targets["hits"]["total"]
+                                              },
+                                              size=0)
+            N = all_targets["hits"]["total"]
+            print 'all targets query', time.time() - start_time
 
-        background = helpers.scan(client=self.handler,
-                                  query={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "range": {
-                                                      "association_counts.total": {
-                                                          "gte": 1
-                                                      }
-                                                  }
-                                              }
-                                          }
+
+            '''get all data'''
+            start_time = time.time()
+            # cache_file='/tmp/'+query_cache_key
+            # if os.path.exists('/tmp/'+query_cache_key):
+            #     disease_data = pickle.load(open(cache_file))
+            # else:
+            disease_data = {}
+            all_data = helpers.scan(client=self.handler,
+                                      query={
+                                          "query": self.get_complex_target_filter(targets),
+                                          'size': 1000,
+                                          "_source": ["target.id*",
+                                                      "disease.id",
+                                                      ]
                                       },
-                                      'size': 1000,
-                                      "_source": ["association_counts", "name"]
-                                  },
-                                  scroll='1h',
-                                  index=self._index_search,
-                                  doc_type=self._docname_search_disease,
-                                  # doc_type="search-object-disease",
-                                  timeout='10m'
-                                  )
+                                      scroll='1h',
+                                      index=self._index_association,
+                                      # doc_type="search-object-disease",
+                                      timeout='10m'
+                                      )
+            for a in all_data:
+                disease_id = jmespath.search('_source.disease.id',a)
+                if disease_id not in disease_data:
+                    disease_data[disease_id] = []
+                disease_data[disease_id].append(a)
+            # pickle.dump(disease_data, open(cache_file, 'w'), protocol=pickle.HIGHEST_PROTOCOL)
+            print 'get all data', time.time() - start_time
 
-        background_counts = dict()
-        for hit in background:
-            id_ = hit["_id"]
-            background_counts[id_] = {
-                "id": id_,
-                "label": hit["_source"]["name"],
-                "association_counts": hit["_source"]["association_counts"]
-            }
+            start_time = time.time()
 
-        foreground = self._cached_search(index=self._index_association,
-                                         doc_type=self._docname_association,
-                                         body={
-                                             "query": self.get_complex_target_filter(targets),
-                                             "size": 0,
-                                             "aggregations": {
-                                                 "data": {
-                                                     "terms": {
-                                                         "field": "disease.id",
-                                                         'size': 10000
-                                                     },
-                                                     "aggs": {
-                                                         "unique_target_count": {
-                                                             "cardinality": {
-                                                                 "field": "target.id",
-                                                                 "precision_threshold": 1000
-                                                             }
-                                                         },
-                                                         "unique_disease_count": {
-                                                             "cardinality": {
-                                                                 "field": "disease.id",
-                                                                 "precision_threshold": 1000
-                                                             }
-                                                         },
-                                                         "sum_scores": {
-                                                             "sum": {
-                                                                 "field": "sum.overall"
-                                                             }
-                                                         }
-                                                     }
-                                                 }
-                                             }
-                                         })
+            background = self.handler.mget(body = dict(ids=disease_data.keys()),
+                                           index = self._index_search,
+                                           doc_type = self._docname_search_disease,
+                                            _source = ['association_counts', 'name'],
 
-        enrichment = []
+                                          realtime=False,
+                                          )
 
-        for disease in foreground["aggregations"]["data"]["buckets"]:
-            id_ = disease["key"]
-            bg = background_counts[id_]
-            id_ = disease["key"]
-            k = bg["association_counts"]["total"]
-            x = disease["unique_target_count"]["value"]
+            background_counts = dict()
+            for doc in background['docs']:
+                if doc['found']:
+                    background_counts[doc['_id']] = {
+                        "id": doc['_id'],
+                        "label": doc["_source"]["name"],
+                        "association_counts": doc["_source"]["association_counts"]
+                    }
+                else:
+                    raise KeyError('document with id %s not found' % (doc['_id']))
 
-            key = '_'.join(map(str,[N,M,k,x]))
-            pval = self.cache.get(key)
-            if pval is None:
-                start_time = time.time()
-                pval = HypergeometricTest.run(N, M, k, x)
-                took = int(round(time.time() - start_time))
-                # print took
-                self.cache.set(key, pval, 60)
+            print 'background query', time.time() - start_time
 
-            enrichment.append({
-                "id": id_,
-                "label": bg["label"],
-                "counts": {
-                    "all_targets": N,
-                    "all_targets_in_disease": k,
-                    "targets_in_set": M,
-                    "targets_in_set_in_disease": x
-                },
-                "score": pval
-            })
 
-        enriched = sorted(enrichment, key=lambda k: k["score"])
-        return SimpleResult(None, data=enriched)
+
+            start_time = time.time()
+            score_cache = {}
+            enrichment = []
+            for disease_id, disease_targets in disease_data.items():
+                bg = background_counts[disease_id]
+                k = bg["association_counts"]["total"]
+                x = len(disease_targets)
+
+                key = '_'.join(map(str,[N,M,k,x]))
+                pval = score_cache.get(key)
+                if pval is None:
+                    # pval = HypergeometricTest.run(N, M, k, x)
+                    # prb = hypergeom.cdf(x, M, n, N)
+                    pval = hypergeom.pmf(x, N, k, M)
+                    # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
+                    score_cache[key] =pval
+
+                enrichment.append({
+                    "id": disease_id,
+                    "label": bg["label"],
+                    "counts": {
+                        "all_targets": N,
+                        "all_targets_in_disease": k,
+                        "targets_in_set": M,
+                        "targets_in_set_in_disease": x
+                    },
+                    "score": pval
+                })
+            data = sorted(enrichment, key=lambda k: k["score"])
+            self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+            print 'enrichment calculation', time.time() - start_time
+
+        total_time = time.time() - entry_time
+        print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
+        return SimpleResult(None, data=data)
 
     def best_hit_search(self,
                         searchphrases,
@@ -1820,7 +1812,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                )
 
         target_count = self._cached_search(index=self._index_search,
-                                           doc_type=self._docname_search + '-target',
+                                           doc_type=self._docname_search_target,
                                            body={"query": {
                                                "range": {
                                                    "association_counts.total": {
@@ -1834,7 +1826,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         stats.add_key_value('targets', target_count['hits']['total'])
 
         disease_count = self._cached_search(index=self._index_search,
-                                            doc_type=self._docname_search + '-disease',
+                                            doc_type=self._docname_search_disease,
                                             body={"query": {
                                                 "range": {
                                                     "association_counts.total": {
