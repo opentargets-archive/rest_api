@@ -43,8 +43,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = os.getenv('API_VERSION','2.0')
-    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.0.2')
+    API_VERSION = os.getenv('API_VERSION','2.1')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.0')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
