@@ -22,7 +22,6 @@ class Result(object):
                  res,
                  params = None,
                  data=[],
-                 targets_enrichment=[],
                  facets=None,
                  available_datatypes = [],
                  suggest=None,
@@ -45,7 +44,6 @@ class Result(object):
         self.available_datatypes = available_datatypes
         self.status = status
         self.therapeutic_areas= therapeutic_areas
-        self.targets_enrichment = targets_enrichment
         self.suggest = suggest
 
     def toDict(self):
@@ -151,11 +149,32 @@ class Result(object):
 
 
 class PaginatedResult(Result):
+    def __init__(self, *args, **kwargs):
+        '''
+
+        :param total: count to return, needs to be passed as kwarg
+        '''
+
+        self.total = kwargs.pop('total', None)
+        self.took = kwargs.pop('took', None)
+        super(self.__class__,self).__init__(*args, **kwargs)
+        if self.total is None:
+            if self.res:
+                self.total = self.res['hits']['total']
+            else:
+                self.total = len(self.data)
+        if self.took is None:
+            if self.res:
+                self.took = self.res['took']
+            else:
+                self.took = 0.
+
+
     def toDict(self):
         if not self.data :
             if self.params.datastructure == SourceDataStructureOptions.COUNT:
-                return {'total': self.res['hits']['total'],
-                        'took': self.res['took']
+                return {'total': self.total,
+                        'took': self.took
                 }
             elif self.params.datastructure == SourceDataStructureOptions.SIMPLE:
                 self.data = [self.flatten(hit['_source'], simplify=True) for hit in self.res['hits']['hits']]
@@ -169,15 +188,19 @@ class PaginatedResult(Result):
             if self.res and 'aggregations' in self.res:
                 self.facets = self.res['aggregations']
 
-        return {'data': self.data,
-                'facets':self.facets,
-                'total': self.res['hits']['total'],
-                'took': self.res['took'],
-                'size': len(self.data) or 0,
-                'from': self.params.start_from,
-                'therapeutic_areas': self.therapeutic_areas,
-                'data_version' : Config.DATA_VERSION,
-                }
+        response =  {'data': self.data,
+                    'total': self.total,
+                    'took': self.took,
+                    'size': len(self.data) or 0,
+                    'from': self.params.start_from,
+                    'data_version' : Config.DATA_VERSION,
+                    'query': self.params.query_params
+                    }
+        if self.facets:
+            response[ 'facets'] = self.facets
+        if self.therapeutic_areas:
+            response['therapeutic_areas'] = self.therapeutic_areas
+        return response
 
 class EmptyPaginatedResult(Result):
     def toDict(self):

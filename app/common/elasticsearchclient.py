@@ -245,9 +245,10 @@ class esQuery():
 
     def get_enrichment_for_targets(self,
                                    targets,
-                                   pvalue_treshold = 1e-3,
-                                   start = 0,
-                                   end = -1):
+                                   pvalue_threshold = 1e-3,
+                                   from_ = 0,
+                                   size = 10,
+                                   sort='score'):
 
         '''
         N is the population size - all_targets
@@ -261,15 +262,20 @@ class esQuery():
 
         '''
 
+        params = SearchParams(targets = targets,
+                              pvalue=pvalue_threshold,
+                              from_ = from_,
+                              size = size,
+                              sort =sort)
+
         entry_time = time.time()
         query_cache_key = hashlib.md5(''.join(sorted(list(set(targets))))).hexdigest()
         data = None
         M=len(targets)
         if M <2  :
             data = []
-
-        data = self.cache.get(query_cache_key)
-
+        if data is None:
+            data = self.cache.get(query_cache_key)
         if data is None:
             # We get the 3 numbers
             # The total number of targets with associations
@@ -305,7 +311,7 @@ class esQuery():
                                       query={
                                           "query": self.get_complex_target_filter(targets),
                                           'size': 1000,
-                                          "_source": ["target.id*",
+                                          "_source": ["target.id",
                                                       "disease.id",
                                                       ]
                                       },
@@ -349,7 +355,7 @@ class esQuery():
 
             start_time = time.time()
             score_cache = {}
-            enrichment = []
+            data = []
             for disease_id, disease_targets in disease_data.items():
                 bg = background_counts[disease_id]
                 k = bg["association_counts"]["total"]
@@ -362,26 +368,32 @@ class esQuery():
                     pvalue = hypergeom.pmf(x, N, k, M)
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
                     score_cache[key] =pvalue
-                if pvalue < pvalue_treshold:
 
-                    enrichment.append({
-                        "id": disease_id,
-                        "label": bg["label"],
-                        "counts": {
-                            "all_targets": N,
-                            "all_targets_in_disease": k,
-                            "targets_in_set": M,
-                            "targets_in_set_in_disease": x
-                        },
-                        "score": pvalue
-                    })
-            data = sorted(enrichment, key=lambda k: k["score"])
+                data.append({
+                    "id": disease_id,
+                    "label": bg["label"],
+                    "counts": {
+                        "all_targets": N,
+                        "all_targets_in_disease": k,
+                        "targets_in_set": M,
+                        "targets_in_set_in_disease": x
+                    },
+                    "score": pvalue
+                })
             self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             print 'enrichment calculation', time.time() - start_time
-
+        if pvalue_threshold < 1:
+            data = [d for d in data if d['score'] <= pvalue_threshold]
+        data = sorted(data, key=lambda k: k[params.sort])
         total_time = time.time() - entry_time
         print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
-        return SimpleResult(None, data=data[start:end])
+        return PaginatedResult(None,
+                               data=data[from_:from_ + size],
+                               total = len(data),
+                               took = total_time,
+                               params=params,
+
+                               )
 
     def best_hit_search(self,
                         searchphrases,
@@ -1994,6 +2006,7 @@ class SearchParams():
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
+    _default_pvalue = 1e-3
 
     def __init__(self, **kwargs):
 
@@ -2004,7 +2017,7 @@ class SearchParams():
         if (self.size > self._max_search_result_limit):
             raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
 
-        self.start_from = kwargs.get('from', 0) or 0
+        self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
         if self.cap_scores is None:
@@ -2095,6 +2108,8 @@ class SearchParams():
         self.highlight = kwargs.get('highlight', highlight_default)
         if self.highlight is None:
             self.highlight = highlight_default
+        self.pvalue =  kwargs.get('pvalue', self._default_pvalue)
+        self.query_params =  {k:v for k,v in self.__dict__.items() if k in kwargs}
 
 
 class AggregationUnit(object):

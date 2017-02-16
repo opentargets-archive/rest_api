@@ -23,6 +23,10 @@ class EnrichmentTargets(restful.Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('target', type=str, action='append', required=True, )
+    parser.add_argument('pvalue', type=float, required=False, default=0.001)
+    parser.add_argument('from', type=int, required=False, default=0)
+    parser.add_argument('size', type=int, required=False, default=10)
+
 
     @is_authenticated
     @rate_limit
@@ -34,8 +38,10 @@ class EnrichmentTargets(restful.Resource):
         args = self.parser.parse_args()
         if len(args['target']) > MAX_ELEMENT_SIZE:
             abort(404, message='maximum number of targets allowed is %i' % MAX_ELEMENT_SIZE)
-        targets = args['target'][:MAX_ELEMENT_SIZE]
-        return self.get_enrichment_for_targets(targets)
+        return self.get_enrichment_for_targets(args['target'],
+                                               args['pvalue'],
+                                               args['from'],
+                                               args['size'])
 
     @is_authenticated
     @rate_limit
@@ -49,16 +55,24 @@ class EnrichmentTargets(restful.Resource):
         self.remove_empty_params(args)
         if len(args['target']) > MAX_ELEMENT_SIZE:
             abort(404, message='maximum number of targets allowed is %i' % MAX_ELEMENT_SIZE)
-        targets = args['target'][:MAX_ELEMENT_SIZE]
+
+        return self.get_enrichment_for_targets(args['target'],
+                                               args['pvalue'],
+                                               args['from'],
+                                               args['size'])
 
 
-        return self.get_enrichment_for_targets(targets)
-
-
-    def get_enrichment_for_targets(self, targets):
+    def get_enrichment_for_targets(self,
+                                   targets,
+                                   pvalue,
+                                   from_,
+                                   size):
         es = current_app.extensions['esquery']
 
-        res = es.get_enrichment_for_targets(targets)
+        res = es.get_enrichment_for_targets(targets,
+                                            pvalue_threshold=pvalue,
+                                            from_=from_,
+                                            size=size)
         if not res:
             abort(404, message='Cannot find diseases for targets %s'%str(targets))
         return CTTVResponse.OK(res)

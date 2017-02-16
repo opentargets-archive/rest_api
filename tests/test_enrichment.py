@@ -10,6 +10,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationTargetsEnrichmentPost(self):
 
+        '''first call'''
         start_time = time.time()
         response = self._make_request('/api/latest/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
@@ -22,8 +23,9 @@ class AssociationTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         # pprint(json_response)
         self.assertIn('data', json_response)
-        print 'enriched diseases', len(json_response['data'])
 
+        print 'enriched diseases', json_response['total']
+        '''check cache works'''
         start_time = time.time()
         response = self._make_request('/api/latest/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
@@ -35,6 +37,69 @@ class AssociationTestCase(GenericTestCase):
         print 'times: ', first_time, second_time
         self.assertLess(second_time, first_time)
 
+        '''check size works'''
+        start_time = time.time()
+        size = 100
+        size_response = self._make_request('/api/latest/private/enrichment/targets',
+                                      data={'target': self.IBD_GENES,
+                                            'size':size,
+                                            'method': 'POST',
+                                            'no_cache': True
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        size_response_time = time.time() - start_time
+        self.assertLess(size_response_time, first_time)
+        json_response_size = json.loads(size_response.data.decode('utf-8'))
+        self.assertEqual(len(json_response_size['data']), size)
+
+        '''check size works'''
+        start_time = time.time()
+        from_ = 50
+        from_response = self._make_request('/api/latest/private/enrichment/targets',
+                                      data={'target': self.IBD_GENES,
+                                            'from':from_,
+                                            'method': 'POST',
+                                            'no_cache': True
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        from_response_time = time.time() - start_time
+        self.assertLess(from_response_time, first_time)
+        json_response_from = json.loads(from_response.data.decode('utf-8'))
+        self.assertEqual(json_response_from['data'][0], json_response_size['data'][from_])
+        '''check lower pvalue filter works'''
+        start_time = time.time()
+        pvalue = 1e-20
+        pvalue_response = self._make_request('/api/latest/private/enrichment/targets',
+                                           data={'target': self.IBD_GENES,
+                                                 'size': 10000,
+                                                 'pvalue': pvalue,
+                                                 'method': 'POST',
+                                                 'no_cache': True
+                                                 },
+                                           token=self._AUTO_GET_TOKEN)
+        pvalue_response_time = time.time() - start_time
+        self.assertLess(pvalue_response_time, first_time)
+        json_response_pvalue = json.loads(pvalue_response.data.decode('utf-8'))
+        self.assertLess(json_response_pvalue['total'],json_response['total'])
+        for i in json_response_pvalue['data']:
+            self.assertLessEqual(i['score'],pvalue)
+        '''check higher pvalue filter works'''
+        start_time = time.time()
+        pvalue = 1
+        pvalue_response = self._make_request('/api/latest/private/enrichment/targets',
+                                             data={'target': self.IBD_GENES,
+                                                   'size': 10000,
+                                                   'pvalue': pvalue,
+                                                   'method': 'POST',
+                                                   'no_cache': True
+                                                   },
+                                             token=self._AUTO_GET_TOKEN)
+        pvalue_response_time = time.time() - start_time
+        self.assertLess(pvalue_response_time, first_time)
+        json_response_pvalue = json.loads(pvalue_response.data.decode('utf-8'))
+        self.assertGreater(json_response_pvalue['total'], json_response['total'])
+        for i in json_response_pvalue['data']:
+            self.assertLessEqual(i['score'], pvalue)
 
     def testAssociationTargetEnrichmentGet(self):
 
