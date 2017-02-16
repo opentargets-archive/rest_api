@@ -1,34 +1,27 @@
 import hashlib
 import json as json
 import logging
-import socket
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime
-from pprint import pprint
 
 import jmespath
 import numpy as np
-from app.common.hypergeometric import HypergeometricTest
-from elasticsearch import helpers, TransportError
+from elasticsearch import TransportError
+from elasticsearch import helpers
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
+from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult, EmptySimpleResult, \
+from app.common.response_templates import Association, DataStats, Relation
+from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
-from elasticsearch import helpers
-from flask import current_app, request
-from pythonjsonlogger import jsonlogger
-import os
-import pickle
-from scipy.stats import hypergeom
+
 __author__ = 'andreap'
 
 KEYWORD_MAPPING_FIELDS = ["name",
@@ -248,7 +241,7 @@ class esQuery():
                                    pvalue_threshold = 1e-3,
                                    from_ = 0,
                                    size = 10,
-                                   sort='score'):
+                                   sort='enrichment.score'):
 
         '''
         N is the population size - all_targets
@@ -311,8 +304,12 @@ class esQuery():
                                       query={
                                           "query": self.get_complex_target_filter(targets),
                                           'size': 1000,
-                                          "_source": ["target.id",
+                                          "_source": ["target.*",
+                                                      "harmonic-sum.datatypes",
+                                                      "harmonic-sum.overall",
                                                       "disease.id",
+                                                      "disease.efo_info.label",
+                                                      "disease.efo_info.therapeutic_area",
                                                       ]
                                       },
                                       scroll='1h',
@@ -329,13 +326,11 @@ class esQuery():
             print 'get all data', time.time() - start_time
 
             start_time = time.time()
-
             background = self.handler.mget(body = dict(ids=disease_data.keys()),
                                            index = self._index_search,
                                            doc_type = self._docname_search_disease,
-                                            _source = ['association_counts', 'name'],
-
-                                          realtime=False,
+                                           _source = ['association_counts', 'name'],
+                                           realtime=False,
                                           )
 
             background_counts = dict()
@@ -370,27 +365,34 @@ class esQuery():
                     score_cache[key] =pvalue
 
                 data.append({
-                    "id": disease_id,
-                    "label": bg["label"],
-                    "counts": {
-                        "all_targets": N,
-                        "all_targets_in_disease": k,
-                        "targets_in_set": M,
-                        "targets_in_set_in_disease": x
+                    "enriched_entity": {
+                        "type": "disease",
+                        "id": disease_id,
+                        "label": bg["label"],
                     },
-                    "score": pvalue
+                    "enrichment":{
+                        "method": "hypergeometric",
+                        "params": {
+                            "all_targets": N,
+                            "all_targets_in_disease": k,
+                            "targets_in_set": M,
+                            "targets_in_set_in_disease": x
+                        },
+                        "score": pvalue
+                    },
+                    "targets": [ association['_source'] for association in disease_targets]
                 })
             self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             print 'enrichment calculation', time.time() - start_time
         if pvalue_threshold < 1:
-            data = [d for d in data if d['score'] <= pvalue_threshold]
-        data = sorted(data, key=lambda k: k[params.sort])
+            data = [d for d in data if d['enrichment']['score'] <= pvalue_threshold]
+        data = sorted(data, key=lambda k: jmespath.search(params.sort, k))
         total_time = time.time() - entry_time
         print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
         return PaginatedResult(None,
                                data=data[from_:from_ + size],
                                total = len(data),
-                               took = total_time,
+                               took = int(total_time*1000),
                                params=params,
 
                                )

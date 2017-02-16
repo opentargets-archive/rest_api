@@ -52,7 +52,7 @@ class AssociationTestCase(GenericTestCase):
         json_response_size = json.loads(size_response.data.decode('utf-8'))
         self.assertEqual(len(json_response_size['data']), size)
 
-        '''check size works'''
+        '''check from works'''
         start_time = time.time()
         from_ = 50
         from_response = self._make_request('/api/latest/private/enrichment/targets',
@@ -66,6 +66,25 @@ class AssociationTestCase(GenericTestCase):
         self.assertLess(from_response_time, first_time)
         json_response_from = json.loads(from_response.data.decode('utf-8'))
         self.assertEqual(json_response_from['data'][0], json_response_size['data'][from_])
+        '''check sort works'''
+        start_time = time.time()
+        size = 100
+        sort_response = self._make_request('/api/latest/private/enrichment/targets',
+                                           data={'target': self.IBD_GENES,
+                                                 'size': size,
+                                                 'method': 'POST',
+                                                 'no_cache': True,
+                                                 'sort': 'enrichment.score'
+                                                 },
+                                           token=self._AUTO_GET_TOKEN)
+        size_response_time = time.time() - start_time
+        self.assertLess(size_response_time, first_time)
+        json_response_sort = json.loads(sort_response.data.decode('utf-8'))
+        for i in range(len(json_response_sort['data'])-1):
+            self.assertLessEqual(json_response_sort['data'][i]['enrichment']['score'],
+                                    json_response_sort['data'][i+1]['enrichment']['score'])
+
+        self.assertEqual(len(json_response_size['data']), size)
         '''check lower pvalue filter works'''
         start_time = time.time()
         pvalue = 1e-20
@@ -82,7 +101,7 @@ class AssociationTestCase(GenericTestCase):
         json_response_pvalue = json.loads(pvalue_response.data.decode('utf-8'))
         self.assertLess(json_response_pvalue['total'],json_response['total'])
         for i in json_response_pvalue['data']:
-            self.assertLessEqual(i['score'],pvalue)
+            self.assertLessEqual(i['enrichment']['score'],pvalue)
         '''check higher pvalue filter works'''
         start_time = time.time()
         pvalue = 1
@@ -99,7 +118,7 @@ class AssociationTestCase(GenericTestCase):
         json_response_pvalue = json.loads(pvalue_response.data.decode('utf-8'))
         self.assertGreater(json_response_pvalue['total'], json_response['total'])
         for i in json_response_pvalue['data']:
-            self.assertLessEqual(i['score'], pvalue)
+            self.assertLessEqual(i['enrichment']['score'], pvalue)
 
     def testAssociationTargetEnrichmentGet(self):
 
