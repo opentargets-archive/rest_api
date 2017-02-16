@@ -244,7 +244,10 @@ class esQuery():
             return EmptyPaginatedResult(None)
 
     def get_enrichment_for_targets(self,
-                           targets):
+                                   targets,
+                                   pvalue_treshold = 1e-3,
+                                   start = 0,
+                                   end = -1):
 
         '''
         N is the population size - all_targets
@@ -353,32 +356,32 @@ class esQuery():
                 x = len(disease_targets)
 
                 key = '_'.join(map(str,[N,M,k,x]))
-                pval = score_cache.get(key)
-                if pval is None:
-                    # pval = HypergeometricTest.run(N, M, k, x)
-                    # prb = hypergeom.cdf(x, M, n, N)
-                    pval = hypergeom.pmf(x, N, k, M)
+                pvalue = score_cache.get(key)
+                if pvalue is None:
+                    # pvalue = HypergeometricTest.run(N, M, k, x)
+                    pvalue = hypergeom.pmf(x, N, k, M)
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
-                    score_cache[key] =pval
+                    score_cache[key] =pvalue
+                if pvalue < pvalue_treshold:
 
-                enrichment.append({
-                    "id": disease_id,
-                    "label": bg["label"],
-                    "counts": {
-                        "all_targets": N,
-                        "all_targets_in_disease": k,
-                        "targets_in_set": M,
-                        "targets_in_set_in_disease": x
-                    },
-                    "score": pval
-                })
+                    enrichment.append({
+                        "id": disease_id,
+                        "label": bg["label"],
+                        "counts": {
+                            "all_targets": N,
+                            "all_targets_in_disease": k,
+                            "targets_in_set": M,
+                            "targets_in_set_in_disease": x
+                        },
+                        "score": pvalue
+                    })
             data = sorted(enrichment, key=lambda k: k["score"])
             self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             print 'enrichment calculation', time.time() - start_time
 
         total_time = time.time() - entry_time
         print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
-        return SimpleResult(None, data=data)
+        return SimpleResult(None, data=data[start:end])
 
     def best_hit_search(self,
                         searchphrases,
