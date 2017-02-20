@@ -364,10 +364,12 @@ class esQuery():
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
                     score_cache[key] =pvalue
 
+                disease_properties = disease_targets[0]['_source']['disease']['efo_info']
                 target_data = []
                 for d in disease_targets:
                     source = d['_source']
                     source['association_score'] = source.pop('harmonic-sum')
+                    del source['disease']
                     target_data.append(source)
 
                 data.append({
@@ -375,6 +377,7 @@ class esQuery():
                         "type": "disease",
                         "id": disease_id,
                         "label": bg["label"],
+                        "properties": disease_properties
                     },
                     "enrichment":{
                         "method": "hypergeometric",
