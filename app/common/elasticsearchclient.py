@@ -290,7 +290,7 @@ class esQuery():
                                               },
                                               size=0)
             N = all_targets["hits"]["total"]
-            print 'all targets query', time.time() - start_time
+            # print 'all targets query', time.time() - start_time
 
 
             '''get all data'''
@@ -323,7 +323,7 @@ class esQuery():
                     disease_data[disease_id] = []
                 disease_data[disease_id].append(a)
             # pickle.dump(disease_data, open(cache_file, 'w'), protocol=pickle.HIGHEST_PROTOCOL)
-            print 'get all data', time.time() - start_time
+            # print 'get all data', time.time() - start_time
 
             start_time = time.time()
             background = self.handler.mget(body = dict(ids=disease_data.keys()),
@@ -344,7 +344,7 @@ class esQuery():
                 else:
                     raise KeyError('document with id %s not found' % (doc['_id']))
 
-            print 'background query', time.time() - start_time
+            # print 'background query', time.time() - start_time
 
 
 
@@ -364,6 +364,12 @@ class esQuery():
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
                     score_cache[key] =pvalue
 
+                target_data = []
+                for d in disease_targets:
+                    source = d['_source']
+                    source['association_score'] = source.pop('harmonic-sum')
+                    target_data.append(source)
+
                 data.append({
                     "enriched_entity": {
                         "type": "disease",
@@ -380,15 +386,15 @@ class esQuery():
                         },
                         "score": pvalue
                     },
-                    "targets": [ association['_source'] for association in disease_targets]
+                    "targets": target_data
                 })
             self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
-            print 'enrichment calculation', time.time() - start_time
+            # print 'enrichment calculation', time.time() - start_time
         if pvalue_threshold < 1:
             data = [d for d in data if d['enrichment']['score'] <= pvalue_threshold]
         data = sorted(data, key=lambda k: jmespath.search(params.sort, k))
         total_time = time.time() - entry_time
-        print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
+        # print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
         return PaginatedResult(None,
                                data=data[from_:from_ + size],
                                total = len(data),

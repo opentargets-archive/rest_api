@@ -124,7 +124,6 @@ class AssociationTestCase(GenericTestCase):
 
         response = self._make_request('/api/latest/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
-                                            'no_cache': True
                                             },
                                       token=self._AUTO_GET_TOKEN)
 
@@ -135,14 +134,6 @@ class AssociationTestCase(GenericTestCase):
 
         self.assertIsNotNone(json_response['data'])
 
-        min_score = 0
-        for disease in json_response['data']:
-            self.assertIsNotNone(disease['score'])
-            score = disease['score']
-            self.assertGreaterEqual(score, min_score)
-            min_score = score
-            self.assertIsNotNone(disease['counts'])
-            self.assertIsNotNone(disease['label'])
 
 
 
