@@ -2121,6 +2121,8 @@ class SearchParams():
             self.highlight = highlight_default
         self.pvalue =  kwargs.get('pvalue', self._default_pvalue)
         self.query_params =  {k:v for k,v in self.__dict__.items() if k in kwargs}
+        if 'from_' in kwargs:
+            self.query_params['from']=self.start_from
 
 
 class AggregationUnit(object):
