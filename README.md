@@ -1,5 +1,5 @@
 =====================
-Open Targets REST API
+Open Targets REST API test
 =====================
 
 [![wercker status](https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/m/master "wercker status")](https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19)
