@@ -16,8 +16,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-singlenode-29428e6e.cdd37e0c.svc.dockerapp.io:9200')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
