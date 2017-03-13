@@ -1,21 +1,22 @@
 import hashlib
 import json as json
 import logging
-import socket
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime
 
+import jmespath
 import numpy as np
-from elasticsearch import helpers, TransportError
+from elasticsearch import TransportError
+from elasticsearch import helpers
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
+from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation, RelationTypes
-from app.common.results import PaginatedResult, SimpleResult, CountedResult, RawResult, EmptySimpleResult, \
+from app.common.response_templates import Association, DataStats, Relation
+from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
@@ -33,6 +34,7 @@ KEYWORD_MAPPING_FIELDS = ["name",
                           "efo_url",
                           ]
 
+
 class BooleanFilterOperator():
     AND = 'must'
     OR = 'should'
@@ -48,6 +50,7 @@ class FreeTextFilterOptions():
     PUBLICATION = 'pub'
     SNP = 'snp'
     GENERIC = 'generic'
+
 
 class SearchObjectTypes():
     TARGET = 'search-object-target'
@@ -69,12 +72,12 @@ class ESResultStatus(object):
 
 
 class InternalCache(object):
-
     NAMESPACE = 'CTTV_REST_API_CACHE'
+
     def __init__(self, r_server,
-                 app_version = '',
-                 default_ttl = 60):
-        self.r_server  = r_server
+                 app_version='',
+                 default_ttl=60):
+        self.r_server = r_server
         self.app_version = app_version
         self.default_ttl = default_ttl
 
@@ -83,7 +86,7 @@ class InternalCache(object):
         if value:
             return self._decode(value)
 
-    def set(self, key, value, ttl = None):
+    def set(self, key, value, ttl=None):
         k = self._get_namespaced_key(key)
         v = self._encode(value)
         return self.r_server.setex(self._get_namespaced_key(key),
@@ -91,7 +94,7 @@ class InternalCache(object):
                                    ttl or self.default_ttl)
 
     def _get_namespaced_key(self, key):
-        #try cityhash for better performance (fast and non cryptographic hash library) from cityhash import CityHash64
+        # try cityhash for better performance (fast and non cryptographic hash library) from cityhash import CityHash64
         # hashed_key = hashlib.md5(key).digest().encode('base64')[:8]
         hashed_key = hashlib.md5(key).hexdigest()
         return ':'.join([self.NAMESPACE, self.app_version, hashed_key])
@@ -127,8 +130,10 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
+                 # docname_search_target=None,
+                 # docname_search_disease=None,
                  docname_relation=None,
-                 cache = None,
+                 cache=None,
                  log_level=logging.DEBUG):
         '''
 
@@ -161,6 +166,8 @@ class esQuery():
         self._docname_reactome = docname_reactome
         self._docname_association = docname_association
         self._docname_search = docname_search
+        self._docname_search_target = docname_search + '-target',
+        self._docname_search_disease = docname_search + '-disease'
         self._docname_relation = docname_relation
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
@@ -229,6 +236,176 @@ class esQuery():
         else:
             return EmptyPaginatedResult(None)
 
+    def get_enrichment_for_targets(self,
+                                   targets,
+                                   pvalue_threshold = 1e-3,
+                                   from_ = 0,
+                                   size = 10,
+                                   sort='enrichment.score'):
+
+        '''
+        N is the population size - all_targets
+        K is the number of success states in the population,
+        n is the number of draws, - targets_in_set
+        k is the number of observed successes, - all_targets_in_disease
+        Args:
+            query: list of targets
+
+        Returns:
+
+        '''
+
+        params = SearchParams(targets = targets,
+                              pvalue=pvalue_threshold,
+                              from_ = from_,
+                              size = size,
+                              sort =sort)
+
+        entry_time = time.time()
+        query_cache_key = hashlib.md5(''.join(sorted(list(set(targets))))).hexdigest()
+        data = None
+        M=len(targets)
+        if M <2  :
+            data = []
+        if data is None:
+            data = self.cache.get(query_cache_key)
+        if data is None:
+            # We get the 3 numbers
+            # The total number of targets with associations
+            start_time = time.time()
+            all_targets = self._cached_search(index=self._index_search,
+                                              doc_type=self._docname_search_target,
+                                              body={
+                                                  "query": {
+                                                      "filtered": {
+                                                          "filter": {
+                                                              "range": {
+                                                                  "association_counts.total": {
+                                                                      "gte": 1
+                                                                  }
+                                                              }
+                                                          }
+                                                      }
+                                                  }
+                                              },
+                                              size=0)
+            N = all_targets["hits"]["total"]
+            # print 'all targets query', time.time() - start_time
+
+
+            '''get all data'''
+            start_time = time.time()
+            # cache_file='/tmp/'+query_cache_key
+            # if os.path.exists('/tmp/'+query_cache_key):
+            #     disease_data = pickle.load(open(cache_file))
+            # else:
+            disease_data = {}
+            all_data = helpers.scan(client=self.handler,
+                                      query={
+                                          "query": self.get_complex_target_filter(targets),
+                                          'size': 1000,
+                                          "_source": ["target.*",
+                                                      "harmonic-sum.datatypes",
+                                                      "harmonic-sum.overall",
+                                                      "disease.id",
+                                                      "disease.efo_info.label",
+                                                      "disease.efo_info.therapeutic_area",
+                                                      ]
+                                      },
+                                      scroll='1h',
+                                      index=self._index_association,
+                                      # doc_type="search-object-disease",
+                                      timeout='10m'
+                                      )
+            for a in all_data:
+                disease_id = jmespath.search('_source.disease.id',a)
+                if disease_id not in disease_data:
+                    disease_data[disease_id] = []
+                disease_data[disease_id].append(a)
+            # pickle.dump(disease_data, open(cache_file, 'w'), protocol=pickle.HIGHEST_PROTOCOL)
+            # print 'get all data', time.time() - start_time
+
+            start_time = time.time()
+            background = self.handler.mget(body = dict(ids=disease_data.keys()),
+                                           index = self._index_search,
+                                           doc_type = self._docname_search_disease,
+                                           _source = ['association_counts', 'name'],
+                                           realtime=False,
+                                          )
+
+            background_counts = dict()
+            for doc in background['docs']:
+                if doc['found']:
+                    background_counts[doc['_id']] = {
+                        "id": doc['_id'],
+                        "label": doc["_source"]["name"],
+                        "association_counts": doc["_source"]["association_counts"]
+                    }
+                else:
+                    raise KeyError('document with id %s not found' % (doc['_id']))
+
+            # print 'background query', time.time() - start_time
+
+
+
+            start_time = time.time()
+            score_cache = {}
+            data = []
+            for disease_id, disease_targets in disease_data.items():
+                bg = background_counts[disease_id]
+                k = bg["association_counts"]["total"]
+                x = len(disease_targets)
+
+                key = '_'.join(map(str,[N,M,k,x]))
+                pvalue = score_cache.get(key)
+                if pvalue is None:
+                    # pvalue = HypergeometricTest.run(N, M, k, x)
+                    pvalue = hypergeom.pmf(x, N, k, M)
+                    # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
+                    score_cache[key] =pvalue
+
+                disease_properties = disease_targets[0]['_source']['disease']['efo_info']
+                target_data = []
+                for d in disease_targets:
+                    source = d['_source']
+                    source['association_score'] = source.pop('harmonic-sum')
+                    del source['disease']
+                    target_data.append(source)
+
+                data.append({
+                    "enriched_entity": {
+                        "type": "disease",
+                        "id": disease_id,
+                        "label": bg["label"],
+                        "properties": disease_properties
+                    },
+                    "enrichment":{
+                        "method": "hypergeometric",
+                        "params": {
+                            "all_targets": N,
+                            "all_targets_in_disease": k,
+                            "targets_in_set": M,
+                            "targets_in_set_in_disease": x
+                        },
+                        "score": pvalue
+                    },
+                    "targets": target_data
+                })
+            self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+            # print 'enrichment calculation', time.time() - start_time
+        if pvalue_threshold < 1:
+            data = [d for d in data if d['enrichment']['score'] <= pvalue_threshold]
+        data = sorted(data, key=lambda k: jmespath.search(params.sort, k))
+        total_time = time.time() - entry_time
+        # print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
+        return PaginatedResult(None,
+                               data=data[from_:from_ + size],
+                               total = len(data),
+                               took = int(total_time*1000),
+                               params=params,
+
+                               )
+
     def best_hit_search(self,
                         searchphrases,
                         doc_filter=(FreeTextFilterOptions.ALL),
@@ -247,13 +424,14 @@ class esQuery():
         if doc_filter is None:
             doc_filter = [FreeTextFilterOptions.ALL]
         doc_filter = self._get_search_doc_types(doc_filter)
-        results = self._best_hit_query(searchphrases,doc_filter, params)
+        results = self._best_hit_query(searchphrases, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
 
-        #there are len(params.q) responses - one per query
-        for i,res in enumerate(results['responses']):
-            searchphrase = searchphrases[i]  #even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
+        # there are len(params.q) responses - one per query
+        for i, res in enumerate(results['responses']):
+            searchphrase = searchphrases[
+                i]  # even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
             if 'hits' in res and res['hits']['total']:
@@ -264,26 +442,24 @@ class esQuery():
                     for field_name, matched_strings in highlight.items():
                         if field_name in KEYWORD_MAPPING_FIELDS:
                             for string in matched_strings:
-                                if string.lower() == '<em>%s</em>'%lower_name:
+                                if string.lower() == '<em>%s</em>' % lower_name:
                                     exact_match = True
                                     break
 
-                datapoint = dict(type= type_,
+                datapoint = dict(type=type_,
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
                                  q=searchphrase,
                                  exact=exact_match)
                 if params.highlight:
-                    datapoint['highlight']=highlight
+                    datapoint['highlight'] = highlight
             else:
                 datapoint = dict(id=None,
                                  q=searchphrase)
             data.append(datapoint)
 
-
         return SimpleResult(results, params, data)
-
 
     def quick_search(self,
                      searchphrase,
@@ -425,7 +601,7 @@ class esQuery():
                                       },
 
                                           '_source': source_filter,
-                                          'size': params.size,
+                                          'size': len(gene_ids),
                                           'from': params.start_from,
                                       }
                                       )
@@ -445,7 +621,7 @@ class esQuery():
                                               },
                                           },
                                           'size': 10000
-                                        }
+                                      }
                                       )
             if res['hits']['total']:
                 if res['hits']['total'] == 1:
@@ -465,10 +641,10 @@ class esQuery():
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body={"filter": {
-                                            "ids": {"values": evidenceid},
-                                            },
-                                        "size" : len(evidenceid),
-                                        }
+                                      "ids": {"values": evidenceid},
+                                  },
+                                      "size": len(evidenceid),
+                                  }
                                   )
         return SimpleResult(res,
                             params,
@@ -510,7 +686,8 @@ class esQuery():
         if targets:
             conditions.append(self.get_complex_target_filter(targets, gene_operator))
         if diseases:
-            conditions.append(self.get_complex_disease_filter(diseases, object_operator, is_direct=False))#temporary until params.is_direct is supported again
+            conditions.append(self.get_complex_disease_filter(diseases, object_operator,
+                                                              is_direct=False))  # temporary until params.is_direct is supported again
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources or datatypes:
@@ -562,8 +739,7 @@ class esQuery():
                                   # doc_type=self._docname_data,
                                   body=query_body,
                                   timeout="10m",
-
-                                      )
+                                  )
 
         return PaginatedResult(res, params, )
 
@@ -593,7 +769,6 @@ class esQuery():
         #
         # return PaginatedResult(None, params, data = [i for i in res])
 
-
     def get_associations_by_id(self, associationid, **kwargs):
 
         if isinstance(associationid, str):
@@ -608,7 +783,7 @@ class esQuery():
                                   body={"filter": {
                                             "ids": {"values": associationid},
                                             },
-                                        "size" : len(associationid),
+                                        "size": len(associationid),
                                         'from': params.start_from,
                                         }
                                   )
@@ -621,7 +796,6 @@ class esQuery():
         return PaginatedResult(res,
                                params,
                                data)
-
 
     def get_associations(self,
                          **kwargs):
@@ -641,7 +815,7 @@ class esQuery():
         filter_data_conditions = agg_builder.filters
 
         '''boolean query joining multiple conditions with an AND'''
-        query_body = { "match_all": {}}
+        query_body = {"match_all": {}}
         if params.search:
             query_body = {
                 "match_phrase_prefix": {
@@ -684,7 +858,7 @@ class esQuery():
             params.requested_fields = source['include']
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
-            "query" : query_body,
+            "query": query_body,
             'size': params.size,
             '_source': source,
             'from': params.start_from,
@@ -693,12 +867,12 @@ class esQuery():
         }
         # calculate aggregation using proper ad hoc filters
         if aggs:
-            ass_query_body['aggs'] =  aggs
+            ass_query_body['aggs'] = aggs
         # filter out the results as requested, this will not be applied to the aggregation
         if filter_data_conditions:
             ass_query_body['post_filter'] = {
                 "bool": {
-                    "must": filter_data_conditions.values()
+                    "must": [i for i in filter_data_conditions.values() if i]
                 }
             }
 
@@ -714,7 +888,6 @@ class esQuery():
         if ass_data['timed_out']:
             raise Exception('elasticsearch query timed out')
 
-
         associations = (Association(h,
                                     params.association_score_method,
                                     self.datatypes,
@@ -728,7 +901,10 @@ class esQuery():
 
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
-        # "TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
+
+
+
+        # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
         if params.is_direct and params.target:
@@ -757,21 +933,22 @@ class esQuery():
 
 
                 return PaginatedResult(ass_data,
-                                     params,
-                                     data['data'],
-                                     facets=data['facets'],
-                                     available_datatypes=self.datatypes.available_datatypes,
-                                     therapeutic_areas = ta_scores
+                                       params,
+                                       data['data'],
+                                       facets=data['facets'],
+                                       available_datatypes=self.datatypes.available_datatypes,
+                                       therapeutic_areas=ta_scores,
+                                       )
 
-                                     )
             except KeyError:
                 current_app.logger.debug('fields containing therapeutic area information not available')
+
         return PaginatedResult(ass_data,
-                                 params,
-                                 data['data'],
-                                 facets=data['facets'],
-                                 available_datatypes=self.datatypes.available_datatypes,
-                                 )
+                               params,
+                               data['data'],
+                               facets=data['facets'],
+                               available_datatypes=self.datatypes.available_datatypes,
+                               )
 
     def get_complex_target_filter(self,
                                   targets,
@@ -784,7 +961,7 @@ class esQuery():
         :param bol: boolean operator to use for combining filters
         :return: boolean filter
         '''
-        targets=self._resolve_negable_parameter_set(targets, include_negative)
+        targets = self._resolve_negable_parameter_set(targets, include_negative)
         if targets:
             if bol == BooleanFilterOperator.OR:
                 return {
@@ -803,11 +980,10 @@ class esQuery():
         return dict()
 
     def get_complex_subject_filter(self,
-                                  subject_ids,
-                                  bol=BooleanFilterOperator.OR,
-                                  include_negative=False,
-                                  ):
-
+                                   subject_ids,
+                                   bol=BooleanFilterOperator.OR,
+                                   include_negative=False,
+                                   ):
 
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
@@ -846,7 +1022,7 @@ class esQuery():
         :param is_direct: search in the full efo parent list (True) or just direct links (False)
         :return: boolean filter
         '''
-        diseases=self._resolve_negable_parameter_set(diseases, include_negative)
+        diseases = self._resolve_negable_parameter_set(diseases, include_negative)
         if diseases:
             if bol == BooleanFilterOperator.OR:
                 if is_direct:
@@ -911,8 +1087,6 @@ class esQuery():
             }
         return dict()
 
-
-
     def _get_complex_datasource_filter_evidencestring(self, datasources, bol):
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
@@ -931,8 +1105,6 @@ class esQuery():
                 }
             }
         return dict()
-
-
 
     def _get_exact_mapping_query(self, searchphrase):
         query_body = {
@@ -962,7 +1134,7 @@ class esQuery():
                                     # "fuzziness": "AUTO",
                                     "tie_breaker": 0,
                                     "type": "best_fields",
-                                    },
+                                },
                                 }
                             ]
                         }
@@ -1141,12 +1313,11 @@ class esQuery():
         }
 
     def _get_mapping_highlights(self):
-        highlight =  {"fields": {}}
+        highlight = {"fields": {}}
         for key in KEYWORD_MAPPING_FIELDS:
-            highlight['fields'][key]={}
+            highlight['fields'][key] = {}
 
         return highlight
-
 
     def _get_datasource_init_list(self, params=None):
         datatype_list = []  # ["'all':[]"]
@@ -1164,7 +1335,6 @@ class esQuery():
                 datatype_list.append("'%s': 0" % datasource)
         return ',\n'.join(datatype_list)
 
-
     def _return_association_flat_data_structures(self,
                                                  scores,
                                                  facets):
@@ -1176,7 +1346,6 @@ class esQuery():
             facets = self._process_facets(facets)
         return dict(data=scores,
                     facets=facets)
-
 
     def _get_efo_data_for_associations(self, efo_keys):
         # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
@@ -1310,6 +1479,8 @@ class esQuery():
         reactome_ids = []
         therapeutic_areas = []
 
+        # TODO: implement disease name injection
+
         '''get data'''
         for facet in facets:
             if 'buckets' in facets[facet]:
@@ -1394,56 +1565,6 @@ class esQuery():
                 for hit in res['hits']['hits']:
                     labels[hit['_id']] = hit['_source']['label']
         return labels
-
-    def _get_datatype_facet_aggregation(self, filters):
-
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.DATASOURCE, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.datatype",
-                        'size': 10,
-                    },
-                    "aggs": {
-                        "datasources": {
-                            "terms": {
-                                "field": "private.facets.datasource",
-                            },
-                            "aggs": {
-                                "unique_target_count": {
-                                    "cardinality": {
-                                        "field": "target.id",
-                                        "precision_threshold": 1000},
-                                },
-                                "unique_disease_count": {
-                                    "cardinality": {
-                                        "field": "disease.id",
-                                        "precision_threshold": 1000},
-                                },
-                            }
-                        },
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        },
-
-                    }
-                }
-            }
-        }
-
-
 
     def _get_association_score_scripted_metric_script(self, params):
         # TODO:  use the scripted metric to calculate association score.
@@ -1550,8 +1671,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return distribution
 
-
-
     def get_genes_for_uniprot_kw(self, kw):
         data = []
         res = self._cached_search(index=self._index_genename,
@@ -1586,9 +1705,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return conditions
 
-
-
-
     def _get_search_doc_types(self, filter_):
         doc_types = []
         for t in filter_:
@@ -1601,10 +1717,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def _free_text_query(self, searchphrase, doc_types, params):
         '''
-           If  'fields' parameter is passed, only these fields would be returned 
+           If  'fields' parameter is passed, only these fields would be returned
            and 'highlights' would be added only if it is of the fields parameters.
            If there is not a 'fields' parameter, then fields are included by default
-            
+
         '''
 
         highlight = self._get_free_text_highlight()
@@ -1640,7 +1756,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
            If there is not a 'fields' parameter, then fields are included by default
 
         '''
-        head = {'index':self._index_search, 'type':doc_types}
+        head = {'index': self._index_search, 'type': doc_types}
         multi_body = []
         highlight = self._get_mapping_highlights()
 
@@ -1662,99 +1778,97 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             multi_body.append(body)
 
         return self._cached_search(body=multi_body,
-                               is_multi=True)
+                                   is_multi=True)
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
-
 
     def get_stats(self):
 
         stats = DataStats()
         stats.add_evidencestring(self._cached_search(index=self._index_data,
-                                  # doc_type=self._docname_data,
-                                  body= {"query": {"match_all":{}},
-                                         "aggs" : {
-                                            "data": {
-                                                "terms": {
-                                                    "field": "type",
-                                                    'size': 10,
-                                                },
-                                                "aggs": {
-                                                    "datasources": {
-                                                        "terms": {
-                                                            "field": "sourceID",
-                                                        },
-                                                    }
-                                                }
-                                            }
-                                         },
-                                         'size': 0,
-                                         '_source': False,
-                                    },
-                                  timeout="10m",
-                                      )
+                                                     # doc_type=self._docname_data,
+                                                     body={"query": {"match_all": {}},
+                                                           "aggs": {
+                                                               "data": {
+                                                                   "terms": {
+                                                                       "field": "type",
+                                                                       'size': 10,
+                                                                   },
+                                                                   "aggs": {
+                                                                       "datasources": {
+                                                                           "terms": {
+                                                                               "field": "sourceID",
+                                                                           },
+                                                                       }
+                                                                   }
+                                                               }
+                                                           },
+                                                           'size': 0,
+                                                           '_source': False,
+                                                           },
+                                                     timeout="10m",
+                                                     )
                                  )
 
         stats.add_associations(self._cached_search(index=self._index_association,
-                                  # doc_type=self._docname_data,
-                                  body= {"query": {"match_all":{}},
-                                         "aggs" : {
-                                            "data": {
-                                                "terms": {
-                                                    "field": "private.facets.datatype",
-                                                    'size': 10,
-                                                },
-                                                "aggs": {
-                                                    "datasources": {
-                                                        "terms": {
-                                                            "field": "private.facets.datasource",
-                                                        },
-                                                    }
-                                                }
-                                            }
-                                         },
-                                         'size': 0,
-                                         '_source': False,
-                                    },
-                                  timeout="10m",
-                                      ),
+                                                   # doc_type=self._docname_data,
+                                                   body={"query": {"match_all": {}},
+                                                         "aggs": {
+                                                             "data": {
+                                                                 "terms": {
+                                                                     "field": "private.facets.datatype",
+                                                                     'size': 10,
+                                                                 },
+                                                                 "aggs": {
+                                                                     "datasources": {
+                                                                         "terms": {
+                                                                             "field": "private.facets.datasource",
+                                                                         },
+                                                                     }
+                                                                 }
+                                                             }
+                                                         },
+                                                         'size': 0,
+                                                         '_source': False,
+                                                         },
+                                                   timeout="10m",
+                                                   ),
                                self.datatypes
-                                 )
+                               )
 
-        target_count =self._cached_search(index=self._index_search,
-                                  doc_type=self._docname_search+'-target',
-                                  body= {"query": {
-                                           "range" : {
-                                                "association_counts.total" : {
-                                                   "gt" : 0,
-                                                    }
-                                                }
-                                          },
-                                         'size': 0,
-                                         '_source': False,
-                                    })
+        target_count = self._cached_search(index=self._index_search,
+                                           doc_type=self._docname_search_target,
+                                           body={"query": {
+                                               "range": {
+                                                   "association_counts.total": {
+                                                       "gt": 0,
+                                                   }
+                                               }
+                                           },
+                                               'size': 0,
+                                               '_source': False,
+                                           })
         stats.add_key_value('targets', target_count['hits']['total'])
 
-        disease_count =self._cached_search(index=self._index_search,
-                                  doc_type=self._docname_search+'-disease',
-                                  body= {"query": {
-                                           "range" : {
-                                                "association_counts.total" : {
-                                                   "gt" : 0,
+        disease_count = self._cached_search(index=self._index_search,
+                                            doc_type=self._docname_search_disease,
+                                            body={"query": {
+                                                "range": {
+                                                    "association_counts.total": {
+                                                        "gt": 0,
                                                     }
                                                 }
-                                          },
-                                         'size': 0,
-                                         '_source': False,
-                                    })
+                                            },
+                                                'size': 0,
+                                                '_source': False,
+                                            })
         stats.add_key_value('diseases', disease_count['hits']['total'])
-
 
         return RawResult(str(stats))
 
     def _digest_sort_strings(self, params):
-        digested=[]
+        digested = []
         for s in params.sort:
             order = 'desc'
             mode = 'min'
@@ -1768,8 +1882,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                   "mode": mode}})
         return digested
 
-
-
     def _get_evidence_score_range_filter(self, params):
         return {
                 "range" : {
@@ -1781,7 +1893,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 }
 
     def _cached_search(self, *args, **kwargs):
-        key = str(args)+str(kwargs)
+        key = str(args) + str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
         is_multi = False
 
@@ -1805,12 +1917,12 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                 res = self.handler.search(*args, **kwargs)
 
             took = int(round(time.time() - start_time))
-            self.cache.set(key, res, took*60)
+            self.cache.set(key, res, took * 60)
         return res
 
     def _resolve_negable_parameter_set(self, params, include_negative=False):
-        filtered_params =[]
-        for p in params:#handle negative sets
+        filtered_params = []
+        for p in params:  # handle negative sets
             if p.startswith('!'):
                 if include_negative:
                     filtered_params.append(p[1:])
@@ -1830,7 +1942,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             if genes:
                 return self.handler.get_complex_target_filter(genes, bol)
         return dict()
-
 
     def _get_complex_pathway_filter(self, pathway_codes):
         '''
@@ -1866,12 +1977,11 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             "sort": self._digest_sort_strings(params),
             '_source': True,
 
-            }
-
+        }
 
         res = self._cached_search(index=self._index_relation,
-                                    body=query_body,
-                                      )
+                                  body=query_body,
+                                  )
         data = []
         if res['hits']['total']:
             for hit in res['hits']['hits']:
@@ -1907,17 +2017,18 @@ class SearchParams():
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
+    _default_pvalue = 1e-3
 
     def __init__(self, **kwargs):
 
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
         if self.size is None:
-            self.size =  self._default_return_size
+            self.size = self._default_return_size
         if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i'%self._max_search_result_limit)
+            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
 
-        self.start_from = kwargs.get('from', 0) or 0
+        self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
         if self.cap_scores is None:
@@ -1932,11 +2043,11 @@ class SearchParams():
                 if g in self._allowed_groupby:
                     self.groupby.append(g)
 
-
-        self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]) or [ScoringMethods.DEFAULT+'.'+AssociationSortOptions.OVERALL]
+        self.sort = kwargs.get('sort', [ScoringMethods.DEFAULT + '.' + AssociationSortOptions.OVERALL]) or [
+            ScoringMethods.DEFAULT + '.' + AssociationSortOptions.OVERALL]
         self.search = kwargs.get('search')
         if self.search:
-            self.search=self.search.lower().strip()
+            self.search = self.search.lower().strip()
 
         self.gte = kwargs.get('gte')
 
@@ -1947,9 +2058,10 @@ class SearchParams():
         self.datastructure = kwargs.get('datastructure',
                                         SourceDataStructureOptions.DEFAULT) or SourceDataStructureOptions.DEFAULT
 
+        self.enrichment_method = kwargs.get('targets_enrichment')
 
         self.fields = kwargs.get('fields')
-        self.requested_fields = None # to be populated after
+        self.requested_fields = None  # to be populated after
 
         if self.fields:
             self.datastructure = SourceDataStructureOptions.CUSTOM
@@ -1958,24 +2070,24 @@ class SearchParams():
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
-        score_range = [0.,self._max_score]
-        score_min =  kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
-        if score_min is not  None:
+        score_range = [0., self._max_score]
+        score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
+        if score_min is not None:
             score_range[0] = score_min
         score_max = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MAX, self._max_score)
-        if score_max == 1:#temporary fix until max score cap can be done in elasticsearch
+        if score_max == 1:  # temporary fix until max score cap can be done in elasticsearch
             score_max = self._max_score
         if score_max is not None:
             score_range[1] = score_max
         self.filters[FilterTypes.SCORE_RANGE] = score_range
-        self.scorevalue_types = kwargs.get('scorevalue_types', [AssociationSortOptions.OVERALL]) or [AssociationSortOptions.OVERALL]
+        self.scorevalue_types = kwargs.get('scorevalue_types', [AssociationSortOptions.OVERALL]) or [
+            AssociationSortOptions.OVERALL]
         self.filters[FilterTypes.PATHWAY] = kwargs.get(FilterTypes.PATHWAY)
         self.filters[FilterTypes.UNIPROT_KW] = kwargs.get(FilterTypes.UNIPROT_KW)
         self.filters[FilterTypes.IS_DIRECT] = kwargs.get(FilterTypes.IS_DIRECT)
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
         self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
-
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -1988,7 +2100,7 @@ class SearchParams():
             datasource_filter = None
         self.filters[FilterTypes.DATATYPE] = datasource_filter
 
-        #required for evidence query. TODO: harmonise it with the filters in association endpoint
+        # required for evidence query. TODO: harmonise it with the filters in association endpoint
         self.pathway = kwargs.get('pathway', []) or []
         self.target_class = kwargs.get('target_class', []) or []
         self.uniprot_kw = kwargs.get('uniprotkw', []) or []
@@ -1998,13 +2110,19 @@ class SearchParams():
         self.disease = kwargs.get('disease', []) or []
         self.eco = kwargs.get('eco', []) or []
 
-        self.facets = kwargs.get('facets', False) or False
+        self.facets = kwargs.get('facets', "false") or "false"
+        self.facets_size = kwargs.get('facets_size', None) or None
+
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
         highlight_default = True
         self.highlight = kwargs.get('highlight', highlight_default)
         if self.highlight is None:
             self.highlight = highlight_default
+        self.pvalue =  kwargs.get('pvalue', self._default_pvalue)
+        self.query_params =  {k:v for k,v in self.__dict__.items() if k in kwargs}
+        if 'from_' in kwargs:
+            self.query_params['from']=self.start_from
 
 
 class AggregationUnit(object):
@@ -2017,7 +2135,7 @@ class AggregationUnit(object):
                  filter,
                  params,
                  handler,
-                 compute_aggs = False):
+                 compute_aggs=False):
         self.filter = filter
         self.params = params
         self.handler = handler
@@ -2029,27 +2147,37 @@ class AggregationUnit(object):
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
         for filter_type, filter_value in filters.items():
-            if filter_type != key:
+            if filter_type != key and filter_value:
                 conditions.append(filter_value)
         return conditions
 
-
     def build_query_filter(self):
         raise NotImplementedError
-
 
     def build_agg(self, filters):
         pass
         # raise NotImplementedError
 
-class AggregationUnitTarget(AggregationUnit):
+    def get_default_size(self):
+        raise NotImplementedError
 
+    def get_size(self):
+        default_size = self.get_default_size()
+        facet_size = self.params.facets_size
+        return facet_size or default_size
+
+
+
+class AggregationUnitTarget(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
-            self.query_filter= self.handler.get_complex_target_filter(self.filter)
+            self.query_filter = self.handler.get_complex_target_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_target_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 25
 
     def _get_target_facet_aggregation(self, filters):
         return {
@@ -2062,7 +2190,7 @@ class AggregationUnitTarget(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "target.id",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2080,14 +2208,17 @@ class AggregationUnitTarget(AggregationUnit):
             }
         }
 
-class AggregationUnitDisease(AggregationUnit):
 
+class AggregationUnitDisease(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self.handler.get_complex_disease_filter(self.filter, is_direct=True)
 
     def build_agg(self, filters):
         self.agg = self._get_disease_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 25
 
     def _get_disease_facet_aggregation(self, filters):
         return {
@@ -2096,36 +2227,42 @@ class AggregationUnitDisease(AggregationUnit):
                     "must": self._get_complimentary_facet_filters(FilterTypes.DISEASE, filters),
                 }
             },
-            "aggs": {
+            "aggs": self.get_disease_aggregation(),
+        }
+
+    def get_disease_aggregation(self):
+        return {
                 "data": {
                     "terms": {
                         "field": "disease.id",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
                         "unique_disease_count": {
                             "cardinality": {
                                 "field": "disease.id",
                                 "precision_threshold": 1000},
                         },
+                        "sum_scores": {
+                            "sum": {
+                                "field": "harmonic_sum.association_score.overall",
+                            },
+                        },
                     }
-                },
+                }
             }
-        }
+
 
 class AggregationUnitTherapeuticArea(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_complex_therapeutic_area_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_disease_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 25
 
     def _get_disease_facet_aggregation(self, filters):
         return {
@@ -2137,8 +2274,8 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
             "aggs": {
                 "data": {
                     "terms": {
-                        "field" : "disease.efo_info.therapeutic_area.codes",
-                        'size': 25,
+                        "field": "disease.efo_info.therapeutic_area.codes",
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2161,13 +2298,15 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
 
 
 class AggregationUnitIsDirect(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_is_direct_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_is_direct_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 10
 
     def _get_is_direct_facet_aggregation(self, filters):
         return {
@@ -2180,7 +2319,7 @@ class AggregationUnitIsDirect(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "is_direct",
-                        'size': 10,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2199,19 +2338,21 @@ class AggregationUnitIsDirect(AggregationUnit):
         }
 
     def _get_is_direct_filter(self, is_direct):
-
         return {
             "term": {"is_direct": is_direct}
         }
 
-class AggregationUnitUniprotKW(AggregationUnit):
 
+class AggregationUnitUniprotKW(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_uniprot_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_uniprot_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 50
 
     def _get_uniprot_facet_aggregation(self, filters):
         return {
@@ -2224,9 +2365,9 @@ class AggregationUnitUniprotKW(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.uniprot_keywords",
-                        'size': 50,
+                        'size': self.get_size(),
                         "chi_square": {"include_negatives": True,
-                                "background_is_superset": False},
+                                       "background_is_superset": False},
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2245,20 +2386,21 @@ class AggregationUnitUniprotKW(AggregationUnit):
         }
 
     def _get_uniprot_filter(self, kw):
-
         return {
             "terms": {"private.facets.uniprot_keywords": kw}
         }
 
 
 class AggregationUnitGO(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_go_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_go_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 50
 
     def _get_go_facet_aggregation(self, filters):
         return {
@@ -2271,7 +2413,7 @@ class AggregationUnitGO(AggregationUnit):
                 "data": {
                     "significant_terms": {
                         "field": "private.facets.go.*.code",
-                        'size': 50,
+                        'size': self.get_size(),
 
                     },
                     "aggs": {
@@ -2297,21 +2439,22 @@ class AggregationUnitGO(AggregationUnit):
         }
 
     def _get_go_filter(self, kw):
-
         return {
             "terms": {"private.facets.go.*.code": kw}
         }
 
 
-
 class AggregationUnitPathway(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_complex_pathway_filter(self.filter)
 
     def build_agg(self, filters):
         self.agg = self._get_pathway_facet_aggregation(filters)
+
+    # TODO: Only the pathway_type_code is affected by the default size, the pathway_code is not (see below)
+    def get_default_size(self):
+        return 20
 
     def _get_pathway_facet_aggregation(self, filters={}):
         return {
@@ -2324,7 +2467,7 @@ class AggregationUnitPathway(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.reactome.pathway_type_code",
-                        'size': 20,
+                        'size': self.get_size(),
                     },
 
                     "aggs": {
@@ -2392,6 +2535,10 @@ class AggregationUnitTargetClass(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_target_class_aggregation(filters)
 
+    # TODO: Only the target_class.level1.id is affected by the default size, there are others not affected (see below)
+    def get_default_size(self):
+        return 25
+
     def _get_target_class_aggregation(self, filters={}):
         return {
             "filter": {
@@ -2403,7 +2550,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.target_class.level1.id",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
 
                     "aggs": {
@@ -2470,14 +2617,13 @@ class AggregationUnitTargetClass(AggregationUnit):
         return dict()
 
 class AggregationUnitScoreRange(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
-           self.query_filter = self._get_association_score_range_filter(self.params)
+            self.query_filter = self._get_association_score_range_filter(self.params)
 
     @staticmethod
     def _get_association_score_range_filter(params):
-        if len(params.scorevalue_types) ==1:
+        if len(params.scorevalue_types) == 1:
             return {
                         "range" : {
                             params.association_score_method+"."+params.scorevalue_types[0] : {
@@ -2553,13 +2699,11 @@ class AggregationUnitScoreRange(AggregationUnit):
 #         return dict()
 
 class AggregationUnitECO(AggregationUnit):
-
     def build_query_filter(self):
         raise NotImplementedError
 
 
 class AggregationUnitDatasource(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             requested_datasources = []
@@ -2575,6 +2719,11 @@ class AggregationUnitDatasource(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self.get_datatype_facet_aggregation(filters)
 
+    # TODO: Only the datatype length is affected by the default size, the datasource is not (see below)
+    def get_default_size(self):
+        return 20
+
+
     def get_datatype_facet_aggregation(self, filters):
 
         return {
@@ -2587,7 +2736,7 @@ class AggregationUnitDatasource(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.datatype",
-                        'size': 25,
+                        'size': self.get_size(),
                     },
                     "aggs": {
                         "datasource": {
@@ -2643,21 +2792,22 @@ class AggregationUnitDatasource(AggregationUnit):
             }
         return dict()
 
+
 class AggregationBuilder(object):
     '''
     handles the construction of an aggregation query based on a set of filters
     '''
 
-    _UNIT_MAP={
-        FilterTypes.DATATYPE : AggregationUnitDatasource,
+    _UNIT_MAP = {
+        FilterTypes.DATATYPE: AggregationUnitDatasource,
         # FilterTypes.ECO : AggregationUnitECO,
-        FilterTypes.DISEASE : AggregationUnitDisease,
-        FilterTypes.TARGET : AggregationUnitTarget,
-        FilterTypes.IS_DIRECT : AggregationUnitIsDirect,
-        FilterTypes.PATHWAY : AggregationUnitPathway,
-        FilterTypes.UNIPROT_KW : AggregationUnitUniprotKW,
-        FilterTypes.SCORE_RANGE : AggregationUnitScoreRange,
-        FilterTypes.THERAPEUTIC_AREA : AggregationUnitTherapeuticArea,
+        FilterTypes.DISEASE: AggregationUnitDisease,
+        FilterTypes.TARGET: AggregationUnitTarget,
+        FilterTypes.IS_DIRECT: AggregationUnitIsDirect,
+        FilterTypes.PATHWAY: AggregationUnitPathway,
+        FilterTypes.UNIPROT_KW: AggregationUnitUniprotKW,
+        FilterTypes.SCORE_RANGE: AggregationUnitScoreRange,
+        FilterTypes.THERAPEUTIC_AREA: AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
     }
@@ -2667,50 +2817,49 @@ class AggregationBuilder(object):
                              ]
 
     def __init__(self, handler):
-        self.handler=handler
-        self.filter_types=FilterTypes().__dict__
+        self.handler = handler
+        self.filter_types = FilterTypes().__dict__
         self.units = {}
         self.aggs = {}
         self.filters = {}
 
-
     def load_params(self, params):
-
-
-
         '''define and init units'''
+        facets = params.facets != "false"
         for unit_type in self._UNIT_MAP:
-            self.units[unit_type]= self._UNIT_MAP[unit_type](params.filters[unit_type],
-                                                             params,
-                                                             self.handler,
-                                                             compute_aggs = params.facets)
+            self.units[unit_type] = self._UNIT_MAP[unit_type](params.filters[unit_type],
+                                                              params,
+                                                              self.handler,
+                                                              compute_aggs=facets)
         '''get filters'''
         for query_filter in self._UNIT_MAP:
             self.filters[query_filter] = self.units[query_filter].query_filter
 
         '''get aggregations if requested'''
-        if params.facets:
+        if params.facets != "false":
             aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
             '''get available aggregations'''
             for agg in self._UNIT_MAP:
                 if agg not in aggs_not_to_be_returned:
-                    self.units[agg].build_agg(self.filters)
-                    if self.units[agg].agg:
-                        self.aggs[agg] = self.units[agg].agg
+                    if params.facets == "true" or params.facets == agg:
+                        self.units[agg].build_agg(self.filters)
+                        if self.units[agg].agg:
+                            self.aggs[agg] = self.units[agg].agg
 
 
     def _get_AggregationUnit(self,str):
         return getattr(sys.modules[__name__], str)
 
-    def _get_aggs_not_to_be_returned(self,params):
+    def _get_aggs_not_to_be_returned(self, params):
         '''avoid calculate a big facet if only one parameter is passed'''
         filters_to_apply = list(set([k for k,v in params.filters.items() if v is not None]))
         for filter_type in self._SERVICE_FILTER_TYPES:
             if filter_type in filters_to_apply:
                 filters_to_apply.pop(filters_to_apply.index(filter_type))
         aggs_not_to_be_returned = []
-        if len(filters_to_apply) == 1:#do not return facet if only one filter is applied
-            aggs_not_to_be_returned=filters_to_apply[0]
+        if len(filters_to_apply) == 1:  # do not return facet if only one filter is applied
+            aggs_not_to_be_returned = filters_to_apply[0]
+
         return aggs_not_to_be_returned
 
 
@@ -2740,6 +2889,4 @@ class AggregationBuilder(object):
     #         }
     #
     #     }
-
-
 

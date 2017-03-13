@@ -1,3 +1,4 @@
+from app.resources.enrichment import EnrichmentTargets
 from app.resources.relation import  Relations
 from app.resources.utils import LogEvent
 
@@ -89,6 +90,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/relation')
     api.add_resource(RelationDiseaseSingle,
                      '/private/relation/disease/<string:disease_id>')
+    api.add_resource(EnrichmentTargets,
+                     '/private/enrichment/targets')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')

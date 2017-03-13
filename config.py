@@ -17,7 +17,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-singlenode-29428e6e.cdd37e0c.svc.dockerapp.io:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
@@ -43,8 +43,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = os.getenv('API_VERSION','2.0')
-    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.0.2')
+    API_VERSION = os.getenv('API_VERSION','2.1')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.0')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
@@ -92,9 +92,10 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
+    # ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 1
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
     @classmethod
     def init_app(cls, app):
