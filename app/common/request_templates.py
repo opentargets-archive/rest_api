@@ -157,15 +157,12 @@ class FilterTypes():
     THERAPEUTIC_AREA='therapeutic_area'
     TARGETS_ENRICHMENT='targets_enrichment'
     TARGET_CLASS='target_class'
-
-class EvidenceFacetTypes():
     ABSTRACT = 'abstract'
     JOURNAL = 'journal'
     PUB_DATE = 'pub_date'
     DATATYPE = 'datatype'
-    DISEASE = 'disease'
+    DISEASE_KW = 'disease_kw'
     MESHTERMS = 'meshterms'
-    
 
 class AssociationSortOptions:
     OVERALL = 'overall'
