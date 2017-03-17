@@ -8,7 +8,7 @@ from flask import url_for
 
 from app import create_app
 from tests import GenericTestCase
-import grequests
+# import grequests
 
 
 class EvidenceTestCase(GenericTestCase):
@@ -152,7 +152,6 @@ class EvidenceTestCase(GenericTestCase):
         disease = 'EFO_0000311'
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data={'disease':disease,
-                                            'direct':True,
                                             'size': 0,
                                             },
                                       token=self._AUTO_GET_TOKEN)
@@ -160,7 +159,6 @@ class EvidenceTestCase(GenericTestCase):
         full_json_response = json.loads(response.data.decode('utf-8'))
         response = self._make_request('/api/latest/public/evidence/filter',
                                       data={'disease':disease,
-                                            'direct':True,
                                             'scorevalue_min': 0.2,
                                             'scorevalue_max': 0.9,
                                             'size':0,
@@ -170,6 +168,32 @@ class EvidenceTestCase(GenericTestCase):
         filtered_json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreater(filtered_json_response['total'],0)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+
+        target = 'ENSG00000157764'
+        max_score = 0.8
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'target': target,
+                                            'scorevalue_max': max_score,
+                                            'size': 1,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreater(filtered_json_response['total'], 0)
+        self.assertLessEqual(json_response['data'][0]['scores']['association_score'], max_score)
+
+        target = 'ENSG00000157764'
+        min_score = 1
+        response = self._make_request('/api/latest/public/evidence/filter',
+                                      data={'target': target,
+                                            'scorevalue_min': min_score,
+                                            'size': 1,
+                                            },
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreater(filtered_json_response['total'], 0)
+        self.assertEqual(json_response['data'][0]['scores']['association_score'], min_score)
 
     def testEvidenceFilterSortByField(self):
         disease = 'EFO_0000311'

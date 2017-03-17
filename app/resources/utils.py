@@ -31,7 +31,8 @@ class LogEvent(restful.Resource):
 
     @rate_limit
     def get(self):
-        es = current_app.extensions['esstore']
+        esstore = current_app.extensions['es_access_store']
+        mpstore = current_app.extensions['mp_access_store']
         args = self.parser.parse_args()
         event = args['event'][:120]
         auth_token=request.headers.get('Auth-Token')
@@ -52,6 +53,7 @@ class LogEvent(restful.Resource):
         if auth_token:
             payload = TokenAuthentication.get_payload_from_token(auth_token)
             data['app_name'] = payload['app_name']
-        es.store_event(data)
+        # esstore.store_event(data)
+        mpstore.store_event(data)
         data['timestamp']= str(data['timestamp'])
         return CTTVResponse.OK(SimpleResult(None, data=data))

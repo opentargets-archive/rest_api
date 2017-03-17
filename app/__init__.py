@@ -6,20 +6,21 @@ from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
-from app.common.datadog_signals import LogApiCallWeight
+from app.common.signals import LogApiCallWeight, IP2Org, MixPanelStore, esStore
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
 from app.common.rate_limit import RateLimiter, ceil_dt_to_future_time
 from app.common.rate_limit import increment_call_rate
 from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
-import logging
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery, InternalCache, esStore
+from common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
-from app.common.datadog_signals import LogException
-from ipaddr import IPAddress, IPNetwork
+from app.common.signals import LogException
+from ipaddr import IPNetwork
+from mixpanel import Mixpanel
+from mixpanel_async import AsyncBufferedConsumer
 
 # from flask.ext.cors import CORS
 # from flask_limiter import Limiter
@@ -85,6 +86,7 @@ def create_app(config_name):
     app.extensions['redis-service'].config_set('appendonly', 'no')
     icache = InternalCache(app.extensions['redis-service'],
                            str(api_version_minor))
+    ip2org = IP2Org(icache)
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
                        # # sniff before doing anything
                        # sniff_on_start=True,
@@ -95,6 +97,7 @@ def create_app(config_name):
                        timeout=60 * 20,
                        maxsize=100,
                        )
+    '''elasticsearch handlers'''
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
                                         DataSourceScoring(app),
@@ -115,20 +118,29 @@ def create_app(config_name):
                                         docname_reactome=app.config['ELASTICSEARCH_REACTOME_REACTION_DOC_NAME'],
                                         docname_association=app.config['ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME'],
                                         docname_search=app.config['ELASTICSEARCH_DATA_SEARCH_DOC_NAME'],
+                                        # docname_search_target=app.config['ELASTICSEARCH_DATA_SEARCH_TARGET_DOC_NAME'],
+                                        # docname_search_disease=app.config['ELASTICSEARCH_DATA_SEARCH_DISEASE_DOC_NAME'],
                                         docname_relation=app.config['ELASTICSEARCH_DATA_RELATION_DOC_NAME'],
                                         log_level=app.logger.getEffectiveLevel(),
                                         cache=icache
                                         )
 
-    app.extensions['esstore'] = esStore(es,
+    app.extensions['es_access_store'] = esStore(es,
                                         eventlog_index=app.config['ELASTICSEARCH_LOG_EVENT_INDEX_NAME'],
-                                        cache=icache,
+                                        ip2org=ip2org,
                                         )
+    '''mixpanel handlers'''
+    if Config.MIXPANEL_TOKEN:
+        mp = Mixpanel(Config.MIXPANEL_TOKEN, consumer=AsyncBufferedConsumer())
+        app.extensions['mixpanel']= mp
+        app.extensions['mp_access_store'] = MixPanelStore(mp,
+                                            ip2org=ip2org,
+                                            )
 
 
-    app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],
-                                           allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
-                                           allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])
+        app.extensions['proxy'] = ProxyHandler(allowed_targets=app.config['PROXY_SETTINGS']['allowed_targets'],
+                                               allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
+                                               allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])
 
     basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     # cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')

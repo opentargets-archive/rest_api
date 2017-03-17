@@ -1,8 +1,6 @@
 import json
 import unittest
 
-import json
-import unittest
 from tests import GenericTestCase
 
 GENE_SYMBOL_LIST = ['A1BG',
@@ -1393,7 +1391,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertGreater(len(highlight), 1)
 
         self.assertEqual(json_response['data'][0]['id'], 'ENSG00000157764')
-        
+
         first_result = json_response['data'][0]['data']
         self.assertEqual(len(first_result), 2)
         self.assertEqual(first_result['approved_symbol'], 'BRAF')

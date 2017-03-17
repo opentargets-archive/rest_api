@@ -1,35 +1,168 @@
-box: python:2.7
+box:
+  id: quay.io/opentargets/opentargets_rest_api_base
+  tag: 0.1
+  registry: quay.io
+
 dev:
   steps:
     - pip-install
     - internal/watch:
-        code: python manage.py
+        code: python manage.py runserver
         reload: true
+
 # Build definition
 build:
   # The steps that will be executed on build
   steps:
-    # A step that executes `pip install` command
+    - script:
+        name: log status in github
+        code: |
+          export WERCKER_PIPELINE_STATUS="pending";
+          # init build status
+          export GITHUB_CONTEXT="continous-integration/build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+          # init container status
+          export GITHUB_CONTEXT="continous-integration/container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+
     - pip-install
+    # run tests that don't require es
+    - script:
+        name: API auth test
+        code: |
+          nosetests tests/test_auth.py
+    - script:
+        name: API rate limit test
+        code: |
+          nosetests tests/test_rate_limit.py
+#    - internal/store-container
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+    - script:
+      name: export latest or dev tag
+      code: |
+        [ "$WERCKER_GIT_BRANCH" = "master" ] \
+        && export LATEST_FLAG=latest \
+        || export LATEST_FLAG=dev
 
-    # A custom script step, name value is used in the UI
-    # and the code value contains the command that get executed
-#    - script:
-#        name: API auth test
-#        code: |
-#          python manage.py
-#          nosetests tests/test_auth.py
+    # test supervisord is configured properly
+    - script:
+        name: test services are started by supervisord
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+          /usr/bin/supervisord &
+          sleep 10
+          OK_CODE="200"
+          PING_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api/latest/public/utils/ping" -o /dev/null)
+          if [ "$PING_CODE" == "$OK_CODE" ]
+            then
+              echo "API ping OK"
+            else
+              echo -e "ERROR: ping http code:"$PING_CODE
+              exit 1
+            fi
+          API_DOCS_CODE=$(curl -sL -w "%{http_code}\\n" "http://localhost:8008/api-docs" -o /dev/null)
+          if [ "$API_DOCS_CODE" == "$OK_CODE" ]
+            then
+              echo "API DOCS OK"
+            else
+              echo -e "ERROR: api docs http code:"$API_DOCS_CODE
+              exit 1
+            fi
+  after-steps:
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="error";
+          else
+              export WERCKER_PIPELINE_STATUS="failure";
+          fi
+          # update build status
+          export GITHUB_CONTEXT="continous-integration/build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
 
-push-to-gcr:
+          # if failed update container build status
+          if [ "$WERCKER_PIPELINE_STATUS" != "success" ]
+          then
+            export GITHUB_CONTEXT="continous-integration/container-build"
+            export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+            curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+          fi
+
+deploy:
   steps:
+    #prepare container
+    - pip-install
+    - script:
+        name: copy to /var/www/app working dir
+        code: |
+          cp -r $WERCKER_ROOT/* /var/www/app/
+    - script:
+      name: export latest or dev tag
+      code: |
+        [ "$WERCKER_GIT_BRANCH" = "master" ] \
+        && export LATEST_FLAG=latest \
+        || export LATEST_FLAG=dev
+
+    #push to registries
+    - internal/docker-push:
+        username: $QUAY_USERNAME
+        password: $QUAY_PASSWORD
+        tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH, $LATEST_FLAG
+        repository: $QUAY_REPO
+        registry: $QUAY_HOST
+        working-dir: /var/www/app
+        entrypoint: /docker-entrypoint.sh
+        cmd: supervisord
+        ports: "80 443 8008 8009"
+        disable-sync: true
+
     - internal/docker-push:
         username: _json_key
         password: $GCR_JSON_KEY_FILE
-        working-dir: $WERCKER_ROOT
-        tag: $WERCKER_GIT_COMMIT
-        repository: eu.gcr.io/open-targets/rest-api
-        registry: https://eu.gcr.io
+        working-dir: /var/www/app
+        entrypoint: /docker-entrypoint.sh
+        tag: $WERCKER_GIT_COMMIT, $WERCKER_GIT_BRANCH, $LATEST_FLAG
+        repository: $GCR_REPO
+        registry: $GCR_HOST
+        cmd: supervisord
+        ports: "80 443 8008 8009"
+        disable-sync: true
 
+  after-steps:
+    - script:
+        name: log status in github
+        code: |
+          if [ "$WERCKER_RESULT" = "passed" ]; then
+             export WERCKER_PIPELINE_STATUS="success";
+          elif [ "$WERCKER_RESULT" = "failed" ]; then
+              export WERCKER_PIPELINE_STATUS="error";
+          else
+              export WERCKER_PIPELINE_STATUS="failure";
+          fi
+          # update container build status
+          export GITHUB_CONTEXT="continous-integration/container-build"
+          export WERCKER_GITHUB_BUILD_NOTIFY_STATE="{\"state\":\"$WERCKER_PIPELINE_STATUS\",\"target_url\":\"$WERCKER_BUILD_URL\",\"context\":\"$GITHUB_CONTEXT\"}";
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Content-type: application/json" -X POST -d $WERCKER_GITHUB_BUILD_NOTIFY_STATE https://api.github.com/repos/$WERCKER_GIT_OWNER/$WERCKER_GIT_REPOSITORY/statuses/$WERCKER_GIT_COMMIT
+
+
+
+test-with-es:
+  # run tests in the api that requires an es instance
+  steps:
+    - pip-install
+    - script:
+        name: API run all tests
+        code: |
+          if [ -z ${ELASTICSEARCH_URL+x} ]; then echo "SKIPPED! ELASTICSEARCH_URL is set to '$ELASTICSEARCH_URL'"; else nosetests;  fi
 #deploy:
 #  box: ubuntu:xenial
 #  steps:

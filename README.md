@@ -1,6 +1,10 @@
-======================================
-FLASK App for the CTTV CoreDB REST API
-======================================
+=====================
+Open Targets REST API
+=====================
+[![fern status](https://xzwdg8asb5.execute-api.eu-west-1.amazonaws.com/dev/status-badge/rest_api/enrichment "fern status")](https://xzwdg8asb5.execute-api.eu-west-1.amazonaws.com/dev/status/rest_api)
+
+[![wercker status](https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/m/master "wercker status")](https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19)
+
 
 To test locally
 

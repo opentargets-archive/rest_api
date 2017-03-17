@@ -16,7 +16,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '16.12')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
@@ -42,10 +43,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = '2.0'
-    API_VERSION_MINOR = '2.0.0'
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_RECORD_QUERIES = True
+    API_VERSION = os.getenv('API_VERSION','2.1')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.0')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
@@ -71,12 +70,17 @@ class Config:
                     }
     REDIS_SERVER_PATH =os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
 
-    USAGE_LIMIT_DEFAULT_SHORT = 3000
-    USAGE_LIMIT_DEFAULT_LONG = 1200000
-    USAGE_LIMIT_PATH = 'app/authconf/rate_limit.csv'
-    IP_RESOLVER_LIST_PATH = 'app/authconf/ip_list.csv'
+    USAGE_LIMIT_DEFAULT_SHORT = int(os.getenv('USAGE_LIMIT_DEFAULT_SHORT', '3000'))
+    USAGE_LIMIT_DEFAULT_LONG = int(os.getenv('USAGE_LIMIT_DEFAULT_LONG', '1200000'))
+    SECRET_PATH = os.getenv('SECRET_PATH', 'app/authconf/')
+    SECRET_RATE_LIMIT_FILE = os.getenv('SECRET_RATE_LIMIT_FILE', 'rate_limit.csv')
+    SECRET_IP_RESOLVER_FILE = os.getenv('SECRET_IP_RESOLVER_FILE', 'ip_list.csv')
+    USAGE_LIMIT_PATH = os.path.join(SECRET_PATH, SECRET_RATE_LIMIT_FILE)
+    IP_RESOLVER_LIST_PATH = os.path.join(SECRET_PATH, SECRET_IP_RESOLVER_FILE)
 
     NO_CACHE_PARAMS = 'no_cache'
+
+    MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', None)
 
 
 
@@ -88,10 +92,10 @@ class Config:
 class DevelopmentConfig(Config):
     # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
     DEBUG = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
+    # ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
     LOGSTASH_HOST = '127.0.0.1'
     LOGSTASH_PORT = 5000
-    APP_CACHE_EXPIRY_TIMEOUT = 1
+    APP_CACHE_EXPIRY_TIMEOUT = 60
 
     @classmethod
     def init_app(cls, app):
@@ -101,14 +105,12 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60
     SERVER_NAME = 'localhost:5000'
 
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://es-dev.opentargets.io:9200')
     APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
 
 

@@ -2,11 +2,11 @@
 swagger: '2.0'
 
 info:
-  version: 2.0.0
+  version: 2.0.1
   title: Target Validation Platform REST API
   description: |
 
-    The Target Validation Platform API ('Application Programming Interface')
+    The Open Targets Platform API ('Application Programming Interface')
     allows programmatic retrieval of our data via a set of
     [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
     services.

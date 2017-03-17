@@ -90,7 +90,6 @@ class FilterBy(restful.Resource, Paginable):
         Get a list of evidences filtered by gene, efo and/or eco codes
         test with: ENSG00000136997,
         """
-        start_time = time.time()
         parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
         # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
@@ -136,7 +135,7 @@ class FilterBy(restful.Resource, Paginable):
         #     abort(404, message='Please provide at least one gene, efo, eco or datasource')
         data = self.get_evidence(params=args)
         return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
+                              )
 
 
 
@@ -155,7 +154,6 @@ class FilterBy(restful.Resource, Paginable):
                         new_l.append(i)
             return new_l
 
-        start_time = time.time()
         args = request.get_json(force=True)
        
         if args.get('sort') is None:
@@ -164,7 +162,7 @@ class FilterBy(restful.Resource, Paginable):
 
         data=self.get_evidence(params=args)
         return CTTVResponse.OK(data,
-                               took=time.time() - start_time)
+                               )
 
 
     def get_evidence(self,

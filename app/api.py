@@ -1,3 +1,5 @@
+from app.resources.enrichment import EnrichmentTargets
+from app.resources.relation import  Relations
 from app.resources.utils import LogEvent
 
 __author__ = 'andreap'
@@ -19,8 +21,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
 
     '''define api'''
 
-
-    from app.resources.target import TargetInfo
+    from app.resources.target import TargetInfo, TargetInfoSingle
     from app.resources import evidence
     from app.resources.efo import EfoLabelFromCode
     from app.resources.evidenceontology import EcoLabelFromCode
@@ -31,7 +32,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
-    from app.resources.relation import RelationTarget, RelationDisease
+    from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
     from app.resources.stats import Stats
 
     # api.add_resource(AvailableGenes,
@@ -55,8 +56,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/disease/<string:disease_id>')
     api.add_resource(EcoLabelFromCode,
                      '/private/eco/<string:code>')
-    api.add_resource(TargetInfo,
+    api.add_resource(TargetInfoSingle,
                      '/private/target/<string:target_id>')
+    api.add_resource(TargetInfo,
+                     '/private/target')
     api.add_resource(Expression,
                      '/private/target/expression')
     api.add_resource(BestHitSearch,
@@ -81,10 +84,14 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/stats')
     api.add_resource(LogEvent,
                      '/private/utils/logevent')
-    api.add_resource(RelationTarget,
+    api.add_resource(RelationTargetSingle,
                      '/private/relation/target/<string:target_id>')
-    api.add_resource(RelationDisease,
+    api.add_resource(Relations,
+                     '/private/relation')
+    api.add_resource(RelationDiseaseSingle,
                      '/private/relation/disease/<string:disease_id>')
+    api.add_resource(EnrichmentTargets,
+                     '/private/enrichment/targets')
     #
     # api.add_resource(ProxyEnsembl,
     #                  '/proxy/ensembl/<path:url>')
