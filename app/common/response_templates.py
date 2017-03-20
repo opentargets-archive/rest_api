@@ -156,8 +156,13 @@ class Association(object):
 
     def _cap_score(self, score):
         if self.cap_scores:
-            if score >1:
-                return 1.
+            self.cap_score(score)
+        return score
+
+    @staticmethod
+    def cap_score(score):
+        if score >1:
+            return 1.
         return score
 
 

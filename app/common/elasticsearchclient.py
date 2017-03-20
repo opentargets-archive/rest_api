@@ -371,6 +371,9 @@ class esQuery():
                     source['association_score'] = source.pop('harmonic-sum')
                     del source['disease']
                     target_data.append(source)
+                target_data = sorted(target_data, key=lambda k: k['association_score']['overall'], reverse=True)
+                for t in target_data:
+                    t['association_score']['overall'] = Association.cap_score(t['association_score']['overall'])
 
                 data.append({
                     "enriched_entity": {

@@ -22,6 +22,10 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         # pprint(json_response)
+        last_score = 1
+        for target in json_response['data'][0]['targets']:
+            self.assertGreaterEqual(last_score, target['association_score']['overall'])
+            last_score = target['association_score']['overall']
         self.assertIn('data', json_response)
 
         print 'enriched diseases', json_response['total']
