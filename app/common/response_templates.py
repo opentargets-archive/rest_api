@@ -104,7 +104,7 @@ class Association(object):
         self.hit_source = {}
         if '_source' in hit:
             self.hit_source = hit['_source']
-        self.cap_scores = cap_scores
+        self.is_scoring_capped = cap_scores
         self.parse_hit()
 
     def parse_hit(self):
@@ -155,7 +155,7 @@ class Association(object):
         #                                        datasources =datasources))
 
     def _cap_score(self, score):
-        if self.cap_scores:
+        if self.is_scoring_capped:
             self.cap_score(score)
         return score
 
