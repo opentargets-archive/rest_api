@@ -488,6 +488,17 @@ class AssociationTestCase(GenericTestCase):
         '''check response size is equal to requeste size +header and empty final line'''
         self.assertEqual(len(full_response.split('\n')), (size + 2))
 
+    # @unittest.skip("testAssociationScoreCap")
+    def testAssociationScoreCap(self):
+        response = self._make_request('/api/latest/public/association/filter',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertGreaterEqual(len(json_response['data']), 0, 'association retrieved')
+        self.assertGreaterEqual(len(json_response['data']), 10, 'minimum default')
+        for i in json_response['data']:
+            self.assertLessEqual(i['association_score']['overall'],1)
+
 
 
 if __name__ == "__main__":
