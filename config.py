@@ -16,7 +16,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
