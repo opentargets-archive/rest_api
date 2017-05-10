@@ -92,15 +92,6 @@ class FilterBy(restful.Resource):
         test with: {"target":["ENSG00000136997"]},
         TODO:create new tests that would check for the empty params being passed
         """
-        #Why is this fix_empty_strings function here - do not see it being used anywhere
-        def fix_empty_strings(l):
-            new_l=[]
-            if l:
-                for i in l:
-                    if i:
-                        new_l.append(i)
-            return new_l
-
         start_time = time.time()
         args = request.get_json(force=True)
         self.remove_empty_params(args)

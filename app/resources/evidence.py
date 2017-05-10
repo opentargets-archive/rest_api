@@ -7,11 +7,10 @@ from app.common.request_templates import EvidenceSortOptions
 __author__ = 'andreap'
 from flask import current_app, request
 from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
 from flask.ext.restful import reqparse
 from app.common.boilerplate import Paginable
 from app.common.response_templates import CTTVResponse
-import json
+from app.common.utils import fix_empty_strings
 from app.common.auth import is_authenticated
 
 # @swagger.model
@@ -44,11 +43,10 @@ from app.common.auth import is_authenticated
 #   }
 
 
-
-
 class Evidence(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('id', type=str, action='append', required=True, help="List of IDs to retrieve")
+    parser.add_argument('id', type=str, action='append', required=True,
+                        help="List of IDs to retrieve")
 
     @is_authenticated
     @rate_limit
@@ -143,14 +141,6 @@ class FilterBy(restful.Resource, Paginable):
         Get a list of evidences filtered by gene, efo and/or eco codes
         test with: {"target":["ENSG00000136997"]},
         """
-        def fix_empty_strings(l):
-            new_l=[]
-            if l:
-                for i in l:
-                    if i:
-                        new_l.append(i)
-            return new_l
-
         args = request.get_json(force=True)
         targets = fix_empty_strings(args.pop('target',[]) or [])
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
