@@ -2074,6 +2074,7 @@ class SearchParams():
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
         self.filters[FilterTypes.RNA_EXPRESSION_LEVEL] = kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL)
+        self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE)
         score_range = [0., self._max_score]
         score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not None:
@@ -2698,6 +2699,94 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             y <= 11 else False
 
 
+class AggregationUnitRNAExTissue(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_rna_range_filter(self.params)
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_rna_expression_level(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size())
+
+    @staticmethod
+    def _get_association_rna_range_filter(params):
+        range_ok = AggregationUnitRNAExTissue._meet_conditions(
+            params.rna_expression_level, 11)
+
+        tissues = params.rna_expression_tissue
+        t2tl = AggregationUnitRNAExTissue._tissues_to_terms_list
+
+        if range_ok and tissues:
+            # here the functionality
+            return {
+                'bool': {
+                    'filter': [{
+                        'term': {
+                            'private.facets.expression_tissues.rna':
+                            params.rna_expression_level
+                        }
+                    }].extend(t2tl(tissues,rna_id))
+                }
+            }
+        else:
+            return {}
+
+    @staticmethod
+    def _get_aggregation_on_rna_expression_level(filters, filters_func, size,
+                                                 ex_level):
+        return {
+            "filter": {
+                "bool": {
+                    "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
+                                         filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.expression_tissues.rna.id",
+                        'size': size,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000
+                            },
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000
+                            },
+                        }
+                    }
+                }
+            }
+        }
+
+    @staticmethod
+    def _tissues_to_terms_list(ts, rna_id):
+        return [
+            {'term': {
+                'private.facets.expression_tissues.rna.' +
+                rna_id + '.id': t
+            }} for t in ts]
+
+    @staticmethod
+    def _meet_conditions(x, y):
+        '''meet conditions for a numerical range with y > x
+        y upper bound and x lower bound as 10 0 respectively'''
+        diff = (y) - x
+        return True if \
+            0 < diff and \
+            diff <= 10 and \
+            x >= 1 and \
+            y <= 11 else False
+
+
 class AggregationUnitScoreRange(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
@@ -2892,7 +2981,8 @@ class AggregationBuilder(object):
         FilterTypes.THERAPEUTIC_AREA: AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
-        FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel
+        FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
+        FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
