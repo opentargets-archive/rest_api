@@ -85,16 +85,15 @@ class FilterBy(restful.Resource):
         data = self.get_association(params=args)
         return CTTVResponse.OK(data)
 
-
     @is_authenticated
     @rate_limit
-    def post(self ):
+    def post(self):
         """
         Get association objects
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         test with: {"target":["ENSG00000136997"]},
-        TODO:create new tests that would check for the empty params being passed
+        TODO:create new tests that check for the empty params being passed
         """
         start_time = time.time()
         args = request.get_json(force=True)
@@ -112,7 +111,7 @@ class FilterBy(restful.Resource):
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
-        except AttributeError,e:
+        except AttributeError as e:
             abort(404, message=e.message)
 
         return res

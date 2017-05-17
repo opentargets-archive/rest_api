@@ -2631,7 +2631,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
     def build_agg(self, filters):
         self.agg = self._get_aggregation_on_rna_expression_level(
             filters, self._get_complimentary_facet_filters,
-            self.get_size())
+            self.get_size(), self.params.rna_expression_level)
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2641,13 +2641,18 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         if range_ok:
             # here the functionality
             return {
-                'bool': {
-                    'filter': [{
-                        'term': {
-                            'private.facets.expression_tissues.rna':
-                            params.rna_expression_level
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'must': [{
+                                'exists': {
+                                    'field':
+                                    'private.facets.expression_tissues.rna.' +
+                                    str(params.rna_expression_level)
+                                }
+                            }]
                         }
-                    }]
+                    }
                 }
             }
         else:
@@ -2660,13 +2665,15 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             "filter": {
                 "bool": {
                     "must": filters_func(FilterTypes.RNA_EXPRESSION_LEVEL,
-                                         filters),
+                                         filters)
                 }
             },
             "aggs": {
                 "data": {
                     "terms": {
-                        "field": "private.facets.expression_tissues.rna.level",
+                        "field":
+                        "private.facets.expression_tissues.rna." +
+                        str(ex_level) + ".level",
                         'size': size,
                     },
                     "aggs": {
@@ -2706,9 +2713,9 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 self._get_association_rna_range_filter(self.params)
 
     def build_agg(self, filters):
-        self.agg = self._get_aggregation_on_rna_expression_level(
+        self.agg = self._get_aggregation_on_rna_expression_tissue(
             filters, self._get_complimentary_facet_filters,
-            self.get_size())
+            self.get_size(), self.params.rna_expression_level)
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2721,21 +2728,20 @@ class AggregationUnitRNAExTissue(AggregationUnit):
         if range_ok and tissues:
             # here the functionality
             return {
-                'bool': {
-                    'filter': [{
-                        'term': {
-                            'private.facets.expression_tissues.rna':
-                            params.rna_expression_level
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'must': t2tl(tissues, params.rna_expression_level)
                         }
-                    }].extend(t2tl(tissues,rna_id))
+                    }
                 }
             }
         else:
             return {}
 
     @staticmethod
-    def _get_aggregation_on_rna_expression_level(filters, filters_func, size,
-                                                 ex_level):
+    def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
+                                                  ex_level):
         return {
             "filter": {
                 "bool": {
@@ -2746,7 +2752,8 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             "aggs": {
                 "data": {
                     "terms": {
-                        "field": "private.facets.expression_tissues.rna.id",
+                        "field": "private.facets.expression_tissues.rna." +
+                        str(ex_level) + ".id",
                         'size': size,
                     },
                     "aggs": {
@@ -2770,7 +2777,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
     @staticmethod
     def _tissues_to_terms_list(ts, rna_id):
         return [
-            {'term': {
+            {'match': {
                 'private.facets.expression_tissues.rna.' +
                 rna_id + '.id': t
             }} for t in ts]
