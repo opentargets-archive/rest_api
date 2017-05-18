@@ -47,6 +47,9 @@ def ex_level_meet_conditions(x, y, min_level, max_level):
 
 
 def ex_level_tissues_to_terms_list(key, ts, expression_level):
+    '''returns a list with a match dict per el in `ts` using the
+    private facet and `epxression_level` based on the `key` as a
+    str "protein" or "rna"'''
     return [
         {'match': {
             'private.facets.expression_tissues.' + key + '.' +
