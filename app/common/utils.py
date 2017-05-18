@@ -41,9 +41,4 @@ def get_remote_addr():
 
 
 def fix_empty_strings(l):
-    new_l = []
-    if l:
-        for i in l:
-            if i:
-                new_l.append(i)
-    return new_l
+    return [i for i in l if l and i]
