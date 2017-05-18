@@ -35,6 +35,25 @@ KEYWORD_MAPPING_FIELDS = ["name",
                           ]
 
 
+def ex_level_meet_conditions(x, y, min_level, max_level):
+    '''meet conditions for a numerical range with y > x y upper bound
+    and x lower bound as max_level and min_level respectively'''
+    diff = y - x
+    return True if \
+        min_level <= diff and \
+        diff < max_level and \
+        x >= min_level and \
+        y <= max_level else False
+
+
+def ex_level_tissues_to_terms_list(key, ts, expression_level):
+    return [
+        {'match': {
+            'private.facets.expression_tissues.' + key + '.' +
+            str(expression_level) + '.id': t
+        }} for t in ts]
+
+
 class BooleanFilterOperator():
     AND = 'must'
     OR = 'should'
@@ -2073,8 +2092,14 @@ class SearchParams():
         self.filters[FilterTypes.TARGET] = kwargs.get(FilterTypes.TARGET)
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
-        self.filters[FilterTypes.RNA_EXPRESSION_LEVEL] = kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL)
-        self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE)
+        self.filters[FilterTypes.RNA_EXPRESSION_LEVEL] = \
+            kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 1)
+        self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = \
+            kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, [])
+        self.filters[FilterTypes.PROTEIN_EXPRESSION_LEVEL] = \
+            kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 1)
+        self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
+            kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, [])
         score_range = [0., self._max_score]
         score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not None:
@@ -2114,6 +2139,18 @@ class SearchParams():
         self.target = kwargs.get('target', []) or []
         self.disease = kwargs.get('disease', []) or []
         self.eco = kwargs.get('eco', []) or []
+
+        setattr(self, FilterTypes.RNA_EXPRESSION_LEVEL,
+                kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 1))
+
+        setattr(self, FilterTypes.RNA_EXPRESSION_TISSUE,
+                kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, []))
+
+        setattr(self, FilterTypes.PROTEIN_EXPRESSION_LEVEL,
+                kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 1))
+
+        setattr(self, FilterTypes.PROTEIN_EXPRESSION_TISSUE,
+                kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, []))
 
         self.facets = kwargs.get('facets', "false") or "false"
         self.facets_size = kwargs.get('facets_size', None) or None
@@ -2628,6 +2665,9 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             self.query_filter = \
                 self._get_association_rna_range_filter(self.params)
 
+    def get_default_size(self):
+        return 25
+
     def build_agg(self, filters):
         self.agg = self._get_aggregation_on_rna_expression_level(
             filters, self._get_complimentary_facet_filters,
@@ -2635,8 +2675,8 @@ class AggregationUnitRNAExLevel(AggregationUnit):
 
     @staticmethod
     def _get_association_rna_range_filter(params):
-        range_ok = AggregationUnitRNAExLevel._meet_conditions(
-            params.rna_expression_level, 11)
+        range_ok = ex_level_meet_conditions(
+            params.rna_expression_level, 11, 1, 11)
 
         if range_ok:
             # here the functionality
@@ -2694,17 +2734,6 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             }
         }
 
-    @staticmethod
-    def _meet_conditions(x, y):
-        '''meet conditions for a numerical range with y > x
-        y upper bound and x lower bound as 10 0 respectively'''
-        diff = (y) - x
-        return True if \
-            0 < diff and \
-            diff <= 10 and \
-            x >= 1 and \
-            y <= 11 else False
-
 
 class AggregationUnitRNAExTissue(AggregationUnit):
     def build_query_filter(self):
@@ -2717,13 +2746,17 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.rna_expression_level)
 
+    def get_default_size(self):
+        return 25
+
     @staticmethod
     def _get_association_rna_range_filter(params):
-        range_ok = AggregationUnitRNAExTissue._meet_conditions(
-            params.rna_expression_level, 11)
+        range_ok = ex_level_meet_conditions(
+            params.rna_expression_level, 11, 1, 11)
 
         tissues = params.rna_expression_tissue
-        t2tl = AggregationUnitRNAExTissue._tissues_to_terms_list
+        print tissues
+        t2tl = ex_level_tissues_to_terms_list
 
         if range_ok and tissues:
             # here the functionality
@@ -2731,7 +2764,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 'constant_score': {
                     'filter': {
                         'bool': {
-                            'must': t2tl(tissues, params.rna_expression_level)
+                            'must': t2tl('rna', tissues, params.rna_expression_level)
                         }
                     }
                 }
@@ -2774,24 +2807,154 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             }
         }
 
-    @staticmethod
-    def _tissues_to_terms_list(ts, rna_id):
-        return [
-            {'match': {
-                'private.facets.expression_tissues.rna.' +
-                rna_id + '.id': t
-            }} for t in ts]
+
+class AggregationUnitPROExLevel(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_pro_range_filter(self.params)
+
+    def get_default_size(self):
+        return 25
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_pro_expression_level(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.protein_expression_level)
 
     @staticmethod
-    def _meet_conditions(x, y):
-        '''meet conditions for a numerical range with y > x
-        y upper bound and x lower bound as 10 0 respectively'''
-        diff = (y) - x
-        return True if \
-            0 < diff and \
-            diff <= 10 and \
-            x >= 1 and \
-            y <= 11 else False
+    def _get_association_pro_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.protein_expression_level, 4, 1, 4)
+
+        if range_ok:
+            # here the functionality
+            return {
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'must': [{
+                                'exists': {
+                                    'field':
+                                    'private.facets.expression_tissues.protein.' +
+                                    str(params.protein_expression_level)
+                                }
+                            }]
+                        }
+                    }
+                }
+            }
+        else:
+            return {}
+
+    @staticmethod
+    def _get_aggregation_on_pro_expression_level(filters, filters_func, size,
+                                                 ex_level):
+        return {
+            "filter": {
+                "bool": {
+                    "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_LEVEL,
+                                         filters)
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field":
+                        "private.facets.expression_tissues.protein." +
+                        str(ex_level) + ".level",
+                        'size': size,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000
+                            },
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000
+                            },
+                        }
+                    }
+                }
+            }
+        }
+
+
+class AggregationUnitPROExTissue(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_pro_range_filter(self.params)
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_pro_expression_tissue(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.protein_expression_level)
+
+    def get_default_size(self):
+        return 25
+
+    @staticmethod
+    def _get_association_pro_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.protein_expression_level, 4, 1, 4)
+
+        tissues = params.protein_expression_tissue
+        print tissues
+        t2tl = ex_level_tissues_to_terms_list
+
+        if range_ok and tissues:
+            # here the functionality
+            return {
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'must': t2tl('protein', tissues, params.protein_expression_level)
+                        }
+                    }
+                }
+            }
+        else:
+            return {}
+
+    @staticmethod
+    def _get_aggregation_on_pro_expression_tissue(filters, filters_func, size,
+                                                  ex_level):
+        return {
+            "filter": {
+                "bool": {
+                    "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_TISSUE,
+                                         filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.expression_tissues.protein." +
+                        str(ex_level) + ".id",
+                        'size': size,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000
+                            },
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000
+                            },
+                        }
+                    }
+                }
+            }
+        }
 
 
 class AggregationUnitScoreRange(AggregationUnit):
@@ -2989,7 +3152,9 @@ class AggregationBuilder(object):
         FilterTypes.GO: AggregationUnitGO,
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
         FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
-        FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue
+        FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
+        FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
+        FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,

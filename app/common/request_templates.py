@@ -148,6 +148,8 @@ class FilterTypes():
     ASSOCIATION_SCORE_MAX = 'scorevalue_max'
     RNA_EXPRESSION_LEVEL = 'rna_expression_level'
     RNA_EXPRESSION_TISSUE = 'rna_expression_tissue'
+    PROTEIN_EXPRESSION_LEVEL = 'protein_expression_level'
+    PROTEIN_EXPRESSION_TISSUE = 'protein_expression_tissue'
     SCORE_RANGE = 'scorevalue_range'
     PATHWAY = 'pathway'
     GO = 'go'

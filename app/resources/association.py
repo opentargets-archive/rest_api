@@ -67,6 +67,10 @@ class FilterBy(restful.Resource):
                             choices=list(xrange(1, 11)), required=False)
         parser.add_argument('rna_expression_tissue', type=str, action='append',
                             required=False)
+        parser.add_argument('protein_expression_level', type=int, default=1,
+                            choices=list(xrange(1, 4)), required=False)
+        parser.add_argument('protein_expression_tissue', type=str, action='append',
+                            required=False)
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
