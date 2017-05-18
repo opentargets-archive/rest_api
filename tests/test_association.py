@@ -91,6 +91,71 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('disease' in json_response['facets'])
         self.assertFalse('datatype' in json_response['facets'])
 
+    def testAssociationsExpressionFilter(self):
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'protein_expression_level': 1,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('protein_expression_tissue' in json_response['facets'])
+        self.assertTrue('protein_expression_level' in json_response['facets'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('rna_expression_level' in json_response['facets'])
+
+    def testAssociationsExpressionFilter(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'protein_expression_level': 4,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 400)
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 11,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 400)
+
+    def testAssociationsExpressionFilterTissue(self):
+        tissue_id = 'UBERON_0001043'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 3,
+                                            'rna_expression_tissue': tissue_id,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('sum_other_doc_count' in json_response['facets']
+                        ['rna_expression_tissue'])
+
+        rna_expression_tissue_level_3 = json_response['facets']['rna_expression_tissue']
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 3,
+                                            'rna_expression_tissue': tissue_id,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('sum_other_doc_count' in json_response['facets']
+                        ['rna_expression_tissue'])
+
+        rna_expression_tissue_level_1 = json_response['facets']['rna_expression_tissue']
+
+        self.assertGreater(rna_expression_tissue_level_1,
+                           rna_expression_tissue_level_3)
+
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
