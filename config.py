@@ -43,7 +43,9 @@ class Config:
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
 
     # easier to use with less parameters
-    ES_PREFIX = partial(prefix=DATA_VERSION, ini=ES_CUSTOM_IDXS_INI)
+    ES_PREFIX = partial(prefix_or_custom_idx,
+                        prefix=DATA_VERSION,
+                        ini=ES_CUSTOM_IDXS_INI)
 
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
