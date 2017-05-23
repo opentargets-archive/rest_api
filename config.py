@@ -1,40 +1,65 @@
-import csv
 import random
 import string
+import ConfigParser
+import ast
 from collections import defaultdict
-
-#from app.common.auth import AuthKey
+# from app.common.auth import AuthKey
 from app.common.scoring_conf import ScoringMethods
-
-__author__ = 'andreap'
-
-
-
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+__author__ = 'andreap'
+
+
+def init_from_file(filename):
+    cfg = ConfigParser.ConfigParser()
+    if cfg.read(filename):
+        return cfg
+    else:
+        return None
+
+
+def prefix_or_custom_idx(name, suffix=''):
+    section_name = 'indexes'
+    prefix = Config.DATA_VERSION
+
+    idx_name = Config.ES_CUSTOM_IDXS_INI.get(section_name, name) \
+        if Config.ES_CUSTOM_IDXS and \
+        Config.ES_CUSTOM_IDXS_INI and \
+        Config.ES_CUSTOM_IDXS_INI.has_option(section_name, name) \
+        else prefix + '_' + name
+
+    return idx_name + suffix
+
 
 class Config:
+    ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'
+    ES_CUSTOM_IDXS = ast.literal_eval(os.getenv('OPENTARGETS_ES_CUSTOM_IDXS',
+                                                'False'))
+
+    ES_CUSTOM_IDXS_INI = init_from_file(ES_CUSTOM_IDXS_FILENAME) \
+        if ES_CUSTOM_IDXS else None
+
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
-    ELASTICSEARCH_DATA_INDEX_NAME = DATA_VERSION+'_evidence-data*'
+    ELASTICSEARCH_DATA_INDEX_NAME = prefix_or_custom_idx('evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
-    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = DATA_VERSION+'_efo-data'
+    ELASTICSEARCH_EFO_LABEL_INDEX_NAME = prefix_or_custom_idx('efo-data')
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
-    ELASTICSEARCH_ECO_INDEX_NAME = DATA_VERSION+'_eco-data'
+    ELASTICSEARCH_ECO_INDEX_NAME = prefix_or_custom_idx('eco-data')
     ELASTICSEARCH_ECO_DOC_NAME = 'eco'
-    ELASTICSEARCH_GENE_NAME_INDEX_NAME = DATA_VERSION+'_gene-data'
+    ELASTICSEARCH_GENE_NAME_INDEX_NAME = prefix_or_custom_idx('gene-data')
     ELASTICSEARCH_GENE_NAME_DOC_NAME = 'genedata'
-    ELASTICSEARCH_EXPRESSION_INDEX_NAME = DATA_VERSION+'_expression-data'
+    ELASTICSEARCH_EXPRESSION_INDEX_NAME = prefix_or_custom_idx('expression-data')
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
-    ELASTICSEARCH_REACTOME_INDEX_NAME = DATA_VERSION+'_reactome-data'
+    ELASTICSEARCH_REACTOME_INDEX_NAME = prefix_or_custom_idx('reactome-data')
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = DATA_VERSION+'_association-data'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = prefix_or_custom_idx('association-data')
     ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
-    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = DATA_VERSION+'_search-data'
+    ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = prefix_or_custom_idx('search-data')
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
-    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = DATA_VERSION + '_relation-data'
+    ELASTICSEARCH_DATA_RELATION_INDEX_NAME = prefix_or_custom_idx('relation-data')
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
     DEBUG = os.getenv('API_DEBUG', False)
