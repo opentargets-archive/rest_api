@@ -54,7 +54,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['target']['id'], target)
-    
+
     def testAssociationFilterTargetsDiseaseGet(self):
         target = ['ENSG00000113448','ENSG00000172057']
         disease = 'EFO_0000270'
@@ -68,8 +68,7 @@ class AssociationTestCase(GenericTestCase):
             self.assertEqual(json_response['data'][1]['target']['id'], target[1])
         elif(json_response['data'][0]['target']['id'] == target[1]):
             self.assertEqual(json_response['data'][1]['target']['id'], target[0])
-        
-        
+
     #@unittest.skip("testAssociationFilterTargetFacet")
     def testAssociationFilterTargetFacet(self):
         target = 'ENSG00000157764'
@@ -91,6 +90,73 @@ class AssociationTestCase(GenericTestCase):
         self.assertIsNotNone(json_response['facets'])
         self.assertTrue('disease' in json_response['facets'])
         self.assertFalse('datatype' in json_response['facets'])
+
+    def testAssociationsExpressionFilter(self):
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'protein_expression_level': 1,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('protein_expression_tissue' in json_response['facets'])
+        self.assertTrue('protein_expression_level' in json_response['facets'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('rna_expression_level' in json_response['facets'])
+
+    # TODO mkarmona add this test
+    # http://localhost:8008/api/latest/public/association/filter?facets=true&target=ENSG00000068078&rna_expression_tissue=UBERON_0002097
+    def testAssociationsExpressionFilter(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'protein_expression_level': 4,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 400)
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 11,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 400)
+
+    def testAssociationsExpressionFilterTissue(self):
+        tissue_id = 'UBERON_0001043'
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 3,
+                                            'rna_expression_tissue': tissue_id,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('sum_other_doc_count' in json_response['facets']
+                        ['rna_expression_tissue'])
+
+        rna_expression_tissue_level_3 = json_response['facets']['rna_expression_tissue']
+
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 3,
+                                            'rna_expression_tissue': tissue_id,
+                                            'no_cache': True,
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('sum_other_doc_count' in json_response['facets']
+                        ['rna_expression_tissue'])
+
+        rna_expression_tissue_level_1 = json_response['facets']['rna_expression_tissue']
+
+        self.assertGreater(rna_expression_tissue_level_1,
+                           rna_expression_tissue_level_3)
 
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
@@ -115,7 +181,6 @@ class AssociationTestCase(GenericTestCase):
         self.assertIsNotNone(json_response['facets'])
         self.assertTrue('disease' in json_response['facets'])
         self.assertEqual(len(json_response['facets']['disease']['buckets']), facets_size)
-
 
     def testAssociationFilterDiseaseGet(self):
         disease = 'EFO_0000311'
@@ -168,8 +233,6 @@ class AssociationTestCase(GenericTestCase):
         json_filtered_response_sub = json.loads(filtered_response_sub.data.decode('utf-8'))
         self.assertEqual(json_filtered_response_sub['total'], expected_results_sub)
 
-
-
     def testAssociationFilterDiseasePost(self):
         disease = 'EFO_0000311'
         response = self._make_request('/api/latest/public/association/filter',
@@ -184,8 +247,6 @@ class AssociationTestCase(GenericTestCase):
         self.assertGreaterEqual(len(json_response['data']),1, 'association retrieved')
         self.assertGreaterEqual(len(json_response['data']),10, 'minimum default returned')
         self.assertEqual(json_response['data'][0]['disease']['id'], disease)
-
-
 
     def testAssociationFilterDirect(self):
         disease = 'EFO_0000311'
@@ -304,8 +365,6 @@ class AssociationTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertGreaterEqual(json_response['total'], 3)
 
-
-
     def testAssociationFilterOrderByScore(self):
 
         disease = 'EFO_0000270'
@@ -376,7 +435,6 @@ class AssociationTestCase(GenericTestCase):
             self.assertGreaterEqual(sorted_disease_labels[i],
                                  sorted_disease_labels[i + 1],
                                  )
-
 
     def testAssociationFilterSearch(self):
 
@@ -500,6 +558,5 @@ class AssociationTestCase(GenericTestCase):
             self.assertLessEqual(i['association_score']['overall'],1)
 
 
-
 if __name__ == "__main__":
-     unittest.main()
+    unittest.main()

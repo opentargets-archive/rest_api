@@ -3,11 +3,12 @@ from app.common import boilerplate
 
 from flask import current_app, request
 from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
+from flask.ext.restful import abort
 from flask.ext.restful import reqparse
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
+from app.common.utils import fix_empty_strings
 import time
 
 __author__ = 'andreap'
@@ -43,14 +44,6 @@ class Expression(restful.Resource):
         Get expression data for a gene
         test with: {"gene":["ENSG00000136997"]},
         """
-        def fix_empty_strings(l):
-            new_l=[]
-            if l:
-                for i in l:
-                    if i:
-                        new_l.append(i)
-            return new_l
-
         start_time = time.time()
         args = request.get_json()
         genes = fix_empty_strings(args.pop('gene',[]) or [])

@@ -146,22 +146,26 @@ class FilterTypes():
     DATATYPE = 'datatype'
     ASSOCIATION_SCORE_MIN = 'scorevalue_min'
     ASSOCIATION_SCORE_MAX = 'scorevalue_max'
+    RNA_EXPRESSION_LEVEL = 'rna_expression_level'
+    RNA_EXPRESSION_TISSUE = 'rna_expression_tissue'
+    PROTEIN_EXPRESSION_LEVEL = 'protein_expression_level'
+    PROTEIN_EXPRESSION_TISSUE = 'protein_expression_tissue'
     SCORE_RANGE = 'scorevalue_range'
     PATHWAY = 'pathway'
     GO = 'go'
     UNIPROT_KW = 'uniprotkw'
-    TARGET='target'
-    DISEASE='disease'
-    ECO='eco'
-    IS_DIRECT='direct'
-    THERAPEUTIC_AREA='therapeutic_area'
-    TARGETS_ENRICHMENT='targets_enrichment'
-    TARGET_CLASS='target_class'
-
+    TARGET = 'target'
+    DISEASE = 'disease'
+    ECO = 'eco'
+    IS_DIRECT = 'direct'
+    THERAPEUTIC_AREA = 'therapeutic_area'
+    TARGETS_ENRICHMENT = 'targets_enrichment'
+    TARGET_CLASS = 'target_class'
 
 
 class AssociationSortOptions:
     OVERALL = 'overall'
+
 
 class EvidenceSortOptions:
     SCORE = 'scores.association_score'
