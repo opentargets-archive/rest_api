@@ -43,7 +43,7 @@ class Config:
     ES_CUSTOM_IDXS_INI = init_from_file(ES_CUSTOM_IDXS_FILENAME) \
         if ES_CUSTOM_IDXS else None
 
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
 
     # easier to use with less parameters
     ES_PREFIX = partial(prefix_or_custom_idx,
@@ -81,7 +81,7 @@ class Config:
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
-    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature', 'gene2phenotype']
+    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','phewas_catalog','eva','uniprot_literature', 'gene2phenotype']
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
