@@ -2,7 +2,7 @@ box:
   id: quay.io/opentargets/opentargets_rest_api_base
   tag: 0.1
   registry: quay.io
-
+#do nothing just testing ci
 dev:
   steps:
     - pip-install
