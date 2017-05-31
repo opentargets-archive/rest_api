@@ -43,7 +43,7 @@ class Config:
     ES_CUSTOM_IDXS_INI = init_from_file(ES_CUSTOM_IDXS_FILENAME) \
         if ES_CUSTOM_IDXS else None
 
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
 
     # easier to use with less parameters
     ES_PREFIX = partial(prefix_or_custom_idx,
