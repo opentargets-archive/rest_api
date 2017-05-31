@@ -40,8 +40,7 @@ def ex_level_meet_conditions(x, y, min_level, max_level):
     and x lower bound as max_level and min_level respectively'''
     diff = y - x
     return True if \
-        min_level <= diff and \
-        diff < max_level and \
+        min_level <= diff < max_level and \
         x >= min_level and \
         y <= max_level else False
 
@@ -3154,10 +3153,10 @@ class AggregationBuilder(object):
         FilterTypes.THERAPEUTIC_AREA: AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
-        FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
-        FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
-        FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
-        FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
+        # FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
+        # FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
+        # FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
+        # FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
