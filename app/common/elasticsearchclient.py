@@ -905,7 +905,7 @@ class esQuery():
                                        timeout="20m",
                                        request_timeout=60 * 20,
                                        # routing=use gene here
-                                       query_cache=True,
+                                       #query_cache=True,
                                        )
         aggregation_results = {}
 
@@ -1848,6 +1848,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                      "datasources": {
                                                                          "terms": {
                                                                              "field": "private.facets.datasource",
+                                                                             'size': 20,
                                                                          },
                                                                      }
                                                                  }
