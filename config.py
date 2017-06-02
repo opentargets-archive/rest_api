@@ -43,14 +43,14 @@ class Config:
     ES_CUSTOM_IDXS_INI = init_from_file(ES_CUSTOM_IDXS_FILENAME) \
         if ES_CUSTOM_IDXS else None
 
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.02')
 
     # easier to use with less parameters
     ES_PREFIX = partial(prefix_or_custom_idx,
                         prefix=DATA_VERSION,
                         ini=ES_CUSTOM_IDXS_INI)
 
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://10.240.11.107:9200')
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = ES_PREFIX(name='efo-data')
@@ -63,8 +63,8 @@ class Config:
     ELASTICSEARCH_EXPRESSION_DOC_NAME = 'expression'
     ELASTICSEARCH_REACTOME_INDEX_NAME = ES_PREFIX(name='reactome-data')
     ELASTICSEARCH_REACTOME_REACTION_DOC_NAME = 'reactome-reaction'
-    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = ES_PREFIX(name='association-data')
-    ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association'
+    ELASTICSEARCH_DATA_ASSOCIATION_INDEX_NAME = ES_PREFIX(name='association-data-phewas')
+    ELASTICSEARCH_DATA_ASSOCIATION_DOC_NAME = 'association-phewas'
     ELASTICSEARCH_DATA_SEARCH_INDEX_NAME = ES_PREFIX(name='search-data')
     ELASTICSEARCH_DATA_SEARCH_DOC_NAME = 'search-object'
     ELASTICSEARCH_DATA_RELATION_INDEX_NAME = ES_PREFIX(name='relation-data')
