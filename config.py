@@ -50,7 +50,7 @@ class Config:
                         prefix=DATA_VERSION,
                         ini=ES_CUSTOM_IDXS_INI)
 
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://104.199.87.124:30092')
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = ES_PREFIX(name='efo-data')
@@ -114,6 +114,7 @@ class Config:
     NO_CACHE_PARAMS = 'no_cache'
 
     MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', None)
+    GITHUB_AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN', None)
 
 
 

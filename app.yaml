@@ -1,0 +1,27 @@
+runtime: python
+env: flex
+entrypoint: uwsgi --http :$PORT --wsgi-file manage.py --module manage --callable app  --gevent 5000 --max-requests 5000 --harakiri 300   --processes 32  --cheaper 2 --http-timeout 300  --http-auto-gzip
+
+runtime_config:
+  python_version: 2
+
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 20
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 10
+  cool_down_period_sec: 60 # default value
+  cpu_utilization:
+    target_utilization: 0.5
+
+threadsafe: true
+
+# [START env_variables]
+env_variables:
+    ELASTICSEARCH_URL: $ES_URL
+    OPENTARGETS_API_CONFIG: production
+    GITHUB_AUTH_TOKEN: $GITHUB_TOKEN
+# [END env_variables]
