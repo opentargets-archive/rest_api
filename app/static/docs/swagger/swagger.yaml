@@ -577,7 +577,7 @@ paths:
       tags:
         - private
       description: |
-      Get `gene-expression` objects.
+        Get `gene-expression` objects.
       parameters:
         - name: gene
           in: query
