@@ -2011,7 +2011,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             for hit in res['hits']['hits']:
                 d = hit['_source']
                 r = Relation(**d)
-                r.value = d['scores']['euclidean']
+                r.value = d['scores']['overlap']
                 data.append(r.to_dict())
 
         return PaginatedResult(res,

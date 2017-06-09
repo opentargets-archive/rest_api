@@ -77,7 +77,7 @@ class Config:
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = os.getenv('API_VERSION','2.1')
-    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.0')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.1')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
