@@ -63,12 +63,12 @@ class FilterBy(restful.Resource):
         parser.add_argument('pathway', type=str, action='append', required=False, )
         parser.add_argument(FilterTypes.TARGET_CLASS, type=int, action='append', )
         parser.add_argument('uniprotkw', type=str, action='append', required=False,)
-        parser.add_argument('rna_expression_level', type=int, default=1,
-                            choices=list(xrange(1, 11)), required=False)
+        parser.add_argument('rna_expression_level', type=int, default=0,
+                            choices=list(xrange(0, 11)), required=False)
         parser.add_argument('rna_expression_tissue', type=str, action='append',
                             required=False)
-        parser.add_argument('protein_expression_level', type=int, default=1,
-                            choices=list(xrange(1, 4)), required=False)
+        parser.add_argument('protein_expression_level', type=int, default=0,
+                            choices=list(xrange(0, 4)), required=False)
         parser.add_argument('protein_expression_tissue', type=str, action='append',
                             required=False)
         parser.add_argument('go', type=str, action='append', required=False,
