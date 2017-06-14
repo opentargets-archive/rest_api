@@ -109,8 +109,6 @@ class InternalCache(object):
             return self._decode(value)
 
     def set(self, key, value, ttl=None):
-        k = self._get_namespaced_key(key)
-        v = self._encode(value)
         return self.r_server.setex(self._get_namespaced_key(key),
                                    self._encode(value),
                                    ttl or self.default_ttl)
