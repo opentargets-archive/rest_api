@@ -2715,7 +2715,6 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                         "field":
                         "private.facets.expression_tissues.rna." +
                         str(ex_level) + ".level",
-                        'size': size,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2788,7 +2787,10 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     "terms": {
                         "field": "private.facets.expression_tissues.rna." +
                         str(ex_level) + ".id",
-                        'size': size,
+                        "order": {
+                            "unique_target_count": "desc"
+                        },      
+                        # 'size': size,
                     },
                     "aggs": {
                         "label": {
@@ -2871,9 +2873,19 @@ class AggregationUnitPROExLevel(AggregationUnit):
                         "field":
                         "private.facets.expression_tissues.protein." +
                         str(ex_level) + ".level",
-                        'size': size,
+                        "order": {
+                            "unique_target_count": "desc"
+                        },      
+                        # 'size': size,
                     },
                     "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.expression_tissues.protein." + 
+                                str(ex_level) + ".label",
+                                'size': 1,
+                            },
+                        },                        
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
