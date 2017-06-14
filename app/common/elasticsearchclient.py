@@ -2791,6 +2791,13 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                         'size': size,
                     },
                     "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.expression_tissues.rna." + 
+                                str(ex_level) + ".label",
+                                'size': 1,
+                            },
+                        },
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
