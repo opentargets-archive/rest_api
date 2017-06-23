@@ -68,7 +68,11 @@ class RelationTargetSingle(restful.Resource):
         Given a target id, returns related targets
         """
         es = current_app.extensions['esquery']
-        res = es.get_relations([target_id])
+        parser = boilerplate.get_parser()
+        parser.add_argument('sort', type=str, required=False, action='append',
+                            help="sort the results by this score type", default=['scores.overlap'])
+        args = parser.parse_args()
+        res = es.get_relations([target_id], **args)
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(target_id))
         return CTTVResponse.OK(res)

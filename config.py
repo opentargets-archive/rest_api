@@ -50,7 +50,7 @@ class Config:
                         prefix=DATA_VERSION,
                         ini=ES_CUSTOM_IDXS_INI)
 
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://10.240.11.107:9200')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://104.199.87.124:30092')
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = ES_PREFIX(name='efo-data')
@@ -77,7 +77,7 @@ class Config:
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
     API_VERSION = os.getenv('API_VERSION','2.1')
-    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.0')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.1')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
@@ -114,6 +114,7 @@ class Config:
     NO_CACHE_PARAMS = 'no_cache'
 
     MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', None)
+    GITHUB_AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN', None)
 
 
 

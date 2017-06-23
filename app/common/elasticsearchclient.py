@@ -36,8 +36,9 @@ KEYWORD_MAPPING_FIELDS = ["name",
 
 
 def ex_level_meet_conditions(x, y, min_level, max_level):
-    '''meet conditions for a numerical range with y > x y upper bound
-    and x lower bound as max_level and min_level respectively'''
+    '''meet conditions for a numerical range with y > x y upper bound and x lower
+    bound as max_level and min_level respectively
+    '''
     diff = y - x
     return True if \
         min_level <= diff < max_level and \
@@ -46,9 +47,9 @@ def ex_level_meet_conditions(x, y, min_level, max_level):
 
 
 def ex_level_tissues_to_terms_list(key, ts, expression_level):
-    '''returns a list with a match dict per el in `ts` using the
-    private facet and `epxression_level` based on the `key` as a
-    str "protein" or "rna"'''
+    '''returns a list with a match dict per el in `ts` using the private facet and
+    `epxression_level` based on the `key` as a str "protein" or "rna"
+    '''
     return [
         {'match': {
             'private.facets.expression_tissues.' + key + '.' +
@@ -2012,7 +2013,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             for hit in res['hits']['hits']:
                 d = hit['_source']
                 r = Relation(**d)
-                r.value = d['scores']['euclidean']
+                r.value = d['scores']['overlap']
                 data.append(r.to_dict())
 
         return PaginatedResult(res,
@@ -2096,11 +2097,11 @@ class SearchParams():
         self.filters[FilterTypes.DISEASE] = kwargs.get(FilterTypes.DISEASE)
         self.filters[FilterTypes.THERAPEUTIC_AREA] = kwargs.get(FilterTypes.THERAPEUTIC_AREA)
         self.filters[FilterTypes.RNA_EXPRESSION_LEVEL] = \
-            kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 1)
+            kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, [])
         self.filters[FilterTypes.PROTEIN_EXPRESSION_LEVEL] = \
-            kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 1)
+            kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, [])
         score_range = [0., self._max_score]
@@ -2144,13 +2145,13 @@ class SearchParams():
         self.eco = kwargs.get('eco', []) or []
 
         setattr(self, FilterTypes.RNA_EXPRESSION_LEVEL,
-                kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 1))
+                kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 0))
 
         setattr(self, FilterTypes.RNA_EXPRESSION_TISSUE,
                 kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, []))
 
         setattr(self, FilterTypes.PROTEIN_EXPRESSION_LEVEL,
-                kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 1))
+                kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0))
 
         setattr(self, FilterTypes.PROTEIN_EXPRESSION_TISSUE,
                 kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, []))
@@ -2735,7 +2736,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                     }
                 }
             }
-        }
+        } if ex_level > 0 else {}
 
 
 class AggregationUnitRNAExTissue(AggregationUnit):
@@ -2808,7 +2809,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     }
                 }
             }
-        }
+        } if ex_level > 0 else {}
 
 
 class AggregationUnitPROExLevel(AggregationUnit):
@@ -2884,7 +2885,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                     }
                 }
             }
-        }
+        } if ex_level > 0 else {}
 
 
 class AggregationUnitPROExTissue(AggregationUnit):
@@ -2957,7 +2958,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
-        }
+        } if ex_level > 0 else {}
 
 
 class AggregationUnitScoreRange(AggregationUnit):
@@ -3154,10 +3155,10 @@ class AggregationBuilder(object):
         FilterTypes.THERAPEUTIC_AREA: AggregationUnitTherapeuticArea,
         FilterTypes.GO: AggregationUnitGO,
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
-        # FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
-        # FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
-        # FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
-        # FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
+        FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
+        FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
+        FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
+        FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
