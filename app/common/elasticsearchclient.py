@@ -2775,7 +2775,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
     @staticmethod
     def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
                                                   ex_level):
-        return {
+        agg_filter = {
             "filter": {
                 "bool": {
                     "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
@@ -2789,17 +2789,10 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                         str(ex_level) + ".id",
                         "order": {
                             "unique_target_count": "desc"
-                        },      
+                        },
                         # 'size': size,
                     },
                     "aggs": {
-                        "label": {
-                            "terms": {
-                                "field": "private.facets.expression_tissues.rna." + 
-                                str(ex_level) + ".label",
-                                'size': 1,
-                            },
-                        },
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
@@ -2816,6 +2809,9 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 }
             }
         } if ex_level > 0 else {}
+
+        print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        return agg_filter
 
 
 class AggregationUnitPROExLevel(AggregationUnit):
@@ -2860,7 +2856,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     @staticmethod
     def _get_aggregation_on_pro_expression_level(filters, filters_func, size,
                                                  ex_level):
-        return {
+        agg_filter = {
             "filter": {
                 "bool": {
                     "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_LEVEL,
@@ -2875,17 +2871,10 @@ class AggregationUnitPROExLevel(AggregationUnit):
                         str(ex_level) + ".level",
                         "order": {
                             "unique_target_count": "desc"
-                        },      
+                        },
                         # 'size': size,
                     },
                     "aggs": {
-                        "label": {
-                            "terms": {
-                                "field": "private.facets.expression_tissues.protein." + 
-                                str(ex_level) + ".label",
-                                'size': 1,
-                            },
-                        },                        
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
@@ -2902,6 +2891,8 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 }
             }
         } if ex_level > 0 else {}
+        print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        return agg_filter
 
 
 class AggregationUnitPROExTissue(AggregationUnit):
