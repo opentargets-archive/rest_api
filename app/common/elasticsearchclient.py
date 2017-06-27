@@ -2755,7 +2755,6 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             params.rna_expression_level, 11, 1, 11)
 
         tissues = params.rna_expression_tissue
-        print tissues
         t2tl = ex_level_tissues_to_terms_list
 
         if range_ok and tissues:
@@ -2810,7 +2809,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             }
         } if ex_level > 0 else {}
 
-        print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
 
@@ -2891,7 +2890,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 }
             }
         } if ex_level > 0 else {}
-        print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
 
@@ -2915,7 +2914,6 @@ class AggregationUnitPROExTissue(AggregationUnit):
             params.protein_expression_level, 4, 1, 4)
 
         tissues = params.protein_expression_tissue
-        print tissues
         t2tl = ex_level_tissues_to_terms_list
 
         if range_ok and tissues:
