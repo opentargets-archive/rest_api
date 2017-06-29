@@ -2,7 +2,7 @@
 swagger: '2.0'
 
 info:
-  version: 2.0.1
+  version: 2.1.1
   title: The Open Targets Platform REST API
   description: |
 
@@ -577,7 +577,7 @@ paths:
       tags:
         - private
       description: |
-      Get `gene-expression` objects.
+        Get `gene-expression` objects.
       parameters:
         - name: gene
           in: query

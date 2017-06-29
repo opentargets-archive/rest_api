@@ -2,6 +2,8 @@ import csv
 import os
 from collections import defaultdict
 from datetime import datetime
+
+import requests
 from flask import Flask, redirect, Blueprint, send_from_directory, g, request
 from flask.ext.compress import Compress
 from redislite import Redis
@@ -95,7 +97,7 @@ def create_app(config_name):
                        # # and also every 60 seconds
                        # sniffer_timeout=60
                        timeout=60 * 20,
-                       maxsize=100,
+                       maxsize=32,
                        )
     '''elasticsearch handlers'''
     app.extensions['esquery'] = esQuery(es,
@@ -161,16 +163,30 @@ def create_app(config_name):
     rate_limit_file = app.config['USAGE_LIMIT_PATH']
     if not os.path.exists(rate_limit_file):
         rate_limit_file = '../'+rate_limit_file
-    if os.path.exists(rate_limit_file):
-        with open(rate_limit_file) as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                auth_key = AuthKey(**row)
-                app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
-        print('INFO - succesfully loaded rate limit file')
-    else:
-        print('ERROR - cannot find rate limit file')
+    csvfile = None
+    if Config.GITHUB_AUTH_TOKEN:
+        r = requests.get('https://api.github.com/repos/opentargets/rest_api_auth/contents/rate_limit.csv',
+                         headers = {'Authorization': 'token %s'%Config.GITHUB_AUTH_TOKEN,
+                                    'Accept': 'application/vnd.github.v3.raw'})
+        if r.ok:
+            csvfile = r.text.split('\n')
+        else:
+            app.logger.error('Cannot retrieve auth file form remote, SKIPPED! http status: %s '%str(r.status))
+    elif os.path.exists(rate_limit_file):
+        csvfile = open(rate_limit_file)
+
+    if csvfile is None:
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
+    else:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            auth_key = AuthKey(**row)
+            app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+        try:
+            csvfile.close()
+        except:
+            pass
+        app.logger.info('succesfully loaded rate limit file')
 
 
     '''load ip name resolution'''
