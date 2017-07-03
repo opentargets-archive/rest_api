@@ -19,9 +19,17 @@ automatic_scaling:
 
 threadsafe: true
 
+health_check:
+  enable_health_check: True
+  #slow this down from default of 1sec
+  check_interval_sec: 10
+  timeout_sec: 4
+  unhealthy_threshold: 2
+  healthy_threshold: 2
+
 # [START env_variables]
 env_variables:
-    ELASTICSEARCH_URL: $ES_URL
+    # ELASTICSEARCH_URL: $ES_URL
     OPENTARGETS_API_CONFIG: production
-    GITHUB_AUTH_TOKEN: $GITHUB_TOKEN
+    # GITHUB_AUTH_TOKEN: $GITHUB_TOKEN
 # [END env_variables]
