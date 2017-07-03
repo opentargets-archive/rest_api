@@ -5,6 +5,7 @@ Open Targets REST API
 
 [![wercker status](https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/m/master "wercker status")](https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19)
 
+[![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?style=svg&circle-token=a6f30fb72fe7b0b079ad0f3cd232ef02a43b9e35)](https://circleci.com/gh/opentargets/rest_api)
 
 To test locally
 
