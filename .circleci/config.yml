@@ -36,13 +36,17 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - checkout
+      - name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
       - name: Deploy Master to google
           command: |
             gcloud version
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              # check existence of gcloud
-              echo gcloud deploy 
-            fi
+            gcloud app deploy --version test --project $GOOGLE_PROJECT_ID
+
 
 workflows:
   version: 2
