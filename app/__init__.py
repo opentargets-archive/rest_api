@@ -171,7 +171,7 @@ def create_app(config_name):
         if r.ok:
             csvfile = r.text.split('\n')
         else:
-            app.logger.error('Cannot retrieve auth file form remote, SKIPPED! http status: %s '%str(r.status))
+            app.logger.error('Cannot retrieve auth file form remote, SKIPPED!')
     elif os.path.exists(rate_limit_file):
         csvfile = open(rate_limit_file)
 
