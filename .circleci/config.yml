@@ -3,6 +3,7 @@ jobs:
   build:
     working_directory: ~/circulate
     docker:
+      # - image: elasticsearch
       - image: circleci/python:2.7
         # environment:
           # FLASK_CONFIG: testing
@@ -11,6 +12,7 @@ jobs:
       - restore_cache:
           key: deps-a-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
+          name: Install requirements.txt
           command: |
             pip install virtualenv
             virtualenv venv
@@ -21,6 +23,7 @@ jobs:
           paths:
             - "venv"
       - run:
+          name: Run tests that do not depend on ES
           command: |
             . venv/bin/activate
             python -m pytest
@@ -48,7 +51,7 @@ jobs:
           name: Deploy Master to google
           command: |
             gcloud version
-            gcloud app deploy --version test --project $GOOGLE_PROJECT_ID
+            gcloud app deploy --version $CIRCLECI_BRANCH --project $GOOGLE_PROJECT_ID
 
 
 workflows:
