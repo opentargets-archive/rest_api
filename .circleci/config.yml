@@ -37,6 +37,9 @@ jobs:
     working_directory: ~/circulate
     docker:
       - image: google/cloud-sdk
+        environment: 
+          #pointing to dev ES
+          - ELASTICSEARCH_URL: "http://104.199.87.124:30092"
     steps:
       - checkout
       - run:
@@ -47,6 +50,11 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
             gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+      - run:
+          name: configure google cloud endpoints
+          command: |
+          cd app/static/docs/swagger 
+          gcloud service-management deploy swagger.yaml
       - run:
           name: Deploy Master to google
           command: |
