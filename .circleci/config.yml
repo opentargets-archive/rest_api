@@ -63,7 +63,7 @@ jobs:
             done 
             gcloud service-management deploy swagger.yaml
       - run:
-          name: Deploy Master to google
+          name: Deploy branch to google AppEngine
           command: |
             gcloud version
             gcloud app deploy --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
