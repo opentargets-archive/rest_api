@@ -238,11 +238,11 @@ def create_app(config_name):
 
     @app.route('/api-docs/%s'%str(api_version))
     def docs_current_version():
-      return redirect('/api/swagger/index.html')
+        return redirect('/api/swagger/index.html')
 
     @app.route('/api-docs')
     def docs():
-      return redirect('/api/swagger/index.html')
+        return redirect('/api/swagger/index.html')
 
     def serve_swagger():
         return app.send_static_file('docs/swagger/swagger.yaml')
