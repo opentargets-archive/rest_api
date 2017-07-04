@@ -34,3 +34,8 @@ env_variables:
     OPENTARGETS_DATA_VERSION: $OT_DATA_VERSION
     # GITHUB_AUTH_TOKEN: $GITHUB_TOKEN
 # [END env_variables]
+
+endpoints_api_service:
+  name: "open-targets-eu-dev.appspot.com"
+  config_id: "2017-07-04r0"
+  #TODO make sure this config_id updates for every deployment

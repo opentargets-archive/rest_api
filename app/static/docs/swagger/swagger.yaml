@@ -568,7 +568,7 @@ paths:
           description: Successful response
   /private/target/{target}:
     get:
-      operationId: getTargetById
+      operationId: getTargetByENSGID
       tags:
         - private
       description: |
@@ -584,6 +584,7 @@ paths:
           description: Successful response
   /private/target/expression:
     get:
+      operationId: getTargetExpressionByENSGID
       tags:
         - private
       description: |
@@ -598,6 +599,7 @@ paths:
         200:
           description: Successful response
     post:
+      operationId: postTargetExpressionByENSGID
       tags:
         - private
       description: |
@@ -616,6 +618,7 @@ paths:
           description: Successful response
   /public/search:
     get:
+      operationId: getSearch
       tags:
         - public
       description: |
@@ -648,6 +651,7 @@ paths:
           description: Successful response
   /private/quicksearch:
     get:
+      operationId: getQuickSearch
       tags:
         - private
       description: |
@@ -668,6 +672,7 @@ paths:
           description: Successful response
   /private/autocomplete:
     get:
+      operationId: getAutocomplete
       tags:
         - private
       description: |
@@ -688,6 +693,7 @@ paths:
           description: Successful response
   /public/auth/request_token:
     get:
+      operationId: getAuthToken
       tags:
         - public
         - auth
@@ -724,6 +730,7 @@ paths:
           description: Successful response
   /public/auth/validate_token:
     get:
+      operationId: ValidateToken
       tags:
         - public
         - utils
@@ -736,6 +743,7 @@ paths:
           description: Successful response
   /public/utils/ping:
     get:
+      operationId: getPing
       tags:
         - public
         - utils
@@ -746,6 +754,7 @@ paths:
           description: Successful response
   /public/utils/version:
     get:
+      operationId: getVersion
       tags:
         - public
         - utils
@@ -756,6 +765,7 @@ paths:
           description: Successful response
   /public/utils/stats:
     get:
+      operationId: getDataStats
       tags:
         - public
         - utils
