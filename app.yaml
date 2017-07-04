@@ -29,10 +29,11 @@ health_check:
 
 # [START env_variables]
 env_variables:
-    ELASTICSEARCH_URL:  ${ES_URL}
-    OPENTARGETS_API_CONFIG: $OT_API_CONFIG
-    OPENTARGETS_DATA_VERSION: $OT_DATA_VERSION
+    ELASTICSEARCH_URL: http://104.199.87.124:30092
+    OPENTARGETS_API_CONFIG: production
+    OPENTARGETS_DATA_VERSION: "17.06"
     # GITHUB_AUTH_TOKEN: $GITHUB_TOKEN
+    # TODO make sure secure tokens are passed by CircleCI by substituting them in at runtime
 # [END env_variables]
 
 endpoints_api_service:

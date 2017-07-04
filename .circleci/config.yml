@@ -37,11 +37,6 @@ jobs:
     working_directory: ~/circulate
     docker:
       - image: google/cloud-sdk
-        environment: 
-          #pointing to dev ES
-          - ES_URL: "http://104.199.87.124:30092"
-          - OT_DATA_VERSION: "17.06"
-          - OT_API_CONFIG: "production"
     steps:
       - checkout
       - run:
