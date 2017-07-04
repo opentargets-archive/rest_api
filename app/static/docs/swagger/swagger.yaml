@@ -1,6 +1,6 @@
 
 swagger: '2.0'
-
+host: "open-targets-eu-dev.appspot.com"
 info:
   version: 2.1.1
   title: The Open Targets Platform REST API
@@ -131,16 +131,16 @@ info:
     least a 24 hour ban.
 tags:
   - name: public
-    open: true
+    # open: true
     description: Publicly supported stable API.
   - name: private
     description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
-    open: false
+    # open: false
   - name: auth
     description: Authentication methods.
-    open: false
+    # open: false
   - name: utils
-    open: true
+    # open: true
     description: Utility methods.
 basePath: /api/latest
 consumes:
@@ -155,6 +155,7 @@ paths:
   # This is a path endpoint. Change it.
   /public/evidence:
     get:
+      operationId: getEvidenceById
       tags:
         - public
       description: |
@@ -190,6 +191,7 @@ paths:
           #       id:
           #         type: string
     post:
+      operationId: postEvidenceById
       tags:
         - public
       description: |
@@ -221,6 +223,7 @@ paths:
           #         type: string
   /public/evidence/filter:
     get:
+      operationId: getEvidenceFilter
       tags:
         - public
       description: |
@@ -311,6 +314,7 @@ paths:
         200:
           description: Successful response
     post:
+      operationId: postEvidenceFilter
       tags:
         - public
       description: |
@@ -342,6 +346,7 @@ paths:
           #         type: string
   /public/association:
     get:
+      operationId: getAssociationById
       tags:
         - public
       description: |
@@ -364,6 +369,7 @@ paths:
           description: Successful response
   /public/association/filter:
     get:
+      operationId: getAssociationFilter
       tags:
         - public
       description: |
@@ -498,6 +504,7 @@ paths:
           #       id:
           #         type: string
     post:
+      operationId: postAssociationFilter
       tags:
         - public
       description: |
@@ -529,6 +536,7 @@ paths:
           #         type: string
   /private/disease/{disease}:
     get:
+      operationId: getDiseaseById
       tags:
         - private
       description: |
@@ -544,6 +552,7 @@ paths:
           description: Successful response
   /private/eco/{ECO_ID}:
     get:
+      operationId: getECObyID
       tags:
         - private
       description: |
@@ -559,6 +568,7 @@ paths:
           description: Successful response
   /private/target/{target}:
     get:
+      operationId: getTargetById
       tags:
         - private
       description: |
