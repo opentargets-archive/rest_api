@@ -60,7 +60,7 @@ jobs:
             git diff-tree --no-commit-id --name-only -r HEAD 
             git diff-tree --no-commit-id --name-only -r HEAD | while read line; do
               if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
-                gcloud service-management deploy swagger.yaml
+                echo gcloud service-management deploy swagger.yaml
               fi
             done 
             
