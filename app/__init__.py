@@ -32,7 +32,6 @@ from mixpanel_async import AsyncBufferedConsumer
 # login_manager.login_view = 'auth.login'
 
 
-
 __author__ = 'andreap'
 
 
@@ -52,32 +51,25 @@ def log_exception_to_datadog(sender, exception, **extra):
 
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')
+    # This first loads the configuration from eg. config['development'] which corresponds to the DevelopmentConfig class in the config.py
     app.config.from_object(config[config_name])
+    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to. 
+    # For eg:
+    # $ export OPENTARGETS_API_LOCAL_SETTINGS=/path/to/settings.cfg
+    #
+    # where settings.cfg looks like:
+    #
+    # DEBUG = False
+    # SECRET_KEY = 'foo'
+    # 
     app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
+    
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
 
 
-    # log_level = logging.INFO
-    # if app.config['DEBUG']:
-    #     log_level = logging.DEBUG
-
-    # Flask has a default logger which works well and pushes to stderr
-    # if you want to add different handlers (to file, or logstash, or whatever)
-    # you can use code similar to the one below and set the error level accordingly.
-
-    # logHandler = logging.StreamHandler()
-    # formatter = jsonlogger.JsonFormatter()
-    # logHandler.setFormatter(formatter)
-    # loghandler.setLevel(logging.INFO)
-    # app.logger.addHandler(logHandler)
-
-    # or for LOGSTASH
-    # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
-
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
-    print('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
