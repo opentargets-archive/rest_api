@@ -46,16 +46,20 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud config set project ${GOOGLE_PROJECT_ID}
       - run:
           name: configure google cloud endpoints
           command: |
             cd app/static/docs/swagger 
-            echo ">>>>checking if swagger.yaml is one of the files changed in this commit"
+            echo ">> Checking if swagger.yaml is one of the files changed in this commit"
             git diff-tree --no-commit-id --name-only -r HEAD 
             git diff-tree --no-commit-id --name-only -r HEAD | while read line; do
               if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
+                echo ">> swagger.yaml changed. redeploying endpoints configuration..."
                 echo gcloud service-management deploy swagger.yaml
+              else
+                echo ">> swagger.yaml not changed in the latest commit."
+                echo ">> Keeping the same Endpoints configuration"
               fi
             done 
             
