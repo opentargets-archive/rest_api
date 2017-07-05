@@ -10,7 +10,6 @@ from functools import partial
 
 import logging
 from logging import getLogger
-from logging.handlers import SysLogHandler
 from pythonjsonlogger import jsonlogger
 
 import os
@@ -168,7 +167,6 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        # this should work on debian only
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         jsonformatter = jsonlogger.JsonFormatter(
