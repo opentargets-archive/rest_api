@@ -169,18 +169,18 @@ class ProductionConfig(Config):
     @classmethod
     def init_app(cls, app):
         # this should work on debian only
-        syslog_handler = SysLogHandler(address='/dev/log')
-        syslog_handler.setLevel(logging.INFO)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
         jsonformatter = jsonlogger.JsonFormatter(
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-        syslog_handler.setFormatter(jsonformatter)
+        console_handler.setFormatter(jsonformatter)
 
         loggers = [app.logger, 
                    getLogger('elasticsearch'),
                    getLogger('redislite')]
 
         for logger in loggers:
-            logger.addHandler(syslog_handler)
+            logger.addHandler(console_handler)
 
         Config.init_app(app)
 
