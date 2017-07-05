@@ -2,6 +2,7 @@ coverage
 aniso8601==0.92
 dicttoxml==1.6.0
 elasticsearch==1.6.0
+envparse
 Flask==0.10.1
 Flask-Cors==1.10.3
 Flask-Cache==0.13.1
@@ -11,6 +12,7 @@ Flask-Compress==1.2.1
 Flask-Script==2.0.5
 Flask-SQLAlchemy==2.0
 Flask-SSLify==0.1.4
+healthcheck
 itsdangerous==0.24
 Jinja2==2.7.3
 logstash==0.1.dev0
@@ -19,7 +21,6 @@ meld3==1.0.0
 Naked==0.1.30
 nose
 pytest
-healthcheck
 pycparser==2.10
 pycrypto==2.6.1
 python-json-logger==0.1.2
