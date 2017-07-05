@@ -6,7 +6,8 @@ import sys
 from gevent.wsgi import WSGIServer
 from werkzeug.debug import DebuggedApplication
 from werkzeug.serving import run_with_reloader
-
+from healthcheck import HealthCheck, EnvironmentDump
+from elasticsearch import Elasticsearch
 
 __author__ = 'andreap'
 
@@ -29,6 +30,20 @@ from flask.ext.script import Manager, Shell
 # from flask.ext.migrate import Migrate, MigrateCommand
 
 app = create_app(os.getenv('OPENTARGETS_API_CONFIG') or 'default')
+
+# add healthcheck and endpoint to read config
+health = HealthCheck(app, "/_ah/health")
+
+def es_available():
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
+    return es.ping(), "elasticsearch is up"
+
+health.add_check(es_available)
+
+envdump = EnvironmentDump(app, "/environment", 
+                          include_python=False, 
+                          include_os=False,
+                          include_process=False)
 manager = Manager(app)
 # migrate = Migrate(app, db)
 
