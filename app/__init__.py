@@ -157,7 +157,6 @@ def create_app(config_name):
         rate_limit_file = '../'+rate_limit_file
     csvfile = None
     if Config.GITHUB_AUTH_TOKEN:
-        print "downloading rate limit file"
         r = requests.get('https://api.github.com/repos/opentargets/rest_api_auth/contents/rate_limit.csv',
                          headers = {'Authorization': 'token %s'%Config.GITHUB_AUTH_TOKEN,
                                     'Accept': 'application/vnd.github.v3.raw'})
@@ -172,7 +171,9 @@ def create_app(config_name):
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
     else:
         reader = csv.DictReader(csvfile)
+        print "reading rate limit file"
         for row in reader:
+            print row[0]
             auth_key = AuthKey(**row)
             app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
         try:
