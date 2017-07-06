@@ -33,7 +33,7 @@ health = HealthCheck(app, "/_ah/health")
 
 def es_available():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-    return es.ping(), "elasticsearch is up at %s" % app.config['ELASTICSEARCH_URL']
+    return es.ping(), "elasticsearch is up"
 
 health.add_check(es_available)
 
