@@ -71,6 +71,12 @@ jobs:
           command: |
             gcloud version
             gcloud app deploy app-subst.yaml --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
+      - run:
+          name: Trigger runscope dev-k8s tests on deployed branch
+          command: |
+          pip install -r .circleci/runscope/requirements.txt
+          python app.py https://api.runscope.com/radar/bucket/e94796e3-d103-4973-badf-6cac81e43255/trigger?host=http://${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+
 
 
 workflows:
