@@ -67,9 +67,7 @@ jobs:
           command: |
             # see http://steveadams.io/2016/08/18/Environment-Variable-Templates.html
             # for the source of this hack
-            eval "cat <<EOF
-            $(<app.yaml)
-            EOF" 2> /dev/null > app-subst.yaml
+            bash .circleci/render.sh app.yml > app-subst.yaml
       - run:
           name: Deploy branch to google AppEngine
           command: |
