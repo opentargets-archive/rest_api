@@ -239,15 +239,15 @@ def create_app(config_name):
     def serve_swagger():
         return app.send_static_file('docs/swagger/swagger.yaml')
 
-    @app.route('/api/docs/swagger.yaml')
+    @app.route('/api/docs')
     def send_swagger():
         return serve_swagger()
 
-    @app.route('/api/latest/docs/swagger.yaml')
+    @app.route('/api/latest/docs')
     def send_swagger_latest():
         return serve_swagger()
 
-    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
+    @app.route('/api/'+str(api_version)+'/docs')
     def send_swagger_current_cersion():
         return serve_swagger()
 
