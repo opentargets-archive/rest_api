@@ -65,7 +65,7 @@ jobs:
       - run:
           name: Substitute ENV vars for deploy
           command: |
-            bash .circleci/render.sh app.yml > app-subst.yaml
+            bash .circleci/render.sh app.yaml > app-subst.yaml
       - run:
           name: Deploy branch to google AppEngine
           command: |
