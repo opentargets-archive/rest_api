@@ -65,8 +65,6 @@ jobs:
       - run:
           name: Substitute ENV vars for deploy
           command: |
-            # see http://steveadams.io/2016/08/18/Environment-Variable-Templates.html
-            # for the source of this hack
             bash .circleci/render.sh app.yml > app-subst.yaml
       - run:
           name: Deploy branch to google AppEngine
