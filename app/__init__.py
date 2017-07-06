@@ -157,13 +157,14 @@ def create_app(config_name):
         rate_limit_file = '../'+rate_limit_file
     csvfile = None
     if Config.GITHUB_AUTH_TOKEN:
+        print "downloading rate limit file"
         r = requests.get('https://api.github.com/repos/opentargets/rest_api_auth/contents/rate_limit.csv',
                          headers = {'Authorization': 'token %s'%Config.GITHUB_AUTH_TOKEN,
                                     'Accept': 'application/vnd.github.v3.raw'})
         if r.ok:
             csvfile = r.text.split('\n')
         else:
-            app.logger.error('Cannot retrieve auth file form remote, SKIPPED!')
+            app.logger.error('Cannot retrieve rate limit file from remote, SKIPPED!')
     elif os.path.exists(rate_limit_file):
         csvfile = open(rate_limit_file)
 
