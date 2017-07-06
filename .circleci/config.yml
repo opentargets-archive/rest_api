@@ -65,12 +65,12 @@ jobs:
       - run:
           name: Substitute ENV vars for deploy
           command: |
-            bash .circleci/render.sh app.yaml > ~/circulate/app-subst.yaml
+            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine
           command: |
             gcloud version
-            gcloud app deploy app-subst.yaml --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
+            gcloud app deploy --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
       - run:
           name: Trigger runscope dev-k8s tests on deployed branch
           command: |
