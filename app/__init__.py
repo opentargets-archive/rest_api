@@ -162,18 +162,18 @@ def create_app(config_name):
                                     'Accept': 'application/vnd.github.v3.raw'})
         if r.ok:
             csvfile = r.text.split('\n')
+            app.logger.info('Retrieved rate limit file from github remote')
         else:
-            app.logger.error('Cannot retrieve rate limit file from remote, SKIPPED!')
+            app.logger.warning('Cannot retrieve rate limit file from remote, SKIPPED!')
     elif os.path.exists(rate_limit_file):
         csvfile = open(rate_limit_file)
+        app.logger.info('Using dummy rate limit file')
 
     if csvfile is None:
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
     else:
         reader = csv.DictReader(csvfile)
-        print "reading rate limit file"
         for row in reader:
-            print row[0]
             auth_key = AuthKey(**row)
             app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
         try:
