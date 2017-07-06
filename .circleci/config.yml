@@ -62,12 +62,17 @@ jobs:
                 echo ">> Keeping the same Endpoints configuration"
               fi
             done 
-            
+      - run:
+          name: Substitute ENV vars for deploy
+          command: |
+            eval "cat <<EOF
+            $(<app.yaml)
+            EOF" 2> /dev/null > app-subst.yaml
       - run:
           name: Deploy branch to google AppEngine
           command: |
             gcloud version
-            gcloud app deploy --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
+            gcloud app deploy app-subst.yml --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
 
 
 workflows:
