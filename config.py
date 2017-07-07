@@ -1,4 +1,5 @@
 import random
+import sys
 import string
 import ConfigParser
 import ast
@@ -167,7 +168,7 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        console_handler = logging.StreamHandler()
+        console_handler = logging.StreamHandler(stream=sys.stdout)
         console_handler.setLevel(logging.INFO)
         jsonformatter = jsonlogger.JsonFormatter(
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
