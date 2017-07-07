@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import requests
-from flask import Flask, redirect, Blueprint, send_from_directory, g, request
+from flask import Flask, redirect, Blueprint, send_file, g, request
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -226,30 +226,41 @@ def create_app(config_name):
     app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
     app.register_blueprint(current_minor_version_blueprint, url_prefix='/api/'+str(api_version_minor))
 
+    def serve_docs():
+        return app.send_static_file('docs/api-description.md')
+
     @app.route('/api-docs/%s' % str(api_version_minor))
     def docs_current_minor_version():
-        return redirect('/api/swagger/index.html')
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
 
     @app.route('/api-docs/%s'%str(api_version))
     def docs_current_version():
-        return redirect('/api/swagger/index.html')
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
 
     @app.route('/api-docs')
     def docs():
-        return redirect('/api/swagger/index.html')
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
+
+    @app.route('/api/docs/api-description.md')
+    def docs_description():
+        return serve_docs()
 
     def serve_swagger():
+        # return send_file('static/docs/swagger/swagger.yaml', as_attachment=False)
         return app.send_static_file('docs/swagger/swagger.yaml')
 
-    @app.route('/api/docs')
+    @app.route('/api/docs/swagger.yaml')
     def send_swagger():
         return serve_swagger()
 
-    @app.route('/api/latest/docs')
+    @app.route('/api/latest/docs/swagger.yaml')
     def send_swagger_latest():
         return serve_swagger()
 
-    @app.route('/api/'+str(api_version)+'/docs')
+    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
     def send_swagger_current_cersion():
         return serve_swagger()
 
