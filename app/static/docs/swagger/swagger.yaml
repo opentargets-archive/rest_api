@@ -37,7 +37,7 @@ produces:
   - text/csv
 # Describe your paths here
 paths:
-  /docs:
+  /swagger:
     get:
       operationId: getSwagger
       tags:
@@ -48,6 +48,17 @@ paths:
       responses:
         200:
           description: "Swagger.yaml file"
+  /docs:
+    get:
+      operationId: getApiDocs
+      tags:
+        - private
+      description: Get api-description.md for the API
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Markdown API documentation file"        
   # This is a path endpoint. Change it.
   /public/evidence:
     get:
