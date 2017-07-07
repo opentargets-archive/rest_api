@@ -75,11 +75,7 @@ jobs:
           name: Trigger runscope dev-k8s tests on deployed branch
           command: |
             pip install -r .circleci/runscope/requirements.txt
-            python .circleci/runscope/app.py https://api.runscope.com/radar/d9a4696f-cb8b-43a8-aedf-06fc39dfe510/trigger?runscope_environment=ca41ac24-d07d-4b10-82ae-6a7d0bb58b9a&host=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-
-            # full bucket
-            # python .circleci/runscope/app.py https://api.runscope.com/radar/bucket/e94796e3-d103-4973-badf-6cac81e43255/trigger?host=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-
+            python .circleci/runscope/app.py https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
 
 
 workflows:
