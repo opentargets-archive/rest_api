@@ -42,7 +42,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 
 class Config:
     ## [key configurations]
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://104.199.87.124:30092')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
 
     ## logic to point to custom indices in ES
@@ -190,5 +190,6 @@ class ProductionConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
-    'production': ProductionConfig
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
 }

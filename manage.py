@@ -26,7 +26,7 @@ from flask.ext.script import Manager, Shell
 
 # look for a .env file, where we might have specified OT_API_CONFIG
 env.read_envfile()
-app = create_app(env('OPENTARGETS_API_CONFIG', default='development'))
+app = create_app(env('OPENTARGETS_API_CONFIG', default='default'))
 
 # add healthcheck and endpoint to read config
 health = HealthCheck(app, "/_ah/health")
