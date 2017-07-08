@@ -1,11 +1,17 @@
 import random
+import sys
 import string
 import ConfigParser
 import ast
 from collections import defaultdict
+from envparse import env
 # from app.common.auth import AuthKey
 from app.common.scoring_conf import ScoringMethods
 from functools import partial
+
+import logging
+from logging import getLogger
+from pythonjsonlogger import jsonlogger
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -34,8 +40,12 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 
     return idx_name + suffix
 
-
 class Config:
+    ## [key configurations]
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
+
+    ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'
     ES_CUSTOM_IDXS = ast.literal_eval(os.getenv('OPENTARGETS_ES_CUSTOM_IDXS',
                                                 'False'))
@@ -43,14 +53,11 @@ class Config:
     ES_CUSTOM_IDXS_INI = init_from_file(ES_CUSTOM_IDXS_FILENAME) \
         if ES_CUSTOM_IDXS else None
 
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
-
-    # easier to use with less parameters
+    ## indices to point to in ES
     ES_PREFIX = partial(prefix_or_custom_idx,
                         prefix=DATA_VERSION,
                         ini=ES_CUSTOM_IDXS_INI)
 
-    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://104.199.87.124:30092')
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = ES_PREFIX(name='efo-data')
@@ -70,6 +77,7 @@ class Config:
     ELASTICSEARCH_DATA_RELATION_INDEX_NAME = ES_PREFIX(name='relation-data')
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
+    
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
@@ -124,15 +132,25 @@ class Config:
 
 
 class DevelopmentConfig(Config):
-    # currently these also corresponds to the defaults i.e. OPENTARGETS_API_CONFIG=`default`
+    # default settings
     DEBUG = True
-    # ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200/')
-    LOGSTASH_HOST = '127.0.0.1'
-    LOGSTASH_PORT = 5000
     APP_CACHE_EXPIRY_TIMEOUT = 60
 
     @classmethod
     def init_app(cls, app):
+        file_handler = logging.FileHandler('output.log')
+        file_handler.setLevel(logging.DEBUG)
+        jsonformatter = jsonlogger.JsonFormatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        file_handler.setFormatter(jsonformatter)
+
+        loggers = [app.logger, 
+                   getLogger('elasticsearch'),
+                   getLogger('redislite')]
+
+        for logger in loggers:
+            logger.addHandler(file_handler)
+        
         Config.init_app(app)
 
 
@@ -150,9 +168,21 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
+        console_handler = logging.StreamHandler(stream=sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        jsonformatter = jsonlogger.JsonFormatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        console_handler.setFormatter(jsonformatter)
+
+        loggers = [app.logger, 
+                   getLogger('elasticsearch'),
+                   getLogger('redislite')]
+
+        for logger in loggers:
+            logger.addHandler(console_handler)
+            logger.setLevel(logging.INFO)
+
         Config.init_app(app)
-
-
 
 
 

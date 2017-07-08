@@ -6,7 +6,9 @@ import sys
 from gevent.wsgi import WSGIServer
 from werkzeug.debug import DebuggedApplication
 from werkzeug.serving import run_with_reloader
-
+from healthcheck import HealthCheck, EnvironmentDump
+from elasticsearch import Elasticsearch
+from envparse import env
 
 __author__ = 'andreap'
 
@@ -16,28 +18,30 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True, include='app/*')
     COV.start()
 
-if os.path.exists('.env'):
-    print('Importing environment from .env...')
-    for line in open('.env'):
-        var = line.strip().split('=')
-        if len(var) == 2:
-            os.environ[var[0]] = var[1]
 
 from app import create_app
 # from app.models import User, Follow, Role, Permission, Post, Comment
 from flask.ext.script import Manager, Shell
 # from flask.ext.migrate import Migrate, MigrateCommand
 
-app = create_app(os.getenv('OPENTARGETS_API_CONFIG') or 'default')
-manager = Manager(app)
-# migrate = Migrate(app, db)
+# look for a .env file, where we might have specified OT_API_CONFIG
+env.read_envfile()
+app = create_app(env('OPENTARGETS_API_CONFIG', default='default'))
 
-#
-# def make_shell_context():
-#     return dict(app=app, db=db, User=User, Follow=Follow, Role=Role,
-#                 Permission=Permission, Post=Post, Comment=Comment)
-# manager.add_command("shell", Shell(make_context=make_shell_context))
-# manager.add_command('db', MigrateCommand)
+# add healthcheck and endpoint to read config
+health = HealthCheck(app, "/_ah/health")
+
+def es_available():
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
+    return es.ping(), "elasticsearch is up"
+
+health.add_check(es_available)
+
+envdump = EnvironmentDump(app, "/environment", 
+                          include_python=False, 
+                          include_os=False,
+                          include_process=False)
+manager = Manager(app)
 
 
 @manager.command
@@ -96,14 +100,6 @@ def runserver(host="127.0.0.1", port=8008):
     else:
         serve()
 
-
-#TODO: consolidate logs of all libraries involved
-# from logging import getLogger
-# loggers = [app.logger, getLogger('sqlalchemy'),
-#            getLogger('otherlibrary')]
-# for logger in loggers:
-#     logger.addHandler(mail_handler)
-#     logger.addHandler(file_handler)
 
 if __name__ == '__main__':
     manager.run()
