@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import requests
-from flask import Flask, redirect, Blueprint, send_from_directory, g, request
+from flask import Flask, redirect, Blueprint, send_file, g, request
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -32,7 +32,6 @@ from mixpanel_async import AsyncBufferedConsumer
 # login_manager.login_view = 'auth.login'
 
 
-
 __author__ = 'andreap'
 
 
@@ -52,32 +51,25 @@ def log_exception_to_datadog(sender, exception, **extra):
 
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')
+    # This first loads the configuration from eg. config['development'] which corresponds to the DevelopmentConfig class in the config.py
     app.config.from_object(config[config_name])
+    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to. 
+    # For eg:
+    # $ export OPENTARGETS_API_LOCAL_SETTINGS=/path/to/settings.cfg
+    #
+    # where settings.cfg looks like:
+    #
+    # DEBUG = False
+    # SECRET_KEY = 'foo'
+    # 
     app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
+    
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
 
 
-    # log_level = logging.INFO
-    # if app.config['DEBUG']:
-    #     log_level = logging.DEBUG
-
-    # Flask has a default logger which works well and pushes to stderr
-    # if you want to add different handlers (to file, or logstash, or whatever)
-    # you can use code similar to the one below and set the error level accordingly.
-
-    # logHandler = logging.StreamHandler()
-    # formatter = jsonlogger.JsonFormatter()
-    # logHandler.setFormatter(formatter)
-    # loghandler.setLevel(logging.INFO)
-    # app.logger.addHandler(logHandler)
-
-    # or for LOGSTASH
-    # app.logger.addHandler(logstash.LogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], version=1))
-
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
-    print('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
 
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
@@ -170,10 +162,12 @@ def create_app(config_name):
                                     'Accept': 'application/vnd.github.v3.raw'})
         if r.ok:
             csvfile = r.text.split('\n')
+            app.logger.info('Retrieved rate limit file from github remote')
         else:
-            app.logger.error('Cannot retrieve auth file form remote, SKIPPED! http status: %s '%str(r.status))
+            app.logger.warning('Cannot retrieve rate limit file from remote, SKIPPED!')
     elif os.path.exists(rate_limit_file):
         csvfile = open(rate_limit_file)
+        app.logger.info('Using dummy rate limit file')
 
     if csvfile is None:
         app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
@@ -232,32 +226,45 @@ def create_app(config_name):
     app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
     app.register_blueprint(current_minor_version_blueprint, url_prefix='/api/'+str(api_version_minor))
 
-    @app.route('/api-docs/%s' % str(api_version_minor))
-    def docs_current_minor_version():
-        return redirect('/api/swagger/index.html')
-
-    @app.route('/api-docs/%s'%str(api_version))
-    def docs_current_version():
-      return redirect('/api/swagger/index.html')
-
-    @app.route('/api-docs')
-    def docs():
-      return redirect('/api/swagger/index.html')
+    def serve_docs():
+        return app.send_static_file('docs/api-description.md')
 
     def serve_swagger():
         return app.send_static_file('docs/swagger/swagger.yaml')
 
-    @app.route('/api/docs/swagger.yaml')
-    def send_swagger():
-        return serve_swagger()
-
-    @app.route('/api/latest/docs/swagger.yaml')
+    @app.route('/api/latest/swagger')
     def send_swagger_latest():
         return serve_swagger()
 
-    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
-    def send_swagger_current_cersion():
-        return serve_swagger()
+    @app.route('/api/latest/docs')
+    def send_docs_latest():
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
+
+
+
+    # @app.route('/api-docs/%s' % str(api_version_minor))
+    # def docs_current_minor_version():
+    #     # return redirect('/api/swagger/index.html')
+    #     return serve_docs()
+
+    # @app.route('/api-docs/%s'%str(api_version))
+    # def docs_current_version():
+    #     # return redirect('/api/swagger/index.html')
+    #     return serve_docs()
+
+    # @app.route('/api/docs/api-description.md')
+    # def docs_description():
+    #     return serve_docs()
+
+    # @app.route('/api/docs/swagger.yaml')
+    # def send_swagger():
+    #     return serve_swagger()
+
+    # @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
+    # def send_swagger_current_cersion():
+    #     return serve_swagger()
+
 
     @app.before_request
     def before_request():

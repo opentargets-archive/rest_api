@@ -6,6 +6,12 @@ import time
 from tests import GenericTestCase
 
 
+import pytest
+pytestmark = pytest.mark.skipif(
+    not pytest.config.getoption("--es"),
+    reason="needs ES; use --es option to run"
+)
+
 class AssociationTestCase(GenericTestCase):
 
     def testAssociationTargetsEnrichmentPost(self):
