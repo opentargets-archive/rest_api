@@ -1,0 +1,91 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/circulate
+    docker:
+      # - image: elasticsearch
+      - image: circleci/python:2.7
+        # environment:
+          # FLASK_CONFIG: testing
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-a-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install requirements.txt
+          command: |
+            pip install virtualenv
+            virtualenv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+      - save_cache:
+          key: deps-a-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "venv"
+      - run:
+          name: Run tests that do not depend on ES
+          command: |
+            . venv/bin/activate
+            python -m pytest
+      # - store_artifacts:
+          # path: test-reports/
+          # destination: tr1
+      # - store_test_results:
+          # path: test-reports/      
+
+  deploy:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+            gcloud config set project ${GOOGLE_PROJECT_ID}
+      - run:
+          name: configure google cloud endpoints
+          command: |
+            cd app/static/docs/swagger 
+            echo ">> Checking if swagger.yaml is one of the files changed in this commit"
+            git diff-tree --no-commit-id --name-only -r HEAD 
+            git diff-tree --no-commit-id --name-only -r HEAD | while read line; do
+              if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
+                echo ">> swagger.yaml changed. redeploying endpoints configuration..."
+                echo gcloud service-management deploy swagger.yaml
+              else
+                echo ">> swagger.yaml not changed in the latest commit."
+                echo ">> Keeping the same Endpoints configuration"
+              fi
+            done 
+      - run:
+          name: Substitute ENV vars for deploy
+          command: |
+            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
+      - run:
+          name: Deploy branch to google AppEngine
+          command: |
+            gcloud version
+            gcloud app deploy --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
+      - run:
+          name: Trigger runscope dev-k8s tests on deployed branch
+          command: |
+            pip install -r .circleci/runscope/requirements.txt
+            python .circleci/runscope/app.py https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+
+
+workflows:
+  version: 2
+  build-test-and-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build	
+          # filters:
+          #   branches:
+          #     only: master
