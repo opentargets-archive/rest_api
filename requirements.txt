@@ -46,3 +46,4 @@ mixpanel
 mixpanel-py-async
 jmespath==0.9.1
 scipy==0.18.0
+addict
