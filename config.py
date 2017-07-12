@@ -94,9 +94,8 @@ class Config:
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
     DATATYPES['known_drug'] = ['chembl',]
-    DATATYPES['literature'] = ['europepmc']
-    DATATYPES['literature_nferx'] = ['nferx']
-    DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature', 'literature_nferx']
+    DATATYPES['literature'] = ['europepmc','nferx']
+    DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature']
     # DATATYPES['protein_expression'] = ['hpa']
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
