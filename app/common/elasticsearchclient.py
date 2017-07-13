@@ -109,8 +109,6 @@ class InternalCache(object):
             return self._decode(value)
 
     def set(self, key, value, ttl=None):
-        k = self._get_namespaced_key(key)
-        v = self._encode(value)
         return self.r_server.setex(self._get_namespaced_key(key),
                                    self._encode(value),
                                    ttl or self.default_ttl)
@@ -2717,7 +2715,6 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                         "field":
                         "private.facets.expression_tissues.rna." +
                         str(ex_level) + ".level",
-                        'size': size,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2758,7 +2755,6 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             params.rna_expression_level, 11, 1, 11)
 
         tissues = params.rna_expression_tissue
-        print tissues
         t2tl = ex_level_tissues_to_terms_list
 
         if range_ok and tissues:
@@ -2778,7 +2774,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
     @staticmethod
     def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
                                                   ex_level):
-        return {
+        agg_filter = {
             "filter": {
                 "bool": {
                     "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
@@ -2789,8 +2785,11 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.expression_tissues.rna." +
-                        str(ex_level) + ".id",
-                        'size': size,
+                        str(ex_level) + ".label",
+                        "order": {
+                            "unique_target_count": "desc"
+                        },
+                        # 'size': size,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2809,6 +2808,9 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 }
             }
         } if ex_level > 0 else {}
+
+        # print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        return agg_filter
 
 
 class AggregationUnitPROExLevel(AggregationUnit):
@@ -2853,7 +2855,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     @staticmethod
     def _get_aggregation_on_pro_expression_level(filters, filters_func, size,
                                                  ex_level):
-        return {
+        agg_filter = {
             "filter": {
                 "bool": {
                     "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_LEVEL,
@@ -2866,7 +2868,10 @@ class AggregationUnitPROExLevel(AggregationUnit):
                         "field":
                         "private.facets.expression_tissues.protein." +
                         str(ex_level) + ".level",
-                        'size': size,
+                        "order": {
+                            "unique_target_count": "desc"
+                        },
+                        # 'size': size,
                     },
                     "aggs": {
                         "unique_target_count": {
@@ -2885,6 +2890,8 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 }
             }
         } if ex_level > 0 else {}
+        # print(json.dumps(agg_filter, indent=4, sort_keys=True))
+        return agg_filter
 
 
 class AggregationUnitPROExTissue(AggregationUnit):
@@ -2907,7 +2914,6 @@ class AggregationUnitPROExTissue(AggregationUnit):
             params.protein_expression_level, 4, 1, 4)
 
         tissues = params.protein_expression_tissue
-        print tissues
         t2tl = ex_level_tissues_to_terms_list
 
         if range_ok and tissues:
@@ -2938,7 +2944,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.expression_tissues.protein." +
-                        str(ex_level) + ".id",
+                        str(ex_level) + ".label",
                         'size': size,
                     },
                     "aggs": {
