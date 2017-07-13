@@ -295,7 +295,7 @@ class esQuery():
             # The total number of targets with associations
             start_time = time.time()
             q = addict.Dict()
-            q.query.bool.filter.range['association_counts.total'].tge = 1
+            q.query.bool.filter.range['association_counts.total'].gte = 1
             all_targets = self._cached_search(index=self._index_search,
                                               doc_type=self._docname_search_target,
                                               body=q.to_dict(),
@@ -643,7 +643,7 @@ class esQuery():
 
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
-                                  body={"filter": {
+                                  body={"query": {
                                       "ids": {"values": evidenceid},
                                   },
                                       "size": len(evidenceid),
@@ -656,7 +656,7 @@ class esQuery():
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
                                   doc_type=self._docname_eco,
-                                  body={'filter': {
+                                  body={'query': {
                                       "ids": {
                                           "type": "eco",
                                           "values": [code]
@@ -775,7 +775,7 @@ class esQuery():
 
         #TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
-                                  body={"filter": {
+                                  body={"query": {
                                             "ids": {"values": associationid},
                                             },
                                         "size": len(associationid),
@@ -910,7 +910,7 @@ class esQuery():
                         therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
                 therapeutic_areas = list(therapeutic_areas)
                 ta_data = self._cached_search(index=self._index_association,
-                                              body={"filter": {
+                                              body={"query": {
                                                         "ids": {"values": therapeutic_areas},
                                                     },
                                                     "size": 1000,
@@ -1124,7 +1124,7 @@ class esQuery():
         mm1.multi_match.type = 'best_fields'
 
         q = addict.Dict()
-        q.query.bool.should = [mm1]
+        q.bool.should = [mm1]
 
         return q.to_dict()
 
@@ -1156,9 +1156,9 @@ class esQuery():
         mm2.multi_match.type = 'best_fields'
 
         q = addict.Dict()
-        q.query.function_score.score_mode = 'multiply'
-        q.query.function_score.query.bool.should = [mm1, mm2]
-        q.query.function_score.query.bool.filter = {
+        q.function_score.score_mode = 'multiply'
+        q.function_score.query.bool.should = [mm1, mm2]
+        q.function_score.query.bool.filter = {
             # "not":{ "term": { "biotype": 'processed_pseudogene' }},
             # "not":{ "term": { "biotype": 'antisense' }},
             # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
@@ -1178,7 +1178,7 @@ class esQuery():
         f1.field_value_factor.missing = 1
         # f1.field_value_factor.weight = 0.01
 
-        q.query.function_score.functions = [f1]
+        q.function_score.functions = [f1]
 
                 # "path_score": {
                 #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
@@ -1324,17 +1324,14 @@ class esQuery():
             if params.fields:
                 source_filter["includes"] = params.fields
 
-            res = self._cached_search(index=self._index_expression,
-                                      body={
-                                          'filter': {
-                                              "ids": {
-                                                  "values": genes
-                                              }
-                                          },
-                                          # 'size': params.size,
-                                          # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
+            q = addict.Dict()
+            q.query.ids['values'] = genes
+#             q.query.constant_score.filter.bool.should.terms.gene = genes
+#             q.size = params.size
+#             q._source = OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
-                                      }
+            res = self._cached_search(index=self._index_expression,
+                                      body=q.to_dict()
                                       )
             data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
             return SimpleResult(res, params, data)

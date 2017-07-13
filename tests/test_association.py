@@ -134,7 +134,7 @@ class AssociationTestCase(GenericTestCase):
                                       data={'rna_expression_level': 3,
                                             'rna_expression_tissue': tissue_id,
                                             'no_cache': True,
-                                            'facets': 'rna_expression_tissue',
+                                            'facets': 'true',
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -145,13 +145,13 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
 
-        rna_expression_tissue_level_3 = json_response['facets']['rna_expression_tissue']
+        rna_expression_tissue_level_3 = len(json_response['facets']['rna_expression_level']['buckets'])
 
         response = self._make_request('/api/latest/public/association/filter',
-                                      data={'rna_expression_level': 3,
+                                      data={'rna_expression_level': 1,
                                             'rna_expression_tissue': tissue_id,
                                             'no_cache': True,
-                                            'facets': 'rna_expression_tissue',
+                                            'facets': 'true',
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -161,9 +161,9 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
 
-        rna_expression_tissue_level_1 = json_response['facets']['rna_expression_tissue']
+        rna_expression_tissue_level_1 = len(json_response['facets']['rna_expression_level']['buckets'])
 
-        self.assertGreater(rna_expression_tissue_level_1,
+        self.assertGreaterEqual(rna_expression_tissue_level_1,
                            rna_expression_tissue_level_3)
 
     def testAssociationDefaultDiseaseFacetSize(self):
