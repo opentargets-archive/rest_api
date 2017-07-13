@@ -134,12 +134,14 @@ class AssociationTestCase(GenericTestCase):
                                       data={'rna_expression_level': 3,
                                             'rna_expression_tissue': tissue_id,
                                             'no_cache': True,
+                                            'facets': 'rna_expression_tissue',
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertIsNotNone(json_response['data'])
-        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        print json_response
+        self.assertTrue('rna_expression_tissue' in json_response['facets'])
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
 
@@ -149,12 +151,13 @@ class AssociationTestCase(GenericTestCase):
                                       data={'rna_expression_level': 3,
                                             'rna_expression_tissue': tissue_id,
                                             'no_cache': True,
+                                            'facets': 'rna_expression_tissue',
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertIsNotNone(json_response['data'])
-        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
+        self.assertTrue('rna_expression_tissue' in json_response['facets'])
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
 
@@ -166,7 +169,10 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',
-                                      data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
+                                      data={'target':target,
+                                            'facets':"disease",
+                                            'no_cache':True,
+                                            'size':0},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
