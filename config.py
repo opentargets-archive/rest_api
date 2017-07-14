@@ -43,7 +43,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 class Config:
     ## [key configurations]
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.04')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', 'mkes5')
 
     ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'
@@ -77,7 +77,7 @@ class Config:
     ELASTICSEARCH_DATA_RELATION_INDEX_NAME = ES_PREFIX(name='relation-data')
     ELASTICSEARCH_DATA_RELATION_DOC_NAME = 'relation'
     ELASTICSEARCH_LOG_EVENT_INDEX_NAME = '!eventlog'
-    
+
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
@@ -144,13 +144,13 @@ class DevelopmentConfig(Config):
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         file_handler.setFormatter(jsonformatter)
 
-        loggers = [app.logger, 
+        loggers = [app.logger,
                    getLogger('elasticsearch'),
                    getLogger('redislite')]
 
         for logger in loggers:
             logger.addHandler(file_handler)
-        
+
         Config.init_app(app)
 
 
@@ -174,7 +174,7 @@ class ProductionConfig(Config):
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         console_handler.setFormatter(jsonformatter)
 
-        loggers = [app.logger, 
+        loggers = [app.logger,
                    getLogger('elasticsearch'),
                    getLogger('redislite')]
 
