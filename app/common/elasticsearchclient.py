@@ -2581,20 +2581,20 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                         str(ex_level) + ".level",
                         "order": {
                             "unique_target_count": "desc"
-                        },
+                        }
                     },
                     "aggs": {
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
                                 "precision_threshold": 1000
-                            },
+                            }
                         },
                         "unique_disease_count": {
                             "cardinality": {
                                 "field": "disease.id",
                                 "precision_threshold": 1000
-                            },
+                            }
                         }
                     }
                 }
@@ -2652,33 +2652,20 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.expression_tissues.rna." +
-                        str(ex_level) + ".id.keyword",
-                        "order": {
-                            "unique_target_count": "desc"
-                        },
-                        # 'size': size,
-                    },
-                    "aggs": {
-                        "label": {
-                            "terms": {
-                                "field": "private.facets.expression_tissues.rna." +
-                        str(ex_level) + ".label.keyword",
-                                'size': 1,
-                            },
-                        },
+                        str(ex_level) + ".id.keyword"
                     },
                     "aggs": {
                         "unique_target_count": {
                             "cardinality": {
                                 "field": "target.id",
                                 "precision_threshold": 1000
-                            },
+                            }
                         },
                         "unique_disease_count": {
                             "cardinality": {
                                 "field": "disease.id",
                                 "precision_threshold": 1000
-                            },
+                            }
                         }
                     }
                 }
@@ -2820,7 +2807,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 "data": {
                     "terms": {
                         "field": "private.facets.expression_tissues.protein." +
-                        str(ex_level) + ".id",
+                        str(ex_level) + ".id.keyword",
                         'size': size,
                     },
                     "aggs": {
