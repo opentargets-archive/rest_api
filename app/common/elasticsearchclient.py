@@ -1691,7 +1691,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                    }
                                                                }
                                                            },
-                                                           'size': 0,
+                                                           'size': 1,
                                                            '_source': False,
                                                            },
                                                      timeout="10m",
@@ -1716,7 +1716,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                  }
                                                              }
                                                          },
-                                                         'size': 0,
+                                                         'size': 1,
                                                          '_source': False,
                                                          },
                                                    timeout="10m",
@@ -1733,7 +1733,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                    }
                                                }
                                            },
-                                               'size': 0,
+                                               'size': 1,
                                                '_source': False,
                                            })
         stats.add_key_value('targets', target_count['hits']['total'])
@@ -1747,7 +1747,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                     }
                                                 }
                                             },
-                                                'size': 0,
+                                                'size': 1,
                                                 '_source': False,
                                             })
         stats.add_key_value('diseases', disease_count['hits']['total'])
