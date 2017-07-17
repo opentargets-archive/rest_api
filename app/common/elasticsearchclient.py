@@ -1679,13 +1679,13 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                            "aggs": {
                                                                "data": {
                                                                    "terms": {
-                                                                       "field": "type",
+                                                                       "field": "type.keyword",
                                                                        'size': 10,
                                                                    },
                                                                    "aggs": {
                                                                        "datasources": {
                                                                            "terms": {
-                                                                               "field": "sourceID",
+                                                                               "field": "sourceID.keyword",
                                                                            },
                                                                        }
                                                                    }
