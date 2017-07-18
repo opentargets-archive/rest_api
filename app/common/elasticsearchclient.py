@@ -2543,9 +2543,10 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         range_ok = ex_level_meet_conditions(
             params.rna_expression_level, 11, 1, 11)
 
+        q = {}
         if range_ok:
             # here the functionality
-            return {
+            q = {
                 'constant_score': {
                     'filter': {
                         'bool': {
@@ -2560,46 +2561,80 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                     }
                 }
             }
-        else:
-            return {}
+
+        return q
 
     @staticmethod
     def _get_aggregation_on_rna_expression_level(filters, filters_func, size,
                                                  ex_level):
-        return {
-            "filter": {
-                "bool": {
-                    "must": filters_func(FilterTypes.RNA_EXPRESSION_LEVEL,
-                                         filters)
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field":
-                        "private.facets.expression_tissues.rna." +
-                        str(ex_level) + ".level",
-                        "order": {
-                            "unique_target_count": "desc"
-                        }
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000
+        f_agg = {}
+        if ex_level > 0:
+            f_agg = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.RNA_EXPRESSION_LEVEL,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.rna." +
+                            str(ex_level) + ".level",
+                            "order": {
+                                "unique_target_count": "desc"
                             }
                         },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
                             }
                         }
                     }
                 }
             }
-        } if ex_level > 0 else {}
+        else:
+            f_agg = {
+                "filter": {},
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.rna." +
+                            str(ex_level + 1) + ".level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            }
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
+        return f_agg
 
 
 class AggregationUnitRNAExTissue(AggregationUnit):
@@ -2624,9 +2659,10 @@ class AggregationUnitRNAExTissue(AggregationUnit):
         tissues = params.rna_expression_tissue
         t2tl = ex_level_tissues_to_terms_list
 
+        q_score = {}
         if range_ok and tissues:
             # here the functionality
-            return {
+            q_score = {
                 'constant_score': {
                     'filter': {
                         'bool': {
@@ -2635,42 +2671,44 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     }
                 }
             }
-        else:
-            return {}
+
+        return q_score
 
     @staticmethod
     def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
                                                   ex_level):
-        agg_filter = {
-            "filter": {
-                "bool": {
-                    "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
-                                         filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.expression_tissues.rna." +
-                        str(ex_level) + ".id.keyword"
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000
-                            }
+        agg_filter = {}
+        if ex_level > 0:
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
+                                             filters),
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.rna." +
+                            str(ex_level) + ".id.keyword"
                         },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
                             }
                         }
                     }
                 }
             }
-        } if ex_level > 0 else {}
 
         # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
@@ -2695,9 +2733,10 @@ class AggregationUnitPROExLevel(AggregationUnit):
         range_ok = ex_level_meet_conditions(
             params.protein_expression_level, 4, 1, 4)
 
+        q_filter = {}
         if range_ok:
             # here the functionality
-            return {
+            q_filter = {
                 'constant_score': {
                     'filter': {
                         'bool': {
@@ -2712,47 +2751,81 @@ class AggregationUnitPROExLevel(AggregationUnit):
                     }
                 }
             }
-        else:
-            return {}
+
+        return q_filter
 
     @staticmethod
     def _get_aggregation_on_pro_expression_level(filters, filters_func, size,
                                                  ex_level):
-        agg_filter = {
-            "filter": {
-                "bool": {
-                    "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_LEVEL,
-                                         filters)
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field":
-                        "private.facets.expression_tissues.protein." +
-                        str(ex_level) + ".level",
-                        "order": {
-                            "unique_target_count": "desc"
-                        },
-                        # 'size': size,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000
+        agg_filter = {}
+
+        if ex_level > 0:
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_LEVEL,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.protein." +
+                            str(ex_level) + ".level",
+                            "order": {
+                                "unique_target_count": "desc"
                             },
+                            # 'size': size,
                         },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
                             },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
                         }
                     }
                 }
             }
-        } if ex_level > 0 else {}
+        else:
+            agg_filter = {
+                "filter": {},
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.protein." +
+                            str(ex_level + 1) + ".level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            # 'size': size,
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
         # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
@@ -2779,9 +2852,10 @@ class AggregationUnitPROExTissue(AggregationUnit):
         tissues = params.protein_expression_tissue
         t2tl = ex_level_tissues_to_terms_list
 
+        q_filter = {}
         if range_ok and tissues:
             # here the functionality
-            return {
+            q_filter = {
                 'constant_score': {
                     'filter': {
                         'bool': {
@@ -2790,43 +2864,48 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
-        else:
-            return {}
+
+        return q_filter
 
     @staticmethod
     def _get_aggregation_on_pro_expression_tissue(filters, filters_func, size,
                                                   ex_level):
-        return {
-            "filter": {
-                "bool": {
-                    "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_TISSUE,
-                                         filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.expression_tissues.protein." +
-                        str(ex_level) + ".id.keyword",
-                        'size': size,
-                    },
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000
-                            },
+
+        expression = {}
+        if ex_level > 0:
+            expression = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_TISSUE,
+                                             filters),
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.protein." +
+                            str(ex_level) + ".id.keyword",
+                            'size': size,
                         },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
                             },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
                         }
                     }
                 }
             }
-        } if ex_level > 0 else {}
+
+        return expression
 
 
 class AggregationUnitScoreRange(AggregationUnit):
