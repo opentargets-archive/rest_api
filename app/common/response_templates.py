@@ -105,10 +105,16 @@ class Association(object):
         if '_source' in hit:
             self.hit_source = hit['_source']
         self.is_scoring_capped = cap_scores
+
+        # setting search_after field into the filtered response
+        if 'sort' in hit:
+            self.search_after = hit['sort']
+
         self.parse_hit()
 
     def parse_hit(self):
         self.data = self.hit_source
+        self.data['search_after'] = self.search_after
         # self.data['target'] = {}
         # self.data['target']['id'] = self.hit['target']['id']
         # self.data['target']['name'] = self.hit['target']['gene_info']['name']

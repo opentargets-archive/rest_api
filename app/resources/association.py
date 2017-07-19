@@ -2,7 +2,6 @@ from flask.ext.restful.inputs import boolean
 from flask.ext.restful.reqparse import Argument
 from app.common import boilerplate
 
-
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
@@ -102,6 +101,7 @@ class FilterBy(restful.Resource):
         start_time = time.time()
         args = request.get_json(force=True)
         self.remove_empty_params(args)
+        args = self._prop_search_after(args)
 
         data = self.get_association(params=args)
         format = None
@@ -119,6 +119,13 @@ class FilterBy(restful.Resource):
             abort(404, message=e.message)
 
         return res
+
+    def _prop_search_after(self, args):
+        prop = u'search_after'
+        if args and prop not in args:
+            args[prop] = u''
+
+        return args
 
     def remove_empty_params(self,args):
         for k,v in args.items():

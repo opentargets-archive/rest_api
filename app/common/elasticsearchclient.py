@@ -858,8 +858,17 @@ class esQuery():
             '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params)
-
         }
+
+        if params.search_after is not None:
+            if params.search_after:
+                ass_query_body['search_after'] = params.search_after
+
+            ass_query_body['sort'].append({"id.keyword": "desc"})
+            ass_query_body['from'] = -1
+
+
+
         # calculate aggregation using proper ad hoc filters
         if aggs:
             ass_query_body['aggs'] = aggs
@@ -878,6 +887,7 @@ class esQuery():
                                        # routing=use gene here
                                        request_cache=True,
                                        )
+
         aggregation_results = {}
 
         if ass_data['timed_out']:
@@ -896,8 +906,6 @@ class esQuery():
 
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
-
-
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
@@ -1916,6 +1924,7 @@ class SearchParams():
             raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
+        self.search_after = kwargs.get('search_after', None)
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
         if self.cap_scores is None:
