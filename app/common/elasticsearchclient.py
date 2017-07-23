@@ -1847,6 +1847,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                      "datasources": {
                                                                          "terms": {
                                                                              "field": "private.facets.datasource",
+                                                                             'size': 20,
                                                                          },
                                                                      }
                                                                  }

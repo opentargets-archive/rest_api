@@ -89,7 +89,7 @@ class Config:
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas',]
-    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature', 'gene2phenotype']
+    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','phewascatalog','23andme','eva','uniprot_literature', 'gene2phenotype']
     DATATYPES['affected_pathway'] = ['reactome',]
     DATATYPES['animal_model'] = ['phenodigm',]
     DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
