@@ -525,6 +525,27 @@ paths:
       responses:
         200:
           description: Successful response
+  /private/besthitsearch:
+    post:
+      operationId: postBestHitSearch
+      tags:
+        - private
+      description: |
+        Fire the search method for multiple strings
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 200
+            items:
+              type: string
+          description: list of strings to search for
+          required: true
+      responses:
+        200:
+          description: Successful response
   /public/search:
     get:
       operationId: getSearch
