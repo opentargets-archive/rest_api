@@ -35,8 +35,8 @@ jobs:
 
   push-containers:
     docker:
-      - image: quay.io/opentargets/opentargets_rest_api_base:0.1
-    working_directory: /usr/src/app
+      - image: circleci/python:2.7
+    working_directory: ~/circulate
     steps:
       - checkout
       - setup_remote_docker
@@ -44,22 +44,6 @@ jobs:
           name: Build Docker image
           command: |
             docker build -t circle-${CIRCLE_SHA1} .
-      - run:
-          name: Push to GCR
-          command: |
-            docker login -u _json_key -p "${GCR_JSON_KEY_FILE}" https://eu.gcr.io
-            ## branch tag and push
-            docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
-            docker push ${GCR_REPO}:${CIRCLE_BRANCH}
-            ## SHA commit push
-            docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
-            docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
-            ## push latest if master
-            if [ "$CIRCLE_BRANCH" = "master" ]
-              then
-                docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
-                docker push ${GCR_REPO}:latest
-            fi
       - run:
           name: Push to Quay
           command: |
@@ -129,6 +113,9 @@ workflows:
   build-test-and-deploy:
     jobs:
       - build
+      - push-containers:
+          requires:
+            - build	
       - deploy:
           requires:
             - build	
