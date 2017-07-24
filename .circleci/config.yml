@@ -31,7 +31,14 @@ jobs:
           # path: test-reports/
           # destination: tr1
       # - store_test_results:
-          # path: test-reports/      
+          # path: test-reports/
+
+  push-containers:
+    docker:
+      - image: quay.io/opentargets/opentargets_rest_api_base:0.1
+    working_directory: /usr/src/app
+    steps:
+      - checkout
       - setup_remote_docker
       - run:
           name: Build Docker image
@@ -88,7 +95,8 @@ jobs:
           name: configure google cloud endpoints
           command: |
             cd app/static/docs/swagger 
-            echo ">> Checking if swagger.yaml is one of the files changed in this commit"
+            echo ">> Checking if swagger.yaml is one of the files changed in the *latest* commit"
+            echo ">> WARNING: you may have to run this manually if swagger.yaml was changed in an earlier commit, even if it was all a single push"
             git diff-tree --no-commit-id --name-only -r HEAD 
             git diff-tree --no-commit-id --name-only -r HEAD | while read filename; do
               if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
