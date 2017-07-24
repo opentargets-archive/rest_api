@@ -1,23 +1,6 @@
-FROM ubuntu:xenial
+FROM quay.io/opentargets/opentargets_rest_api_base
 MAINTAINER ops @opentargets <ops@opentargets.org>
 
-# Install required packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends python-software-properties \
-    build-essential \
-    supervisor \
-    python-dev \
-    python \
-    wget \
-    curl \
-    ca-certificates \
-    openssh-server \
-    git \
-    sqlite3 \
-    nginx-extras
-
-RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
-  python get-pip.py
 
 # setup
 RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor && \
