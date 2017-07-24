@@ -1,0 +1,6 @@
+tests
+conftest.py
+.git
+.cache
+.circleci
+*.template

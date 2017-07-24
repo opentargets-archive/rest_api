@@ -31,7 +31,35 @@ jobs:
           # path: test-reports/
           # destination: tr1
       # - store_test_results:
-          # path: test-reports/      
+          # path: test-reports/
+
+  push-containers:
+    docker:
+      - image: circleci/python:2.7
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t circle-${CIRCLE_SHA1} -f docker/Dockerfile .
+      - run:
+          name: Push to Quay
+          command: |
+            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
+            ## branch tag and push
+            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
+            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
+            ## sha commit push
+            docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ] 
+              then
+                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
+                docker push ${QUAY_REPO}:latest
+            fi
 
   deploy:
     working_directory: ~/circulate
@@ -51,12 +79,13 @@ jobs:
           name: configure google cloud endpoints
           command: |
             cd app/static/docs/swagger 
-            echo ">> Checking if swagger.yaml is one of the files changed in this commit"
+            echo ">> Checking if swagger.yaml is one of the files changed in the *latest* commit"
+            echo ">> WARNING: you may have to run this manually if swagger.yaml was changed in an earlier commit, even if it was all a single push"
             git diff-tree --no-commit-id --name-only -r HEAD 
-            git diff-tree --no-commit-id --name-only -r HEAD | while read line; do
+            git diff-tree --no-commit-id --name-only -r HEAD | while read filename; do
               if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
                 echo ">> swagger.yaml changed. redeploying endpoints configuration..."
-                echo gcloud service-management deploy swagger.yaml
+                gcloud service-management deploy swagger.yaml
               else
                 echo ">> swagger.yaml not changed in the latest commit."
                 echo ">> Keeping the same Endpoints configuration"
@@ -68,6 +97,7 @@ jobs:
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine
+          #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
           command: |
             gcloud version
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
@@ -83,6 +113,9 @@ workflows:
   build-test-and-deploy:
     jobs:
       - build
+      - push-containers:
+          requires:
+            - build	
       - deploy:
           requires:
             - build	
