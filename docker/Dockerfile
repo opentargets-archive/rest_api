@@ -1,5 +1,5 @@
-FROM quay.io/opentargets/opentargets_rest_api_base:0.2
-MAINTAINER ops @opentargets <ops@opentargets.org>
+FROM quay.io/opentargets/opentargets_rest_api_base
+LABEL maintainer="ops@opentargets.org"
 
 
 # setup
