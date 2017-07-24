@@ -43,7 +43,7 @@ jobs:
       - run:
           name: Build Docker image
           command: |
-            docker build -t circle-${CIRCLE_SHA1} .
+            docker build -t circle-${CIRCLE_SHA1} -f docker/Dockerfile .
       - run:
           name: Push to Quay
           command: |
