@@ -4,3 +4,4 @@ conftest.py
 .cache
 .circleci
 *.template
+venv
