@@ -32,6 +32,43 @@ jobs:
           # destination: tr1
       # - store_test_results:
           # path: test-reports/      
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t circle-${CIRCLE_SHA1} .
+      - run:
+          name: Push to GCR
+          command: |
+            docker login -u _json_key -p "${GCR_JSON_KEY_FILE}" https://eu.gcr.io
+            ## branch tag and push
+            docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
+            docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+            ## SHA commit push
+            docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ]
+              then
+                docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
+                docker push ${GCR_REPO}:latest
+            fi
+      - run:
+          name: Push to Quay
+          command: |
+            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
+            ## branch tag and push
+            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
+            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
+            ## sha commit push
+            docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ] 
+              then
+                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
+                docker push ${QUAY_REPO}:latest
+            fi
 
   deploy:
     working_directory: ~/circulate
@@ -68,6 +105,7 @@ jobs:
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine
+          #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
           command: |
             gcloud version
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
