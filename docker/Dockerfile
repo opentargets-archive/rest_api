@@ -1,4 +1,4 @@
-FROM quay.io/opentargets/opentargets_rest_api_base
+FROM quay.io/opentargets/opentargets_rest_api_base:master
 MAINTAINER ops @opentargets <ops@opentargets.org>
 
 
