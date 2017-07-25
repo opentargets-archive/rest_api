@@ -2718,6 +2718,32 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     }
                 }
             }
+        else:
+            agg_filter = {
+                "filter": {},
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.rna." +
+                            str(1) + ".id.keyword"
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
         # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
@@ -2913,6 +2939,34 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
+        else:
+            expression = {
+                "filter": {},
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.protein." +
+                            str(1) + ".id.keyword",
+                            'size': size,
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
 
         return expression
 
