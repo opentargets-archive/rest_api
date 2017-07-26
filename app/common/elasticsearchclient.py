@@ -2540,7 +2540,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                 self._get_association_rna_range_filter(self.params)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     def build_agg(self, filters):
         self.agg = self._get_aggregation_on_rna_expression_level(
@@ -2593,7 +2593,8 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                             str(1) + ".level",
                             "order": {
                                 "unique_target_count": "desc"
-                            }
+                            },
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2623,7 +2624,8 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                             str(1) + ".level",
                             "order": {
                                 "unique_target_count": "desc"
-                            }
+                            },
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2658,7 +2660,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             self.get_size(), self.params.rna_expression_level)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2699,7 +2701,8 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.rna." +
-                            str(ex_level) + ".id.keyword"
+                            str(ex_level) + ".id.keyword",
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2725,7 +2728,8 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.rna." +
-                            str(1) + ".id.keyword"
+                            str(1) + ".id.keyword",
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2811,7 +2815,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                             "order": {
                                 "unique_target_count": "desc"
                             },
-                            # 'size': size,
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2842,7 +2846,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                             "order": {
                                 "unique_target_count": "desc"
                             },
-                            # 'size': size,
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2877,7 +2881,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
             self.get_size(), self.params.protein_expression_level)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     @staticmethod
     def _get_association_pro_range_filter(params):
