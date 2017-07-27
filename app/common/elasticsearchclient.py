@@ -3,6 +3,7 @@ import json as json
 import logging
 import sys
 import time
+import itertools as itt
 import addict
 from collections import defaultdict
 
@@ -22,6 +23,7 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
+# import pprint
 
 __author__ = 'andreap'
 
@@ -57,6 +59,13 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
             str(expression_level) + '.id': t
         }} for t in ts]
 
+
+def _copy_and_mutate_dict(d, del_k, **add_ks):
+    d = { k: v for k, v in d.items() if k != del_k }
+    for k, v in add_ks.items():
+        d[k] = v
+
+    return d
 
 class BooleanFilterOperator():
     AND = 'must'
@@ -879,6 +888,8 @@ class esQuery():
                     "must": [i for i in filter_data_conditions.values() if i]
                 }
             }
+
+        # pprint.pprint(ass_query_body)
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2062,6 +2073,7 @@ class AggregationUnit(object):
 
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
+
         for filter_type, filter_value in filters.items():
             if filter_type != key and filter_value:
                 conditions.append(filter_value)
@@ -2543,9 +2555,17 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         return 300
 
     def build_agg(self, filters):
+        d = addict.Dict()
+        d.constant_score.filter.bool.must = \
+            ex_level_tissues_to_terms_list('rna',
+                                           self.params.rna_expression_tissue, 1)
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='rna_expression_tissue',
+                                             rna_expression_tissue=d.to_dict())
         self.agg = self._get_aggregation_on_rna_expression_level(
-            filters, self._get_complimentary_facet_filters,
+            mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.rna_expression_level)
+
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2702,6 +2722,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                         "terms": {
                             "field": "private.facets.expression_tissues.rna." +
                             str(ex_level) + ".id.keyword",
+                            "order" : { "_term" : "asc" },
                             'size': size
                         },
                         "aggs": {
@@ -2729,6 +2750,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                         "terms": {
                             "field": "private.facets.expression_tissues.rna." +
                             str(1) + ".id.keyword",
+                            "order" : { "_term" : "asc" },
                             'size': size
                         },
                         "aggs": {
@@ -2763,8 +2785,15 @@ class AggregationUnitPROExLevel(AggregationUnit):
         return 25
 
     def build_agg(self, filters):
+        d = addict.Dict()
+        d.constant_score.filter.bool.must = \
+            ex_level_tissues_to_terms_list('protein',
+                                           self.params.protein_expression_tissue, 1)
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='protein_expression_tissue',
+                                             protein_expression_tissue=d.to_dict())
         self.agg = self._get_aggregation_on_pro_expression_level(
-            filters, self._get_complimentary_facet_filters,
+            mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.protein_expression_level)
 
     @staticmethod
@@ -2924,6 +2953,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                         "terms": {
                             "field": "private.facets.expression_tissues.protein." +
                             str(ex_level) + ".id.keyword",
+                            "order" : { "_term" : "asc" },
                             'size': size,
                         },
                         "aggs": {
@@ -2951,6 +2981,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                         "terms": {
                             "field": "private.facets.expression_tissues.protein." +
                             str(1) + ".id.keyword",
+                            "order" : { "_term" : "asc" },
                             'size': size,
                         },
                         "aggs": {
