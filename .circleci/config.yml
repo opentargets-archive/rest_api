@@ -85,7 +85,7 @@ jobs:
             git diff-tree --no-commit-id --name-only -r HEAD | while read filename; do
               if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
                 echo ">> swagger.yaml changed. redeploying endpoints configuration..."
-                gcloud service-management deploy swagger.yaml
+                echo gcloud service-management deploy swagger.yaml
               else
                 echo ">> swagger.yaml not changed in the latest commit."
                 echo ">> Keeping the same Endpoints configuration"
