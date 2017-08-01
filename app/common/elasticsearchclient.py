@@ -892,7 +892,7 @@ class esQuery():
 #         print "------------"
 #         print ""
 #         pprint.pprint(ass_query_body)
-# 
+#  
 #         print ""
 #         print "------------"
 
@@ -2640,7 +2640,11 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             }
         else:
             f_agg = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
@@ -2749,7 +2753,11 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             }
         else:
             agg_filter = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
@@ -2787,7 +2795,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 self._get_association_pro_range_filter(self.params)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     def build_agg(self, filters):
         d = addict.Dict()
@@ -2870,7 +2878,11 @@ class AggregationUnitPROExLevel(AggregationUnit):
             }
         else:
             agg_filter = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
@@ -2980,7 +2992,11 @@ class AggregationUnitPROExTissue(AggregationUnit):
             }
         else:
             expression = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
