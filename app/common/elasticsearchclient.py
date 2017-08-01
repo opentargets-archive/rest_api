@@ -57,7 +57,7 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
         {'match': {
             'private.facets.expression_tissues.' + key + '.' +
             str(expression_level) + '.id': t
-        }} for t in ts]
+        }} for t in ts if ts]
 
 
 def _copy_and_mutate_dict(d, del_k, **add_ks):
@@ -889,7 +889,12 @@ class esQuery():
                 }
             }
 
-        # pprint.pprint(ass_query_body)
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+# 
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
