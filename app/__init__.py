@@ -16,7 +16,7 @@ from app.common.rate_limit import increment_call_rate
 from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery, InternalCache
+from app.common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 from app.common.signals import LogException
