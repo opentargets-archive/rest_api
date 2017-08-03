@@ -236,10 +236,6 @@ def create_app(config_name):
     def send_swagger_latest_suffixed():
         return serve_swagger()
 
-    @app.route('/api/docs/swagger.yaml')
-    def send_swagger_latest_from_docs():
-        return serve_swagger()
-
     @app.route('/api/latest/swagger')
     def send_swagger_latest():
         return serve_swagger()
@@ -248,8 +244,6 @@ def create_app(config_name):
     def send_docs_latest():
         # return redirect('/api/swagger/index.html')
         return serve_docs()
-
-
 
     @app.route('/api-docs/%s' % str(api_version_minor))
     def docs_current_minor_version():
