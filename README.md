@@ -1,11 +1,10 @@
-=====================
 Open Targets REST API
 =====================
-[![fern status](https://xzwdg8asb5.execute-api.eu-west-1.amazonaws.com/dev/status-badge/rest_api/enrichment "fern status")](https://xzwdg8asb5.execute-api.eu-west-1.amazonaws.com/dev/status/rest_api)
 
-[![wercker status](https://app.wercker.com/status/8d40646f32cfcb720f96ec9f29473d19/m/master "wercker status")](https://app.wercker.com/project/byKey/8d40646f32cfcb720f96ec9f29473d19)
+Circle CI build: [![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?style=svg&circle-token=a6f30fb72fe7b0b079ad0f3cd232ef02a43b9e35)](https://circleci.com/gh/opentargets/rest_api)
 
-[![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?style=svg&circle-token=a6f30fb72fe7b0b079ad0f3cd232ef02a43b9e35)](https://circleci.com/gh/opentargets/rest_api)
+(maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base)
+
 
 To test locally
 

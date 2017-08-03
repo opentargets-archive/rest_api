@@ -49,3 +49,6 @@ tmtagsHistory
 ######################
 env/
 venv/
+/.project
+/.pydevproject
+/es_custom_idxs.ini
