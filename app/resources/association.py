@@ -85,7 +85,9 @@ class FilterBy(restful.Resource):
 
         args = parser.parse_args()
         self.remove_empty_params(args)
+        args = self._prop_search_after(args)
         data = self.get_association(params=args)
+
         return CTTVResponse.OK(data)
 
     @is_authenticated
