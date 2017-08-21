@@ -23,7 +23,7 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
-# import pprint
+import pprint
 
 __author__ = 'andreap'
 
@@ -810,6 +810,8 @@ class esQuery():
 
         """
         params = SearchParams(**kwargs)
+
+#         pprint.pprint(params.__dict__)
 
         '''create multiple condition boolean query'''
 
@@ -1924,7 +1926,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         }
 
 
-class SearchParams():
+class SearchParams(object):
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']

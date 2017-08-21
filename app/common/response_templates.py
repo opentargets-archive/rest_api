@@ -97,6 +97,7 @@ class Association(object):
         '''
 
         self.data ={}
+        self.search_after = None
         self._scoring_method = scoring_method
         if datatypes is None:
             datatypes = DataTypes(current_app)
@@ -114,7 +115,8 @@ class Association(object):
 
     def parse_hit(self):
         self.data = self.hit_source
-        self.data['search_after'] = self.search_after
+        if self.search_after:
+            self.data['search_after'] = self.search_after
         # self.data['target'] = {}
         # self.data['target']['id'] = self.hit['target']['id']
         # self.data['target']['name'] = self.hit['target']['gene_info']['name']
