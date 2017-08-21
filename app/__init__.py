@@ -16,7 +16,7 @@ from app.common.rate_limit import increment_call_rate
 from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 from elasticsearch import Elasticsearch
-from common.elasticsearchclient import esQuery, InternalCache
+from app.common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
 from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
 from app.common.signals import LogException
@@ -232,6 +232,10 @@ def create_app(config_name):
     def serve_swagger():
         return app.send_static_file('docs/swagger/swagger.yaml')
 
+    @app.route('/api/latest/swagger.yaml')
+    def send_swagger_latest_suffixed():
+        return serve_swagger()
+
     @app.route('/api/latest/swagger')
     def send_swagger_latest():
         return serve_swagger()
@@ -241,29 +245,27 @@ def create_app(config_name):
         # return redirect('/api/swagger/index.html')
         return serve_docs()
 
-
-
-    # @app.route('/api-docs/%s' % str(api_version_minor))
-    # def docs_current_minor_version():
-    #     # return redirect('/api/swagger/index.html')
-    #     return serve_docs()
-
-    # @app.route('/api-docs/%s'%str(api_version))
-    # def docs_current_version():
-    #     # return redirect('/api/swagger/index.html')
-    #     return serve_docs()
-
-    # @app.route('/api/docs/api-description.md')
-    # def docs_description():
-    #     return serve_docs()
-
-    # @app.route('/api/docs/swagger.yaml')
-    # def send_swagger():
-    #     return serve_swagger()
-
-    # @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
-    # def send_swagger_current_cersion():
-    #     return serve_swagger()
+    @app.route('/api-docs/%s' % str(api_version_minor))
+    def docs_current_minor_version():
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
+ 
+    @app.route('/api-docs/%s'%str(api_version))
+    def docs_current_version():
+        # return redirect('/api/swagger/index.html')
+        return serve_docs()
+ 
+    @app.route('/api/docs/api-description.md')
+    def docs_description():
+        return serve_docs()
+ 
+    @app.route('/api/docs/swagger.yaml')
+    def send_swagger():
+        return serve_swagger()
+ 
+    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
+    def send_swagger_current_cersion():
+        return serve_swagger()
 
 
     @app.before_request

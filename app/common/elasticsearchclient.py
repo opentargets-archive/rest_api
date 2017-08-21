@@ -2720,6 +2720,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
     def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
                                                   ex_level):
         agg_filter = {}
+
         if ex_level > 0:
             agg_filter = {
                 "filter": {
@@ -2913,6 +2914,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                     }
                 }
             }
+
         # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
@@ -3024,8 +3026,6 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
-
-
         return expression
 
 

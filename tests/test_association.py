@@ -4,7 +4,7 @@ import unittest
 from app import create_app
 from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
-
+        
 import pytest
 pytestmark = pytest.mark.skipif(
     not pytest.config.getoption("--es"),
@@ -133,6 +133,7 @@ class AssociationTestCase(GenericTestCase):
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'rna_expression_level': 3,
                                             'rna_expression_tissue': tissue_id,
+                                            'facets': "true",
                                             'no_cache': True,
                                             'facets': 'true',
                                             'size': 1},
@@ -140,7 +141,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertIsNotNone(json_response['data'])
-        print json_response
+
         self.assertTrue('rna_expression_tissue' in json_response['facets'])
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
@@ -150,6 +151,7 @@ class AssociationTestCase(GenericTestCase):
         response = self._make_request('/api/latest/public/association/filter',
                                       data={'rna_expression_level': 1,
                                             'rna_expression_tissue': tissue_id,
+                                            'facets': "true",
                                             'no_cache': True,
                                             'facets': 'true',
                                             'size': 1},

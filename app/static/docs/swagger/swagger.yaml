@@ -1,8 +1,4 @@
 swagger: '2.0'
-host: "open-targets-eu-dev.appspot.com"
-x-google-endpoints:
-  - name: "open-targets-eu-dev.appspot.com"
-    allowCors: "true"
 info:
   version: 2.1.1
   title: The Open Targets Platform REST API
@@ -521,6 +517,28 @@ paths:
             example: |
               {"gene":["gene1", "gene2"]}
           description: An Ensembl gene identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /private/besthitsearch:
+    post:
+      operationId: postBestHitSearch
+      tags:
+        - private
+      description: |
+        Fire the search method for multiple strings
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            # type: array
+            # minItems: 1
+            # maxItems: 200
+            # items:
+            #   type: string
+          description: list of strings to search for
           required: true
       responses:
         200:

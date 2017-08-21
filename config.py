@@ -1,19 +1,19 @@
-import random
-import sys
-import string
 import ConfigParser
 import ast
-from collections import defaultdict
-from envparse import env
-# from app.common.auth import AuthKey
-from app.common.scoring_conf import ScoringMethods
-from functools import partial
-
 import logging
+import os
+import random
+import string
+import sys
+from collections import defaultdict
+from functools import partial
 from logging import getLogger
+
 from pythonjsonlogger import jsonlogger
 
-import os
+# from app.common.auth import AuthKey
+from app.common.scoring_conf import ScoringMethods
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 __author__ = 'andreap'
@@ -32,7 +32,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 
     idx_name = ini.get(section_name, name) \
         if ini and \
-        ini.has_option(section_name, name) \
+           ini.has_option(section_name, name) \
         else prefix + '_' + name
 
     from_envar = os.getenv('OPENTARGETS_ES_' + name.upper())
@@ -40,10 +40,11 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 
     return idx_name + suffix
 
+
 class Config:
     ## [key configurations]
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', 'mkes5')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.07')
 
     ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'
@@ -81,35 +82,39 @@ class Config:
     DEBUG = os.getenv('API_DEBUG', False)
     TESTING = False
     PROFILE = False
-    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
+    SECRET_KEY = os.getenv('SECRET_KEY', ''.join(
+        random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
     PUBLIC_API_BASE_PATH = '/api/public/v'
     PRIVATE_API_BASE_PATH = '/api/private/v'
-    API_VERSION = os.getenv('API_VERSION','2.1')
-    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR','2.1.1')
+    API_VERSION = os.getenv('API_VERSION', '2.1')
+    API_VERSION_MINOR = os.getenv('API_VERSION_MINOR', '2.1.1')
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
-    DATATYPES['rna_expression'] = ['expression_atlas',]
-    DATATYPES['genetic_association'] = ['uniprot','gwas_catalog','eva','uniprot_literature', 'gene2phenotype']
-    DATATYPES['affected_pathway'] = ['reactome',]
-    DATATYPES['animal_model'] = ['phenodigm',]
-    DATATYPES['somatic_mutation'] = ['cancer_gene_census','eva_somatic','intogen']
-    DATATYPES['known_drug'] = ['chembl',]
+    DATATYPES['rna_expression'] = ['expression_atlas', ]
+    DATATYPES['genetic_association'] = ['uniprot', 'gwas_catalog', 'phewascatalog', '23andme', 'eva',
+                                        'uniprot_literature', 'gene2phenotype', 'genomics_england']
+    DATATYPES['affected_pathway'] = ['reactome', ]
+    DATATYPES['animal_model'] = ['phenodigm', ]
+    DATATYPES['somatic_mutation'] = ['cancer_gene_census', 'eva_somatic', 'intogen']
+    DATATYPES['known_drug'] = ['chembl', ]
     DATATYPES['literature'] = ['europepmc']
-    DATATYPE_ORDERED=['genetic_association','somatic_mutation','known_drug','rna_expression','affected_pathway','animal_model', 'literature']
+    DATATYPE_ORDERED = ['genetic_association', 'somatic_mutation', 'known_drug', 'rna_expression', 'affected_pathway',
+                        'animal_model', 'literature']
     # DATATYPES['protein_expression'] = ['hpa']
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
 
-    PROXY_SETTINGS={'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
-                                        'gxa': 'https://www.ebi.ac.uk/gxa/',
-                                        'pdbe': 'https://www.ebi.ac.uk/pdbe/',
-                                        'epmc': 'http://www.ebi.ac.uk/europepmc/',
-                                        },
-                    'allowed_domains': ['www.ebi.ac.uk'],
-                    'allowed_request_domains' : ['targetvalidation.org', 'alpha.targetvalidation.org','beta.targetvalidation.org','localhost', '127.0.0.1'],
-                    }
-    REDIS_SERVER_PATH =os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
+    PROXY_SETTINGS = {'allowed_targets': {'ensembl': 'https://rest.ensembl.org/',
+                                          'gxa': 'https://www.ebi.ac.uk/gxa/',
+                                          'pdbe': 'https://www.ebi.ac.uk/pdbe/',
+                                          'epmc': 'http://www.ebi.ac.uk/europepmc/',
+                                          },
+                      'allowed_domains': ['www.ebi.ac.uk'],
+                      'allowed_request_domains': ['targetvalidation.org', 'alpha.targetvalidation.org',
+                                                  'beta.targetvalidation.org', 'localhost', '127.0.0.1'],
+                      }
+    REDIS_SERVER_PATH = os.getenv('REDIS_SERVER_PATH', '/tmp/api_redis.db')
 
     USAGE_LIMIT_DEFAULT_SHORT = int(os.getenv('USAGE_LIMIT_DEFAULT_SHORT', '3000'))
     USAGE_LIMIT_DEFAULT_LONG = int(os.getenv('USAGE_LIMIT_DEFAULT_LONG', '1200000'))
@@ -123,8 +128,6 @@ class Config:
 
     MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', None)
     GITHUB_AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN', None)
-
-
 
     @staticmethod
     def init_app(app):
@@ -141,7 +144,7 @@ class DevelopmentConfig(Config):
         file_handler = logging.FileHandler('output.log')
         file_handler.setLevel(logging.DEBUG)
         jsonformatter = jsonlogger.JsonFormatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+            '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         file_handler.setFormatter(jsonformatter)
 
         loggers = [app.logger,
@@ -154,7 +157,6 @@ class DevelopmentConfig(Config):
         Config.init_app(app)
 
 
-
 class TestingConfig(Config):
     TESTING = True
     APP_CACHE_EXPIRY_TIMEOUT = 60
@@ -163,15 +165,14 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     ## kubernetes automatically defines DNS names for each service, at least on GKE
-    APP_CACHE_EXPIRY_TIMEOUT = 60*60*6 #6 hours
-
+    APP_CACHE_EXPIRY_TIMEOUT = 60 * 60 * 6  # 6 hours
 
     @classmethod
     def init_app(cls, app):
         console_handler = logging.StreamHandler(stream=sys.stdout)
         console_handler.setLevel(logging.INFO)
         jsonformatter = jsonlogger.JsonFormatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+            '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         console_handler.setFormatter(jsonformatter)
 
         loggers = [app.logger,
@@ -183,8 +184,6 @@ class ProductionConfig(Config):
             logger.setLevel(logging.INFO)
 
         Config.init_app(app)
-
-
 
 
 config = {
