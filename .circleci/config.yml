@@ -113,6 +113,9 @@ jobs:
       - run:
           name: Install requests library
           command: |
+            pip install virtualenv
+            virtualenv venv
+            . venv/bin/activate
             pip install -r .circleci/runscope/requirements.txt
       - run:
           name: Wait for appengine deployment
@@ -125,6 +128,7 @@ jobs:
       - run:
           name: Trigger runscope dev-k8s tests on deployed branch
           command: |
+            . venv/bin/activate
             python .circleci/runscope/app.py https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}
 
 workflows:
