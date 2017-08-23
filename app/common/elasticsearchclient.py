@@ -53,15 +53,13 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
     '''returns a list with a match dict per el in `ts` using the private facet and
     `epxression_level` based on the `key` as a str "protein" or "rna"
     '''
-    return [
-#         {'match': {
-#             'private.facets.expression_tissues.' + key + '.' +
-#             str(expression_level) + '.id': t
-#         }}
-            {"regexp":
+    range = "([" + str(expression_level) + "-9]|1[0-1])_.*"
+    if expression_level >= 10:
+        range = "1[" + str(expression_level % 10) + "-1]_.*"
+    return [{"regexp":
                 {
                     "private.facets.expression_tissues." + key + ".id.keyword": \
-                    "[" + str(expression_level) + "-11]_" + t
+                    range + t
                 }} for t in ts if ts]
 
 
@@ -2724,6 +2722,10 @@ class AggregationUnitRNAExTissue(AggregationUnit):
         agg_filter = {}
 
         if ex_level > 0:
+            range = "([" + str(ex_level) + "-9]|1[0-1])_.*"
+            if ex_level >= 10:
+                range = "1[" + str(ex_level % 10) + "-1]_.*"
+
             agg_filter = {
                 "filter": {
                     "bool": {
@@ -2735,7 +2737,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.rna.id.keyword",
-                            "include": "[" + str(ex_level) + "-11]_.*",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size
                         },
@@ -2767,7 +2769,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.rna.id.keyword",
-                            "include": "[1-11]_.*",
+                            "include": "([1-9]|1[0-1])_.*",
                             "order" : { "_term" : "asc" },
                             'size': size
                         },
@@ -2961,6 +2963,8 @@ class AggregationUnitPROExTissue(AggregationUnit):
 
         expression = {}
         if ex_level > 0:
+            range = "[" + str(ex_level) + "-4]_.*"
+
             expression = {
                 "filter": {
                     "bool": {
@@ -2972,7 +2976,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.protein.id.keyword",
-                            "include": "[" + str(ex_level) + "-4]_.*",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size,
                         },
