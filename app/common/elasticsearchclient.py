@@ -66,7 +66,6 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
 
 
 def _copy_and_mutate_dict(d, del_k, **add_ks):
-    pprint.pprint(d)
     d = { k: v for k, v in d.items() if k != del_k }
     for k, v in add_ks.items():
         d[k] = v
@@ -897,12 +896,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
