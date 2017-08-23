@@ -894,12 +894,12 @@ class esQuery():
                 }
             }
 
-#         print "------------"
-#         print ""
-#         pprint.pprint(ass_query_body)
-#
-#         print ""
-#         print "------------"
+        print "------------"
+        print ""
+        pprint.pprint(ass_query_body)
+
+        print ""
+        print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2584,6 +2584,10 @@ class AggregationUnitRNAExLevel(AggregationUnit):
 
         q = {}
         if range_ok:
+            # spinal tap up to 11
+            range = "([" + str(params.rna_expression_level) + "-9]|1[0-1])_.*"
+            if params.rna_expression_level >= 10:
+                range = "1[" + str(params.rna_expression_level % 10) + "-1]_.*"
             # here the functionality
             q = {
                 'constant_score': {
@@ -2592,7 +2596,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                             'must': [{
                                 "regexp":{
                                     "private.facets.expression_tissues.rna.id.keyword": \
-                                    str(params.rna_expression_level) + "_.*"
+                                    range
                                 }
                             }]
                         }
@@ -2824,7 +2828,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
         q = {}
         if range_ok:
             # here the functionality
-
+            range = "[" + str(params.protein_expression_level) + "-4]_.*"
             q = {
                 'constant_score': {
                     'filter': {
@@ -2832,7 +2836,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                             'must': [{
                                 "regexp":{
                                     "private.facets.expression_tissues.protein.id.keyword": \
-                                    str(params.protein_expression_level) + "_.*"
+                                    range
                                 }
                             }]
                         }
