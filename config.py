@@ -47,7 +47,7 @@ class Config:
     DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.07')
 
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
-    ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'.format(DATA_VERSION)
+    ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
     ES_TISSUE_MAP = None
     ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'

@@ -41,14 +41,23 @@ def url_to_tmpfile(url, delete=True, *args, **kwargs):
 
 
 def load_tissue_map():
-    t2m = {'tissues': {} ,
-           'codes': {}}
+    def __generate_tissue_map(url):
+        t2m = {'tissues': {} ,
+               'codes': {}}
 
-    with url_to_tmpfile(Config.ES_TISSUE_MAP_URL) as r_file:
-        t2m['tissues'] = json.load(r_file)['tissues']
+        with url_to_tmpfile(url) as r_file:
+            t2m['tissues'] = json.load(r_file)['tissues']
 
-    for _, v in t2m['tissues'].iteritems():
-        code = v['efo_code']
-        t2m['codes'][code] = v
+        for _, v in t2m['tissues'].iteritems():
+            code = v['efo_code']
+            t2m['codes'][code] = v
 
-    return t2m
+        return t2m
+
+    tmap = None
+    try:
+        tmap = __generate_tissue_map(Config.ES_TISSUE_MAP_URL.format(Config.DATA_VERSION))
+    except:
+        tmap = __generate_tissue_map(Config.ES_TISSUE_MAP_URL.format('master'))
+
+    return tmap

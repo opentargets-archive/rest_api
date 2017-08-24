@@ -73,7 +73,6 @@ def _copy_and_mutate_dict(d, del_k, **add_ks):
 
 def _inject_tissue_data(response, t2m):
     def __clean_id(id):
-        print id
         if id[1] == '_':
             return id[2:]
         elif id[2] == '_':
