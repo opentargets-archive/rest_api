@@ -1,6 +1,8 @@
 from app.resources.enrichment import EnrichmentTargets
 from app.resources.relation import  Relations
 from app.resources.utils import LogEvent
+from config import Config
+from app.common import load_tissue_map
 
 __author__ = 'andreap'
 
@@ -10,6 +12,7 @@ from flask.ext.restful import Api
 def create_api(app, api_version = '0.0', specpath = '' ):
     # app.config['CORS_HEADERS'] = 'Content-Type,Auth-Token'
 
+    Config.ES_TISSUE_MAP = load_tissue_map()
     'custom errors for flask-restful'
     # errors = {'SignatureExpired': {
     #     'message': "Authentication expired.",
