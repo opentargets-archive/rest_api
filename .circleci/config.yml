@@ -110,7 +110,9 @@ jobs:
       - checkout
       - run: 
           name: build and store deployment URL
-          command: echo 'export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com' >> $BASH_ENV
+          command: |
+            echo 'export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com' >> $BASH_ENV
+            source /home/circleci/.bashrc
       - run:
           name: Install requests library
           command: |
