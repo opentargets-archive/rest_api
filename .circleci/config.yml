@@ -105,11 +105,12 @@ jobs:
   api-tests:
     docker:
       - image: circleci/python:2.7
-        environment:
-          DEPLOYEDURL: ${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
     working_directory: ~/circulate
     steps:
       - checkout
+      - run: 
+          name: build and store deployment URL
+          command: echo 'export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com' >> $BASH_ENV
       - run:
           name: Install requests library
           command: |
