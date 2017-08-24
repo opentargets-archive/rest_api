@@ -30,7 +30,7 @@ health_check:
 # [START env_variables]
 # Values need to be substituted from the environment
 env_variables:
-    ELASTICSEARCH_URL: ${ES_URL}
+    ELASTICSEARCH_URL: "http://10.132.0.9:9200"
     OPENTARGETS_API_CONFIG: production
     OPENTARGETS_DATA_VERSION: "17.06.2"
     GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
