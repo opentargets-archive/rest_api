@@ -71,3 +71,10 @@ Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` t
 * Check that is running *
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
 You can check that is talking to Elasticsearch by using the /public/utils/stats method.
+
+### Why privileged mode?
+The rest api container runs 3 services talking and launching each other: nginx, uwsgi and the actual flask app.
+nginx and uwsgi talks trough a binary protocol in a unix socket.
+it is very efficient, but by default sockets have a small queue, so if nginx is under heavy load and sends too many requests to uwsgi they get rejected by the socket and raise an error. to increase the size of the queue unfortunately you need root privileges.
+at the moment we think that the performance gain is worth the privileged mode. but it strongly depends on the environment you deploy the container into
+
