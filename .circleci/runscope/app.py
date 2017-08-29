@@ -17,7 +17,7 @@ def main():
 
         results = {}
         while len(results.keys()) < len(test_runs):
-            time.sleep(1)
+            time.sleep(5)
 
             for run in test_runs:
                 test_run_id = run.get("test_run_id")
