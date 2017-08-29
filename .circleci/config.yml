@@ -155,6 +155,8 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
+            #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
+            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project open-targets-api-prod-eu
       
   deploy-prod-us:
@@ -181,6 +183,8 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
+            #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
+            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project open-targets-api-prod-us
       
 
