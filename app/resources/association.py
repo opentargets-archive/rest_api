@@ -2,7 +2,6 @@ from flask.ext.restful.inputs import boolean
 from flask.ext.restful.reqparse import Argument
 from app.common import boilerplate
 
-
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
@@ -14,6 +13,7 @@ from app.common.response_templates import CTTVResponse
 from types import *
 import time
 
+import pprint
 
 __author__ = 'andreap'
 
@@ -66,11 +66,11 @@ class FilterBy(restful.Resource):
         parser.add_argument('rna_expression_level', type=int, default=0,
                             choices=list(xrange(0, 11)), required=False)
         parser.add_argument('rna_expression_tissue', type=str, action='append',
-                            required=False)
+                            required=False, default=[])
         parser.add_argument('protein_expression_level', type=int, default=0,
                             choices=list(xrange(0, 4)), required=False)
         parser.add_argument('protein_expression_tissue', type=str, action='append',
-                            required=False)
+                            required=False, default=[])
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
@@ -86,7 +86,10 @@ class FilterBy(restful.Resource):
 
         args = parser.parse_args()
         self.remove_empty_params(args)
+        args = self._prop_search_after(args)
+
         data = self.get_association(params=args)
+
         return CTTVResponse.OK(data)
 
     @is_authenticated
@@ -102,6 +105,7 @@ class FilterBy(restful.Resource):
         start_time = time.time()
         args = request.get_json(force=True)
         self.remove_empty_params(args)
+        args = self._prop_search_after(args)
 
         data = self.get_association(params=args)
         format = None
@@ -119,6 +123,13 @@ class FilterBy(restful.Resource):
             abort(404, message=e.message)
 
         return res
+
+    def _prop_search_after(self, args):
+        prop = u'search_after'
+        if args and prop not in args:
+            args[prop] = u''
+
+        return args
 
     def remove_empty_params(self,args):
         for k,v in args.items():

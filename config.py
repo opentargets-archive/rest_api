@@ -44,7 +44,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 class Config:
     ## [key configurations]
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.06.2')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.07')
 
     ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'

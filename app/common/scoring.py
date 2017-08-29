@@ -1,7 +1,6 @@
 from collections import Counter
 from fractions import Fraction
 import logging
-import pprint
 from flask import current_app
 from app import DataTypes
 from app.common.scoring_conf import ScoringMethods

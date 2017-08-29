@@ -101,7 +101,6 @@ jobs:
           command: |
             gcloud version
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
-  
   api-tests:
     docker:
       - image: circleci/python:2.7
