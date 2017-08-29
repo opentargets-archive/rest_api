@@ -91,9 +91,12 @@ jobs:
       #         fi
       #       done 
       - run:
-          name: Substitute ENV vars for deploy
+          name: Substitute ENV vars for deploy (EU dev)
           environment: 
             ES_URL: http://10.132.0.9:9200
+            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
+            GCENDPOINT_VERSION: 2017-07-07r1
+            DEPLOYED_DATA_VERSION: 17.06.2
           command: |
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:

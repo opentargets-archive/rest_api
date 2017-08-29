@@ -27,16 +27,14 @@ health_check:
   unhealthy_threshold: 2
   healthy_threshold: 1
 
-# [START env_variables]
-# Values need to be substituted from the environment
+# NOTE: Values below are commonly inserted by our CI system..
 env_variables:
     ELASTICSEARCH_URL: ${ES_URL}
     OPENTARGETS_API_CONFIG: production
-    OPENTARGETS_DATA_VERSION: "17.06.2"
+    OPENTARGETS_DATA_VERSION: ${DEPLOYED_DATA_VERSION}
     GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
-# [END env_variables]
 
 endpoints_api_service:
-  name: "open-targets-eu-dev.appspot.com"
-  config_id: "2017-07-07r1"
+  name: ${GCENDPOINT_URL}
+  config_id: ${GCENDPOINT_VERSION}
   #TODO make sure this config_id updates for every deployment
