@@ -153,6 +153,9 @@ jobs:
           # PRODUCTION EU elasticsearch
           environment: 
             ES_URL: http://35.195.41.74:39200
+            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
+            GCENDPOINT_VERSION: 2017-07-07r1
+            DEPLOYED_DATA_VERSION: 17.06.2
           command: |
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:
@@ -180,6 +183,9 @@ jobs:
           name: Substitute ENV vars for deploy (US prod)
           environment: 
             ES_URL: http://10.142.0.3:9200
+            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
+            GCENDPOINT_VERSION: 2017-07-07r1
+            DEPLOYED_DATA_VERSION: 17.06.2
           command: |
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:

@@ -17,4 +17,4 @@ https://<prod-tagname>-dot-opentargets-eu-dev.appspot.com/api/
 
 ### You might want to:
 
-* change ES_URL variables in the `config.yml` to reflect the ES in your project. Use local urls only
+* change ES_URL variables in the `config.yml` to reflect the ES in your project.
