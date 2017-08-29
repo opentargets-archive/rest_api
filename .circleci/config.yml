@@ -175,9 +175,8 @@ jobs:
 
       - run:
           name: Substitute ENV vars for deploy (US prod)
-          # PRODUCTION EU elasticsearch
           environment: 
-            ES_URL: http://10.132.0.3:9200
+            ES_URL: http://10.142.0.3:9200
           command: |
             bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
       - run:
