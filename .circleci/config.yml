@@ -262,11 +262,7 @@ workflows:
   build-test-and-deploy:
     jobs:
       # see https://discuss.circleci.com/t/build-required-steps-automatically-for-tag-filtered-workflows/15185
-      - build:
-        filters:
-            tags:
-              only: /.*/
-      
+      - build
       - push-containers:
           requires:
             - build	
@@ -280,6 +276,9 @@ workflows:
          type: approval
          requires:
            - api-tests
+        filters:
+            tags:
+              only: /^prod.*/
 
       - deploy-prod-eu:
           requires:
