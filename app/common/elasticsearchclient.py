@@ -87,8 +87,8 @@ def _inject_tissue_data(response, t2m):
                 try:
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
-                except KeyError as ke:
-                    print ke
+                except:
+                    pass
 
         if 'rna_expression_tissue' in response['facets']:
             bl = response['facets']['rna_expression_tissue']['buckets']
@@ -96,8 +96,8 @@ def _inject_tissue_data(response, t2m):
                 try:
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
-                except KeyError as ke:
-                    print ke
+                except:
+                    pass
 
     return response
 
