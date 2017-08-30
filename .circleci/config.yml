@@ -119,6 +119,7 @@ jobs:
       - run:
           name: Wait for appengine deployment
           command: |
+            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
             until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/api/latest/public/utils/version); do
             printf '.'
             sleep 20
@@ -127,8 +128,9 @@ jobs:
       - run:
           name: Trigger runscope dev-k8s tests on deployed branch
           command: |
+            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
             . venv/bin/activate
-            python .circleci/runscope/app.py https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}
+            python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}"
 
 workflows:
   version: 2

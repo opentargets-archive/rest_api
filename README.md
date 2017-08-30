@@ -49,25 +49,31 @@ mode there would allow code injection.
 Run Docker Container
 ====================
 
-build the container from source
+You can build the container from source:
 ```bash
 docker build -t rest_api:local .
 ```
+or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base))
 
-and then run the same container. 
-Notice you can specify the elasticsearch server using the ELASTICSEARCH_URL environment variable:
+Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable:
 ```bash
-docker run -d -p 8008:80 --name opentargets_rest_api -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged rest_api:local
+docker run -d -p 8008:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged quay.io/opentargets/rest_api
 ```
+For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
-or get it from [docker hub](https://hub.docker.com/r/opentargets/rest_api/builds/)
-```bash
-docker run -d -p 8008:8008 --name opentargets_rest_api -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged opentargets/rest_api
-
-```
-Notice that if you try to map port 80 inside the container with `-p 8008:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
+If you try to map port 80 inside the container with `-p 8008:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
 Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
 
-* Check that is running *
+**Check that is running**
 Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
-You can check that is talking to Elasticsearch by using the /public/utils/stats method.
+
+You can ping the API with `curl localhost:8008/api/latest/public/utils/ping`
+
+You can check that is talking to your instance of Elasticsearch by using the `/api/latest/public/utils/stats` method.
+
+### Why privileged mode?
+The rest api container runs 3 services talking and launching each other: nginx, uwsgi and the actual flask app.
+nginx and uwsgi talks trough a binary protocol in a unix socket.
+it is very efficient, but by default sockets have a small queue, so if nginx is under heavy load and sends too many requests to uwsgi they get rejected by the socket and raise an error. to increase the size of the queue unfortunately you need root privileges.
+at the moment we think that the performance gain is worth the privileged mode. but it strongly depends on the environment you deploy the container into
+
