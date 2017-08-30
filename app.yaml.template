@@ -32,7 +32,7 @@ health_check:
 env_variables:
     ELASTICSEARCH_URL: "http://10.132.0.3:9200"
     OPENTARGETS_API_CONFIG: production
-    OPENTARGETS_DATA_VERSION: "mkes5"
+    OPENTARGETS_DATA_VERSION: "mkes5.2"
     GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
 # [END env_variables]
 
