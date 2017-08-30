@@ -1,5 +1,5 @@
-__author__ = 'andreap'
-
+from __future__ import print_function
+import sys
 import io
 import json
 import csv
@@ -7,6 +7,8 @@ from contextlib import contextmanager
 import tempfile as tmp
 import requests as r
 from config import Config
+
+__author__ = 'andreap'
 
 
 @contextmanager
@@ -57,7 +59,14 @@ def load_tissue_map():
     tmap = None
     try:
         tmap = __generate_tissue_map(Config.ES_TISSUE_MAP_URL.format(Config.DATA_VERSION))
+        print('generate tissue map from DATA_VERSION tag on',
+              Config.ES_TISSUE_MAP_URL.format(Config.DATA_VERSION))
     except:
         tmap = __generate_tissue_map(Config.ES_TISSUE_MAP_URL.format('master'))
+        print('failed to generate tissue map for Config.DATA_VERSION',
+              Config.DATA_VERSION,
+              'so getting it from master',
+              Config.ES_TISSUE_MAP_URL.format('master'),
+              file=sys.stderr)
 
     return tmap
