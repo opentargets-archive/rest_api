@@ -102,13 +102,36 @@ jobs:
       - run:
           name: Check if there is an endpoint
           command: | 
-            gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json
+            gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json && echo "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" || echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
           environment: 
             ES_URL: http://10.132.0.9:9200
             DEPLOYED_DATA_VERSION: 17.06.2
-          when: always
+          when: on_success
+          command: |
+            # we assume there already is a config for master branch
+            # if we are in a branch, see if we have a config for it and read the ID
+            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id')
+              if [ $? -eq 0 ]; then
+                echo "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
+                echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
+              else
+                echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
+                bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
+                gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+              fi
+            fi
+            
+            echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new minor version)
+          environment: 
+            ES_URL: http://10.132.0.9:9200
+            DEPLOYED_DATA_VERSION: 17.06.2
+          when: on_success
           command: |
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
