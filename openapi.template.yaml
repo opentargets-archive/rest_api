@@ -1,11 +1,11 @@
 swagger: '2.0'
-host: "${GOOGLE_PROJECT_ID}.appspot.com"
+host: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
 x-google-endpoints:
-  - name: "${GOOGLE_PROJECT_ID}.appspot.com"
+  - name: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
     allowCors: "true"
 basePath: "/v2"
 info:
-  version: 2.1.1
+  version: 2.1.1-${CIRCLE_BRANCH}
   title: Open Targets Platform REST API
   description: Open Targets Platform API 
   license:

@@ -89,6 +89,9 @@ jobs:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
     steps:
       - checkout
+      - run: 
+          name: install jq
+          command: apt-get install -y jq && jq --version
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -96,19 +99,29 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-      - run:
+      - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
+          environment: 
+            ES_URL: http://10.132.0.9:9200
+            GCENDPOINT_VERSION: 2017-07-07r1
+            DEPLOYED_DATA_VERSION: 17.06.2
           command: |
-            bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              #make a check to see if the minor version changed or we are in a new branch
-              echo master
+            # we assume there already is a config for master branch
+            # if we are in a branch, see if we have a config for it and read the ID
+            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id')
+              if [ $? -eq 0 ]; then
+                echo "\n\n>>> Found a Google Endpoint for ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com 
+                echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
+              else
+                echo "\n\n>>> Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
+                bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
+                gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+              fi
             fi
-            gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
-      - run:
-          name: read the Google Endpoints deployment config id
-          command: |
-            configid=$(gcloud --project open-targets-staging service-management configs list --service=${GCENDPOINT_URL}.appspot.com | tail -n 1| cut -f 1 -d ' ')
+            
+            echo "\n\n>>> Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
 
       # - run:
       #     name: configure google cloud endpoints
@@ -126,14 +139,7 @@ jobs:
       #           echo ">> Keeping the same Endpoints configuration"
       #         fi
       #       done 
-      - run:
-          name: Substitute ENV vars for deploy (EU dev)
-          environment: 
-            ES_URL: http://10.132.0.9:9200
-            GCENDPOINT_VERSION: 2017-07-07r1
-            DEPLOYED_DATA_VERSION: 17.06.2
-          command: |
-            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
+ 
       - run:
           name: Deploy branch to google AppEngine
           #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
