@@ -99,19 +99,23 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Check if there is an endpoint
+          run: | 
+            gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
           environment: 
             ES_URL: http://10.132.0.9:9200
-            GCENDPOINT_VERSION: 2017-07-07r1
             DEPLOYED_DATA_VERSION: 17.06.2
+          when: always
           command: |
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id')
+              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id')
               if [ $? -eq 0 ]; then
-                echo "\n\n### Found a Google Endpoint for ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
+                echo "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
                 echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
               else
                 echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
