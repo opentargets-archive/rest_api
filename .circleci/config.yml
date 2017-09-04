@@ -98,7 +98,7 @@ jobs:
             GCENDPOINT_VERSION: 2017-07-07r1
             DEPLOYED_DATA_VERSION: 17.06.2
           command: |
-            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
+            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine
           #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
@@ -157,7 +157,7 @@ jobs:
             GCENDPOINT_VERSION: 2017-07-07r1
             DEPLOYED_DATA_VERSION: 17.06.2
           command: |
-            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
+            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
@@ -187,7 +187,7 @@ jobs:
             GCENDPOINT_VERSION: 2017-07-07r1
             DEPLOYED_DATA_VERSION: 17.06.2
           command: |
-            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
+            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |

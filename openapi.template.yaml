@@ -1,0 +1,707 @@
+swagger: '2.0'
+host: "open-targets-staging.appspot.com"
+x-google-endpoints:
+  - name: "open-targets-staging.appspot.com"
+    allowCors: "true"
+basePath: "/v2"
+info:
+  version: 2.1.1
+  title: Open Targets Platform REST API
+  description: Open Targets Platform API 
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: Open Targets Platform team
+    email: support@targetvalidation.org
+  termsOfService: |
+    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
+    least a 24 hour ban.
+tags:
+  - name: public
+    # open: true
+    description: Publicly supported stable API.
+  - name: private
+    description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
+    # open: false
+  - name: auth
+    description: Authentication methods.
+    # open: false
+  - name: utils
+    # open: true
+    description: Utility methods.
+consumes:
+  - application/json
+produces:
+  - application/json
+  - text/xml
+  - text/tab-separated-values
+  - text/csv
+# Describe your paths here
+paths:
+  /swagger:
+    get:
+      operationId: getSwagger
+      tags:
+        - private
+      description: Get swagger.yaml specs for the API
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Swagger.yaml file"
+  /docs:
+    get:
+      operationId: getApiDocs
+      tags:
+        - private
+      description: Get api-description.md for the API
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Markdown API documentation file"        
+  # This is a path endpoint. Change it.
+  /public/evidence:
+    get:
+      operationId: getEvidenceById
+      tags:
+        - public
+      description: |
+        We call **evidence** a unit of data that support a connection between a target and a disease.
+        The Open Targets Platform integrates multiple types of evidence including genetic associations,
+        somatic mutations, RNA expression and target-disease associations mined from the literature.
+        This method allows you to retrieve a single evidence item or a list of pieces of evidence by using their
+        targetvalidation.org ID.
+
+        Evidence IDs are unique within each data release (e.g. `8ed3d7568a8c6cac9c95cfb869bac762` for release 1.2).
+        You can obtain a list of evidence and their IDs from other API calls such as [/public/evidence/filter](#!/public/get_public_evidence_filter).
+
+        **Please note** that a specific evidence ID may change between data releases. We can not guarantee that a specific evidence ID will refer to the same piece of evidence connecting a target and its diseases.
+      parameters:
+        - name: id
+          in: query
+          description: ID of the evidence string to retrieve.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
+    post:
+      operationId: postEvidenceById
+      tags:
+        - public
+      description: |
+        This is the POST version of [/public/evidence](#!/public/get_public_evidence).
+        It allows to query for a list of evidence strings encoded in a `json` object to be passed in the body.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"id":["id1", "id2"]}
+          description: IDs of the evidence string to retrieve.
+          required: true
+      responses:
+        200:
+          description: Successful response
+          # schema:
+          #   title: DataContainer
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
+  /public/evidence/filter:
+    get:
+      operationId: getEvidenceFilter
+      tags:
+        - public
+      description: |
+        The filter method allows to retrieve the specific data that supports a connection between targets and diseases.
+        Filters can be used to restrict the results by source and type of data,
+        or limit results to targets which are part of a particular pathway.
+        Minimum and maximum scores can be specified as well as the type of evidence linking target and disease.
+        **Note** that multiple genes and diseases can be specified in the same request.
+      parameters:
+        - name: target
+          in: query
+          description: A target identifier listed as target.id.
+          required: false
+          type: string
+        - name: disease
+          in: query
+          description: An EFO code listed as disease.id.
+          required: false
+          type: string
+        - name: data source
+          in: query
+          description: Data source to consider.
+          required: false
+          type: string
+        - name: datatype
+          in: query
+          description: Data type to consider.
+          required: false
+          type: string
+        - name: pathway
+          in: query
+          description: A pathway identifier (meaning all the targets linked to that pathway).
+          required: false
+          type: string
+        - name: uniprotkw
+          in: query
+          description: A UniProt keyword (meaning all the targets linked to that keyword).
+          required: false
+          type: string
+        - name: datastructure
+          in: query
+          description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
+          required: false
+          type: string
+        - name: fields
+          in: query
+          description: The fields you want to retrieve. This will get priority over the data structure requested.
+          required: false
+          type: string
+        - name: scorevalue_min
+          in: query
+          description: Filter by minimum score value. The default is 0, but using 0.2 is a good trade-off to filter lower quality data points.
+          required: false
+          type: number
+          format: float
+          default: 0.
+        - name: scorevalue_max
+          in: query
+          description: Filter by maximum score value.
+          required: false
+          type: number
+          format: float
+        - name: sort
+          in: query
+          description: |
+            Sort by the given field. The default is 'scores.association_score' in descending order. Use '~' prefix to do ascending
+            order e.g. '~scores.association_score'. It supports multiple entries.
+          required: false
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 10, max is 10000.
+          required: false
+          type: number
+          format: integer
+        - name: from
+          in: query
+          description: How many initial results should be skipped. Defaults to 0.
+          required: false
+          type: number
+          format: integer
+        - name: format
+          in: query
+          description: Format to get the data back. Can be 'json', 'xml', 'tab' or 'csv'. **Note** that this option can only be used when calling the API directly and will not work in this page. The response here will always be JSON.
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+    post:
+      operationId: postEvidenceFilter
+      tags:
+        - public
+      description: |
+        POST version of [/public/evidence/filter](#!/public/get_public_evidence_filter).
+        Filters can be specified as part of a `json` object in the body, simplifying the submission of queries.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["ENSG00000094755", "ENSG00000167207"], "disease":["EFO_0003767"]}
+          description: Filters to apply when retrieving evidence string objects.
+          required: true
+      responses:
+        200:
+          description: Successful response
+          # schema:
+          #   title: ArrayOfEvidenceStrings
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: EvidenceString
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
+  /public/association:
+    get:
+      operationId: getAssociationById
+      tags:
+        - public
+      description: |
+       Once we integrate all evidence connecting a target to a specific disease, we
+        compute an association score by the means of an harmonic sum. This *association score* provides
+        an indication of how strong the evidence behind each connection is and can be
+        used to rank genes in order of likelihood as drug targets.
+        The association ID is constructed by using the Ensembl ID of the gene and the
+        EFO ID for the disease (e.g. ENSG00000073756-EFO_0003767).
+        The method returns an association object, which contains the data and summary
+        on each evidence type included in the calculation of the score, as well as the score itself.
+      parameters:
+        - name: id
+          in: query
+          description: An association ID usually in the form of `TARGET_ID-DISEASE_ID`.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /public/association/filter:
+    get:
+      operationId: getAssociationFilter
+      tags:
+        - public
+      description: |
+        More complex queries for associations scores and objects can be done using
+        this method, which allows to sort in different order, restrict to a specific class
+        of diseases or targets, as well as filtering results by score and associated pathways.
+      parameters:
+        - name: target
+          in: query
+          description: A target identifier listed as target.id.
+          required: false
+          type: string
+        - name: disease
+          in: query
+          description: An EFO code listed as disease.id.
+          required: false
+          type: string
+        - name: therapeutic_area
+          in: query
+          description: An EFO code of a therapeutic area.
+          required: false
+          type: string
+        - name: datasource
+          in: query
+          description: Data source to consider.
+          required: false
+          type: string
+        - name: datatype
+          in: query
+          description: Data type to consider.
+          required: false
+          type: string
+        - name: pathway
+          in: query
+          description: A Reactome pathway identifier (returning only those targets linked to the specified pathway).
+          required: false
+          type: string
+        - name: target_class
+          in: query
+          description: A ChEMBL target class identifier (returning only those targets belonging to the specified class).
+          required: false
+          type: string
+        - name: uniprotkw
+          in: query
+          description: A UniProt keyword (meaning all the targets linked to that keyword).
+          required: false
+          type: string
+        - name: direct
+          in: query
+          description: If `true`, it returns associations that have at least one direct evidence connecting the target and the disease. If `false` it only returns associations for which there is no direct evidence connecting the target and the disease, but only evidence connecting the target to a children of the disease in the EFO ontology.
+          required: false
+          type: boolean
+        - name: datastructure
+          in: query
+          description: Type of data structure to return. Can be 'full', 'simple', 'ids', or 'count'.
+          required: false
+          type: string
+        - name: fields
+          in: query
+          description: Fields you want to retrieve. This will get priority over the data structure requested.
+          required: false
+          type: string
+        - name: facets
+          in: query
+          description: Returns facets
+          required: false
+          type: boolean
+          default: false
+        - name: scorevalue_min
+          in: query
+          description: Filter by minimum score value. The default is 0, but using 0.2 is a good trade-off to filter lower quality data points.
+          required: false
+          type: number
+          format: float
+          default: 0
+        - name: scorevalue_max
+          in: query
+          description: Filter by maximum score value.
+          required: false
+          type: number
+          format: float
+        - name: scorevalue_types
+          in: query
+          description: Score types to apply the score value min and max filters. The default is `overall`.
+          required: false
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 10, max is 10000.
+          required: false
+          type: number
+          format: integer
+        - name: from
+          in: query
+          description: How many initial results should be skipped. Defaults to 0.
+          required: false
+          type: number
+          format: integer
+        - name: format
+          in: query
+          description: Format to get the data back. Can be 'json', 'xml', 'tab' or 'csv'. **Note** that this option can only be used when calling the API directly and will not work in this page. The response here will always be JSON.
+          required: false
+          type: string
+        - name: sort
+          in: query
+          description: |
+            Sort by the given score type. Defaults to 'overall' and descending order. Use '~' prefix to do ascending
+            order e.g. '~overall'. You will call a data type score like: 'datatypes.literature', and a data source as
+            'datasources.gwas'. Supports multiple entries.
+          required: false
+          type: string
+        - name: search
+          in: query
+          description: |
+            Restrict the filtered results to those matching the passed string. The matching is done with a
+            phrase match prefix.
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
+    post:
+      operationId: postAssociationFilter
+      tags:
+        - public
+      description: |
+        Complex queries and filters for association objects can also be submitted using a JSON
+        object and the equivalent POST method.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"]}
+          description: Filters to apply when retrieving association objects.
+          required: true
+      responses:
+        200:
+          description: Successful response
+          # schema:
+          #   title: ArrayOfAssociations
+          #   type: object
+          #   properties:
+          #       data:
+          #         type: array
+          #   items:
+          #     title: Associations
+          #     type: object
+          #     properties:
+          #       id:
+          #         type: string
+  /private/disease/{disease}:
+    get:
+      operationId: getDiseaseById
+      tags:
+        - private
+      description: |
+        Get `disease` objects.
+      parameters:
+        - name: disease
+          in: path
+          type: string
+          required: true
+          description: An EFO ID of the disease of interest.
+      responses:
+        200:
+          description: Successful response
+  /private/eco/{ECO_ID}:
+    get:
+      operationId: getECObyID
+      tags:
+        - private
+      description: |
+        Get `ECO` objects.
+      parameters:
+        - name: ECO_ID
+          in: path
+          type: string
+          required: true
+          description: An [evidence code ontology](http://www.ebi.ac.uk/ols/v2/browse.do?ontName=ECO) ID.
+      responses:
+        200:
+          description: Successful response
+  /private/target/{target}:
+    get:
+      operationId: getTargetByENSGID
+      tags:
+        - private
+      description: |
+        Get `target` objects.
+      parameters:
+        - name: target
+          in: path
+          required: true
+          description: An Ensembl gene ID for the target of interest.
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /private/target/expression:
+    get:
+      operationId: getTargetExpressionByENSGID
+      tags:
+        - private
+      description: |
+        Get `gene-expression` objects.
+      parameters:
+        - name: gene
+          in: query
+          description: An Ensembl gene identifier.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+    post:
+      operationId: postTargetExpressionByENSGID
+      tags:
+        - private
+      description: |
+        Get `gene-expression` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"gene":["gene1", "gene2"]}
+          description: An Ensembl gene identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /private/besthitsearch:
+    post:
+      operationId: postBestHitSearch
+      tags:
+        - private
+      description: |
+        Fire the search method for multiple strings
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            # type: array
+            # minItems: 1
+            # maxItems: 200
+            # items:
+            #   type: string
+          description: list of strings to search for
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /public/search:
+    get:
+      operationId: getSearch
+      tags:
+        - public
+      description: |
+        This method allows you to look for gene or diseases of interest using a free text search,
+        replicating the functionality of the search box on our homepage. It should be used to identify
+        the best match for a disease or target of interest, rather than gathering a specific set of evidence.
+      parameters:
+        - name: q
+          in: query
+          description: A full text query.
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 10, max is 10000.
+          required: false
+          type: string
+        - name: from
+          in: query
+          description: How many initial results should be skipped. Defaults to 0.
+          required: false
+          type: string
+        - name: filter
+          in: query
+          description: Restrict the search to the type requested. Eg. `target` or `disease`.
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /private/quicksearch:
+    get:
+      operationId: getQuickSearch
+      tags:
+        - private
+      description: |
+        Get `search-result` objects.
+      parameters:
+        - name: q
+          in: query
+          description: A full text query.
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 5.
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /private/autocomplete:
+    get:
+      operationId: getAutocomplete
+      tags:
+        - private
+      description: |
+        Get `autocomplete` objects.
+      parameters:
+        - name: q
+          in: query
+          description: A full text query.
+          required: true
+          type: string
+        - name: size
+          in: query
+          description: Maximum amount of results to return. Defaults to 5.
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /public/auth/request_token:
+    get:
+      operationId: getAuthToken
+      tags:
+        - public
+        - auth
+      description: |
+        Get an authentication token in the form of [JWT](https://jwt.io/).
+      parameters:
+        - name: app_name
+          in: query
+          description: The name of the app you are using to request a token. You need to register the app before you will be able to request a token.
+          required: true
+          type: string
+        - name: secret
+          in: query
+          description: The secret you were given when registering your app.
+          required: true
+          type: string
+        #- name: uid
+        #  in: query
+        #  description: the id of the user that is using your app
+        #  required: false
+        #  type: string
+        #- name: password
+        #  in: query
+        #  description: the password of the user that is using your app
+        #  required: false
+        #  type: string
+        - name: expiry
+          in: query
+          description: Seconds before the token expires
+          required: false
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /public/auth/validate_token:
+    get:
+      operationId: ValidateToken
+      tags:
+        - public
+        - utils
+        - auth
+      description: |
+        It succeeds if token is valid. You should test this call by passing the token in the header
+        as 'Auth-Token'.
+      responses:
+        200:
+          description: Successful response
+  /public/utils/ping:
+    get:
+      operationId: getPing
+      tags:
+        - public
+        - utils
+      description: |
+        Ping service
+      responses:
+        200:
+          description: Successful response
+  /public/utils/version:
+    get:
+      operationId: getVersion
+      tags:
+        - public
+        - utils
+      description: |
+        Get current API version.
+      responses:
+        200:
+          description: Successful response
+  /public/utils/stats:
+    get:
+      operationId: getDataStats
+      tags:
+        - public
+        - utils
+      description: |
+        Get stats about available data.
+      responses:
+        200:
+          description: Successful response
