@@ -38,7 +38,7 @@ jobs:
       - image: circleci/python:2.7
     environment:
       QUAY_REPO: quay.io/opentargets/rest_api
-      GCR_REPO: eu.gcr.io/
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
     working_directory: ~/circulate
     steps:
       - checkout
