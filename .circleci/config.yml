@@ -67,7 +67,7 @@ jobs:
           name: Push to Google Container Registry (gcr.io)
           command: |
             echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-            docker login -u _json_key -p ${HOME}/gcp-key.json https://eu.gcr.io
+            docker login -u _json_key -p "$(cat ${HOME}/gcp-key.json)" https://eu.gcr.io
             ## branch tag and push
             docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
             docker push ${GCR_REPO}:${CIRCLE_BRANCH}
@@ -101,7 +101,7 @@ jobs:
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
       - run:
           name: Check if there is an endpoint
-          run: | 
+          command: | 
             gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
