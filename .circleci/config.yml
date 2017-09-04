@@ -36,6 +36,9 @@ jobs:
   push-containers:
     docker:
       - image: circleci/python:2.7
+    environment:
+      QUAY_REPO: quay.io/opentargets/rest_api
+      GCR_REPO: eu.gcr.io/
     working_directory: ~/circulate
     steps:
       - checkout
@@ -60,11 +63,30 @@ jobs:
                 docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
                 docker push ${QUAY_REPO}:latest
             fi
+      - run:
+          name: Push to Google Container Registry (gcr.io)
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            docker login -u _json_key -p ${HOME}/gcp-key.json https://eu.gcr.io
+            ## branch tag and push
+            docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
+            docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+            ## sha commit push
+            docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ] 
+              then
+                docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
+                docker push ${GCR_REPO}:latest
+            fi
 
   deploy:
     working_directory: ~/circulate
     docker:
       - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
     steps:
       - checkout
       - run:
@@ -74,6 +96,20 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Deploy to google endpoints (if a new branch or a new minor version)
+          command: |
+            bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              #make a check to see if the minor version changed or we are in a new branch
+              echo master
+            fi
+            gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+      - run:
+          name: read the Google Endpoints deployment config id
+          command: |
+            configid=$(gcloud --project open-targets-staging service-management configs list --service=${GCENDPOINT_URL}.appspot.com | tail -n 1| cut -f 1 -d ' ')
+
       # - run:
       #     name: configure google cloud endpoints
       #     command: |
@@ -94,20 +130,21 @@ jobs:
           name: Substitute ENV vars for deploy (EU dev)
           environment: 
             ES_URL: http://10.132.0.9:9200
-            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
             GCENDPOINT_VERSION: 2017-07-07r1
             DEPLOYED_DATA_VERSION: 17.06.2
           command: |
-            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
+            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
       - run:
           name: Deploy branch to google AppEngine
           #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project open-targets-eu-dev
+            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID}
 
   api-tests:
     docker:
       - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
     working_directory: ~/circulate
     steps:
       - checkout
@@ -134,6 +171,9 @@ jobs:
             . venv/bin/activate
             python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}"
 
+
+
+  #hold on for now
   deploy-prod-eu:
     working_directory: ~/circulate
     docker:

@@ -1,7 +1,7 @@
 swagger: '2.0'
-host: "open-targets-staging.appspot.com"
+host: "${GOOGLE_PROJECT_ID}.appspot.com"
 x-google-endpoints:
-  - name: "open-targets-staging.appspot.com"
+  - name: "${GOOGLE_PROJECT_ID}.appspot.com"
     allowCors: "true"
 basePath: "/v2"
 info:
