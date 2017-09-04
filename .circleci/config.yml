@@ -111,16 +111,16 @@ jobs:
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id')
               if [ $? -eq 0 ]; then
-                echo "\n\n>>> Found a Google Endpoint for ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com 
+                echo "\n\n### Found a Google Endpoint for ${CIRCLE-BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
                 echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
               else
-                echo "\n\n>>> Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
+                echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
                 bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
                 gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
               fi
             fi
             
-            echo "\n\n>>> Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
             bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
 
       # - run:
