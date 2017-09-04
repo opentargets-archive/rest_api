@@ -3299,7 +3299,8 @@ class AggregationBuilder(object):
             '''get available aggregations'''
             for agg in self._UNIT_MAP:
                 if agg not in aggs_not_to_be_returned:
-                    if params.facets == "true" or params.facets == agg:
+                    # params.facets should be a string with all requested facets
+                    if params.facets == "true" or agg in params.facets:
                         self.units[agg].build_agg(self.filters)
                         if self.units[agg].agg:
                             self.aggs[agg] = self.units[agg].agg
