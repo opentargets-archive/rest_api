@@ -110,16 +110,18 @@ jobs:
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
             # if [ "${CIRCLE_BRANCH}" != "master" ]; then
-            GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id') &&
-            echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" &&
-            echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
-            echo -e "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch\n\n" &&
-            envsubst < openapi.template.yaml > openapi.yaml &&
-            gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+            GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id') 
+            
+            if [ -z "$GCENDPOINT_VERSION" ]; then
+              echo -e "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch\n\n"
+              envsubst < openapi.template.yaml > openapi.yaml
+              gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
 
-            if [ -z "$GCENDPOINT_VERSION" ]; then 
               echo -e "read the ENDPOINT ID of the new deployment"
               GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id')
+            else
+              echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" &&
+              echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
             fi
             
             echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
