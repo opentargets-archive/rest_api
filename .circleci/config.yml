@@ -111,18 +111,18 @@ jobs:
           command: |
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
-            if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id') &&
-              echo "### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
-              echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
+            # if [ "${CIRCLE_BRANCH}" != "master" ]; then
+            GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.serviceConfig.id') &&
+            echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" &&
+            echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
               
-              echo "### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch"
-              envsubst < openapi.template.yaml > ${CIRCLE_WORKING_DIRECTORY}/openapi.yaml
-              gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
-            fi
+            echo -e "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch\n\n" &&
+            envsubst < openapi.template.yaml > openapi.yaml &&
+            gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+            # fi
             
             echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
-            envsubst < app.template.yaml > ${CIRCLE_WORKING_DIRECTORY}/app.yaml
+            envsubst < app.template.yaml > app.yaml
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
           environment: 
@@ -139,13 +139,13 @@ jobs:
                 echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
               else
                 echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
-                envsubst < openapi.template.yaml > ${CIRCLE_WORKING_DIRECTORY}/openapi.yaml
+                envsubst < openapi.template.yaml > openapi.yaml
                 gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
               fi
             fi
             
             echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
-            envsubst < app.template.yaml > ${CIRCLE_WORKING_DIRECTORY}/app.yaml
+            envsubst < app.template.yaml > app.yaml
 
       # - run:
       #     name: configure google cloud endpoints
