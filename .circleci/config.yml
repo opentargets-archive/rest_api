@@ -90,8 +90,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: install jq
-          command: apt-get install -y jq && jq --version
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -117,12 +117,12 @@ jobs:
               echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
               
               echo "### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch"
-              bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
+              envsubst < openapi.template.yaml > ${HOME}/openapi.yaml
               gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
             fi
             
             echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
-            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
+            envsubst < app.template.yaml > ${HOME}/app.yaml
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
           environment: 
@@ -139,13 +139,13 @@ jobs:
                 echo ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
               else
                 echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
-                bash .circleci/render.sh openapi.template.yaml > ${HOME}/openapi.yaml
+                envsubst < openapi.template.yaml > ${HOME}/openapi.yaml
                 gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
               fi
             fi
             
             echo "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
-            bash .circleci/render.sh app.template.yaml > ${HOME}/app.yaml
+            envsubst < app.template.yaml > ${HOME}/app.yaml
 
       # - run:
       #     name: configure google cloud endpoints
