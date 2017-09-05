@@ -57,17 +57,17 @@ or use our docker containers on quay.io ([![Docker Repository on Quay](https://q
 
 Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable:
 ```bash
-docker run -d -p 8008:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged quay.io/opentargets/rest_api
+docker run -d -p 8080:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged quay.io/opentargets/rest_api
 ```
 For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
-If you try to map port 80 inside the container with `-p 8008:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
+If you try to map port 80 inside the container with `-p 8080:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
 Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
 
 **Check that is running**
-Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
+Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
 
-You can ping the API with `curl localhost:8008/api/latest/public/utils/ping`
+You can ping the API with `curl localhost:8080/api/latest/public/utils/ping`
 
 You can check that is talking to your instance of Elasticsearch by using the `/api/latest/public/utils/stats` method.
 

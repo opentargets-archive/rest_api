@@ -111,7 +111,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('rna_expression_level' in json_response['facets'])
 
     # TODO mkarmona add this test
-    # http://localhost:8008/api/latest/public/association/filter?facets=true&target=ENSG00000068078&rna_expression_tissue=UBERON_0002097
+    # http://localhost:8080/api/latest/public/association/filter?facets=true&target=ENSG00000068078&rna_expression_tissue=UBERON_0002097
     def testAssociationsExpressionFilter(self):
         target = 'ENSG00000157764'
         response = self._make_request('/api/latest/public/association/filter',

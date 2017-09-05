@@ -247,7 +247,7 @@ class EvidenceTestCase(GenericTestCase):
     #         '/api/latest/public/evidence/filter?size=1000&datasource=chembl&fields=disease.efo_info&fields=drug&fields=evidence&fields=target&fields=access_level&target=ENSG00000101144&disease=EFO_0001444&expandefo=true']
     #
     #     for i in range(1):
-    #         rs = (grequests.get('http://localhost:8008'+u) for u in web_app_calls)
+    #         rs = (grequests.get('http://localhost:8080'+u) for u in web_app_calls)
     #         print grequests.map(rs)
     #
     #         # for call in web_app_calls:
