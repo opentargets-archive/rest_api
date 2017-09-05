@@ -119,9 +119,11 @@ jobs:
 
               echo -e "read the ENDPOINT ID of the new deployment"
               GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id')
+              export GCENDPOINT_VERSION
             else
               echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
               echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
+              export GCENDPOINT_VERSION
             fi
             
             echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
