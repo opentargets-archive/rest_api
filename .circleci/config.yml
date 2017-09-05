@@ -92,6 +92,7 @@ jobs:
       - run: 
           name: install jq & envsubst
           command: apt-get install -y jq gettext-base && jq --version
+
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -99,10 +100,7 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-      # - run:
-      #     name: Check if there is an endpoint
-      #     command: | 
-      #       gcloud --project ${GOOGLE_PROJECT_ID} service-management describe ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json && echo "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" || echo "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch \n\n"
+
       - run: 
           name: Deploy to google endpoints (if a new branch or a new minor version)
           environment: 
@@ -115,7 +113,6 @@ jobs:
             GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id') &&
             echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com" &&
             echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n" ||
-              
             echo -e "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch\n\n" &&
             envsubst < openapi.template.yaml > openapi.yaml &&
             gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
