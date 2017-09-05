@@ -108,25 +108,44 @@ jobs:
             ES_URL: http://10.132.0.9:9200
             DEPLOYED_DATA_VERSION: 17.06.2
           command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
             # if [ "${CIRCLE_BRANCH}" != "master" ]; then
             GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id') 
             
             if [ -z "$GCENDPOINT_VERSION" ]; then
-              echo -e "\n\n### Deploying to google endpoints for the ${CIRCLE_BRANCH} branch\n\n"
+              # could not find an existing one
+              echo -e "\n\n### Could not find an existing Google Endpoints deployment"
+              echo -e "### Deploying to Google Endpoints for the ${CIRCLE_BRANCH} branch\n\n"
+
               envsubst < openapi.template.yaml > openapi.yaml
               gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
 
               echo -e "read the ENDPOINT ID of the new deployment"
               GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id')
-              export GCENDPOINT_VERSION
+
             else
+              # could find an endpoint
               echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
-              echo -e ">>> Using the existing config, id - ${GCENDPOINT_VERSION} \n\n"
-              export GCENDPOINT_VERSION
+              
+              echo -e "### Checking if the existing config [ ${GCENDPOINT_VERSION} ] matches the version \n\n"
+              GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs describe ${GCENDPOINT_VERSION} --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.apis[0] | .version')
+
+              if [ "${GCENDPOINT_API_VERSION}" != "${API_VERSION_MINOR}-${CIRCLE_BRANCH}" ]; then
+                echo -e "\n\n### API version mismatch. Re-deploying to Google Endpoints for the ${CIRCLE_BRANCH} branch\n\n"
+                envsubst < openapi.template.yaml > openapi.yaml
+                gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+              else
+                echo -e "\n\n### API version matches. Will use the same Google Endpoint deployment.\n\n"
+
             fi
-            
+            #make it available
             echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
