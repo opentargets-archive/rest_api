@@ -35,6 +35,9 @@ def es_available():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
     return es.ping(), "elasticsearch is up"
 
+#NOTE: if pinging es fails, google appengine will not make any path available
+#TODO: decide if this is too strict, in which case we simply comment out the 
+# line below
 health.add_check(es_available)
 
 envdump = EnvironmentDump(app, "/environment", 
