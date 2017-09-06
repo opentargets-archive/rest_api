@@ -18,7 +18,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''first call'''
         start_time = time.time()
-        response = self._make_request('/api/latest/private/enrichment/targets',
+        response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
                                             'method': 'POST',
                                             'no_cache': True
@@ -37,7 +37,7 @@ class AssociationTestCase(GenericTestCase):
         print 'enriched diseases', json_response['total']
         '''check cache works'''
         start_time = time.time()
-        response = self._make_request('/api/latest/private/enrichment/targets',
+        response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
                                             'method': 'POST',
                                             'no_cache': True
@@ -49,7 +49,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''check size works'''
         size = 100
-        size_response = self._make_request('/api/latest/private/enrichment/targets',
+        size_response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
                                             'size':size,
                                             'method': 'POST',
@@ -61,7 +61,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''check from works'''
         from_ = 50
-        from_response = self._make_request('/api/latest/private/enrichment/targets',
+        from_response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
                                             'from':from_,
                                             'method': 'POST',
@@ -72,7 +72,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertEqual(json_response_from['data'][0], json_response_size['data'][from_])
         '''check sort works'''
         size = 100
-        sort_response = self._make_request('/api/latest/private/enrichment/targets',
+        sort_response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                            data={'target': self.IBD_GENES,
                                                  'size': size,
                                                  'method': 'POST',
@@ -88,7 +88,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertEqual(len(json_response_size['data']), size)
         '''check lower pvalue filter works'''
         pvalue = 1e-20
-        pvalue_response = self._make_request('/api/latest/private/enrichment/targets',
+        pvalue_response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                            data={'target': self.IBD_GENES,
                                                  'size': 10000,
                                                  'pvalue': pvalue,
@@ -102,7 +102,7 @@ class AssociationTestCase(GenericTestCase):
             self.assertLessEqual(i['enrichment']['score'],pvalue)
         '''check higher pvalue filter works'''
         pvalue = 1
-        pvalue_response = self._make_request('/api/latest/private/enrichment/targets',
+        pvalue_response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                              data={'target': self.IBD_GENES,
                                                    'size': 10000,
                                                    'pvalue': pvalue,
@@ -117,7 +117,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationTargetEnrichmentGet(self):
 
-        response = self._make_request('/api/latest/private/enrichment/targets',
+        response = self._make_request('/v'+str(api_version)+'/platform/private/enrichment/targets',
                                       data={'target': self.IBD_GENES,
                                             },
                                       token=self._AUTO_GET_TOKEN)

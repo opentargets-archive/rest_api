@@ -43,7 +43,7 @@ class GenericTestCase(unittest.TestCase):
         self.app.extensions['redis-user'].delete(self.auth_key.get_key())
 
     def _make_token_request(self, expire = 10*60):
-        return self._make_request('/api/latest/public/auth/request_token',data={'app_name':self.auth_key.app_name,
+        return self._make_request('/v'+str(api_version)+'/platform/public/auth/request_token',data={'app_name':self.auth_key.app_name,
                                                                                'secret':self.auth_key.secret,
                                                                                 'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
@@ -88,7 +88,7 @@ class GenericTestCase(unittest.TestCase):
 
     def update_token(self):
         if self.token:
-            token_valid_response = self._make_request('/api/latest/public/auth/validate_token',
+            token_valid_response = self._make_request('/v'+str(api_version)+'/platform/public/auth/validate_token',
                                                        headers={'Auth-Token':self.token})
             if token_valid_response.status_code == 200:
                 return

@@ -20,7 +20,7 @@ class TargetTestCase(GenericTestCase):
 
     def testGetTarget(self):
         id = 'ENSG00000157764'#braf
-        response= self._make_request('/api/latest/private/target/%s'%id,
+        response= self._make_request('/v'+str(api_version)+'/platform/private/target/%s'%id,
                                      data={'no_cache': 'True'},
                                    token=self._AUTO_GET_TOKEN,
                                      )
@@ -31,7 +31,7 @@ class TargetTestCase(GenericTestCase):
 
     def testGetMultipleTargets(self):
         ids = ['ENSG00000157764', 'ENSG00000162594', 'ENSG00000167207']
-        response = self._make_request('/api/latest/private/target',
+        response = self._make_request('/v'+str(api_version)+'/platform/private/target',
                                       data={'no-cache': 'True',
                                             'id':ids},
                                       token=self._AUTO_GET_TOKEN,
@@ -48,7 +48,7 @@ class TargetTestCase(GenericTestCase):
     def testGetFieldsFromTargets(self):
         ids = ['ENSG00000157764', 'ENSG00000162594', 'ENSG00000167207']
         fields = ['ensembl_gene_id', 'pubmed_ids', 'go']
-        response = self._make_request('/api/latest/private/target',
+        response = self._make_request('/v'+str(api_version)+'/platform/private/target',
                                       data={'no-cache': 'True',
                                             'fields': fields,
                                             'id': ids},

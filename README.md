@@ -65,11 +65,11 @@ If you try to map port 80 inside the container with `-p 8080:80` you may get a `
 Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
 
 **Check that is running**
-Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
+Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/platform/docs](http://localhost:8080/platform/docs/swagger.yaml)
 
-You can ping the API with `curl localhost:8080/api/latest/public/utils/ping`
+You can ping the API with `curl localhost:8080/v2.1/platform/public/utils/ping`
 
-You can check that is talking to your instance of Elasticsearch by using the `/api/latest/public/utils/stats` method.
+You can check that is talking to your instance of Elasticsearch by using the `/platform/latest/public/utils/stats` method.
 
 ### Why privileged mode?
 The rest api container runs 3 services talking and launching each other: nginx, uwsgi and the actual flask app.
