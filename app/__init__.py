@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import requests
-from flask import Flask, redirect, Blueprint, send_file, g, request
+from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -271,45 +271,49 @@ def create_app(config_name):
     @app.before_request
     def before_request():
         g.request_start = datetime.now()
-    @app.after_request
+    @app.teardown_request
     def after(resp):
-        rate_limiter = RateLimiter()
-        now = datetime.now()
-        took = (now - g.request_start).total_seconds()*1000
-        if took > 500:
-            cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
-            resp.headers.add('X-Accel-Expires', cache_time)
-        took = int(round(took))
-        LogApiCallWeight(took)
-        # if took < RateLimiter.DEFAULT_CALL_WEIGHT:
-        #     took = RateLimiter.DEFAULT_CALL_WEIGHT
-        current_values = increment_call_rate(took,rate_limiter)
-        now = datetime.now()
-        ceil10s=round(ceil_dt_to_future_time(now, 10),2)
-        ceil1h=round(ceil_dt_to_future_time(now, 3600),2)
-        usage_left_10s = rate_limiter.short_window_rate-current_values['short']
-        usage_left_1h = rate_limiter.long_window_rate - current_values['long']
-        min_ceil = ceil10s
-        if usage_left_1h <0:
-            min_ceil = ceil1h
-        if (usage_left_10s < 0) or (usage_left_1h <0):
-            resp.headers.add('Retry-After', min_ceil)
-        resp.headers.add('X-API-Took', took)
-        resp.headers.add('X-Usage-Limit-10s', rate_limiter.short_window_rate)
-        resp.headers.add('X-Usage-Limit-1h', rate_limiter.long_window_rate)
-        resp.headers.add('X-Usage-Remaining-10s', usage_left_10s)
-        resp.headers.add('X-Usage-Remaining-1h', usage_left_1h)
-        # resp.headers.add('X-Usage-Limit-Reset-10s', ceil10s)
-        # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
-        if do_not_cache(request):# do not cache in the browser
-            resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
-        else:
-            resp.headers.add('Cache-Control', "no-transform, public, max-age=%i, s-maxage=%i"%(took*1800/1000, took*9000/1000))
-        return resp
+        try:
 
+            rate_limiter = RateLimiter()
+            now = datetime.now()
+            took = (now - g.request_start).total_seconds()*1000
+            if took > 500:
+                cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
+                resp.headers.add('X-Accel-Expires', cache_time)
+            took = int(round(took))
+            LogApiCallWeight(took)
+            # if took < RateLimiter.DEFAULT_CALL_WEIGHT:
+            #     took = RateLimiter.DEFAULT_CALL_WEIGHT
+            current_values = increment_call_rate(took,rate_limiter)
+            now = datetime.now()
+            ceil10s=round(ceil_dt_to_future_time(now, 10),2)
+            ceil1h=round(ceil_dt_to_future_time(now, 3600),2)
+            usage_left_10s = rate_limiter.short_window_rate-current_values['short']
+            usage_left_1h = rate_limiter.long_window_rate - current_values['long']
+            min_ceil = ceil10s
+            if usage_left_1h <0:
+                min_ceil = ceil1h
+            if (usage_left_10s < 0) or (usage_left_1h <0):
+                resp.headers.add('Retry-After', min_ceil)
+            resp.headers.add('X-API-Took', took)
+            resp.headers.add('X-Usage-Limit-10s', rate_limiter.short_window_rate)
+            resp.headers.add('X-Usage-Limit-1h', rate_limiter.long_window_rate)
+            resp.headers.add('X-Usage-Remaining-10s', usage_left_10s)
+            resp.headers.add('X-Usage-Remaining-1h', usage_left_1h)
+            # resp.headers.add('X-Usage-Limit-Reset-10s', ceil10s)
+            # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
+            if do_not_cache(request):# do not cache in the browser
+                resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
+            else:
+                resp.headers.add('Cache-Control', "no-transform, public, max-age=%i, s-maxage=%i"%(took*1800/1000, took*9000/1000))
+            return resp
 
+        except Exception as e:
+            app.logger.traceback('failed request teardown function', str(e))
+            return resp
 
     return app
 
