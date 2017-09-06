@@ -62,7 +62,7 @@ paths:
         200:
           description: "Markdown API documentation file"        
   # This is a path endpoint. Change it.
-  /public/evidence:
+  /platform/public/evidence:
     get:
       operationId: getEvidenceById
       tags:
@@ -130,7 +130,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /public/evidence/filter:
+  /platform/public/evidence/filter:
     get:
       operationId: getEvidenceFilter
       tags:
@@ -253,7 +253,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /public/association:
+  /platform/public/association:
     get:
       operationId: getAssociationById
       tags:
@@ -276,7 +276,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/association/filter:
+  /platform/public/association/filter:
     get:
       operationId: getAssociationFilter
       tags:
@@ -443,7 +443,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /private/disease/{disease}:
+  /platform/private/disease/{disease}:
     get:
       operationId: getDiseaseById
       tags:
@@ -459,7 +459,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/eco/{ECO_ID}:
+  /platform/private/eco/{ECO_ID}:
     get:
       operationId: getECObyID
       tags:
@@ -475,7 +475,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/target/{target}:
+  /platform/private/target/{target}:
     get:
       operationId: getTargetByENSGID
       tags:
@@ -491,7 +491,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/target/expression:
+  /platform/private/target/expression:
     get:
       operationId: getTargetExpressionByENSGID
       tags:
@@ -525,7 +525,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/besthitsearch:
+  /platform/private/besthitsearch:
     post:
       operationId: postBestHitSearch
       tags:
@@ -547,7 +547,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/search:
+  /platform/public/search:
     get:
       operationId: getSearch
       tags:
@@ -580,7 +580,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/quicksearch:
+  /platform/private/quicksearch:
     get:
       operationId: getQuickSearch
       tags:
@@ -601,7 +601,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/autocomplete:
+  /platform/private/autocomplete:
     get:
       operationId: getAutocomplete
       tags:
@@ -622,7 +622,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/auth/request_token:
+  /platform/public/auth/request_token:
     get:
       operationId: getAuthToken
       tags:
@@ -659,7 +659,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/auth/validate_token:
+  /platform/public/auth/validate_token:
     get:
       operationId: ValidateToken
       tags:
@@ -672,7 +672,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/ping:
+  /platform/public/utils/ping:
     get:
       operationId: getPing
       tags:
@@ -683,7 +683,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/version:
+  /platform/public/utils/version:
     get:
       operationId: getVersion
       tags:
@@ -694,7 +694,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/stats:
+  /platform/public/utils/stats:
     get:
       operationId: getDataStats
       tags:
