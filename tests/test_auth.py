@@ -35,16 +35,16 @@ class AuthTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         token = self.get_token(1)
         '''test valid token'''
-        response = self._make_request('/v'+str(api_version)+'/platform/public/auth/validate_token',
+        response = self._make_request('/platform/public/auth/validate_token',
                                       headers={'Auth-Token':token})
         self.assertTrue(response.status_code == 200,'token is validated')
         '''test tampered token'''
-        response = self._make_request('/v'+str(api_version)+'/platform/public/auth/validate_token',
+        response = self._make_request('/platform/public/auth/validate_token',
                                       headers={'Auth-Token':token+'tampered'})
         self.assertTrue(response.status_code == 401,'token is invalid')
         '''test expied token'''
         time.sleep(3)
-        response = self._make_request('/v'+str(api_version)+'/platform/public/auth/validate_token',
+        response = self._make_request('/platform/public/auth/validate_token',
                                       headers={'Auth-Token':token})
         self.assertTrue(response.status_code == 419,'token is expired')
 
