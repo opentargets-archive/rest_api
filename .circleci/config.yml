@@ -183,9 +183,14 @@ jobs:
             set -o allexport
             source VERSION
             DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}
+            i = 0
             until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/platform/public/utils/version); do
-            printf '.'
-            sleep 20
+              printf '.'
+              i++
+              if [ "$i" -gt 5 ]; then
+                break
+              fi
+              sleep 20
             done
 
       - run:
