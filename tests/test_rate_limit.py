@@ -26,6 +26,8 @@ class RateLimitTestCase(GenericTestCase):
                                          rate_limit_fail=True,
                                          token = token)
             status_code = response.status_code
+            #check custom headers are present in both 200 and 429 responsese
+            self.assertIn('Access-Control-Allow-Origin', response['headers'])
             if status_code == 429:
                 break
 
