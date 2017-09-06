@@ -107,6 +107,7 @@ jobs:
           environment: 
             ES_URL: http://10.132.0.9:9200
             DEPLOYED_DATA_VERSION: 17.06.2
+            MAX_NUM_INSTANCES: 1
           command: |
             set -o allexport
             echo -e "### Reading api version from VERSION file ..."
@@ -170,6 +171,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: make URL stick
+          command: |
+            source VERSION
+            echo "DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}" > APIURL
+      - run:
           name: Install requests library
           command: |
             pip install virtualenv
@@ -179,7 +185,8 @@ jobs:
       - run:
           name: Wait for appengine deployment
           command: |
-            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+            set -o allexport
+            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
             until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/api/latest/public/utils/version); do
             printf '.'
             sleep 20
@@ -188,7 +195,8 @@ jobs:
       - run:
           name: Trigger runscope tests on deployed branch
           command: |
-            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+            set -o allexport
+            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
             . venv/bin/activate
             python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}"
 
