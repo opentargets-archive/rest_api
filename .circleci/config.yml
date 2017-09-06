@@ -118,7 +118,7 @@ jobs:
             # we assume there already is a config for master branch
             # if we are in a branch, see if we have a config for it and read the ID
             # if [ "${CIRCLE_BRANCH}" != "master" ]; then
-            GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id') 
+            GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq -r '.[0] | .id') 
             
             if [ -z "$GCENDPOINT_VERSION" ]; then
               # could not find an existing one
@@ -129,14 +129,14 @@ jobs:
               gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
 
               echo -e "read the ENDPOINT ID of the new deployment"
-              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.[0] | .id')
+              GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq -r '.[0] | .id')
 
             else
               # could find an endpoint
               echo -e "\n\n### Found a Google Endpoint for ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
               
               echo -e "### Checking if the existing config [ ${GCENDPOINT_VERSION} ] matches the version \n\n"
-              GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs describe ${GCENDPOINT_VERSION} --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq '.apis[0] | .version')
+              GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs describe ${GCENDPOINT_VERSION} --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq -r '.apis[0] | .version')
 
               if [ "${GCENDPOINT_API_VERSION}" != "${API_VERSION_MINOR}-${CIRCLE_BRANCH}" ]; then
                 echo -e "\n\n### API version mismatch. Re-deploying to Google Endpoints for the ${CIRCLE_BRANCH} branch\n\n"
