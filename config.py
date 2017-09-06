@@ -36,7 +36,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
            ini.has_option(section_name, name) \
         else prefix + '_' + name
 
-    from_envar = env('OPENTARGETS_ES_' + name.upper())
+    from_envar = env('OPENTARGETS_ES_' + name.upper(), default=None)
     idx_name = from_envar if from_envar else idx_name
 
     return idx_name + suffix
