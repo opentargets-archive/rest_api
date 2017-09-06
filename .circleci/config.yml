@@ -144,7 +144,7 @@ jobs:
                 gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
               else
                 echo -e "\n\n### API version matches. Will use the same Google Endpoint deployment.\n\n"
-
+              fi
             fi
             #make it available
             echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
