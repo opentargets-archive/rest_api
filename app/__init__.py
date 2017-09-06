@@ -312,7 +312,7 @@ def create_app(config_name):
             return resp
 
         except Exception as e:
-            app.logger.traceback('failed request teardown function', str(e))
+            app.logger.exception('failed request teardown function', str(e))
             return resp
 
     return app
