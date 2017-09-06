@@ -2,6 +2,7 @@ import csv
 import os
 from collections import defaultdict
 from datetime import datetime
+from functools import wraps
 
 import requests
 from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify
@@ -34,6 +35,17 @@ from mixpanel_async import AsyncBufferedConsumer
 
 __author__ = 'andreap'
 
+def get_http_exception_handler(app):
+    """Overrides the default http exception handler to return JSON."""
+    handle_http_exception = app.handle_http_exception
+    @wraps(handle_http_exception)
+    def ret_val(exception):
+        exc = handle_http_exception(exception)
+        resp = jsonify({'code':exc.code, 'message':exc.description})
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Headers', 'Content-Type,Auth-Token')
+        return resp, exc.code
+    return ret_val
 
 def do_not_cache(request):
     cache_skip = [Config.NO_CACHE_PARAMS,
@@ -271,10 +283,9 @@ def create_app(config_name):
     @app.before_request
     def before_request():
         g.request_start = datetime.now()
-    @app.teardown_request
+    @app.after_request
     def after(resp):
         try:
-
             rate_limiter = RateLimiter()
             now = datetime.now()
             took = (now - g.request_start).total_seconds()*1000
@@ -315,8 +326,10 @@ def create_app(config_name):
             app.logger.exception('failed request teardown function', str(e))
             return resp
 
-    return app
 
+
+    # Override the HTTP exception handler.
+    app.handle_http_exception = get_http_exception_handler(app)
 
 
 if __name__ == '__main__':
