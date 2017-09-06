@@ -222,9 +222,9 @@ def create_app(config_name):
     create_api(current_version_blueprint, api_version, specpath)
     create_api(current_minor_version_blueprint, api_version_minor, specpath)
 
-    app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
-    app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
-    app.register_blueprint(current_minor_version_blueprint, url_prefix='/api/'+str(api_version_minor))
+    # app.register_blueprint(latest_blueprint, url_prefix='/latest/api')
+    app.register_blueprint(current_version_blueprint, url_prefix='/v'+str(api_version) + '/api')
+    app.register_blueprint(current_minor_version_blueprint, url_prefix='/v'+str(api_version_minor) + '/api')
 
     def serve_docs():
         return app.send_static_file('docs/api-description.md')
@@ -232,40 +232,35 @@ def create_app(config_name):
     def serve_swagger():
         return app.send_static_file('docs/swagger/swagger.yaml')
 
-    @app.route('/api/latest/swagger.yaml')
+    @app.route('/v%s/api/swagger.yaml' % str(api_version))
     def send_swagger_latest_suffixed():
         return serve_swagger()
 
-    @app.route('/api/latest/swagger')
+    @app.route('/v%s/api/swagger' % str(api_version))
     def send_swagger_latest():
         return serve_swagger()
 
-    @app.route('/api/latest/docs')
-    def send_docs_latest():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
-
-    @app.route('/api-docs/%s' % str(api_version_minor))
-    def docs_current_minor_version():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
+    # @app.route('/api/docs/swagger.yaml')
+    # def send_swagger():
+    #     return serve_swagger()
  
-    @app.route('/api-docs/%s'%str(api_version))
-    def docs_current_version():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
- 
-    @app.route('/api/docs/api-description.md')
-    def docs_description():
-        return serve_docs()
- 
-    @app.route('/api/docs/swagger.yaml')
-    def send_swagger():
-        return serve_swagger()
- 
-    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
+    @app.route('/v%s/api/docs/swagger.yaml' % str(api_version))
     def send_swagger_current_cersion():
         return serve_swagger()
+
+    @app.route('/v%s/api/docs' % str(api_version))
+    def send_docs_latest():
+        return serve_docs()
+
+    # @app.route('/v%s/api-docs' % str(api_version))
+    # def docs_current_version():
+    #     return serve_docs()
+ 
+    # @app.route('/api/docs/api-description.md')
+    # def docs_description():
+    #     return serve_docs()
+ 
+
 
 
     @app.before_request
