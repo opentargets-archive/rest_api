@@ -1,15 +1,15 @@
+from collections import defaultdict
 import hashlib
-import json as json
 import logging
+import pprint
 import sys
 import time
-from collections import defaultdict
 
-import jmespath
-import numpy as np
+import addict
 from elasticsearch import TransportError
 from elasticsearch import helpers
 from flask import current_app, request
+import jmespath
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
 
@@ -21,6 +21,9 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
+import json as json
+import numpy as np
+
 
 __author__ = 'andreap'
 
@@ -50,11 +53,53 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
     '''returns a list with a match dict per el in `ts` using the private facet and
     `epxression_level` based on the `key` as a str "protein" or "rna"
     '''
-    return [
-        {'match': {
-            'private.facets.expression_tissues.' + key + '.' +
-            str(expression_level) + '.id': t
-        }} for t in ts]
+    range = "([" + str(expression_level) + "-9]|1[0-1])_.*"
+    if expression_level >= 10:
+        range = "1[" + str(expression_level % 10) + "-1]_.*"
+    return [{"regexp":
+                {
+                    "private.facets.expression_tissues." + key + ".id.keyword": \
+                    range + t
+                }} for t in ts if ts]
+
+
+def _copy_and_mutate_dict(d, del_k, **add_ks):
+    d = { k: v for k, v in d.items() if k != del_k }
+    for k, v in add_ks.items():
+        d[k] = v
+
+    return d
+
+
+def _inject_tissue_data(response, t2m):
+    def __clean_id(id):
+        if id[1] == '_':
+            return id[2:]
+        elif id[2] == '_':
+            return id[3:]
+        else:
+            return id
+
+    if 'facets' in response:
+        if 'protein_expression_tissue' in response['facets']:
+            bl = response['facets']['protein_expression_tissue']['buckets']
+            for i in xrange(len(bl)):
+                try:
+                    k = __clean_id(bl[i]['key'])
+                    bl[i]['data'] = t2m['codes'][k]
+                except:
+                    pass
+
+        if 'rna_expression_tissue' in response['facets']:
+            bl = response['facets']['rna_expression_tissue']['buckets']
+            for i in xrange(len(bl)):
+                try:
+                    k = __clean_id(bl[i]['key'])
+                    bl[i]['data'] = t2m['codes'][k]
+                except:
+                    pass
+
+    return response
 
 
 class BooleanFilterOperator():
@@ -293,21 +338,11 @@ class esQuery():
             # We get the 3 numbers
             # The total number of targets with associations
             start_time = time.time()
+            q = addict.Dict()
+            q.query.bool.filter.range['association_counts.total'].gte = 1
             all_targets = self._cached_search(index=self._index_search,
                                               doc_type=self._docname_search_target,
-                                              body={
-                                                  "query": {
-                                                      "filtered": {
-                                                          "filter": {
-                                                              "range": {
-                                                                  "association_counts.total": {
-                                                                      "gte": 1
-                                                                  }
-                                                              }
-                                                          }
-                                                      }
-                                                  }
-                                              },
+                                              body=q.to_dict(),
                                               size=0)
             N = all_targets["hits"]["total"]
             # print 'all targets query', time.time() - start_time
@@ -604,30 +639,19 @@ class esQuery():
             params.datastructure = SourceDataStructureOptions.FULL
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"] = params.fields
+            source_filter["includes"] = params.fields
 
         if gene_ids:
+            q = addict.Dict()
+            q.query.bool.filter.ids['values'] = gene_ids
+            q._source = source_filter
+            q.size = len(gene_ids)
+            q['from'] = params.start_from
+
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
-                                      body={"query": {
-                                          "filtered": {
-                                              # "query": {
-                                              #     "match_all": {}
-                                              # },
-                                              "filter": {
-                                                  "ids": {
-                                                      "values": gene_ids
+                                      body=q.to_dict())
 
-                                                  }
-                                              }
-                                          }
-                                      },
-
-                                          '_source': source_filter,
-                                          'size': len(gene_ids),
-                                          'from': params.start_from,
-                                      }
-                                      )
             if res['hits']['total']:
                 return SimpleResult(res, params)
 
@@ -663,7 +687,7 @@ class esQuery():
 
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
-                                  body={"filter": {
+                                  body={"query": {
                                       "ids": {"values": evidenceid},
                                   },
                                       "size": len(evidenceid),
@@ -676,7 +700,7 @@ class esQuery():
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
                                   doc_type=self._docname_eco,
-                                  body={'filter': {
+                                  body={'query': {
                                       "ids": {
                                           "type": "eco",
                                           "values": [code]
@@ -741,26 +765,18 @@ class esQuery():
         '''boolean query joining multiple conditions with an AND'''
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"] = params.fields
+            source_filter["includes"] = params.fields
 
-        query_body = {
-            "query": {
-                "filtered": {
-                    "filter": {
-                        "bool": {
-                            "must": conditions
-                        },
-                    }
-                }
-            },
-            'size': params.size,
-            'from': params.start_from,
-            "sort": self._digest_sort_strings(params),
-            '_source': source_filter,
-        }
+        q = addict.Dict()
+        q.query.bool.filter.bool.must = conditions
+        q.size = params.size
+        q['from'] = params.start_from
+        q.sort = self._digest_sort_strings(params)
+        q._source = source_filter
+
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
-                                  body=query_body,
+                                  body=q.to_dict(),
                                   timeout="10m",
                                   )
 
@@ -803,7 +819,7 @@ class esQuery():
 
         #TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
-                                  body={"filter": {
+                                  body={"query": {
                                             "ids": {"values": associationid},
                                             },
                                         "size": len(associationid),
@@ -829,6 +845,8 @@ class esQuery():
 
         """
         params = SearchParams(**kwargs)
+
+#         pprint.pprint(params.__dict__)
 
         '''create multiple condition boolean query'''
 
@@ -877,8 +895,8 @@ class esQuery():
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
         source = SourceDataStructureOptions.getSource(params.datastructure, params)
-        if 'include' in source:
-            params.requested_fields = source['include']
+        if 'includes' in source:
+            params.requested_fields = source['includes']
         ass_query_body = {
             # restrict the set of datapoints using the target and disease ids
             "query": query_body,
@@ -886,8 +904,17 @@ class esQuery():
             '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params)
-
         }
+
+        if params.search_after is not None:
+            if params.search_after:
+                ass_query_body['search_after'] = params.search_after
+
+            ass_query_body['sort'].append({"id.keyword": "desc"})
+            ass_query_body['from'] = -1
+
+
+
         # calculate aggregation using proper ad hoc filters
         if aggs:
             ass_query_body['aggs'] = aggs
@@ -899,13 +926,21 @@ class esQuery():
                 }
             }
 
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
+
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
                                        timeout="20m",
                                        request_timeout=60 * 20,
                                        # routing=use gene here
-                                       query_cache=True,
+                                       request_cache=True,
                                        )
+
         aggregation_results = {}
 
         if ass_data['timed_out']:
@@ -925,7 +960,7 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
-
+        data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
@@ -938,7 +973,7 @@ class esQuery():
                         therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
                 therapeutic_areas = list(therapeutic_areas)
                 ta_data = self._cached_search(index=self._index_association,
-                                              body={"filter": {
+                                              body={"query": {
                                                         "ids": {"values": therapeutic_areas},
                                                     },
                                                     "size": 1000,
@@ -1130,144 +1165,84 @@ class esQuery():
         return dict()
 
     def _get_exact_mapping_query(self, searchphrase):
-        query_body = {
-            'query': {
-                'filtered': {
-                    'query': {
-                        "bool": {
-                            "should": [
-                                {"multi_match": {
-                                    "query": searchphrase,
-                                    "fields": ["name^3",
-                                               "description^2",
-                                               "id",
-                                               "approved_symbol",
-                                               "symbol_synonyms",
-                                               "name_synonyms",
-                                               "uniprot_accessions",
-                                               "hgnc_id",
-                                               "ensembl_gene_id",
-                                               "efo_path_codes",
-                                               "efo_url",
-                                               "efo_synonyms^0.5",
-                                               "ortholog.*.symbol^0.5",
-                                               "ortholog.*.id",
-                                               ],
-                                    "analyzer": 'keyword',
-                                    # "fuzziness": "AUTO",
-                                    "tie_breaker": 0,
-                                    "type": "best_fields",
-                                },
-                                }
-                            ]
-                        }
-                    }
+        mm1 = addict.Dict()
+        mm1.multi_match.query = searchphrase
+        mm1.multi_match.fields = ["name^3",
+                                  "description^2",
+                                  "id",
+                                  "approved_symbol",
+                                  "symbol_synonyms",
+                                  "name_synonyms",
+                                  "uniprot_accessions",
+                                  "hgnc_id",
+                                  "ensembl_gene_id",
+                                  "efo_path_codes",
+                                  "efo_url",
+                                  "efo_synonyms^0.5",
+                                  "ortholog.*.symbol^0.5",
+                                  "ortholog.*.id",
+                                ]
+        mm1.multi_match.analyzer = 'keyword'
+        mm1.multi_match.tie_breaker = 0
+        mm1.multi_match.type = 'best_fields'
 
-                },
+        q = addict.Dict()
+        q.bool.should = [mm1]
 
-            }
-        }
-
-        return query_body
+        return q.to_dict()
 
     def _get_free_text_query(self, searchphrase):
-        query_body = {"function_score": {
-            "score_mode": "multiply",
-            'query': {
-                'filtered': {
-                    'query': {
-                        "bool": {
-                            "should": [
-                                {"multi_match": {
-                                    "query": searchphrase,
-                                    "fields": ["name^3",
-                                               "description^2",
-                                               "efo_synonyms",
-                                               "symbol_synonyms",
-                                               "approved_symbol",
-                                               "approved_name",
-                                               "name_synonyms",
-                                               "gene_family_description",
-                                               "efo_path_labels^0.1",
-                                               "ortholog.*.symbol^0.2",
-                                               "ortholog.*.name^0.2",
-                                               "drugs.*^0.5",
-                                               "phenotypes.*^0.3",
-                                               ],
-                                    "analyzer": 'standard',
-                                    # "fuzziness": "AUTO",
-                                    "tie_breaker": 0.0,
-                                    "type": "phrase_prefix",
-                                }
-                                },
-                                {"multi_match": {
-                                    "query": searchphrase,
-                                    "fields": ["name^3",
-                                               "description",
-                                               "id",
-                                               "approved_symbol",
-                                               "symbol_synonyms",
-                                               "name_synonyms",
-                                               "uniprot_accessions",
-                                               "hgnc_id",
-                                               "ensembl_gene_id",
-                                               "efo_path_codes",
-                                               "efo_url",
-                                               "efo_synonyms^2",
-                                               "ortholog.*.symbol^0.2",
-                                               "ortholog.*.id^0.2",
-                                               "drugs.*^0.5",
-                                               "phenotypes.*^0.3"
-                                               ],
-                                    "analyzer": 'keyword',
-                                    # "fuzziness": "AUTO",
-                                    "tie_breaker": 0,
-                                    "type": "best_fields",
-                                },
-                                },
-                                # {"multi_match": {
-                                #     "query": searchphrase,
-                                #     "fields": ["name^3",
-                                #                "description",
-                                #                "approved_symbol",
-                                #                "symbol_synonyms",
-                                #                "name_synonyms",
-                                #                "efo_synonyms^0.1",
-                                #                "ortholog.*.symbol^0.5",
-                                #                "ortholog.*.name^0.2"
-                                #                ],
-                                #     "word_delimiter_analyzer":{
-                                #         "tokenizer":"whitespace",
-                                #         "filter":[
-                                #             "lowercase",
-                                #             "word_delimiter"
-                                #
-                                #         ],
-                                #         "ignore_case":True,
-                                #     },
-                                #     # "fuzziness": "AUTO",
-                                #     "tie_breaker": 0,
-                                #     "type": "best_fields",
-                                #     }
-                                # },
-                            ]
-                        }
-                    },
-                    'filter': {
-                        # "not":{ "term": { "biotype": 'processed_pseudogene' }},
-                        # "not":{ "term": { "biotype": 'antisense' }},
-                        # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
-                        # "not":{ "term": { "biotype": 'lincRNA' }},
-                        # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-                        # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
-                        # "not":{ "term": { "biotype": 'sense_intronic' }},
-                        # "not":{ "term": { "biotype": 'processed_transcript' }},
-                        # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
-                        # "not":{ "term": { "biotype": 'miRNA' }},
-                    }
-                },
-            },
-            "functions": [
+        mm_f1 = ["name^3", "description^2", "efo_synonyms",
+                 "symbol_synonyms", "approved_symbol", "approved_name",
+                 "name_synonyms", "gene_family_description",
+                 "efo_path_labels^0.1", "ortholog.*.symbol^0.2",
+                 "ortholog.*.name^0.2", "drugs.*^0.5", "phenotypes.*^0.3"]
+
+        mm1 = addict.Dict()
+        mm1.multi_match.query = searchphrase
+        mm1.multi_match.fields = mm_f1
+        mm1.multi_match.analyzer = 'standard'
+        mm1.multi_match.tie_breaker = '0'
+        mm1.multi_match.type = 'phrase_prefix'
+
+        mm_f2 = ["name^3", "description", "id", "approved_symbol",
+                 "symbol_synonyms", "name_synonyms", "uniprot_accessions",
+                 "hgnc_id", "ensembl_gene_id", "efo_path_codes", "efo_url",
+                 "efo_synonyms^2", "ortholog.*.symbol^0.2", "ortholog.*.id^0.2",
+                 "drugs.*^0.5", "phenotypes.*^0.3"]
+
+        mm2 = addict.Dict()
+        mm2.multi_match.query = searchphrase
+        mm2.multi_match.fields = mm_f2
+        mm2.multi_match.analyzer = 'keyword'
+        mm2.multi_match.tie_breaker = 0
+        mm2.multi_match.type = 'best_fields'
+
+        q = addict.Dict()
+        q.function_score.score_mode = 'multiply'
+        q.function_score.query.bool.should = [mm1, mm2]
+        q.function_score.query.bool.filter = {
+            # "not":{ "term": { "biotype": 'processed_pseudogene' }},
+            # "not":{ "term": { "biotype": 'antisense' }},
+            # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
+            # "not":{ "term": { "biotype": 'lincRNA' }},
+            # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
+            # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
+            # "not":{ "term": { "biotype": 'sense_intronic' }},
+            # "not":{ "term": { "biotype": 'processed_transcript' }},
+            # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
+            # "not":{ "term": { "biotype": 'miRNA' }},
+        }
+
+        f1 = addict.Dict()
+        f1.field_value_factor.field = 'association_counts.total'
+        f1.field_value_factor.factor = 0.05
+        f1.field_value_factor.modifier = 'sqrt'
+        f1.field_value_factor.missing = 1
+        # f1.field_value_factor.weight = 0.01
+
+        q.function_score.functions = [f1]
+
                 # "path_score": {
                 #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
                 #   "lang": "groovy",
@@ -1276,15 +1251,6 @@ class esQuery():
                 #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
                 #   "lang": "groovy",
                 # }
-                {
-                    "field_value_factor": {
-                        "field": "association_counts.total",
-                        "factor": 0.05,
-                        "modifier": "sqrt",
-                        "missing": 1,
-                        # "weight": 0.01,
-                    }
-                },
                 # {
                 # "field_value_factor":{
                 #     "field": "min_path_len",
@@ -1294,18 +1260,13 @@ class esQuery():
                 #     # "weight": 0.5,
                 #     }
                 # }
-            ],
             # "filter": {
             #     "exists": {
             #       "field": "min_path_len"
             #     }
             #   }
 
-        }
-
-        }
-
-        return query_body
+        return q.to_dict()
 
     def _get_free_text_highlight(self):
         return {"fields": {
@@ -1424,48 +1385,31 @@ class esQuery():
 
             source_filter = SourceDataStructureOptions.getSource(params.datastructure)
             if params.fields:
-                source_filter["include"] = params.fields
+                source_filter["includes"] = params.fields
+
+            q = addict.Dict()
+            q.query.ids['values'] = genes
+#             q.query.constant_score.filter.bool.should.terms.gene = genes
+#             q.size = params.size
+#             q._source = OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
             res = self._cached_search(index=self._index_expression,
-                                      body={
-                                          'filter': {
-                                              "ids": {
-                                                  "values": genes
-                                              }
-                                          },
-                                          # 'size': params.size,
-                                          # '_source': OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT),
-
-                                      }
+                                      body=q.to_dict()
                                       )
             data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
             return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
         efo_with_data = []
+        q = addict.Dict()
+        q.query.bool.filter.bool.must = conditions
+        q.size = 10000
+        q._source = ['disease.id']
+        q.aggs.efo_codes.terms.field = 'disease.id'
+        q.aggs.efo_codes.terms.size = 10000
+
         res = self._cached_search(index=self._index_data,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "must": conditions
-
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': 10000,
-                                      '_source': ["disease.id"],
-                                      "aggs": {"efo_codes": {
-                                          "terms": {
-                                              "field": "disease.id",
-                                              'size': 10000,
-
-                                          },
-                                      }
-                                      }
-                                  })
+                                  body=q.to_dict())
         if res['hits']['total']:
             data = res['aggregations']["efo_codes"]["buckets"]
             efo_with_data = list(set([i['key'] for i in data]))
@@ -1473,26 +1417,18 @@ class esQuery():
 
     def _get_genes_for_pathway_code(self, pathway_codes):
         data = []
-        res = self._cached_search(index=self._index_genename,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "should": [
-                                                          {"terms": {
-                                                              "private.facets.reactome.pathway_code": pathway_codes}},
-                                                          {"terms": {
-                                                              "private.facets.reactome.pathway_type_code": pathway_codes}},
-                                                      ]
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': 10000,
-                                      '_source': ["id"],
+        q = addict.Dict()
+        q.query.bool.filter.bool.should = [
+            {"terms": {
+                "private.facets.reactome.pathway_code": pathway_codes}},
+            {"terms": {
+                "private.facets.reactome.pathway_type_code": pathway_codes}},
+        ]
+        q.size = 10000
+        q._source = ['id']
 
-                                  })
+        res = self._cached_search(index=self._index_genename,
+                                  body=q.to_dict())
         if res['hits']['total']:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
@@ -1579,7 +1515,7 @@ class esQuery():
                                                   "values": reactome_ids
                                                   }
                                               },
-                                          '_source': {"include": ['label']},
+                                          '_source': {"includes": ['label']},
                                           'size': 10000,
                                           'from': 0,
                                           }
@@ -1696,23 +1632,14 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
     def get_genes_for_uniprot_kw(self, kw):
         data = []
+        q = addict.Dict()
+        q.query.bool.filter.bool.should = [
+            {"terms": {"private.facets.uniprot_keywords": kw}}
+        ]
+        q.size = 10000
+        q._source = ['id']
         res = self._cached_search(index=self._index_genename,
-                                  body={
-                                      "query": {
-                                          "filtered": {
-                                              "filter": {
-                                                  "bool": {
-                                                      "should": [
-                                                          {"terms": {"private.facets.uniprot_keywords": kw}},
-                                                      ]
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      'size': 10000,
-                                      '_source': ["id"],
-
-                                  })
+                                  body=q.to_dict())
         if res['hits']['total']:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
@@ -1749,7 +1676,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         highlight = self._get_free_text_highlight()
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"] = params.fields
+            source_filter["includes"] = params.fields
 
         body = {'query': self._get_free_text_query(searchphrase),
                 'size': params.size,
@@ -1785,7 +1712,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
-            source_filter["include"] = params.fields
+            source_filter["includes"] = params.fields
 
         for searchphrase in searchphrases:
             # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
@@ -1815,19 +1742,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                            "aggs": {
                                                                "data": {
                                                                    "terms": {
-                                                                       "field": "type",
+                                                                       "field": "type.keyword",
                                                                        'size': 10,
                                                                    },
                                                                    "aggs": {
                                                                        "datasources": {
                                                                            "terms": {
-                                                                               "field": "sourceID",
+                                                                               "field": "sourceID.keyword",
                                                                            },
                                                                        }
                                                                    }
                                                                }
                                                            },
-                                                           'size': 0,
+                                                           'size': 1,
                                                            '_source': False,
                                                            },
                                                      timeout="10m",
@@ -1840,20 +1767,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                          "aggs": {
                                                              "data": {
                                                                  "terms": {
-                                                                     "field": "private.facets.datatype",
+                                                                     "field": "private.facets.datatype.keyword",
                                                                      'size': 10,
                                                                  },
                                                                  "aggs": {
                                                                      "datasources": {
                                                                          "terms": {
-                                                                             "field": "private.facets.datasource",
-                                                                             'size': 20,
+                                                                             "field": "private.facets.datasource.keyword",
                                                                          },
                                                                      }
                                                                  }
                                                              }
                                                          },
-                                                         'size': 0,
+                                                         'size': 1,
                                                          '_source': False,
                                                          },
                                                    timeout="10m",
@@ -1870,7 +1796,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                    }
                                                }
                                            },
-                                               'size': 0,
+                                               'size': 1,
                                                '_source': False,
                                            })
         stats.add_key_value('targets', target_count['hits']['total'])
@@ -1884,7 +1810,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                     }
                                                 }
                                             },
-                                                'size': 0,
+                                                'size': 1,
                                                 '_source': False,
                                             })
         stats.add_key_value('diseases', disease_count['hits']['total'])
@@ -2037,7 +1963,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         }
 
 
-class SearchParams():
+class SearchParams(object):
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
@@ -2053,6 +1979,7 @@ class SearchParams():
             raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
 
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
+        self.search_after = kwargs.get('search_after', None)
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
         if self.cap_scores is None:
@@ -2190,6 +2117,7 @@ class AggregationUnit(object):
 
     def _get_complimentary_facet_filters(self, key, filters):
         conditions = []
+
         for filter_type, filter_value in filters.items():
             if filter_type != key and filter_value:
                 conditions.append(filter_value)
@@ -2318,7 +2246,7 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
             "aggs": {
                 "data": {
                     "terms": {
-                        "field": "disease.efo_info.therapeutic_area.codes",
+                        "field": "disease.efo_info.therapeutic_area.codes.keyword",
                         'size': self.get_size(),
                     },
                     "aggs": {
@@ -2338,7 +2266,7 @@ class AggregationUnitTherapeuticArea(AggregationUnit):
         }
 
     def _get_complex_therapeutic_area_filter(self, filter):
-        return {"terms": {"disease.efo_info.therapeutic_area.codes": filter}}
+        return {"terms": {"disease.efo_info.therapeutic_area.codes.keyword": filter}}
 
 
 class AggregationUnitIsDirect(AggregationUnit):
@@ -2668,36 +2596,48 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                 self._get_association_rna_range_filter(self.params)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     def build_agg(self, filters):
+        d = addict.Dict()
+        d.constant_score.filter.bool.must = \
+            ex_level_tissues_to_terms_list('rna',
+                                           self.params.rna_expression_tissue, 1)
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='rna_expression_tissue',
+                                             rna_expression_tissue=d.to_dict())
         self.agg = self._get_aggregation_on_rna_expression_level(
-            filters, self._get_complimentary_facet_filters,
+            mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.rna_expression_level)
+
 
     @staticmethod
     def _get_association_rna_range_filter(params):
         range_ok = ex_level_meet_conditions(
             params.rna_expression_level, 11, 1, 11)
 
+        q = {}
         if range_ok:
-            return {
+            # spinal tap up to 11
+            range = "([" + str(params.rna_expression_level) + "-9]|1[0-1])_.*"
+            if params.rna_expression_level >= 10:
+                range = "1[" + str(params.rna_expression_level % 10) + "-1]_.*"
+            # here the functionality
+            q = {
                 'constant_score': {
                     'filter': {
                         'bool': {
                             'must': [{
-                                'exists': {
-                                    'field':
-                                    'private.facets.expression_tissues.rna.' +
-                                    str(params.rna_expression_level)
+                                "regexp":{
+                                    "private.facets.expression_tissues.rna.id.keyword": \
+                                    range
                                 }
                             }]
                         }
                     }
                 }
             }
-        else:
-            return {}
+        return q
 
     @staticmethod
     def _get_aggregation_on_rna_expression_level(filters, filters_func, size,
@@ -2715,8 +2655,11 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                     "data": {
                         "terms": {
                             "field":
-                            "private.facets.expression_tissues.rna." +
-                            str(1) + ".level",
+                            "private.facets.expression_tissues.rna.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2735,15 +2678,23 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                     }
                 }
             }
+
         else:
             f_agg = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
                             "field":
-                            "private.facets.expression_tissues.rna." +
-                            str(1) + ".level",
+                            "private.facets.expression_tissues.rna.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2778,7 +2729,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             self.get_size(), self.params.rna_expression_level)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2809,6 +2760,10 @@ class AggregationUnitRNAExTissue(AggregationUnit):
         agg_filter = {}
 
         if ex_level > 0:
+            range = "([" + str(ex_level) + "-9]|1[0-1])_.*"
+            if ex_level >= 10:
+                range = "1[" + str(ex_level % 10) + "-1]_.*"
+
             agg_filter = {
                 "filter": {
                     "bool": {
@@ -2819,25 +2774,55 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.rna." +
-                            str(ex_level) + ".id",
-                            "order": {
-                                "unique_target_count": "desc"
-                            },
-                            # 'size': size,
+                            "field": "private.facets.expression_tissues.rna.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
                                 "cardinality": {
                                     "field": "target.id",
                                     "precision_threshold": 1000
-                                },
+                                }
                             },
                             "unique_disease_count": {
                                 "cardinality": {
                                     "field": "disease.id",
                                     "precision_threshold": 1000
-                                },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        else:
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.rna.id.keyword",
+                            "include": "([1-9]|1[0-1])_.*",
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
                             }
                         }
                     }
@@ -2855,11 +2840,18 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 self._get_association_pro_range_filter(self.params)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     def build_agg(self, filters):
+        d = addict.Dict()
+        d.constant_score.filter.bool.must = \
+            ex_level_tissues_to_terms_list('protein',
+                                           self.params.protein_expression_tissue, 1)
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='protein_expression_tissue',
+                                             protein_expression_tissue=d.to_dict())
         self.agg = self._get_aggregation_on_pro_expression_level(
-            filters, self._get_complimentary_facet_filters,
+            mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.protein_expression_level)
 
     @staticmethod
@@ -2867,31 +2859,31 @@ class AggregationUnitPROExLevel(AggregationUnit):
         range_ok = ex_level_meet_conditions(
             params.protein_expression_level, 4, 1, 4)
 
-        q_score = {}
+        q = {}
         if range_ok:
             # here the functionality
-            q_score = {
+            range = "[" + str(params.protein_expression_level) + "-4]_.*"
+            q = {
                 'constant_score': {
                     'filter': {
                         'bool': {
                             'must': [{
-                                'exists': {
-                                    'field':
-                                    'private.facets.expression_tissues.protein.' +
-                                    str(params.protein_expression_level)
+                                "regexp":{
+                                    "private.facets.expression_tissues.protein.id.keyword": \
+                                    range
                                 }
                             }]
                         }
                     }
                 }
             }
-
-        return q_score
+        return q
 
     @staticmethod
     def _get_aggregation_on_pro_expression_level(filters, filters_func, size,
                                                  ex_level):
         agg_filter = {}
+
         if ex_level > 0:
             agg_filter = {
                 "filter": {
@@ -2904,12 +2896,11 @@ class AggregationUnitPROExLevel(AggregationUnit):
                     "data": {
                         "terms": {
                             "field":
-                            "private.facets.expression_tissues.protein." +
-                            str(1) + ".level",
+                            "private.facets.expression_tissues.protein.level",
                             "order": {
                                 "unique_target_count": "desc"
                             },
-                            # 'size': size,
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2930,17 +2921,20 @@ class AggregationUnitPROExLevel(AggregationUnit):
             }
         else:
             agg_filter = {
-                "filter": {},
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
                 "aggs": {
                     "data": {
                         "terms": {
                             "field":
-                            "private.facets.expression_tissues.protein." +
-                            str(1) + ".level",
+                            "private.facets.expression_tissues.protein.level",
                             "order": {
                                 "unique_target_count": "desc"
                             },
-                            # 'size': size,
+                            'size': size
                         },
                         "aggs": {
                             "unique_target_count": {
@@ -2960,7 +2954,6 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 }
             }
 
-
         # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
@@ -2977,7 +2970,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
             self.get_size(), self.params.protein_expression_level)
 
     def get_default_size(self):
-        return 25
+        return 300
 
     @staticmethod
     def _get_association_pro_range_filter(params):
@@ -2987,10 +2980,10 @@ class AggregationUnitPROExTissue(AggregationUnit):
         tissues = params.protein_expression_tissue
         t2tl = ex_level_tissues_to_terms_list
 
-        q_score = {}
+        q_filter = {}
         if range_ok and tissues:
             # here the functionality
-            q_score = {
+            q_filter = {
                 'constant_score': {
                     'filter': {
                         'bool': {
@@ -2999,14 +2992,18 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
-        return q_score
+
+        return q_filter
 
     @staticmethod
     def _get_aggregation_on_pro_expression_tissue(filters, filters_func, size,
                                                   ex_level):
-        f_agg = {}
+
+        expression = {}
         if ex_level > 0:
-            f_agg = {
+            range = "[" + str(ex_level) + "-4]_.*"
+
+            expression = {
                 "filter": {
                     "bool": {
                         "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_TISSUE,
@@ -3016,8 +3013,9 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.protein." +
-                            str(ex_level) + ".id",
+                            "field": "private.facets.expression_tissues.protein.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
                             'size': size,
                         },
                         "aggs": {
@@ -3037,8 +3035,40 @@ class AggregationUnitPROExTissue(AggregationUnit):
                     }
                 }
             }
+        else:
+            expression = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(1, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.protein.id.keyword",
+                            "include": "[1-4]_.*",
+                            "order" : { "_term" : "asc" },
+                            'size': size,
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        return expression
 
-        return f_agg
 
 class AggregationUnitScoreRange(AggregationUnit):
     def build_query_filter(self):
@@ -3159,13 +3189,13 @@ class AggregationUnitDatasource(AggregationUnit):
             "aggs": {
                 "data": {
                     "terms": {
-                        "field": "private.facets.datatype",
+                        "field": "private.facets.datatype.keyword",
                         'size': self.get_size(),
                     },
                     "aggs": {
                         "datasource": {
                             "terms": {
-                                "field": "private.facets.datasource",
+                                "field": "private.facets.datasource.keyword",
                                 'size': 25,
                             },
                             "aggs": {
@@ -3269,7 +3299,8 @@ class AggregationBuilder(object):
             '''get available aggregations'''
             for agg in self._UNIT_MAP:
                 if agg not in aggs_not_to_be_returned:
-                    if params.facets == "true" or params.facets == agg:
+                    # params.facets should be a string with all requested facets
+                    if params.facets == "true" or agg in params.facets:
                         self.units[agg].build_agg(self.filters)
                         if self.units[agg].agg:
                             self.aggs[agg] = self.units[agg].agg

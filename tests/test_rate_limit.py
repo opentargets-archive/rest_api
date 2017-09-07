@@ -27,7 +27,12 @@ class RateLimitTestCase(GenericTestCase):
                                          token = token)
             status_code = response.status_code
             if status_code == 429:
+                # check custom headers are present in error
+                self.assertIn('Access-Control-Allow-Origin', response.headers)
                 break
+            elif status_code == 200:
+                # check custom headers are present in correct responses
+                self.assertIn('Access-Control-Allow-Origin', response.headers)
 
         self.assertTrue(response.status_code == 429)
         # self.assertEqual(len(json_response['token'].split('.')), 3, 'token is in JWT format')

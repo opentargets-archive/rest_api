@@ -21,12 +21,21 @@ class EvidenceTestCase(GenericTestCase):
 
 
     def testEvidenceByID(self):
+<<<<<<< HEAD
         id = 'e1704ccbf8f2874000c5beb0ec84c2b8'
         response = self._make_request('/v'+str(api_version)+'/platform/public/evidence',
+=======
+        id = '30b5d27d6b4fb109c1f1eaafc367ba15'
+        response = self._make_request('/api/latest/public/evidence',
+>>>>>>> origin/master
                                       data={'id':id},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
+        self.assertTrue(json_response['data'] != [], "you tried to find an "
+                        "evidence that doesn't exist so please update the id "
+                        "var with a new one")
         self.assertEqual(json_response['data'][0]['id'],id, 'evidence found')
 
 

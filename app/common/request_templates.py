@@ -11,11 +11,11 @@ class OutputDataStructure():
 
 
 class FullSourceDataStructure(OutputDataStructure):
-    source = {"exclude": [ "_private*",
+    source = {"excludes": [ "_private*",
                            "private*"]}
 
 class SimpleSourceDataStructure(OutputDataStructure):
-    source =  {"include": [ "id",
+    source =  {"includes": [ "id",
                             "disease.id",
                             "disease.efo_info.label",
                             "target.id",
@@ -27,7 +27,7 @@ class SimpleSourceDataStructure(OutputDataStructure):
                             "association_score.overall",
                             "association_score.datatype*",
                             ],
-                "exclude": [ "_private*" ,
+                "excludes": [ "_private*" ,
                            "private*"]}
 
 class IdsSourceDataStructure(OutputDataStructure):
@@ -59,14 +59,14 @@ class GeneAndDiseaseDataStructure(OutputDataStructure):
 
 
 class CustomDataStructure(OutputDataStructure):
-    source =  {"include": [],
-                "exclude": [ "_private*" ,
+    source =  {"includes": [],
+                "excludes": [ "_private*" ,
                            "private*"],
                }
 
 
 class ScoreDataStructure(OutputDataStructure):
-    source =  {"include": ["target.id",
+    source =  {"includes": ["target.id",
                            "target.gene_info.symbol",
                            "target.gene_info.name",
                            "disease.id",
@@ -78,7 +78,7 @@ class ScoreDataStructure(OutputDataStructure):
                            "association_score*",
                            "id",
                            ],
-               "exclude": ["_private*",
+               "excludes": ["_private*",
                            "private*"]
                }
 
@@ -124,13 +124,13 @@ class SourceDataStructureOptions():
     def _inject_association_score_implementation(cls,source, params):
         source=copy.deepcopy(source)
         if params is not None:
-            if isinstance(source, dict) and ('include' in source):
+            if isinstance(source, dict) and ('includes' in source):
                 if params.fields:
-                    source['include'].extend(params.fields)
-                    source['include'] = list(set(source['include']))
-                for i,field in enumerate(source['include']):
+                    source['includes'].extend(params.fields)
+                    source['includes'] = list(set(source['includes']))
+                for i,field in enumerate(source['includes']):
                     if field.startswith('association_score'):
-                        source['include'][i]= source['include'][i].replace('association_score',params.association_score_method)
+                        source['includes'][i]= source['includes'][i].replace('association_score',params.association_score_method)
         return source
 
 

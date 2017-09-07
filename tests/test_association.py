@@ -4,7 +4,7 @@ import unittest
 from app import create_app
 from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
-
+        
 import pytest
 pytestmark = pytest.mark.skipif(
     not pytest.config.getoption("--es"),
@@ -135,6 +135,30 @@ class AssociationTestCase(GenericTestCase):
                                             'rna_expression_tissue': tissue_id,
                                             'facets': "true",
                                             'no_cache': True,
+                                            'facets': 'true',
+                                            'size': 1},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['data'])
+
+        self.assertTrue('rna_expression_tissue' in json_response['facets'])
+        self.assertTrue('sum_other_doc_count' in json_response['facets']
+                        ['rna_expression_tissue'])
+
+        rna_expression_tissue_level_3 = len(json_response['facets']['rna_expression_level']['buckets'])
+
+<<<<<<< HEAD
+        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+                                      data={'rna_expression_level': 3,
+=======
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'rna_expression_level': 1,
+>>>>>>> origin/master
+                                            'rna_expression_tissue': tissue_id,
+                                            'facets': "true",
+                                            'no_cache': True,
+                                            'facets': 'true',
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -144,31 +168,23 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('sum_other_doc_count' in json_response['facets']
                         ['rna_expression_tissue'])
 
-        rna_expression_tissue_level_3 = json_response['facets']['rna_expression_tissue']
+        rna_expression_tissue_level_1 = len(json_response['facets']['rna_expression_level']['buckets'])
 
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
-                                      data={'rna_expression_level': 3,
-                                            'rna_expression_tissue': tissue_id,
-                                            'facets': "true",
-                                            'no_cache': True,
-                                            'size': 1},
-                                      token=self._AUTO_GET_TOKEN)
-        self.assertTrue(response.status_code == 200)
-        json_response = json.loads(response.data.decode('utf-8'))
-        self.assertIsNotNone(json_response['data'])
-        self.assertTrue('rna_epxression_tissue' in json_response['facets'])
-        self.assertTrue('sum_other_doc_count' in json_response['facets']
-                        ['rna_expression_tissue'])
-
-        rna_expression_tissue_level_1 = json_response['facets']['rna_expression_tissue']
-
-        self.assertGreater(rna_expression_tissue_level_1,
+        self.assertGreaterEqual(rna_expression_tissue_level_1,
                            rna_expression_tissue_level_3)
 
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
+<<<<<<< HEAD
         response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
                                       data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
+=======
+        response = self._make_request('/api/latest/public/association/filter',
+                                      data={'target':target,
+                                            'facets':"disease",
+                                            'no_cache':True,
+                                            'size':0},
+>>>>>>> origin/master
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))

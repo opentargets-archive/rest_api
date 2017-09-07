@@ -60,6 +60,9 @@ class Config:
     ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='http://localhost:9200')
     DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='17.06.2')
 
+    # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
+    ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
+    ES_TISSUE_MAP = None
     ## logic to point to custom indices in ES
     ES_CUSTOM_IDXS_FILENAME = basedir + os.path.sep + 'es_custom_idxs.ini'
     ES_CUSTOM_IDXS = ast.literal_eval(env('OPENTARGETS_ES_CUSTOM_IDXS',default='False'))
