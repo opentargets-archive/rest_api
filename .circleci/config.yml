@@ -116,10 +116,10 @@ jobs:
             echo "major: $API_VERSION"
             echo "minor: $API_VERSION_MINOR"
 
-            bash .circleci/sortendpt.sh
+            source .circleci/sortendpt.sh
             
             #make it available
-            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
  
@@ -207,10 +207,10 @@ jobs:
             echo "major: $API_VERSION"
             echo "minor: $API_VERSION_MINOR"
 
-            bash .circleci/sortendpt.sh
+            source .circleci/sortendpt.sh
             
             #make it available
-            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
  
@@ -262,10 +262,10 @@ jobs:
             echo "major: $API_VERSION"
             echo "minor: $API_VERSION_MINOR"
 
-            bash .circleci/sortendpt.sh
+            source .circleci/sortendpt.sh
             
             #make it available
-            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
       - run:
@@ -312,10 +312,10 @@ jobs:
             echo "major: $API_VERSION"
             echo "minor: $API_VERSION_MINOR"
 
-            bash .circleci/sortendpt.sh
+            source .circleci/sortendpt.sh
             
             #make it available
-            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
       - run:
