@@ -369,17 +369,31 @@ workflows:
   version: 2
   build-test-and-deploy:
     jobs:
-      # see https://discuss.circleci.com/t/build-required-steps-automatically-for-tag-filtered-workflows/15185
+      # This is really confusing: check https://circleci.com/docs/2.0/workflows/#git-tag-job-execution
+      # - For a branch push unaffected by any filters, CircleCI runs the job.
+      # - For a tag push unaffected by any filters, CircleCI skips the job.
+      # - a job must have a filters tags section to run as a part of a tag push
+      # - all its transitively dependent jobs must also have a filters tags
+      # Also see https://discuss.circleci.com/t/build-required-steps-automatically-for-tag-filtered-workflows/15185
       - build
+          filters:
+            tags:
+              only: /^prod.*/
       - push-containers:
           requires:
             - build	
       - deploy:
           requires:
             - build
+          filters:
+            tags:
+              only: /^prod.*/
       - api-tests:
           requires:
             - deploy
+          filters:
+            tags:
+              only: /^prod.*/
       - deploy-staging:
           requires:
             - api-tests
@@ -391,6 +405,8 @@ workflows:
           requires:
            - api-tests
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^prod.*/
 
