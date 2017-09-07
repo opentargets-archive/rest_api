@@ -6,9 +6,9 @@ runtime_config:
   python_version: 2
 
 resources:
-  cpu: 2
-  memory_gb: 2
-  disk_size_gb: 30
+  cpu: ${CPU}
+  memory_gb: ${MEMORY_GB}
+  disk_size_gb: ${DISK_SIZE_GB}
 
 automatic_scaling:
   min_num_instances: 1
