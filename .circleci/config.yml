@@ -104,6 +104,8 @@ jobs:
   api-tests:
     docker:
       - image: circleci/python:2.7
+        environment:
+          DEPLOYEDURL: ${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
     working_directory: ~/circulate
     steps:
       - checkout
