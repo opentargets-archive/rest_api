@@ -18,3 +18,10 @@ https://<prod-tagname>-dot-opentargets-eu-dev.appspot.com/v<major>/platform
 ### You might want to:
 
 * change ES_URL variables in the `config.yml` to reflect the ES in your project.
+
+
+## Trigger a production deployment:
+```sh
+git tag prod-test-20170907-1653
+git push origin prod-test-20170907-1653
+```
