@@ -171,8 +171,62 @@ jobs:
             . venv/bin/activate
             python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"
 
-##########
-########## below out of date
+
+  deploy-staging:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          environment: 
+            ES_URL: http://10.132.0.9:9200
+            DEPLOYED_DATA_VERSION: 17.06.2
+            MAX_NUM_INSTANCES: 1
+            CPU: 2
+            MEMORY_GB: 2
+            DISK_SIZE_GB: 30
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            bash .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+ 
+      - run:
+          name: Deploy branch to google AppEngine
+          #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
+          
+          #TODO: deploy the container we build above instead to speed up deployment
+          # eg. 
+          # gcloud app deploy --image-url ${GCR_REPO}:${CIRCLE_BRANCH} 
+
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID}
+
 
   deploy-prod-eu:
     working_directory: ~/circulate
@@ -312,6 +366,12 @@ workflows:
       - api-tests:
           requires:
             - deploy
+      - deploy-staging:
+          requires:
+            - api-tests
+          filters:
+            branches:
+              only: master
       - holdprod:
           type: approval
           requires:
