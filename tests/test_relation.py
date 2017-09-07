@@ -17,7 +17,7 @@ class RelationTestCase(GenericTestCase):
 
     def testRelationGet(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/private/relation',
+        response = self._make_request('/platform/private/relation',
                                       data={'subject': target,
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
@@ -29,7 +29,7 @@ class RelationTestCase(GenericTestCase):
 
     def testRelationTargetGet(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/private/relation/target/'+target,
+        response = self._make_request('/platform/private/relation/target/'+target,
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
@@ -39,7 +39,7 @@ class RelationTestCase(GenericTestCase):
 
     def testRelationDiseaseGet(self):
         disease = 'EFO_0000311'
-        response = self._make_request('/v'+str(api_version)+'/platform/private/relation/disease/' + disease,
+        response = self._make_request('/platform/private/relation/disease/' + disease,
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))

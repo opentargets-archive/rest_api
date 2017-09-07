@@ -22,7 +22,7 @@ class EFOTestCase(GenericTestCase):
                'EFO_0004591',#child onset asthma
                ]
         for id in ids:
-            response = self._make_request('/v'+str(api_version)+'/platform/private/disease/%s'%id, token=self._AUTO_GET_TOKEN)
+            response = self._make_request('/platform/private/disease/%s'%id, token=self._AUTO_GET_TOKEN)
             self.assertTrue(response.status_code == 200)
             json_response = json.loads(response.data.decode('utf-8'))
             for path in json_response['path_codes']:

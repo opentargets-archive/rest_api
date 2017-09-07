@@ -17,7 +17,7 @@ class AssociationTestCase(GenericTestCase):
     #@unittest.skip("testAssociationID")
     def testAssociationID(self):
         id = 'ENSG00000157764-EFO_0000701'#braf-skin disease
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association',
+        response = self._make_request('/platform/public/association',
                                       data={'id':id},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -27,7 +27,7 @@ class AssociationTestCase(GenericTestCase):
 
     #@unittest.skip("testAssociationFilterNone")
     def testAssociationFilterNone(self):
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
@@ -37,7 +37,7 @@ class AssociationTestCase(GenericTestCase):
     #@unittest.skip("testAssociationFilterTargetGet")
     def testAssociationFilterTargetGet(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -49,7 +49,7 @@ class AssociationTestCase(GenericTestCase):
     #@unittest.skip("testAssociationFilterTargetPost")
     def testAssociationFilterTargetPost(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data=json.dumps({'target':[target]}),
                                       content_type='application/json',
                                       method='POST',
@@ -63,7 +63,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterTargetsDiseaseGet(self):
         target = ['ENSG00000113448','ENSG00000172057']
         disease = 'EFO_0000270'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target,'disease':disease },
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -77,7 +77,7 @@ class AssociationTestCase(GenericTestCase):
     #@unittest.skip("testAssociationFilterTargetFacet")
     def testAssociationFilterTargetFacet(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target, 'facets':"true", 'no_cache':True},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -87,7 +87,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationsSpecificFacet(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -97,7 +97,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertFalse('datatype' in json_response['facets'])
 
     def testAssociationsExpressionFilter(self):
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'protein_expression_level': 1,
                                             'no_cache': True,
                                             'size': 1},
@@ -114,14 +114,14 @@ class AssociationTestCase(GenericTestCase):
     # http://localhost:8080/v2.1/platform/public/association/filter?facets=true&target=ENSG00000068078&rna_expression_tissue=UBERON_0002097
     def testAssociationsExpressionFilter(self):
         target = 'ENSG00000157764'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'protein_expression_level': 4,
                                             'no_cache': True,
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 400)
 
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'rna_expression_level': 11,
                                             'no_cache': True,
                                             'size': 1},
@@ -130,7 +130,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationsExpressionFilterTissue(self):
         tissue_id = 'UBERON_0001043'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'rna_expression_level': 3,
                                             'rna_expression_tissue': tissue_id,
                                             'facets': "true",
@@ -148,13 +148,8 @@ class AssociationTestCase(GenericTestCase):
 
         rna_expression_tissue_level_3 = len(json_response['facets']['rna_expression_level']['buckets'])
 
-<<<<<<< HEAD
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'rna_expression_level': 3,
-=======
-        response = self._make_request('/api/latest/public/association/filter',
-                                      data={'rna_expression_level': 1,
->>>>>>> origin/master
                                             'rna_expression_tissue': tissue_id,
                                             'facets': "true",
                                             'no_cache': True,
@@ -176,7 +171,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
 <<<<<<< HEAD
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
 =======
         response = self._make_request('/api/latest/public/association/filter',
@@ -196,7 +191,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationsFacetSize(self):
         target = 'ENSG00000157764'
         facets_size = 50
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target, 'facets':"disease", 'facets_size': facets_size, 'no_cache':True, 'size':0},
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -207,7 +202,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationFilterDiseaseGet(self):
         disease = 'EFO_0000311'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                              'direct':False},
                                       token=self._AUTO_GET_TOKEN)
@@ -218,7 +213,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationFilterDiseaseTargetClassFacet(self):
         disease = 'EFO_0000311'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'facets': "true",
                                             },
@@ -237,7 +232,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue(first_sub_filter['label'])
         expected_results = first_filter['doc_count']
         query_key = first_filter['key']
-        filtered_response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        filtered_response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'facets': "true",
                                             FilterTypes.TARGET_CLASS : query_key,
@@ -247,7 +242,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertEqual(json_filtered_response['total'], expected_results)
         expected_results_sub = first_sub_filter['doc_count']
         query_key_sub = first_sub_filter['key']
-        filtered_response_sub = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        filtered_response_sub = self._make_request('/platform/public/association/filter',
                                                data={'disease': disease,
                                                      'facets': "true",
                                                      FilterTypes.TARGET_CLASS: query_key_sub,
@@ -258,7 +253,7 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationFilterDiseasePost(self):
         disease = 'EFO_0000311'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data=json.dumps({'disease':[disease],
                                                         'direct':False,
                                                         }),
@@ -274,7 +269,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterDirect(self):
         disease = 'EFO_0000311'
         'indirect call'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                               'direct':False,
                                               'size':1000},
@@ -290,7 +285,7 @@ class AssociationTestCase(GenericTestCase):
                 break
         self.assertTrue(indirect_found, 'indirect association found')
         'direct call'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                               'direct':True,
                                               'size':1000},
@@ -306,7 +301,7 @@ class AssociationTestCase(GenericTestCase):
         target = 'ENSG00000157764'
         '''test partial term'''
         search_query = 'lymph'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'size': 0,
                                             'search': search_query},
@@ -317,7 +312,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''test first term'''
         search_query = 'lymphoid'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target':target,
                                               'size':0,
                                             'search' : search_query },
@@ -329,7 +324,7 @@ class AssociationTestCase(GenericTestCase):
         '''test case sensitivity'''
         target = 'ENSG00000157764'
         search_query = 'LymPhoid'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'size': 0,
                                             'search': search_query,
@@ -341,7 +336,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''test empty space'''
         search_query = 'lymphoid '
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'size': 0,
                                             'search': search_query},
@@ -352,7 +347,7 @@ class AssociationTestCase(GenericTestCase):
 
         '''test multi word'''
         search_query = 'lymphoid neoplasm'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'size': 0,
                                             'search': search_query},
@@ -364,7 +359,7 @@ class AssociationTestCase(GenericTestCase):
         '''restrict by SOD1'''
         disease = 'EFO_0000253'
         search_query = 'SOD1'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease': disease,
                                             'size': 1,
                                             'search': search_query,
@@ -378,7 +373,7 @@ class AssociationTestCase(GenericTestCase):
         '''restrict by threrapeutic area'''
         target = 'ENSG00000099769'
         search_query = 'endocri'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'size': 0,
                                             'search': search_query,
@@ -392,7 +387,7 @@ class AssociationTestCase(GenericTestCase):
 
         disease = 'EFO_0000270'
         score_type='association_score.overall'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'sort': score_type,
@@ -409,7 +404,7 @@ class AssociationTestCase(GenericTestCase):
                                     sorted_scores[i+1],
                                     )
 
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'sort': '~'+score_type,
@@ -429,7 +424,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterOrderByDiseaseLabel(self):
         target = 'ENSG00000157764'
         sort_string = '~disease.efo_info.label'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'direct': True,
                                             'sort': sort_string,
@@ -444,7 +439,7 @@ class AssociationTestCase(GenericTestCase):
                                  sorted_disease_labels[i+1],
                                 )
         sort_string = 'disease.efo_info.label'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'target': target,
                                             'direct': True,
                                             'sort': sort_string,
@@ -463,7 +458,7 @@ class AssociationTestCase(GenericTestCase):
 
         disease = 'EFO_0000270'
         search_query='ENSG00000100012'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'size': 0,
@@ -471,7 +466,7 @@ class AssociationTestCase(GenericTestCase):
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         full_json_response = json.loads(response.data.decode('utf-8'))
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'search': search_query,
@@ -481,7 +476,7 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
         filtered_json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'search': search_query[:-2],
@@ -494,7 +489,7 @@ class AssociationTestCase(GenericTestCase):
     def testAssociationFilterscore_value(self):
 
         disease = 'EFO_0000270'
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'size': 0,
@@ -502,7 +497,7 @@ class AssociationTestCase(GenericTestCase):
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         full_json_response = json.loads(response.data.decode('utf-8'))
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease':disease,
                                             'direct':True,
                                             'scorevalue_min': 0.2,
@@ -522,7 +517,7 @@ class AssociationTestCase(GenericTestCase):
         disease = 'EFO_0000311'
         size = 100
         '''check size with no fields'''
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease': disease,
                                             'size': size,
                                             'format': 'csv',
@@ -538,7 +533,7 @@ class AssociationTestCase(GenericTestCase):
                   'target.id',
                   'disease.id',
                   'association_score.overall']
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease': disease,
                                             'size': size,
                                             'format': 'csv',
@@ -558,7 +553,7 @@ class AssociationTestCase(GenericTestCase):
         '''check maximum request size'''
         size = 10000
         '''check size with no fields'''
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       data={'disease': disease,
                                             'size': size,
                                             'format': 'csv',
@@ -571,7 +566,7 @@ class AssociationTestCase(GenericTestCase):
 
     # @unittest.skip("testAssociationScoreCap")
     def testAssociationScoreCap(self):
-        response = self._make_request('/v'+str(api_version)+'/platform/public/association/filter',
+        response = self._make_request('/platform/public/association/filter',
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))

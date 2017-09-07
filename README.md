@@ -63,13 +63,8 @@ For more options available when using `docker run` you can take a look at the [a
 If you try to map port 80 inside the container with `-p 8080:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
 Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
 
-<<<<<<< HEAD
 **Check that is running**
 Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/platform/docs](http://localhost:8080/platform/docs/swagger.yaml)
-=======
-### Check that is running
-Supposing the container runs in `localhost` and expose port `8008`, Swagger UI is available at: [http://localhost:8008/api-docs](http://localhost:8008/api-docs)
->>>>>>> origin/master
 
 You can ping the API with `curl localhost:8080/v2.1/platform/public/utils/ping`
 
