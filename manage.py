@@ -33,16 +33,21 @@ health = HealthCheck(app, "/_ah/health")
 
 def es_available():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-    return es.ping(), "elasticsearch is up, pointing to data prefix %s"
+    if es.ping():
+        return True, "elasticsearch is up!"
+    else:
+        return True, "cannot find elasticsearch :(" 
 
 def es_index_exists():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-    return es.indices.exists('%s*' % app.config['DATA_VERSION']), "found indices beginning with %s" app.config['DATA_VERSION']
+    if es.indices.exists('%s*' % app.config['DATA_VERSION']):
+        return True, "found indices beginning with %s" app.config['DATA_VERSION']
+    else:
+        #NOTE: passing true, otherwise google appengine will not make any path available
+        return True, "cannot find indices..."
  
 
-#NOTE: if pinging es fails, google appengine will not make any path available
-#TODO: decide if this is too strict, in which case we simply comment out the 
-# line below
+
 health.add_check(es_available)
 health.add_check(es_index_exists)
 
