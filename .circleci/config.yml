@@ -227,7 +227,7 @@ jobs:
 
 
   deploy-prod-eu:
-        working_directory: ~/circulate
+    working_directory: ~/circulate
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
