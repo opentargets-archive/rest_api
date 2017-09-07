@@ -154,8 +154,8 @@ jobs:
           command: |
             set -o allexport
             source VERSION
-            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}
-            until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/platform/public/utils/version) || (( count++ >= 10 )); do
+            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}/platform
+            until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/public/utils/version) || (( count++ >= 10 )); do
               printf '.'
               sleep 20
             done
