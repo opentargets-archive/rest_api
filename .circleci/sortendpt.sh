@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
-# ugly script that checks for the existence of an existing Google Endpoints deployment.
+
+# Ugly script that checks for the existence of an existing Google Endpoints deployment.
 # It spins a new one if:
 # - VERSION changed
 # - openapi.template.yml has changed
 # - new branch
 
+# Requires following env vars to be defined:
+# GOOGLE_PROJECT_ID
+# CIRCLE_BRANCH
+# API_VERSION_MINOR
+
+############
 
 #TODO: decide if to keep master as default.. 
 # if [ "${CIRCLE_BRANCH}" != "master" ]; then
