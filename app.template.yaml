@@ -28,7 +28,7 @@ threadsafe: true
 #   healthy_threshold: 1
 
 liveness_check:
-   path: ‘/_ah/health’
+   path: /_ah/health
    check_interval_sec: 120
    timeout_sec: 4
    failure_threshold: 2
