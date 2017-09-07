@@ -10,17 +10,20 @@ The `master` branch deployment on our `dev` server is where our staging (https:/
 
 Deploying to `production` only happens with manual approval. 
 
-The version that gets deployed in production is versioned by github **tag** and
-thus can be reached at can be reached as
+To deploy staging add a `staging-*whateveryouwant123` tag and to deploy to
+production add a `prod-*` tag.
+
+The version that gets deployed in production and staging is versioned by github **tag** and
+thus can be reached at:
 https://<prod-tagname>-dot-opentargets-eu-dev.appspot.com/v<major>/platform
 
 
 ### You might want to:
 
-* change ES_URL variables in the `config.yml` to reflect the ES in your project.
+* change ES_URL variables in the `config.yml` to reflect the ES for each project.
 
 
-## Trigger a production deployment:
+### To trigger a production deployment:
 ```sh
 git tag prod-test-20170907-1653
 git push origin prod-test-20170907-1653
