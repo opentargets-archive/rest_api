@@ -1,6 +1,6 @@
 swagger: '2.0'
 host: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
-x-google-allow: all
+# x-google-allow: all
 x-google-endpoints:
   - name: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
     allowCors: "true"
