@@ -378,7 +378,9 @@ workflows:
       - build:
           filters:
             tags:
-              only: /^prod.*/
+              only: 
+                - /^prod.*/
+                - /^staging.*/
       - push-containers:
           requires:
             - build	
@@ -390,10 +392,12 @@ workflows:
             - deploy
       - deploy-staging:
           requires:
-            - api-tests
+            - build
           filters:
             branches:
               only: master
+            tags:
+              only: /^staging.*/
       - holdprod:
           type: approval
           requires:
@@ -428,13 +432,13 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - api-tests-prod-us:
-          requires:
-            - deploy-prod-us
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^prod.*/
+      # - api-tests-prod-us:
+      #     requires:
+      #       - deploy-prod-us
+      #     filters:
+      #       branches:
+      #         ignore: /.*/
+      #       tags:
+      #         only: /^prod.*/
 
 
