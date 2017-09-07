@@ -19,20 +19,9 @@ automatic_scaling:
 
 threadsafe: true
 
-# health_check:
-#   enable_health_check: True
-#   #slow this down from default of 1sec
-#   check_interval_sec: 10
-#   timeout_sec: 4
-#   unhealthy_threshold: 2
-#   healthy_threshold: 1
+health_check:
+  enable_health_check: True
 
-# liveness_check:
-#    path: /_ah/health
-#    check_interval_sec: 120
-#    timeout_sec: 4
-#    failure_threshold: 2
-#    success_threshold: 2
 
 # NOTE: Values below are commonly inserted by our CI system..
 env_variables:
