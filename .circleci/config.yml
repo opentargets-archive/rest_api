@@ -115,8 +115,15 @@ jobs:
             echo "major: $API_VERSION"
             echo "minor: $API_VERSION_MINOR"
 
-            # we assume there already is a config for master branch
-            # if we are in a branch, see if we have a config for it and read the ID
+            if [ "${GCENDPOINT_API_VERSION}" != "${API_VERSION_MINOR}-${CIRCLE_BRANCH}" ]; then
+                echo -e "\n\n### API version mismatch. Re-deploying to Google Endpoints for the ${CIRCLE_BRANCH} branch\n\n"
+                envsubst < openapi.template.yaml > openapi.yaml
+                gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+              else
+                echo -e "\n\n### API version matches. Will use the same Google Endpoint deployment.\n\n"
+            fi
+
+            
             # if [ "${CIRCLE_BRANCH}" != "master" ]; then
             GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs list --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq -r '.[0] | .id') 
             
@@ -138,7 +145,9 @@ jobs:
               echo -e "### Checking if the existing config [ ${GCENDPOINT_VERSION} ] matches the version \n\n"
               GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management configs describe ${GCENDPOINT_VERSION} --service=${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com --format json | jq -r '.apis[0] | .version')
 
-              if [ "${GCENDPOINT_API_VERSION}" != "${API_VERSION_MINOR}-${CIRCLE_BRANCH}" ]; then
+              #if openapi.template.yaml has changed OR the version file is different
+              # than the one deployed, redeploy the new configuration
+              if [ "${GCENDPOINT_API_VERSION}" != "${API_VERSION_MINOR}-${CIRCLE_BRANCH}" ] || [ $(git diff "HEAD@{1}" --name-only | grep openapi) ]; then
                 echo -e "\n\n### API version mismatch. Re-deploying to Google Endpoints for the ${CIRCLE_BRANCH} branch\n\n"
                 envsubst < openapi.template.yaml > openapi.yaml
                 gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
