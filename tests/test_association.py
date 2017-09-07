@@ -170,16 +170,8 @@ class AssociationTestCase(GenericTestCase):
 
     def testAssociationDefaultDiseaseFacetSize(self):
         target = 'ENSG00000157764'
-<<<<<<< HEAD
         response = self._make_request('/platform/public/association/filter',
                                       data={'target':target, 'facets':"disease", 'no_cache':True, 'size':0},
-=======
-        response = self._make_request('/api/latest/public/association/filter',
-                                      data={'target':target,
-                                            'facets':"disease",
-                                            'no_cache':True,
-                                            'size':0},
->>>>>>> origin/master
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
