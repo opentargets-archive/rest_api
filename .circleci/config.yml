@@ -385,15 +385,9 @@ workflows:
       - deploy:
           requires:
             - build
-          filters:
-            tags:
-              only: /^prod.*/
       - api-tests:
           requires:
             - deploy
-          filters:
-            tags:
-              only: /^prod.*/
       - deploy-staging:
           requires:
             - api-tests
@@ -403,7 +397,7 @@ workflows:
       - holdprod:
           type: approval
           requires:
-           - api-tests
+           - build
           filters:
             branches:
               ignore: /.*/
