@@ -48,22 +48,6 @@ jobs:
           command: |
             docker build -t circle-${CIRCLE_SHA1} -f docker/Dockerfile .
       - run:
-          name: Push to Quay
-          command: |
-            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
-            ## branch tag and push
-            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
-            ## sha commit push
-            docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            ## push latest if master
-            if [ "$CIRCLE_BRANCH" = "master" ] 
-              then
-                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
-                docker push ${QUAY_REPO}:latest
-            fi
-      - run:
           name: Push to Google Container Registry (gcr.io)
           command: |
             echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -80,7 +64,22 @@ jobs:
                 docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
                 docker push ${GCR_REPO}:latest
             fi
-
+      - run:
+          name: Push to Quay
+          command: |
+            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
+            ## branch tag and push
+            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
+            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
+            ## sha commit push
+            docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ] 
+              then
+                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
+                docker push ${QUAY_REPO}:latest
+            fi
   deploy:
     working_directory: ~/circulate
     docker:
