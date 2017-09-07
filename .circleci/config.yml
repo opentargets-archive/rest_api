@@ -87,6 +87,12 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.132.0.9:9200
+      DEPLOYED_DATA_VERSION: 17.06.2
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
     steps:
       - checkout
       - run: 
@@ -103,13 +109,6 @@ jobs:
 
       - run: 
           name: Deploy to google endpoints (if a new branch or a new version)
-          environment: 
-            ES_URL: http://10.132.0.9:9200
-            DEPLOYED_DATA_VERSION: 17.06.2
-            MAX_NUM_INSTANCES: 1
-            CPU: 2
-            MEMORY_GB: 2
-            DISK_SIZE_GB: 30
           command: |
             set -o allexport
             echo -e "### Reading api version from VERSION file ..."
@@ -179,6 +178,12 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.132.0.9:9200
+      DEPLOYED_DATA_VERSION: 17.06.2
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
     steps:
       - checkout
       - run: 
@@ -195,13 +200,6 @@ jobs:
 
       - run: 
           name: Deploy to google endpoints (if a new branch or a new version)
-          environment: 
-            ES_URL: http://10.132.0.9:9200
-            DEPLOYED_DATA_VERSION: 17.06.2
-            MAX_NUM_INSTANCES: 1
-            CPU: 2
-            MEMORY_GB: 2
-            DISK_SIZE_GB: 30
           command: |
             set -o allexport
             echo -e "### Reading api version from VERSION file ..."
@@ -229,11 +227,24 @@ jobs:
 
 
   deploy-prod-eu:
-    working_directory: ~/circulate
+        working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://35.195.41.74:39200
+      DEPLOYED_DATA_VERSION: 17.06.2
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
     docker:
       - image: google/cloud-sdk
     steps:
       - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -242,29 +253,48 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
 
-      - run:
-          name: Substitute ENV vars for deploy (EU prod)
-          # PRODUCTION EU elasticsearch
-          environment: 
-            ES_URL: http://35.195.41.74:39200
-            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
-            GCENDPOINT_VERSION: 2017-07-07r1
-            DEPLOYED_DATA_VERSION: 17.06.2
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
           command: |
-            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            bash .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
             #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
             CIRCLE_TAG="$(git tag -l --points-at HEAD)"
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project open-targets-api-prod-eu
-      
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
+
+
   deploy-prod-us:
     working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-us
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.142.0.3:9200
+      DEPLOYED_DATA_VERSION: 17.06.2
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
     docker:
       - image: google/cloud-sdk
     steps:
       - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -273,21 +303,27 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
 
-      - run:
-          name: Substitute ENV vars for deploy (US prod)
-          environment: 
-            ES_URL: http://10.142.0.3:9200
-            GCENDPOINT_URL: open-targets-eu-dev.appspot.com
-            GCENDPOINT_VERSION: 2017-07-07r1
-            DEPLOYED_DATA_VERSION: 17.06.2
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
           command: |
-            bash .circleci/render.sh app.template.yaml > ~/circulate/app.yaml
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            bash .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id ${GCENDPOINT_VERSION} in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
             #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
             CIRCLE_TAG="$(git tag -l --points-at HEAD)"
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project open-targets-api-prod-us
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
       
 
 workflows:
