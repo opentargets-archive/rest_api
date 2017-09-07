@@ -7,8 +7,8 @@ x-google-endpoints:
 basePath: "/v${API_VERSION}"
 info:
   version: ${API_VERSION_MINOR}-${CIRCLE_BRANCH}
-  title: Open Targets Platform REST API
-  description: Open Targets Platform API 
+  title: Open Targets Platform REST API (${API_VERSION} - ${CIRCLE_BRANCH})
+  description: Open Targets Platform REST API 
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
