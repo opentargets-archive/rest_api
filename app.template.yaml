@@ -22,7 +22,7 @@ threadsafe: true
 health_check:
   enable_health_check: True
   #slow this down from default of 1sec
-  check_interval_sec: 120
+  check_interval_sec: 50
   timeout_sec: 4
   unhealthy_threshold: 2
   healthy_threshold: 1
