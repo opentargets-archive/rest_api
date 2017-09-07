@@ -27,12 +27,12 @@ threadsafe: true
 #   unhealthy_threshold: 2
 #   healthy_threshold: 1
 
-liveness_check:
-   path: /_ah/health
-   check_interval_sec: 120
-   timeout_sec: 4
-   failure_threshold: 2
-   success_threshold: 2
+# liveness_check:
+#    path: /_ah/health
+#    check_interval_sec: 120
+#    timeout_sec: 4
+#    failure_threshold: 2
+#    success_threshold: 2
 
 # NOTE: Values below are commonly inserted by our CI system..
 env_variables:
