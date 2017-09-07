@@ -330,6 +330,7 @@ def create_app(config_name):
 
     # Override the HTTP exception handler.
     app.handle_http_exception = get_http_exception_handler(app)
+    return app
 
 
 if __name__ == '__main__':
