@@ -6,7 +6,9 @@ x-google-endpoints:
     allowCors: "true"
 basePath: "/v${API_VERSION}"
 info:
-  version: ${API_VERSION_MINOR}-${CIRCLE_BRANCH}
+  # NOTE how for tags (ie. when CIRCLE_BRANCH is unset) the API_VERSION_MINOR
+  # should revert to plain semantic versioning.
+  version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
   title: Open Targets Platform REST API (${API_VERSION} - ${CIRCLE_BRANCH})
   description: Open Targets Platform REST API 
   license:
