@@ -1,15 +1,15 @@
 swagger: '2.0'
-host: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
+host: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
 # x-google-allow: all
 x-google-endpoints:
-  - name: "${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com"
+  - name: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
     allowCors: "true"
 basePath: "/v${API_VERSION}"
 info:
   # NOTE how for tags (ie. when CIRCLE_BRANCH is unset) the API_VERSION_MINOR
   # should revert to plain semantic versioning.
   version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
-  title: Open Targets Platform REST API (${API_VERSION} - ${CIRCLE_BRANCH})
+  title: Open Targets Platform REST API (${API_VERSION} ${CIRCLE_BRANCH})
   description: Open Targets Platform REST API 
   license:
     name: Apache 2.0

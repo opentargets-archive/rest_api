@@ -13,11 +13,10 @@
 
 ############
 
-
 if [ -n "${CIRCLE_TAG:+1}" ]; then
-    APPENG_VERSION=${CIRCLE_TAG}
+    export APPENG_VERSION=${CIRCLE_TAG}
 elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
-    APPENG_VERSION=${CIRCLE_BRANCH}
+    export APPENG_VERSION=${CIRCLE_BRANCH}
 else
     echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
     exit 1
@@ -28,22 +27,12 @@ fi
 
 
 # is there an endpoint deployment for this branch?
-GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
+if GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
                      configs list --format json \
                      --service=${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com \
-                    | jq -r '.[0] | .id') 
-
-
-if [ -z "$GCENDPOINT_VERSION" ]; then
-    # could not find an existing one
-    echo -e "\n### Could not find an existing Google Endpoints deployment"
-    echo -e "### Deploying to Google Endpoints for the [${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com] service\n"
-
-    envsubst < openapi.template.yaml > openapi.yaml
-    gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
-
-else
-    # could find an endpoint
+                    | jq -r '.[0] | .id') ; then
+    
+    # yes, we could find an endpoint..
     echo -e "\n### Found a Google Endpoint for ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
     
     echo -e "### Checking if the existing config [ ${GCENDPOINT_VERSION} ] matches the version \n"
@@ -65,7 +54,15 @@ else
     else
         echo -e "\n\n### API version matches. Will use the same Google Endpoint deployment.\n\n"
     fi
+else
+    # could not find an existing one
+    echo -e "\n### Could not find an existing Google Endpoints deployment"
+    echo -e "### Deploying to Google Endpoints for the [${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com] service\n"
+
+    envsubst < openapi.template.yaml > openapi.yaml
+    gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
 fi
+
 
 echo -e "### get the ENDPOINT ID of the deployment to substitute"
 export GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
