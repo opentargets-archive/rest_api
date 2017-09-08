@@ -155,7 +155,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://10.132.0.9:9200
+      ES_URL: http://130.211.109.152:39200
       DEPLOYED_DATA_VERSION: mkes5.2
       MAX_NUM_INSTANCES: 1
       CPU: 2
@@ -221,7 +221,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://35.195.41.74:39200
+      ES_URL: http://130.211.109.152:39200
       DEPLOYED_DATA_VERSION: mkes5.2
       MAX_NUM_INSTANCES: 1
       CPU: 2
@@ -281,7 +281,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://10.142.0.3:9200
+      ES_URL: http://130.211.109.152:39200
       DEPLOYED_DATA_VERSION: mkes5.2
       MAX_NUM_INSTANCES: 1
       CPU: 2
