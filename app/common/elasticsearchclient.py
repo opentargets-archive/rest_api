@@ -53,12 +53,29 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
     '''returns a list with a match dict per el in `ts` using the private facet and
     `epxression_level` based on the `key` as a str "protein" or "rna"
     '''
-    range = "([" + str(expression_level) + "-9]|1[0-1])_.*"
-    if expression_level >= 10:
-        range = "1[" + str(expression_level % 10) + "-1]_.*"
+    ret = {}
+    
+    if ts and len(ts) > 0:
+        range = "([" + str(expression_level) + "-9]|1[0-1])_"
+        if expression_level >= 10:
+            range = "1[" + str(expression_level % 10) + "-1]_"
 
-    return {"regexp": { "private.facets.expression_tissues." + key + ".id.keyword": \
-                        range}}
+        ret = {'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'must': [{"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+                                                 range + t}} for t in ts]}
+                        }
+                    }
+               }
+    else:
+        range = "([" + str(expression_level) + "-9]|1[0-1])_.*"
+        if expression_level >= 10:
+            range = "1[" + str(expression_level % 10) + "-1]_.*"
+        ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+                          range}}
+
+    return ret
 
 
 def _copy_and_mutate_dict(d, del_k, **add_ks):
@@ -927,12 +944,12 @@ class esQuery():
                 }
             }
 
-#         print "------------"
-#         print ""
-#         pprint.pprint(ass_query_body)
-#
-#         print ""
-#         print "------------"
+        print "------------"
+        print ""
+        pprint.pprint(ass_query_body)
+
+        print ""
+        print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2722,7 +2739,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             self.get_size(), self.params.rna_expression_level)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     @staticmethod
     def _get_association_rna_range_filter(params):
