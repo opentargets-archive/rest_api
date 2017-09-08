@@ -927,12 +927,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2602,15 +2602,9 @@ class AggregationUnitRNAExLevel(AggregationUnit):
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue, 1)
 
-        print '---'
-        pprint.pprint(filters)
-        print '---'
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
                                              rna_expression_tissue=d)
-        print '---'
-        pprint.pprint(mut_filters)
-        print '---'
 
         self.agg = self._get_aggregation_on_rna_expression_level(
             mut_filters, self._get_complimentary_facet_filters,
@@ -2629,11 +2623,13 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             if params.rna_expression_level >= 10:
                 range = "1[" + str(params.rna_expression_level % 10) + "-1]_.*"
             # here the functionality
+
             q = { "regexp":{
                         "private.facets.expression_tissues.rna.id.keyword": \
                         range
                     }
                 }
+
         return q
 
     @staticmethod
@@ -2875,11 +2871,13 @@ class AggregationUnitPROExLevel(AggregationUnit):
         if range_ok:
             # here the functionality
             range = "[" + str(params.protein_expression_level) + "-4]_.*"
+
             q = {"regexp":{
                         "private.facets.expression_tissues.protein.id.keyword": \
                         range
                     }
                 }
+
         return q
 
     @staticmethod
