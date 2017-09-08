@@ -143,32 +143,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install requests library
+          name: Run runscope tests
           command: |
-            pip install virtualenv
-            virtualenv venv
-            . venv/bin/activate
-            pip install -r .circleci/runscope/requirements.txt
-      - run:
-          name: Wait for appengine deployment
-          command: |
-            set -o allexport
-            source VERSION
-            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}/platform
-            until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/public/utils/version) || (( count++ >= 10 )); do
-              printf '.'
-              sleep 20
-            done
-
-      - run:
-          name: Trigger runscope tests on deployed branch
-          command: |
-            set -o allexport
-            source VERSION
-            DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-            BASEPATH=/v${API_VERSION}/platform
-            . venv/bin/activate
-            python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"
+            source .circleci/runscope/run.sh
 
 
   deploy-staging:
@@ -225,6 +202,19 @@ jobs:
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID}
 
+
+  api-tests-staging:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
 
   deploy-prod-eu:
     working_directory: ~/circulate
@@ -284,36 +274,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install requests library
+          name: Run runscope tests
           command: |
-            pip install virtualenv
-            virtualenv venv
-            . venv/bin/activate
-            pip install -r .circleci/runscope/requirements.txt
-      - run:
-          name: Wait for appengine deployment
-          command: |
-            set -o allexport
-            source VERSION
-            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
-            DEPLOYEDURL=${CIRCLE_TAG}-dot-${GOOGLE_PROJECT_ID}.appspot.com/v${API_VERSION}/platform
-            until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/public/utils/version) || (( count++ >= 10 )); do
-              printf '.'
-              sleep 20
-            done
-
-      - run:
-          name: Trigger runscope tests on deployed branch
-          command: |
-            set -o allexport
-            source VERSION
-            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
-            DEPLOYEDURL=${CIRCLE_TAG}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-            BASEPATH=/v${API_VERSION}/platform
-            . venv/bin/activate
-            python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"
-
-
+            source .circleci/runscope/run.sh
 
   deploy-prod-us:
     working_directory: ~/circulate
@@ -364,6 +327,19 @@ jobs:
             CIRCLE_TAG="$(git tag -l --points-at HEAD)"
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
       
+
+  api-tests-prod-us:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-us
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
 
 workflows:
   version: 2
@@ -432,13 +408,13 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      # - api-tests-prod-us:
-      #     requires:
-      #       - deploy-prod-us
-      #     filters:
-      #       branches:
-      #         ignore: /.*/
-      #       tags:
-      #         only: /^prod.*/
+      - api-tests-prod-us:
+          requires:
+            - deploy-prod-us
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
 
 
