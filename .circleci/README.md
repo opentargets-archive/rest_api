@@ -25,6 +25,9 @@ https://<prod-tagname>-dot-opentargets-eu-dev.appspot.com/v<major>/platform
 
 ### To trigger a production deployment:
 ```sh
-git tag prod-test-20170907-1653
-git push origin prod-test-20170907-1653
+TAG=$( echo staging-test-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
+
+TAG=$( echo prod-test-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
 ```
+
+
