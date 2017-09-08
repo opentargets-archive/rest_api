@@ -12,20 +12,20 @@ else
     exit 1
 fi
 
-echo -e "### Pointing at ${DEPLOYEDURL}${BASEPATH}"
+echo -e "### Pointing at ${DEPLOYEDURL}${BASEPATH}\n"
 
 
-echo -e "### Activating python virtualenv ..."
+echo -e "### Activating python virtualenv ...\n"
 pip install virtualenv
 virtualenv venv
 . venv/bin/activate
 pip install -r .circleci/runscope/requirements.txt
 
-echo -e " Waiting for 200 response from ${DEPLOYEDURL}${BASEPATH}"
+echo -e " Waiting for 200 response from ${DEPLOYEDURL}${BASEPATH}\n"
 until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}${BASEPATH}/public/utils/ping) || (( count++ >= 10 )); do
     printf '.'
     sleep 20
 done
 
-echo -e "### Run python script with Runscope Trigger URL"
+echo -e "### Run python script with Runscope Trigger URL\n"
 python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"

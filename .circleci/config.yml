@@ -200,7 +200,7 @@ jobs:
           # gcloud app deploy --image-url ${GCR_REPO}:${CIRCLE_BRANCH} 
 
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
 
 
   api-tests-staging:
@@ -261,8 +261,6 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
-            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
 
   api-tests-prod-eu:
@@ -323,8 +321,6 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
-            #need to define CIRCLE_TAG (see https://discuss.circleci.com/t/builds-using-git-tags-failing/14904/2)
-            CIRCLE_TAG="$(git tag -l --points-at HEAD)"
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
       
 
