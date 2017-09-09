@@ -45,9 +45,11 @@ def es_index_exists():
     else:
         #NOTE: passing true, otherwise google appengine will not make any path available
         return True, "cannot find indices..."
- 
 
+def dummy():
+    return True, "we are live!"
 
+health.add_check(dummy)
 health.add_check(es_available)
 health.add_check(es_index_exists)
 
