@@ -55,6 +55,8 @@ jobs:
             if [ -n "${CIRCLE_TAG:+1}" ]; then
               ## tag tag :) and push
               echo -e "building for tag"
+              echo ${CIRCLE_TAG}
+              echo $(CIRCLE_BRANCH)
               docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_TAG}
               docker push ${GCR_REPO}:${CIRCLE_TAG}
             elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
