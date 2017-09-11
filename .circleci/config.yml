@@ -134,6 +134,12 @@ jobs:
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID}
 
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_BRANCH
+          when: on_fail
+
   api-tests:
     docker:
       - image: circleci/python:2.7
@@ -202,6 +208,11 @@ jobs:
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
 
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
 
   api-tests-staging:
     docker:
@@ -263,6 +274,12 @@ jobs:
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
 
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
   api-tests-prod-eu:
     docker:
       - image: circleci/python:2.7
@@ -322,7 +339,12 @@ jobs:
           name: Deploy branch to google AppEngine (US prod)
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
-      
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
 
   api-tests-prod-us:
     docker:
