@@ -36,7 +36,7 @@ def es_available():
     if es.ping():
         return True, "elasticsearch is up!"
     else:
-        return True, "cannot find elasticsearch :(" 
+        return True, "cannot find elasticsearch :("
 
 def es_index_exists():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])

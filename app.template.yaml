@@ -1,9 +1,9 @@
-runtime: python
+runtime: custom
 env: flex
-entrypoint: uwsgi --http 0.0.0.0:8080 --master  --http-auto-chunked  --wsgi-file manage.py --module manage --callable app  --gevent 1000 --max-requests 1000 --harakiri 300   --processes 16  --cheaper 2 --http-timeout 300  --http-auto-gzip
+# entrypoint: uwsgi --http 0.0.0.0:8080 --master  --http-auto-chunked  --wsgi-file manage.py --module manage --callable app  --gevent 1000 --max-requests 1000 --harakiri 300   --processes 16  --cheaper 2 --http-timeout 300  --http-auto-gzip
 
-runtime_config:
-  python_version: 2
+# runtime_config:
+#   python_version: 2
 
 resources:
   cpu: ${CPU}
