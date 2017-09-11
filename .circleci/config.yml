@@ -57,17 +57,18 @@ jobs:
               echo -e "building for tag ${CIRCLE_TAG}"
               docker tag circle-${CIRCLE_SHA1} "${GCR_REPO}:${CIRCLE_TAG}"
               docker push "${GCR_REPO}:${CIRCLE_TAG}"
+              docker tag ${GCR_REPO}:${CIRCLE_TAG} ${GCR_REPO}:circle-${CIRCLE_SHA1}
             elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
               ## branch tag and push
               echo -e "building for branch"
               docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
               docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
             else
               echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
               exit 1
             fi
             ## sha commit push
-            docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
             docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
             ## push latest if master
             if [ "$CIRCLE_BRANCH" = "master" ] 
