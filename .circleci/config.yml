@@ -90,9 +90,9 @@ jobs:
       ES_URL: http://10.132.0.3:9200
       DEPLOYED_DATA_VERSION: mkes5.2
       MAX_NUM_INSTANCES: 1
-      CPU: 2
-      MEMORY_GB: 2
-      DISK_SIZE_GB: 30
+      CPU: 1
+      MEMORY_GB: 1
+      DISK_SIZE_GB: 10
     steps:
       - checkout
       - run: 
