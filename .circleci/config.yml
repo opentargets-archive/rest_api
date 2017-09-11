@@ -54,10 +54,9 @@ jobs:
             docker login -u _json_key -p "$(cat ${HOME}/gcp-key.json)" https://eu.gcr.io
             if [ -n "${CIRCLE_TAG:+1}" ]; then
               ## tag tag :) and push
-              echo -e "building for tag"
-              echo ${CIRCLE_TAG}
-              docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_TAG}
-              docker push ${GCR_REPO}:${CIRCLE_TAG}
+              echo -e "building for tag ${CIRCLE_TAG}"
+              docker tag circle-${CIRCLE_SHA1} "${GCR_REPO}:${CIRCLE_TAG}"
+              docker push "${GCR_REPO}:${CIRCLE_TAG}"
             elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
               ## branch tag and push
               echo -e "building for branch"
