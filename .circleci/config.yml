@@ -52,9 +52,18 @@ jobs:
           command: |
             echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
             docker login -u _json_key -p "$(cat ${HOME}/gcp-key.json)" https://eu.gcr.io
-            ## branch tag and push
-            docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
-            docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+            if [ -n "${CIRCLE_TAG:+1}" ]; then
+              ## tag tag :) and push
+              docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_TAG}
+              docker push ${GCR_REPO}:${CIRCLE_TAG}
+            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
+              ## branch tag and push
+              docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+            else
+              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
+              exit 1
+            fi
             ## sha commit push
             docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
             docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
@@ -68,9 +77,18 @@ jobs:
           name: Push to Quay
           command: |
             docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
-            ## branch tag and push
-            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
+            if [ -n "${CIRCLE_TAG:+1}" ]; then
+              ## tag tag :) and push
+              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_TAG}
+              docker push ${GCR_REPO}:${CIRCLE_TAG}
+            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
+              ## branch tag and push
+              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
+              docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+            else
+              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
+              exit 1
+            fi
             ## sha commit push
             docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
             docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
