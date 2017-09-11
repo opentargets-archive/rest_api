@@ -31,6 +31,6 @@ env_variables:
     GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
 
 endpoints_api_service:
-  name: ${CIRCLE_BRANCH}.${GOOGLE_PROJECT_ID}.appspot.com
+  name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
   config_id: ${GCENDPOINT_VERSION}
   #TODO make sure this config_id updates for every deployment
