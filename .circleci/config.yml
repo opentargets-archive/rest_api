@@ -288,7 +288,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -354,7 +354,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -416,7 +416,7 @@ workflows:
       - holdprod:
           type: approval
           requires:
-           - build
+           - push-containers
           filters:
             branches:
               ignore: /.*/
