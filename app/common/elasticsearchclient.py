@@ -100,7 +100,7 @@ def _inject_tissue_data(response, t2m):
     # find the data information assoc with this id
     if 'facets' in response:
         if 'protein_expression_tissue' in response['facets']:
-            bl = response['facets']['protein_expression_tissue']['buckets']
+            bl = response['facets']['protein_expression_tissue']['data']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
@@ -109,7 +109,7 @@ def _inject_tissue_data(response, t2m):
                     pass
 
         if 'rna_expression_tissue' in response['facets']:
-            bl = response['facets']['rna_expression_tissue']['buckets']
+            bl = response['facets']['rna_expression_tissue']['data']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
