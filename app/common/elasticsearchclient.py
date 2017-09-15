@@ -978,7 +978,7 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
-        # data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
+        data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
