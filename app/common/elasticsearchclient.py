@@ -944,12 +944,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -978,7 +978,7 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
-        data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
+        # data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
@@ -1343,7 +1343,8 @@ class esQuery():
 
         for facet_type in FilterTypes.__dict__.values():
             if facet_type in facets:
-                facets[facet_type] = facets[facet_type]['data']
+                # XXX include data key
+                facets[facet_type] = facets[facet_type]  # ['data']
         if facets:
             facets = self._process_facets(facets)
         return dict(data=scores,
@@ -2614,7 +2615,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                 self._get_association_rna_range_filter(self.params)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue, 1)
@@ -2791,12 +2792,18 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.rna.efo_code.keyword",
-                            # "include": range,
+                            "field": "private.facets.expression_tissues.rna.id.keyword",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size
                         },
                         "aggs": {
+                            "efo_code": {
+                                "terms": {
+                                    "field": "private.facets.expression_tissues.rna.efo_code.keyword",
+                                    "size": 1
+                                }
+                            },
                             "unique_target_count": {
                                 "cardinality": {
                                     "field": "target.id",
@@ -2830,8 +2837,8 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.rna.efo_code.keyword",
-                            # "include": range,
+                            "field": "private.facets.expression_tissues.rna.id.keyword",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size
                         },
@@ -2864,7 +2871,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 self._get_association_pro_range_filter(self.params)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('protein',
@@ -2988,7 +2995,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
             self.get_size(), self.params.protein_expression_level)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     @staticmethod
     def _get_association_pro_range_filter(params):
@@ -3039,8 +3046,8 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.protein.efo_code.keyword",
-                            # "include": range,
+                            "field": "private.facets.expression_tissues.protein.id.keyword",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size,
                         },
@@ -3078,8 +3085,8 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 "aggs": {
                     "data": {
                         "terms": {
-                            "field": "private.facets.expression_tissues.protein.efo_code.keyword",
-                            # "include": range,
+                            "field": "private.facets.expression_tissues.protein.id.keyword",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size,
                         },
