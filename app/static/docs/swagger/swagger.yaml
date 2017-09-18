@@ -1,4 +1,9 @@
 swagger: '2.0'
+host: "open-targets-eu-dev.appspot.com"
+# x-google-allow: all
+x-google-endpoints:
+  - name: "open-targets-eu-dev.appspot.com"
+    allowCors: "true"
 info:
   version: 2.1.1
   title: The Open Targets Platform REST API
@@ -532,7 +537,7 @@ paths:
         - name: body
           in: body
           schema:
-            type: object
+            type: string
             # type: array
             # minItems: 1
             # maxItems: 200
