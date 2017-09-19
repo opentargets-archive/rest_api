@@ -709,8 +709,7 @@ class esQuery():
         if targets:
             conditions.append(self.get_complex_target_filter(targets, gene_operator))
         if diseases:
-            conditions.append(self.get_complex_disease_filter(diseases, object_operator,
-                                                              is_direct=False))  # temporary until params.is_direct is supported again
+            conditions.append(self.get_complex_disease_filter(diseases, object_operator,params.is_direct) ) # temporary until params.is_direct is supported again
         if evidence_types:
             conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
         if datasources or datatypes:
