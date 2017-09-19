@@ -28,4 +28,4 @@ until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}${B
 done
 
 echo -e "### Run python script with Runscope Trigger URL\n"
-python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"
+python .circleci/runscope/app.py "https://api.runscope.com/radar/bucket/${RUNSCOPE_BUCKET_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}&basePath=${BASEPATH}"
