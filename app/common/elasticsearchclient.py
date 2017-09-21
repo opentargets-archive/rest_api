@@ -655,26 +655,38 @@ class esQuery():
             if res['hits']['total']:
                 return SimpleResult(res, params)
 
-    def get_efo_info_from_code(self, efo_codes, **kwargs):
+    def get_efo_info_from_code(self, efo_codes,**kwargs):
         params = SearchParams(**kwargs)
         if not isinstance(efo_codes, list):
             efo_codes = [efo_codes]
+
+        query_body = {'query': { "ids": {"values": efo_codes
+                                              },
+                                          },
+                                        # TODO - size should not be hardcodes - use count and scan api ?
+                                          'size': 10000
+                                      }
+        if params.facets:
+
+            query_body["aggregations"] = {"significantTherapeuticAreas": {
+                                                "significant_terms": {"field": "path_labels"}
+                                                }
+                                           }
+
+        if params.path_label:
+            query_body['post_filter'] = {"term": {"path_labels": params.path_label}}
+
+        if params.fields:
+            query_body['_source'] = params.fields
+
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body={'query': {
-                                              "ids": {
-                                                  "values": efo_codes
-                                              },
-                                          },
-                                          'size': 10000
-                                      }
+                                      body= query_body
                                       )
-            if res['hits']['total']:
-                if res['hits']['total'] == 1:
-                    return [res['hits']['hits'][0]['_source']]
-                else:
-                    return [hit['_source'] for hit in res['hits']['hits']]
+            pag_res = PaginatedResult(res,params)
+            return pag_res
+
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
 
@@ -1946,7 +1958,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                )
 
 
-
     def _get_free_text_suggestions(self, searchphrase):
         return {
             "text": searchphrase,
@@ -2083,6 +2094,7 @@ class SearchParams(object):
 
         self.facets = kwargs.get('facets', "false") or "false"
         self.facets_size = kwargs.get('facets_size', None) or None
+        self.path_label = kwargs.get('path_label', None)
 
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
