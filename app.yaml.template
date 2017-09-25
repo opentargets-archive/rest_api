@@ -38,5 +38,5 @@ env_variables:
 
 endpoints_api_service:
   name: "open-targets-eu-dev.appspot.com"
-  config_id: "2017-07-07r1"
+  config_id: "2017-09-20r0"
   #TODO make sure this config_id updates for every deployment
