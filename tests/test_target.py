@@ -70,5 +70,46 @@ class TargetTestCase(GenericTestCase):
 
         map(assert_number_of_fields, json_response['data'])
 
+
+    def testPostTargets(self):
+        target = 'ENSG00000157764'
+        related_targets_res = self._make_request('/api/latest/private/relation/target/' + target,
+                                                  data={'size': 1000},
+                                                  token=self._AUTO_GET_TOKEN)
+        json_response = json.loads(related_targets_res.data.decode('utf-8'))
+        related_targets = [d['object']['id'] for d in json_response['data']]
+
+        response = self._make_request('/api/latest/private/target',
+                                      data=json.dumps(
+                                          {'id': related_targets, 'facets': 'true', 'size': 1000}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
+
+    def testPostTargetsWithFacetFiltering(self):
+        target = 'ENSG00000157764'
+        related_targets_res = self._make_request('/api/latest/private/relation/target/' + target,
+                                                  data={'size': 1000},
+                                                  token=self._AUTO_GET_TOKEN)
+        json_response = json.loads(related_targets_res.data.decode('utf-8'))
+        related_targets = [d['object']['id'] for d in json_response['data']]
+
+        response = self._make_request('/api/latest/private/target',
+                                      data=json.dumps(
+                                          {'id': related_targets, 'facets': 'true', 'size': 1000, 'go_term':'GO:0008284'}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
+
+
+
 if __name__ == "__main__":
      unittest.main()
