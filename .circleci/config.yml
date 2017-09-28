@@ -176,6 +176,25 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
+  
+  stop-instance:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
+    steps:
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Stop running version (if master)
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
 
 
   deploy-staging:
@@ -407,6 +426,12 @@ workflows:
       - api-tests:
           requires:
             - deploy
+      - stop-instance:
+          requires:
+            - api-tests
+          filters:
+            branches:
+              ignore: master
       - deploy-staging:
           requires:
             - push-containers
