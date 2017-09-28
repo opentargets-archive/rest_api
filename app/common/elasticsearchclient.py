@@ -53,14 +53,25 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
     '''returns a list with a match dict per el in `ts` using the private facet and
     `epxression_level` based on the `key` as a str "protein" or "rna"
     '''
-    range = "([" + str(expression_level) + "-9]|1[0-1])_.*"
-    if expression_level >= 10:
-        range = "1[" + str(expression_level % 10) + "-1]_.*"
-    return [{"regexp":
-                {
-                    "private.facets.expression_tissues." + key + ".id.keyword": \
-                    range + t
-                }} for t in ts if ts]
+    ret = {}
+    
+    if ts and len(ts) > 0:
+        range = str(expression_level) + "_"
+
+        ret = {'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'should': [{"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+                                                 range + t}} for t in ts]}
+                        }
+                    }
+               }
+    else:
+        range = str(expression_level) + "_.*"
+        ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+                          range}}
+
+    return ret
 
 
 def _copy_and_mutate_dict(d, del_k, **add_ks):
@@ -71,31 +82,59 @@ def _copy_and_mutate_dict(d, del_k, **add_ks):
     return d
 
 
+def _reduce_tissue_buckets(response, rna_level, protein_level):
+#     if 'facets' in response:
+#         if 'protein_expression_tissue' in response['facets']:
+#             bl = response['facets']['protein_expression_tissue']['data']['buckets']
+#             for i in xrange(len(bl)):
+#                 try:
+#                     k = __clean_id(bl[i]['key'])
+#                     bl[i]['data'] = t2m['codes'][k]
+#                 except:
+#                     pass
+#
+#         if 'rna_expression_tissue' in response['facets']:
+#             bl = response['facets']['rna_expression_tissue']['data']['buckets']
+#             for i in xrange(len(bl)):
+#                 try:
+#                     k = __clean_id(bl[i]['key'])
+#                     bl[i]['data'] = t2m['codes'][k]
+#                 except:
+#                     pass
+
+    return response
+
+
 def _inject_tissue_data(response, t2m):
     def __clean_id(id):
-        if id[1] == '_':
+        if not id[0].isdigit():
+            return id
+        elif id[1] == '_':
             return id[2:]
         elif id[2] == '_':
             return id[3:]
         else:
             return id
 
+    # find the data information assoc with this id
     if 'facets' in response:
         if 'protein_expression_tissue' in response['facets']:
-            bl = response['facets']['protein_expression_tissue']['buckets']
+            bl = response['facets']['protein_expression_tissue']['data']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
+                    bl[i]['key'] = k
                 except:
                     pass
 
         if 'rna_expression_tissue' in response['facets']:
-            bl = response['facets']['rna_expression_tissue']['buckets']
+            bl = response['facets']['rna_expression_tissue']['data']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
+                    bl[i]['key'] = k
                 except:
                     pass
 
@@ -960,6 +999,11 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
+        # reduce tissue buckets
+        data = _reduce_tissue_buckets(data, params.rna_expression_level,
+                                      params.protein_expression_level)
+
+        # inject tissue information: anatomical part and organs
         data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
@@ -1325,7 +1369,8 @@ class esQuery():
 
         for facet_type in FilterTypes.__dict__.values():
             if facet_type in facets:
-                facets[facet_type] = facets[facet_type]['data']
+                # XXX include data key
+                facets[facet_type] = facets[facet_type]  # ['data']
         if facets:
             facets = self._process_facets(facets)
         return dict(data=scores,
@@ -2596,16 +2641,15 @@ class AggregationUnitRNAExLevel(AggregationUnit):
                 self._get_association_rna_range_filter(self.params)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     def build_agg(self, filters):
-        d = addict.Dict()
-        d.constant_score.filter.bool.must = \
-            ex_level_tissues_to_terms_list('rna',
-                                           self.params.rna_expression_tissue, 1)
+        d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue, 0)
+
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
-                                             rna_expression_tissue=d.to_dict())
+                                             rna_expression_tissue=d)
+
         self.agg = self._get_aggregation_on_rna_expression_level(
             mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.rna_expression_level)
@@ -2619,24 +2663,15 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         q = {}
         if range_ok:
             # spinal tap up to 11
-            range = "([" + str(params.rna_expression_level) + "-9]|1[0-1])_.*"
-            if params.rna_expression_level >= 10:
-                range = "1[" + str(params.rna_expression_level % 10) + "-1]_.*"
+            range = str(params.rna_expression_level) + "_.*"
             # here the functionality
-            q = {
-                'constant_score': {
-                    'filter': {
-                        'bool': {
-                            'must': [{
-                                "regexp":{
-                                    "private.facets.expression_tissues.rna.id.keyword": \
-                                    range
-                                }
-                            }]
-                        }
+
+            q = { "regexp":{
+                        "private.facets.expression_tissues.rna.id.keyword": \
+                        range
                     }
                 }
-            }
+
         return q
 
     @staticmethod
@@ -2683,7 +2718,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             f_agg = {
                 "filter": {
                     "bool": {
-                        "must": filters_func(1, filters)
+                        "must": filters_func(0, filters)
                     }
                 },
                 "aggs": {
@@ -2729,7 +2764,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
             self.get_size(), self.params.rna_expression_level)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     @staticmethod
     def _get_association_rna_range_filter(params):
@@ -2746,7 +2781,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                 'constant_score': {
                     'filter': {
                         'bool': {
-                            'must': t2tl('rna', tissues, params.rna_expression_level)
+                            'should': t2tl('rna', tissues, params.rna_expression_level)
                         }
                     }
                 }
@@ -2758,17 +2793,49 @@ class AggregationUnitRNAExTissue(AggregationUnit):
     def _get_aggregation_on_rna_expression_tissue(filters, filters_func, size,
                                                   ex_level):
         agg_filter = {}
+        range = ""
 
         if ex_level > 0:
-            range = "([" + str(ex_level) + "-9]|1[0-1])_.*"
-            if ex_level >= 10:
-                range = "1[" + str(ex_level % 10) + "-1]_.*"
+            range = str(ex_level) + "_.*"
 
             agg_filter = {
                 "filter": {
                     "bool": {
                         "must": filters_func(FilterTypes.RNA_EXPRESSION_TISSUE,
-                                             filters),
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                       "terms": {
+                            "field": "private.facets.expression_tissues.rna.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        else:
+            range = "0_.*"
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(0, filters)
                     }
                 },
                 "aggs": {
@@ -2796,40 +2863,7 @@ class AggregationUnitRNAExTissue(AggregationUnit):
                     }
                 }
             }
-        else:
-            agg_filter = {
-                "filter": {
-                    "bool": {
-                        "must": filters_func(1, filters)
-                    }
-                },
-                "aggs": {
-                    "data": {
-                        "terms": {
-                            "field": "private.facets.expression_tissues.rna.id.keyword",
-                            "include": "([1-9]|1[0-1])_.*",
-                            "order" : { "_term" : "asc" },
-                            'size': size
-                        },
-                        "aggs": {
-                            "unique_target_count": {
-                                "cardinality": {
-                                    "field": "target.id",
-                                    "precision_threshold": 1000
-                                }
-                            },
-                            "unique_disease_count": {
-                                "cardinality": {
-                                    "field": "disease.id",
-                                    "precision_threshold": 1000
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
-        # print(json.dumps(agg_filter, indent=4, sort_keys=True))
         return agg_filter
 
 
@@ -2840,16 +2874,17 @@ class AggregationUnitPROExLevel(AggregationUnit):
                 self._get_association_pro_range_filter(self.params)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     def build_agg(self, filters):
-        d = addict.Dict()
-        d.constant_score.filter.bool.must = \
-            ex_level_tissues_to_terms_list('protein',
-                                           self.params.protein_expression_tissue, 1)
+        d = ex_level_tissues_to_terms_list('protein',
+                                            self.params.protein_expression_tissue,
+                                            0)
+
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='protein_expression_tissue',
-                                             protein_expression_tissue=d.to_dict())
+                                             protein_expression_tissue=d)
+
         self.agg = self._get_aggregation_on_pro_expression_level(
             mut_filters, self._get_complimentary_facet_filters,
             self.get_size(), self.params.protein_expression_level)
@@ -2862,21 +2897,14 @@ class AggregationUnitPROExLevel(AggregationUnit):
         q = {}
         if range_ok:
             # here the functionality
-            range = "[" + str(params.protein_expression_level) + "-4]_.*"
-            q = {
-                'constant_score': {
-                    'filter': {
-                        'bool': {
-                            'must': [{
-                                "regexp":{
-                                    "private.facets.expression_tissues.protein.id.keyword": \
-                                    range
-                                }
-                            }]
-                        }
+            range = str(params.protein_expression_level) + "_.*"
+
+            q = {"regexp":{
+                        "private.facets.expression_tissues.protein.id.keyword": \
+                        range
                     }
                 }
-            }
+
         return q
 
     @staticmethod
@@ -2923,7 +2951,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
             agg_filter = {
                 "filter": {
                     "bool": {
-                        "must": filters_func(1, filters)
+                        "must": filters_func(0, filters)
                     }
                 },
                 "aggs": {
@@ -2947,7 +2975,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
                                 "cardinality": {
                                     "field": "disease.id",
                                     "precision_threshold": 1000
-                                },
+                                }
                             }
                         }
                     }
@@ -2970,7 +2998,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
             self.get_size(), self.params.protein_expression_level)
 
     def get_default_size(self):
-        return 300
+        return 1000
 
     @staticmethod
     def _get_association_pro_range_filter(params):
@@ -2987,7 +3015,7 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 'constant_score': {
                     'filter': {
                         'bool': {
-                            'must': t2tl('protein', tissues, params.protein_expression_level)
+                            'should': t2tl('protein', tissues, params.protein_expression_level)
                         }
                     }
                 }
@@ -3000,14 +3028,16 @@ class AggregationUnitPROExTissue(AggregationUnit):
                                                   ex_level):
 
         expression = {}
+        range = ""
+
         if ex_level > 0:
-            range = "[" + str(ex_level) + "-4]_.*"
+            range = str(ex_level) + "_.*"
 
             expression = {
                 "filter": {
                     "bool": {
                         "must": filters_func(FilterTypes.PROTEIN_EXPRESSION_TISSUE,
-                                             filters),
+                                             filters)
                     }
                 },
                 "aggs": {
@@ -3036,17 +3066,18 @@ class AggregationUnitPROExTissue(AggregationUnit):
                 }
             }
         else:
+            range = "0_.*"
             expression = {
                 "filter": {
                     "bool": {
-                        "must": filters_func(1, filters)
+                        "must": filters_func(0, filters)
                     }
                 },
                 "aggs": {
                     "data": {
                         "terms": {
                             "field": "private.facets.expression_tissues.protein.id.keyword",
-                            "include": "[1-4]_.*",
+                            "include": range,
                             "order" : { "_term" : "asc" },
                             'size': size,
                         },
