@@ -82,29 +82,6 @@ def _copy_and_mutate_dict(d, del_k, **add_ks):
     return d
 
 
-def _reduce_tissue_buckets(response, rna_level, protein_level):
-#     if 'facets' in response:
-#         if 'protein_expression_tissue' in response['facets']:
-#             bl = response['facets']['protein_expression_tissue']['data']['buckets']
-#             for i in xrange(len(bl)):
-#                 try:
-#                     k = __clean_id(bl[i]['key'])
-#                     bl[i]['data'] = t2m['codes'][k]
-#                 except:
-#                     pass
-#
-#         if 'rna_expression_tissue' in response['facets']:
-#             bl = response['facets']['rna_expression_tissue']['data']['buckets']
-#             for i in xrange(len(bl)):
-#                 try:
-#                     k = __clean_id(bl[i]['key'])
-#                     bl[i]['data'] = t2m['codes'][k]
-#                 except:
-#                     pass
-
-    return response
-
-
 def _inject_tissue_data(response, t2m):
     def __clean_id(id):
         if not id[0].isdigit():
@@ -119,7 +96,9 @@ def _inject_tissue_data(response, t2m):
     # find the data information assoc with this id
     if 'facets' in response:
         if 'protein_expression_tissue' in response['facets']:
-            bl = response['facets']['protein_expression_tissue']['data']['buckets']
+            bl = response['facets']['protein_expression_tissue']['data']['buckets'] \
+                    if 'data' in response['facets']['protein_expression_tissue'] else \
+                        response['facets']['protein_expression_tissue']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
@@ -129,7 +108,9 @@ def _inject_tissue_data(response, t2m):
                     pass
 
         if 'rna_expression_tissue' in response['facets']:
-            bl = response['facets']['rna_expression_tissue']['data']['buckets']
+            bl = response['facets']['rna_expression_tissue']['data']['buckets'] \
+                    if 'data' in response['facets']['rna_expression_tissue'] else \
+                    response['facets']['rna_expression_tissue']['buckets']
             for i in xrange(len(bl)):
                 try:
                     k = __clean_id(bl[i]['key'])
@@ -999,10 +980,6 @@ class esQuery():
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
-        # reduce tissue buckets
-        data = _reduce_tissue_buckets(data, params.rna_expression_level,
-                                      params.protein_expression_level)
-
         # inject tissue information: anatomical part and organs
         data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
@@ -1369,8 +1346,7 @@ class esQuery():
 
         for facet_type in FilterTypes.__dict__.values():
             if facet_type in facets:
-                # XXX include data key
-                facets[facet_type] = facets[facet_type]  # ['data']
+                facets[facet_type] = facets[facet_type]['data']
         if facets:
             facets = self._process_facets(facets)
         return dict(data=scores,
