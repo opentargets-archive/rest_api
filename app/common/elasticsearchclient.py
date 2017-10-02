@@ -655,7 +655,6 @@ class esQuery():
                 # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term"
                 # q.aggregations.significant_go_terms.significant_terms.include = "p:*|c:*|f:.*"
                 q.aggregations.significant_go_terms.significant_terms.size = "26"
-                q.aggregations.significant_go_terms.significant_terms.field = "go.id"
                 q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
 
             # if params.facets:
@@ -700,11 +699,12 @@ class esQuery():
             efo_codes = [efo_codes]
 
         query_body = addict.Dict()
-        query_body.query.ids.values = efo_codes
-        query_body.query.size = 10000
+        query_body.query.ids['values'] = efo_codes
+        query_body.size = len(efo_codes)
 
         if params.facets:
             query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels"
+            query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "26"
 
         if params.path_label:
             query_body.post_filter.term.path_labels = params.path_label
