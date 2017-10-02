@@ -27,11 +27,13 @@ class Relations(restful.Resource):
         parser.add_argument('sort', type=str, required=False, action='append',
                             help="sort the results by this score type", default=['scores.overlap']
                             )
-        parser.add_argument('subject', type=str, action='append', required=True, help="subjects to get relations for")
+        parser.add_argument('subject', type=str, action='append', required=False, help="subjects to get relations for")
+        parser.add_argument('object', type=str, action='append', required=False, help="objeects to get relations for")
+
         args = parser.parse_args()
         subjects = args.pop('subject', []) or []
-
-        res = es.get_relations(subjects, **args)
+        objects = args.pop('object', []) or []
+        res = es.get_relations(subjects, objects, **args)
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(subjects))
         return CTTVResponse.OK(res)
@@ -46,13 +48,15 @@ class Relations(restful.Resource):
 
         parser = boilerplate.get_parser()
         parser.add_argument('subject', type=str, action='append', required=False, help="subjects to get relations for")
+        parser.add_argument('object', type=str, action='append', required=False, help="objeects to get relations for")
         parser.add_argument('sort', type=str, required=False, action='append',
                             help="sort the results by this score type", default=['scores.overlap']
                             )
 
         args = parser.parse_args()
         subjects = args.pop('subject', []) or []
-        res = es.get_relations(subjects, **args)
+        objects = args.pop('object', []) or []
+        res = es.get_relations(subjects, objects, **args)
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(subjects))
         return CTTVResponse.OK(res)
@@ -72,7 +76,7 @@ class RelationTargetSingle(restful.Resource):
         parser.add_argument('sort', type=str, required=False, action='append',
                             help="sort the results by this score type", default=['scores.overlap'])
         args = parser.parse_args()
-        res = es.get_relations([target_id], **args)
+        res = es.get_relations([target_id],[], **args)
         if not res:
             abort(404, message='Cannot find relations for id %s'%str(target_id))
         return CTTVResponse.OK(res)
@@ -92,7 +96,7 @@ class RelationDiseaseSingle(restful.Resource):
                             help="sort the results by this score type", default=['scores.overlap'])
         args = parser.parse_args()
 
-        res = es.get_relations([disease_id], **args)
+        res = es.get_relations([disease_id],[], **args)
         if not res:
             abort(404, message='Cannot find relations for id %s' % str(disease_id))
         return CTTVResponse.OK(res)

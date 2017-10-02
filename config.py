@@ -44,7 +44,7 @@ def prefix_or_custom_idx(prefix, name, ini, suffix=''):
 class Config:
     ## [key configurations]
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200')
-    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', '17.07')
+    DATA_VERSION = os.getenv('OPENTARGETS_DATA_VERSION', 'ck_17.09')
 
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
     ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
