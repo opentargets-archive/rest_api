@@ -72,7 +72,7 @@ class TargetTestCase(GenericTestCase):
 
 
     def testPostTargets(self):
-        target = 'ENSG00000157764'
+        target = 'ENSG00000142192'
         related_targets_res = self._make_request('/api/latest/private/relation/target/' + target,
                                                   data={'size': 1000},
                                                   token=self._AUTO_GET_TOKEN)
@@ -81,7 +81,7 @@ class TargetTestCase(GenericTestCase):
         fields = ['id', 'approved_name', 'approved_symbol']
         response = self._make_request('/api/latest/private/target',
                                       data=json.dumps(
-                                          {'id': related_targets, 'facets': 'true', 'fields':fields, 'size': 1000}),
+                                          {'id': related_targets, 'facets': 'true', 'fields':fields}),
                                       content_type='application/json',
                                       method='POST',
                                       token=self._AUTO_GET_TOKEN)
@@ -100,7 +100,7 @@ class TargetTestCase(GenericTestCase):
         fields = ['id','approved_name','approved_symbol']
         response = self._make_request('/api/latest/private/target',
                                       data=json.dumps(
-                                          {'id': related_targets, 'facets': 'true', 'size': 1000, 'fields':fields,'go_term':'GO:0008284'}),
+                                          {'id': related_targets, 'facets': 'true', 'fields':fields,'go_term':'GO:0008284'}),
                                       content_type='application/json',
                                       method='POST',
                                       token=self._AUTO_GET_TOKEN)
