@@ -1,15 +1,16 @@
-from collections import defaultdict
 import hashlib
+import json as json
 import logging
-import pprint
 import sys
 import time
+from collections import defaultdict
 
 import addict
+import jmespath
+import numpy as np
 from elasticsearch import TransportError
 from elasticsearch import helpers
 from flask import current_app, request
-import jmespath
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
 
@@ -21,9 +22,6 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
-import json as json
-import numpy as np
-
 
 __author__ = 'andreap'
 
@@ -54,7 +52,7 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
     `epxression_level` based on the `key` as a str "protein" or "rna"
     '''
     ret = {}
-    
+
     if ts and len(ts) > 0:
         range = str(expression_level) + "_"
 
@@ -1062,26 +1060,28 @@ class esQuery():
                                    subject_ids,
                                    bol=BooleanFilterOperator.OR,
                                    include_negative=False,
+                                   field='subject'
                                    ):
 
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
         :param subject_ids: list of ids as subject
         :param bol: boolean operator to use for combining filters
+        :param field: field to use as subject, should be 'subject' or 'object'
         :return: boolean filter
         '''
         subject_ids = self._resolve_negable_parameter_set(subject_ids, include_negative)
         if subject_ids:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {"subject.id": subject_ids}
+                    "terms": {field+".id": subject_ids}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "terms": {
-                                      "subject.id": [subject_id]}
+                                      field+".id": [subject_id]}
                               }
                               for subject_id in subject_ids]
                     }
@@ -1935,14 +1935,21 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         return dict()
 
-    def get_relations(self, subject_ids, **kwargs):
+    def get_relations(self, subject_ids, object_ids, **kwargs):
         params = SearchParams(**kwargs)
         # query_body = {"match_all": {}}
         # if params.search:
         #     query_body = {"match_phrase_prefix": {"_all": {"query": params.search}}}
 
+        subject_query = self.get_complex_subject_filter(subject_ids)
+        object_query = self.get_complex_subject_filter(object_ids, field='object')
         query_body = {
-            "query": self.get_complex_subject_filter(subject_ids),
+            "query": {
+                "bool": {
+                    "must": [subject_query,
+                             object_query]
+                }
+            },
             'size': params.size,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params),
