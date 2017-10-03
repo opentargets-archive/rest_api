@@ -2630,7 +2630,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
 
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue,
-                                           0)
+                                           1)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
@@ -2865,7 +2865,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('protein',
                                             self.params.protein_expression_tissue,
-                                            0)
+                                            1)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='protein_expression_tissue',
