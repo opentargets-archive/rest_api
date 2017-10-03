@@ -10,6 +10,8 @@ from flask.ext.restful import abort
 from flask import current_app, request
 import time
 
+import pprint
+
 __author__ = 'andreap'
 
 
@@ -26,7 +28,7 @@ class EfoLabelFromCode(restful.Resource):
         es = current_app.extensions['esquery']
         res = es.get_efo_info_from_code(disease_id)
         if res:
-            return CTTVResponse.OK(RawResult(json.dumps(res[0])),
+            return CTTVResponse.OK(res,
                                    took=time.time() - start_time)
         else:
             abort(404, message="EFO code %s cannot be found"%disease_id)

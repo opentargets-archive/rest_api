@@ -696,15 +696,17 @@ class esQuery():
 
     def get_efo_info_from_code(self, efo_codes,**kwargs):
         params = SearchParams(**kwargs)
+
         if not isinstance(efo_codes, list):
             efo_codes = [efo_codes]
 
         query_body = addict.Dict()
-        query_body.query.ids.values = efo_codes
-        query_body.query.size = 10000
+        query_body.query.ids["values"] = efo_codes
+        query_body.size = 10000
+
 
         if params.facets:
-            query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels"
+            query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels.keyword"
 
         if params.path_label:
             query_body.post_filter.term.path_labels = params.path_label
@@ -717,7 +719,10 @@ class esQuery():
                                       doc_type=self._docname_efo,
                                       body= query_body.to_dict()
                                       )
-            return PaginatedResult(res,params)
+
+            return SimpleResult(res,
+                            params,
+                            data=[hit['_source'] for hit in res['hits']['hits']])
 
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
