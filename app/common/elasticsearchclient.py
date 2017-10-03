@@ -667,21 +667,21 @@ class esQuery():
             q.size = len(gene_ids)
             q['from'] = params.start_from
 
-            if params.facets:
+            if params.facets == 'true':
                 # q.aggregations.go_terms.terms.field = "go.value.term"
-                q.aggregations.significant_go_terms.significant_terms.field = "go.id"
+                q.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
                 # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term"
                 # q.aggregations.significant_go_terms.significant_terms.include = "p:*|c:*|f:.*"
-                q.aggregations.significant_go_terms.significant_terms.size = "26"
+                # q.aggregations.significant_go_terms.significant_terms.size = "15"
                 q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
-
+                q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
             # if params.facets:
             #     q.aggregations.go_terms.terms.field = "go.value.term"
             #     q.aggregations.go_terms.terms.include = "p:*|c:*|f:.*"
             #     q.aggregations.go_terms.terms.size = 25
 
             if params.go_term:
-                q.post_filter.term['go.id'] = params.go_term.split(':')[1]
+                q.post_filter.term['go.id.keyword'] = params.go_term
 
             if params.fields:
                 q._source = params.fields
@@ -689,6 +689,7 @@ class esQuery():
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
                                       body=q.to_dict())
+
             if 'aggregations' in res:
                 res['aggregations']['significant_go_terms']['buckets']  = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
 
@@ -697,15 +698,14 @@ class esQuery():
     def _process_go_info(self,bucket_list):
         go_term_buckets = list()
         for bucket in bucket_list:
-            if bucket['key'] != 'go':
-                bucket_dict = dict()
-                bucket_dict['key'] = 'GO:'+bucket['key']
-                bucket_dict['doc_count'] = bucket['doc_count']
+            bucket_dict = dict()
+            bucket_dict['key'] = bucket['key']
+            bucket_dict['doc_count'] = bucket['doc_count']
 
-                term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
-                label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
-                bucket_dict['label'] = label[0][1]
-                go_term_buckets.append(bucket_dict)
+            term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
+            label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
+            bucket_dict['label'] = label[0][1]
+            go_term_buckets.append(bucket_dict)
         return go_term_buckets
 
 
@@ -722,12 +722,12 @@ class esQuery():
         query_body.size = len(efo_codes)
 
 
-        if params.facets:
+        if params.facets == 'true':
             query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels.keyword"
-            query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "26"
+            # query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "25"
 
         if params.path_label:
-            query_body.post_filter.term.path_labels = params.path_label
+            query_body.post_filter.term['path_labels.keyword'] = params.path_label
 
         if params.fields:
             query_body._source = params.fields
@@ -738,12 +738,7 @@ class esQuery():
                                       body= query_body.to_dict()
                                       )
 
-            if res['hits']['total']:
-                if res['hits']['total'] == 1:
-                   return RawResult(json.dumps(res['hits']['hits'][0]['_source']))
-                else:
-
-                    return PaginatedResult(res,params)
+            return PaginatedResult(res,params)
 
 
 

@@ -28,7 +28,9 @@ class EfoLabelFromCode(restful.Resource):
         es = current_app.extensions['esquery']
         res = es.get_efo_info_from_code(disease_id)
         if res:
-            return CTTVResponse.OK(res,
+            data = res.toDict()['data']
+            if data:
+                return CTTVResponse.OK(RawResult(json.dumps(data[0])),
                                    took=time.time() - start_time)
         else:
             abort(404, message="EFO code %s cannot be found"%disease_id)
