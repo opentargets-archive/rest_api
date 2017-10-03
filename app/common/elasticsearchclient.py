@@ -944,12 +944,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
