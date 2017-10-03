@@ -31,7 +31,7 @@ class EFOTestCase(GenericTestCase):
 
     def testPostEFO(self):
 
-        disease = 'EFO_0000311'
+        disease = 'EFO_0001365'
         related_diseases_res = self._make_request('/api/latest/private/relation/disease/' + disease,
                                                   data={'size':1000},
                                                   token=self._AUTO_GET_TOKEN)
@@ -40,7 +40,7 @@ class EFOTestCase(GenericTestCase):
         print 'Related Diseases {}'.format(related_diseases)
         fields = ['label','code']
         response = self._make_request('/api/latest/private/disease',
-                                        data = json.dumps({'diseases': related_diseases,'facets': 'true','fields':fields,'size':1000}),
+                                        data = json.dumps({'diseases': related_diseases,'facets': 'true','fields':fields}),
                                         content_type = 'application/json',
                                         method = 'POST',
                                         token = self._AUTO_GET_TOKEN)
@@ -54,7 +54,7 @@ class EFOTestCase(GenericTestCase):
         print json_response
 
 
-    def testPostEFOWithLabel(self):
+    def testPostEFOWithLabelFiltering(self):
 
         disease = 'EFO_0000311'
         related_diseases_res = self._make_request('/api/latest/private/relation/disease/' + disease,
@@ -64,7 +64,8 @@ class EFOTestCase(GenericTestCase):
         related_diseases = [d['object']['id'] for d in json_response['data']]
         fields = ['label', 'code']
         response = self._make_request('/api/latest/private/disease',
-                                      data=json.dumps({'diseases': related_diseases, 'facets': 'true', 'path_label':'epithelial','fields':fields,'size':1000}),
+                                      data=json.dumps({'diseases': related_diseases, 'facets': 'true', 'path_label':'epithelial',
+                                                       'fields':fields}),
                                       content_type='application/json',
                                       method='POST',
                                       token=self._AUTO_GET_TOKEN)
