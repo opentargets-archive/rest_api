@@ -719,7 +719,7 @@ class esQuery():
 
         query_body = addict.Dict()
         query_body.query.ids["values"] = efo_codes
-        query_body.size = 10000
+        query_body.size = len(efo_codes)
 
 
         if params.facets:
@@ -738,9 +738,13 @@ class esQuery():
                                       body= query_body.to_dict()
                                       )
 
-            return SimpleResult(res,
-                            params,
-                            data=[hit['_source'] for hit in res['hits']['hits']])
+            if res['hits']['total']:
+                if res['hits']['total'] == 1:
+                   return RawResult(json.dumps(res['hits']['hits'][0]['_source']))
+                else:
+
+                    return PaginatedResult(res,params)
+
 
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
