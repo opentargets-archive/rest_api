@@ -23,6 +23,7 @@ from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
 import pprint
+from elasticsearch_dsl import aggs
 
 
 __author__ = 'andreap'
@@ -116,6 +117,13 @@ def _inject_tissue_data(response, t2m):
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
                     bl[i]['key'] = k
+                except:
+                    pass
+    else:
+        if 'tissues' in response:
+            for k, _ in response['tissues'].iteritems():
+                try:
+                    response['tissues'][k]['data'] = t2m['codes'][k]
                 except:
                     pass
 
@@ -1396,6 +1404,7 @@ class esQuery():
 
     def get_expression(self,
                        genes,
+                       aggregate,
                        **kwargs):
         '''
         returns the expression data for a list of genes
@@ -1403,6 +1412,34 @@ class esQuery():
         :param params: query parameters
         :return: tissue expression data object
         '''
+        def _compat_aggregated_expression(aggs):
+            compat_aggs = {}
+
+            # per tissue bucket
+            for bucket in aggs['tissues']['buckets']:
+                tname = bucket['key']
+                compat_aggs[tname] = {'zscore': {},
+                                      'level': {},
+                                      'plevel': {}}
+
+                for level_bucket in bucket['level']['buckets']:
+                    genes = level_bucket['genes']['buckets']
+                    compat_aggs[tname]['level'][level_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for zscore_bucket in bucket['zscore']['buckets']:
+                    genes = zscore_bucket['genes']['buckets']
+                    compat_aggs[tname]['zscore'][zscore_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for plevel_bucket in bucket['plevel']['buckets']:
+                    genes = plevel_bucket['genes']['buckets']
+                    compat_aggs[tname]['plevel'][plevel_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+
+            return compat_aggs
+
         params = SearchParams(**kwargs)
         if genes:
 
@@ -1416,10 +1453,35 @@ class esQuery():
 #             q.size = params.size
 #             q._source = OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
+            if aggregate:
+                q.size = 0
+                q.aggs.tissues.terms.field = 'tissues.efo_code'
+                q.aggs.tissues.terms.size = 1000
+
+                q.aggs.tissues.aggs.zscore.terms.field = 'tissues.rna.zscore'
+                q.aggs.tissues.aggs.zscore.terms.size = 100
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.level.terms.field = 'tissues.rna.level'
+                q.aggs.tissues.aggs.level.terms.size = 100
+                q.aggs.tissues.aggs.level.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.level.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.plevel.terms.field = 'tissues.protein.level'
+                q.aggs.tissues.aggs.plevel.terms.size = 100
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.size = 1000
+
             res = self._cached_search(index=self._index_expression,
                                       body=q.to_dict()
                                       )
-            data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+            if aggregate:
+                data = {'tissues': _compat_aggregated_expression(res['aggregations'])}
+                data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
+            else:
+                data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+
             return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
