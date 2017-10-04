@@ -737,9 +737,7 @@ class esQuery():
                                       doc_type=self._docname_efo,
                                       body= query_body.to_dict()
                                       )
-
-            return PaginatedResult(res,params)
-
+            return PaginatedResult(res, params)
 
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
@@ -1535,7 +1533,7 @@ class esQuery():
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
-        efo_data = self.get_efo_info_from_code(therapeutic_areas)
+        efo_data = self.get_efo_info_from_code(therapeutic_areas).toDict()['data']
         therapeutic_area_labels = {}
         if efo_data:
             therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])

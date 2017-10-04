@@ -3,14 +3,11 @@ from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
-from app.common.utils import fix_empty_strings
-from flask import current_app
 from flask.ext import restful
 from flask.ext.restful import abort
 from flask import current_app, request
 import time
 
-import pprint
 
 __author__ = 'andreap'
 
