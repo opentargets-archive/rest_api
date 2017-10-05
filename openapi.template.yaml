@@ -64,7 +64,6 @@ paths:
       responses:
         200:
           description: "Markdown API documentation file"        
-  # This is a path endpoint. Change it.
   /platform/public/evidence:
     get:
       operationId: getEvidenceById
@@ -528,6 +527,57 @@ paths:
       responses:
         200:
           description: Successful response
+  /private/relation/target/{target}:
+    get:
+      operationId: getRelationByENSGID
+      tags:
+        - private
+      description: |
+        Get `relation` objects starting from diseases.
+      parameters:
+        - name: target
+          in: query
+          description: An Ensembl gene identifier.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /private/relation:
+    post:
+      operationId: postRelation
+      tags:
+        - private
+      description: |
+        Get `relation` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"gene":["gene1", "gene2"]}
+          description: An Ensembl gene identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /private/relation/disease/{disease}:
+    get:
+      operationId: getRelationByEFOID
+      tags:
+        - private
+      description: |
+        Get `relation` objects starting from diseases.
+      parameters:
+        - name: disease
+          in: path
+          description: An EFO gene identifier.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
   /platform/private/besthitsearch:
     post:
       operationId: postBestHitSearch
@@ -539,7 +589,7 @@ paths:
         - name: body
           in: body
           schema:
-            type: object
+            type: string
             # type: array
             # minItems: 1
             # maxItems: 200
