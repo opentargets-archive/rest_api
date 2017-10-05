@@ -28,8 +28,46 @@ class EFOTestCase(GenericTestCase):
             for path in json_response['path_codes']:
                 self.assertEqual(path[-1],id, 'disease found')
 
-
     def testPostEFO(self):
+
+        diseases = ['EFO_0001365','EFO_0003966','HP_0000118','EFO_0000508','Orphanet_71862']
+
+        fields = ['label', 'code']
+        response = self._make_request('/api/latest/private/disease',
+                                      data=json.dumps(
+                                          {'diseases': diseases, 'facets': 'true', 'fields': fields}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        sig_labels = [bucket['key'] for bucket in json_response['facets']['significantTherapeuticAreas']['buckets']]
+        print 'Groups of related diseases {}'.format(sig_labels)
+        print 'Related Diseases with labels {}'.format(json_response['data'])
+
+        print json_response
+
+    def testPostEFOWithLabelFiltering(self):
+
+        diseases = ['EFO_0000311','EFO_0000326','Orphanet_227535']
+
+        fields = ['label', 'code']
+        response = self._make_request('/api/latest/private/disease',
+                                      data=json.dumps(
+                                          {'diseases': diseases, 'facets': 'true', 'path_label': 'epithelial',
+                                           'fields': fields}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        sig_labels = [bucket['key'] for bucket in json_response['facets']['significantTherapeuticAreas']['buckets']]
+        print 'Groups of related diseases {}'.format(sig_labels)
+        print 'Related Diseases  - after selecting specific path_label {}'.format(json_response['data'])
+
+    def testPostEFOwithRelations(self):
 
         disease = 'EFO_0001365'
         related_diseases_res = self._make_request('/api/latest/private/relation/disease/' + disease,
@@ -54,7 +92,7 @@ class EFOTestCase(GenericTestCase):
         print json_response
 
 
-    def testPostEFOWithLabelFiltering(self):
+    def testPostEFORelationsWithLabelFiltering(self):
 
         disease = 'EFO_0000311'
         related_diseases_res = self._make_request('/api/latest/private/relation/disease/' + disease,
