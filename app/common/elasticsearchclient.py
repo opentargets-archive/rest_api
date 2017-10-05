@@ -119,6 +119,19 @@ def _inject_tissue_data(response, t2m):
                     bl[i]['key'] = k
                 except:
                     pass
+
+        if 'zscore_expression_tissue' in response['facets']:
+            bl = response['facets']['zscore_expression_tissue']['data']['buckets'] \
+                    if 'data' in response['facets']['zscore_expression_tissue'] else \
+                    response['facets']['zscore_expression_tissue']['buckets']
+            for i in xrange(len(bl)):
+                try:
+                    k = __clean_id(bl[i]['key'])
+                    bl[i]['data'] = t2m['codes'][k]
+                    bl[i]['key'] = k
+                except:
+                    pass
+
     else:
         if 'tissues' in response:
             for k, _ in response['tissues'].iteritems():
