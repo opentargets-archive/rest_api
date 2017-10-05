@@ -70,8 +70,39 @@ class TargetTestCase(GenericTestCase):
 
         map(assert_number_of_fields, json_response['data'])
 
-
     def testPostTargets(self):
+        targets = ['ENSG00000142192','ENSG00000067955','ENSG00000142192']
+
+
+        fields = ['id', 'approved_name', 'approved_symbol']
+        response = self._make_request('/api/latest/private/target',
+                                      data=json.dumps(
+                                          {'id': targets, 'facets': 'true', 'fields':fields}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
+
+    def testPostTargetsWithFacetFiltering(self):
+        targets = ['ENSG00000157764','ENSG00000179295','ENSG00000132155','ENSG00000073282','ENSG00000204897','ENSG00000129757']
+
+
+        fields = ['id','approved_name','approved_symbol']
+        response = self._make_request('/api/latest/private/target',
+                                      data=json.dumps(
+                                          {'id': targets, 'facets': 'true', 'fields':fields,'go_term':'GO:0008284'}),
+                                      content_type='application/json',
+                                      method='POST',
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+
+        json_response = json.loads(response.data.decode('utf-8'))
+        print json_response
+
+    def testPostRelationandTargetFetching(self):
         target = 'ENSG00000142192'
         related_targets_res = self._make_request('/api/latest/private/relation/target/' + target,
                                                   data={'size': 1000},
@@ -90,7 +121,7 @@ class TargetTestCase(GenericTestCase):
         json_response = json.loads(response.data.decode('utf-8'))
         print json_response
 
-    def testPostTargetsWithFacetFiltering(self):
+    def testPostRelationTargetsWithFacetFiltering(self):
         target = 'ENSG00000157764'
         related_targets_res = self._make_request('/api/latest/private/relation/target/' + target,
                                                   data={'size': 1000},
