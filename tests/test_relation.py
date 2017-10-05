@@ -21,6 +21,7 @@ class RelationTestCase(GenericTestCase):
                                       data={'subject': target,
                                             'size': 1},
                                       token=self._AUTO_GET_TOKEN)
+        print response.data
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         self.assertEqual(len(json_response['data']),1, 'relation retrieved')

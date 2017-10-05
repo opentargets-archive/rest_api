@@ -1,4 +1,9 @@
 swagger: '2.0'
+host: "open-targets-eu-dev.appspot.com"
+# x-google-allow: all
+x-google-endpoints:
+  - name: "open-targets-eu-dev.appspot.com"
+    allowCors: "true"
 info:
   version: 2.1.1
   title: The Open Targets Platform REST API
@@ -57,7 +62,6 @@ paths:
       responses:
         200:
           description: "Markdown API documentation file"        
-  # This is a path endpoint. Change it.
   /public/evidence:
     get:
       operationId: getEvidenceById
@@ -521,6 +525,57 @@ paths:
       responses:
         200:
           description: Successful response
+  /private/relation/target/{target}:
+    get:
+      operationId: getRelationByENSGID
+      tags:
+        - private
+      description: |
+        Get `relation` objects starting from diseases.
+      parameters:
+        - name: target
+          in: query
+          description: An Ensembl gene identifier.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
+  /private/relation:
+    post:
+      operationId: postRelation
+      tags:
+        - private
+      description: |
+        Get `relation` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"gene":["gene1", "gene2"]}
+          description: An Ensembl gene identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /private/relation/disease/{disease}:
+    get:
+      operationId: getRelationByEFOID
+      tags:
+        - private
+      description: |
+        Get `relation` objects starting from diseases.
+      parameters:
+        - name: disease
+          in: path
+          description: An EFO gene identifier.
+          required: true
+          type: string
+      responses:
+        200:
+          description: Successful response
   /private/besthitsearch:
     post:
       operationId: postBestHitSearch
@@ -532,7 +587,7 @@ paths:
         - name: body
           in: body
           schema:
-            type: object
+            type: string
             # type: array
             # minItems: 1
             # maxItems: 200
