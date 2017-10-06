@@ -22,6 +22,8 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
+import pprint
+
 
 __author__ = 'andreap'
 
@@ -64,10 +66,10 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
                         }
                     }
                }
-    else:
-        range = str(expression_level) + "_.*"
-        ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
-                          range}}
+#     else:
+#         range = str(expression_level) + "_.*"
+#         ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+#                           range}}
 
     return ret
 
@@ -944,12 +946,12 @@ class esQuery():
                 }
             }
 
-#         print "------------"
-#         print ""
-#         pprint.pprint(ass_query_body)
-#
-#         print ""
-#         print "------------"
+        print "------------"
+        print ""
+        pprint.pprint(ass_query_body)
+
+        print ""
+        print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2627,7 +2629,8 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         return 1000
 
     def build_agg(self, filters):
-        d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue, 0)
+        d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue,
+                                           1)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
@@ -2862,7 +2865,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('protein',
                                             self.params.protein_expression_tissue,
-                                            0)
+                                            1)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='protein_expression_tissue',
