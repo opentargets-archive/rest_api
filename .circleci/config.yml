@@ -559,7 +559,7 @@ workflows:
               only: /^prod.*/
       - api-tests-prod-jp:
           requires:
-            - deploy-prod-us
+            - deploy-prod-jp
           filters:
             branches:
               ignore: /.*/
