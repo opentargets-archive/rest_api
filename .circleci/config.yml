@@ -396,6 +396,73 @@ jobs:
           command: |
             source .circleci/runscope/run.sh
 
+  deploy-prod-jp:
+    working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-jp
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://130.211.109.152:39200
+      DEPLOYED_DATA_VERSION: mkes5.2
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+      - run:
+          name: Deploy branch to google AppEngine (EU prod)
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
+  api-tests-prod-jp:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-jp
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+
+
 workflows:
   version: 2
   build-test-and-deploy:
