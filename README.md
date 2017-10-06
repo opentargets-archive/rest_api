@@ -66,7 +66,7 @@ Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` t
 **Check that is running**
 Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/platform/docs](http://localhost:8080/platform/docs/swagger.yaml)
 
-You can ping the API with `curl localhost:8080/v2.1/platform/public/utils/ping`
+You can ping the API with `curl localhost:8080/v3/platform/public/utils/ping`
 
 You can check that is talking to your instance of Elasticsearch by using the `/platform/latest/public/utils/stats` method.
 
