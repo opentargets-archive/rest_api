@@ -99,7 +99,7 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
-        # parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
+        parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
