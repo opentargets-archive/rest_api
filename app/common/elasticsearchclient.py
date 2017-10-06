@@ -666,16 +666,19 @@ class esQuery():
             q = addict.Dict()
             q.query.bool.filter.ids['values'] = gene_ids
             q._source = source_filter
-            q.size = len(gene_ids)
+            if params.size == 0 :
+                q.size = 0
+            else:
+                q.size = len(gene_ids)
             q['from'] = params.start_from
 
             if params.facets == 'true':
                 # q.aggregations.go_terms.terms.field = "go.value.term"
                 q.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
-                # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term"
-                # q.aggregations.significant_go_terms.significant_terms.include = "p:*|c:*|f:.*"
-                # q.aggregations.significant_go_terms.significant_terms.size = "15"
-                q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
+                # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term.keyword"
+                # q.aggregations.significant_go_terms.significant_terms.include = "P:*" #|c:*|f:.*"
+                q.aggregations.significant_go_terms.significant_terms.size = "25"
+                # q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
                 q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
             # if params.facets:
             #     q.aggregations.go_terms.terms.field = "go.value.term"
@@ -705,8 +708,10 @@ class esQuery():
             bucket_dict['doc_count'] = bucket['doc_count']
 
             term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
-            label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
-            bucket_dict['label'] = label[0][1]
+            # if term[0].startswith('P:') or term[0].startswith('F:'):
+            #label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
+            # bucket_dict['label'] = label[0][1]
+            bucket_dict['label'] = term[0]
             go_term_buckets.append(bucket_dict)
         return go_term_buckets
 
@@ -721,12 +726,14 @@ class esQuery():
 
         query_body = addict.Dict()
         query_body.query.ids["values"] = efo_codes
-        query_body.size = len(efo_codes)
-
+        if params.size == 0:
+            query_body.size = 0
+        else:
+            query_body.size = len(efo_codes)
 
         if params.facets == 'true':
             query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels.keyword"
-            # query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "25"
+            query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "25"
 
         if params.path_label:
             query_body.post_filter.term['path_labels.keyword'] = params.path_label

@@ -71,9 +71,7 @@ class TargetTestCase(GenericTestCase):
         map(assert_number_of_fields, json_response['data'])
 
     def testPostTargets(self):
-        targets = ['ENSG00000142192','ENSG00000067955','ENSG00000142192']
-
-
+        targets = ["ENSG00000073756", "ENSG00000095303", "ENSG00000280151", "ENSG00000108219", "ENSG00000198369","ENSG00000105401", "ENSG00000134882", "ENSG00000104998", "ENSG00000181915", "ENSG00000119919", "ENSG00000105397", "ENSG00000178623", "ENSG00000107968", "ENSG00000133195", "ENSG00000171522"]
         fields = ['id', 'approved_name', 'approved_symbol']
         response = self._make_request('/api/latest/private/target',
                                       data=json.dumps(
@@ -84,12 +82,15 @@ class TargetTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
 
         json_response = json.loads(response.data.decode('utf-8'))
+        sig_terms = [bucket['key'] for bucket in json_response['facets']['significant_go_terms']['buckets']]
+        self.assertGreater(len(json_response['data']), 0)
+        self.assertGreater(len(sig_terms), 0)
         print json_response
 
     def testPostTargetsWithFacetFiltering(self):
-        targets = ['ENSG00000157764','ENSG00000179295','ENSG00000132155','ENSG00000073282','ENSG00000204897','ENSG00000129757']
-
-
+        targets = ["ENSG00000073756", "ENSG00000095303", "ENSG00000280151", "ENSG00000108219", "ENSG00000198369",
+                   "ENSG00000105401", "ENSG00000134882", "ENSG00000104998", "ENSG00000181915", "ENSG00000119919",
+                   "ENSG00000105397", "ENSG00000178623", "ENSG00000107968", "ENSG00000133195", "ENSG00000171522"]
         fields = ['id','approved_name','approved_symbol']
         response = self._make_request('/api/latest/private/target',
                                       data=json.dumps(
@@ -100,6 +101,9 @@ class TargetTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
 
         json_response = json.loads(response.data.decode('utf-8'))
+        sig_terms = [bucket['key'] for bucket in json_response['facets']['significant_go_terms']['buckets']]
+        self.assertGreater(len(json_response['data']), 0)
+        self.assertGreater(len(sig_terms), 0)
         print json_response
 
     def testPostRelationandTargetFetching(self):
@@ -112,13 +116,16 @@ class TargetTestCase(GenericTestCase):
         fields = ['id', 'approved_name', 'approved_symbol']
         response = self._make_request('/api/latest/private/target',
                                       data=json.dumps(
-                                          {'id': related_targets, 'facets': 'true', 'fields':fields}),
+                                          {'id': related_targets, 'facets': 'true', 'fields':fields,'size':0}),
                                       content_type='application/json',
                                       method='POST',
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
 
         json_response = json.loads(response.data.decode('utf-8'))
+        sig_terms = [bucket['key'] for bucket in json_response['facets']['significant_go_terms']['buckets']]
+        self.assertEqual(len(json_response['data']), 0)
+        self.assertGreater(len(sig_terms), 0)
         print json_response
 
     def testPostRelationTargetsWithFacetFiltering(self):
@@ -138,6 +145,9 @@ class TargetTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
 
         json_response = json.loads(response.data.decode('utf-8'))
+        sig_terms = [bucket['key'] for bucket in json_response['facets']['significant_go_terms']['buckets']]
+        self.assertGreater(len(json_response['data']), 0)
+        self.assertGreater(len(sig_terms), 0)
         print json_response
 
 
