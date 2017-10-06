@@ -83,7 +83,10 @@ class BestHitSearch(restful.Resource, Paginable):
         """
         start_time = time.time()
         kwargs = request.get_json(force=True)
-        filter_ = [kwargs.pop('filter')] or ['all']
+        if 'filter' in kwargs:
+            filter_ = [kwargs.pop('filter')]
+        else:
+            filter_ = ['all']
         searchphrases = kwargs.pop('q')
         if len(searchphrases) > 500:
             raise AttributeError('request size too big')
