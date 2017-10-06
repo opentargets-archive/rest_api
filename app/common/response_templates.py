@@ -41,15 +41,16 @@ class CTTVResponse():
             pass
 
         accept_header = request.headers.get('Accept')
+
         if type is None and accept_header:
             if 'application/json' in accept_header:
                 type = ResponseType.JSON
             elif "text/xml"in accept_header:
                 type = ResponseType.XML
-            elif "text/tab-separated-values"in accept_header:
+            elif "text/tab-separated-values" in accept_header:
                 type = ResponseType.TSV
             elif "text/csv" in accept_header:
-                type = ResponseType.TSV
+                type = ResponseType.CSV
 
 
         if type == ResponseType.JSON or result.format == ResponseType.JSON:
