@@ -1,0 +1,42 @@
+runtime: python
+env: flex
+entrypoint: uwsgi --http 0.0.0.0:8080 --master  --http-auto-chunked  --wsgi-file manage.py --module manage --callable app  --gevent 1000 --max-requests 1000 --harakiri 300   --processes 16  --cheaper 2 --http-timeout 300  --http-auto-gzip
+
+runtime_config:
+  python_version: 2
+
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 60
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 5
+  cool_down_period_sec: 60 # default value
+  cpu_utilization:
+    target_utilization: 0.5
+
+threadsafe: true
+
+health_check:
+  enable_health_check: True
+  #slow this down from default of 1sec
+  check_interval_sec: 10
+  timeout_sec: 4
+  unhealthy_threshold: 2
+  healthy_threshold: 1
+
+# [START env_variables]
+# Values need to be substituted from the environment
+env_variables:
+    ELASTICSEARCH_URL: "http://10.132.0.3:9200"
+    OPENTARGETS_API_CONFIG: production
+    OPENTARGETS_DATA_VERSION: "ck_17.09"
+    GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
+# [END env_variables]
+
+endpoints_api_service:
+  name: "open-targets-eu-dev.appspot.com"
+  config_id: "2017-09-20r0"
+  #TODO make sure this config_id updates for every deployment

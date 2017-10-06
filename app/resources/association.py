@@ -2,7 +2,6 @@ from flask.ext.restful.inputs import boolean
 from flask.ext.restful.reqparse import Argument
 from app.common import boilerplate
 
-
 from flask import current_app, request
 from flask.ext import restful
 from flask.ext.restful import abort, fields, marshal,marshal_with
@@ -14,6 +13,7 @@ from app.common.response_templates import CTTVResponse
 from types import *
 import time
 
+import pprint
 
 __author__ = 'andreap'
 
@@ -63,6 +63,14 @@ class FilterBy(restful.Resource):
         parser.add_argument('pathway', type=str, action='append', required=False, )
         parser.add_argument(FilterTypes.TARGET_CLASS, type=int, action='append', )
         parser.add_argument('uniprotkw', type=str, action='append', required=False,)
+        parser.add_argument('rna_expression_level', type=int, default=0,
+                            choices=list(xrange(0, 11)), required=False)
+        parser.add_argument('rna_expression_tissue', type=str, action='append',
+                            required=False, default=[])
+        parser.add_argument('protein_expression_level', type=int, default=0,
+                            choices=list(xrange(0, 4)), required=False)
+        parser.add_argument('protein_expression_tissue', type=str, action='append',
+                            required=False, default=[])
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
@@ -78,32 +86,26 @@ class FilterBy(restful.Resource):
 
         args = parser.parse_args()
         self.remove_empty_params(args)
-        data = self.get_association(params=args)
-        return CTTVResponse.OK(data)
+        args = self._prop_search_after(args)
 
+        data = self.get_association(params=args)
+
+        return CTTVResponse.OK(data)
 
     @is_authenticated
     @rate_limit
-    def post(self ):
+    def post(self):
         """
         Get association objects
         Get association objects for a gene, an efo or a combination of them
         Test with ENSG00000136997
         test with: {"target":["ENSG00000136997"]},
-        TODO:create new tests that would check for the empty params being passed
+        TODO:create new tests that check for the empty params being passed
         """
-        #Why is this fix_empty_strings function here - do not see it being used anywhere
-        def fix_empty_strings(l):
-            new_l=[]
-            if l:
-                for i in l:
-                    if i:
-                        new_l.append(i)
-            return new_l
-
         start_time = time.time()
         args = request.get_json(force=True)
         self.remove_empty_params(args)
+        args = self._prop_search_after(args)
 
         data = self.get_association(params=args)
         format = None
@@ -117,10 +119,17 @@ class FilterBy(restful.Resource):
         es = current_app.extensions['esquery']
         try:
             res = es.get_associations(**params)
-        except AttributeError,e:
+        except AttributeError as e:
             abort(404, message=e.message)
 
         return res
+
+    def _prop_search_after(self, args):
+        prop = u'search_after'
+        if args and prop not in args:
+            args[prop] = u''
+
+        return args
 
     def remove_empty_params(self,args):
         for k,v in args.items():

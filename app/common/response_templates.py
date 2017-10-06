@@ -41,15 +41,16 @@ class CTTVResponse():
             pass
 
         accept_header = request.headers.get('Accept')
+
         if type is None and accept_header:
             if 'application/json' in accept_header:
                 type = ResponseType.JSON
             elif "text/xml"in accept_header:
                 type = ResponseType.XML
-            elif "text/tab-separated-values"in accept_header:
+            elif "text/tab-separated-values" in accept_header:
                 type = ResponseType.TSV
             elif "text/csv" in accept_header:
-                type = ResponseType.TSV
+                type = ResponseType.CSV
 
 
         if type == ResponseType.JSON or result.format == ResponseType.JSON:
@@ -97,6 +98,7 @@ class Association(object):
         '''
 
         self.data ={}
+        self.search_after = None
         self._scoring_method = scoring_method
         if datatypes is None:
             datatypes = DataTypes(current_app)
@@ -104,11 +106,18 @@ class Association(object):
         self.hit_source = {}
         if '_source' in hit:
             self.hit_source = hit['_source']
-        self.cap_scores = cap_scores
+        self.is_scoring_capped = cap_scores
+
+        # setting search_after field into the filtered response
+        if 'sort' in hit:
+            self.search_after = hit['sort']
+
         self.parse_hit()
 
     def parse_hit(self):
         self.data = self.hit_source
+        if self.search_after:
+            self.data['search_after'] = self.search_after
         # self.data['target'] = {}
         # self.data['target']['id'] = self.hit['target']['id']
         # self.data['target']['name'] = self.hit['target']['gene_info']['name']
@@ -155,9 +164,14 @@ class Association(object):
         #                                        datasources =datasources))
 
     def _cap_score(self, score):
-        if self.cap_scores:
-            if score >1:
-                return 1.
+        if self.is_scoring_capped:
+            return self.cap_score(score)
+        return score
+
+    @staticmethod
+    def cap_score(score):
+        if score >1:
+            return 1.
         return score
 
 

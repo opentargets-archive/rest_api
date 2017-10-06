@@ -38,3 +38,7 @@ def get_remote_addr():
         #TODO: change to a known number of proxy if env is production
         remote_addr = ','.join(request.headers.getlist("X-Forwarded-For"))
     return str(remote_addr)
+
+
+def fix_empty_strings(l):
+    return [i for i in l if l and i]

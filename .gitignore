@@ -1,5 +1,6 @@
 /tmp
 local_config.py
+.cache/
 
 # Compiled source #
 ###################
@@ -48,3 +49,6 @@ tmtagsHistory
 ######################
 env/
 venv/
+/.project
+/.pydevproject
+/es_custom_idxs.ini
