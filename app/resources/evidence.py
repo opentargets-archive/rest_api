@@ -106,18 +106,21 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('sort', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
-
+        parser.add_argument('facets', type=boolean, required=False, help="return the facets for the call. Default to True", default=True)
+        parser.add_argument('abstract', type=str, required=False, help="Abstract term to consider")
+        
         args = parser.parse_args()
-        targets = args.pop('target',[]) or []
+        #targets = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = args.pop('disease',[]) or []
+        #diseases = args.pop('disease',[]) or []
         # object_operator = args.pop('efo-bool','OR') or 'OR'
-        evidence_types = args.pop('eco',[]) or []
+        #evidence_types = args.pop('eco',[]) or []
         # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        datasources =  args.pop('datasource',[]) or []
-        datatypes =  args.pop('datatype',[]) or []
+        #datasources =  args.pop('datasource',[]) or []
+        #datatypes =  args.pop('datatype',[]) or []
         if args.get('sort') is None:
             args['sort'] = [EvidenceSortOptions.SCORE]
+       
 
         # if not (genes
         #         or objects
@@ -128,7 +131,7 @@ class FilterBy(restful.Resource, Paginable):
         #         or args['uniprotkw']
         #         or args['datatype']):
         #     abort(404, message='Please provide at least one gene, efo, eco or datasource')
-        data = self.get_evidence(targets, diseases, evidence_types, datasources,  datatypes, params=args)
+        data = self.get_evidence(params=args)
         return CTTVResponse.OK(data,
                               )
 
@@ -142,45 +145,23 @@ class FilterBy(restful.Resource, Paginable):
         test with: {"target":["ENSG00000136997"]},
         """
         args = request.get_json(force=True)
-        targets = fix_empty_strings(args.pop('target',[]) or [])
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
-        diseases = fix_empty_strings(args.pop('disease',[]) or [])
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
-        evidence_types = fix_empty_strings(args.pop('eco',[]) or [])
-        # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
-        datasources =  args.pop('datasource',[]) or []
-        datatypes=  args.pop('datatype',[]) or []
+       
         if args.get('sort') is None:
             args['sort'] = [EvidenceSortOptions.SCORE]
 
 
-        data=self.get_evidence(targets, diseases, evidence_types, datasources, datatypes, params=args)
+        data=self.get_evidence(params=args)
         return CTTVResponse.OK(data,
                                )
 
 
     def get_evidence(self,
-                     targets,
-                     diseases,
-                     evidence_types,
-                     datasources,
-                     datatype,
-                     gene_operator='OR',
-                     object_operator='OR',
-                     evidence_type_operator='OR',
                      params ={}):
 
         es = current_app.extensions['esquery']
 
-        res = es.get_evidence(targets= targets,
-                              diseases= diseases,
-                              evidence_types = evidence_types,
-                              datasources = datasources,
-                              datatypes = datatype,
-                              # gene_operator = gene_operator,
-                               # object_operator = object_operator,
-                               # evidence_type_operator = evidence_type_operator,
-                               **params)
+        res = es.get_evidence(
+                        **params)
 
 
         return res

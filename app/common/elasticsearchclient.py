@@ -1,15 +1,16 @@
 import hashlib
 import json as json
 import logging
+import socket
 import sys
 import time
 from collections import defaultdict
+from datetime import datetime
 
 import addict
 import jmespath
 import numpy as np
-from elasticsearch import TransportError
-from elasticsearch import helpers
+from elasticsearch import helpers, TransportError
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
@@ -159,6 +160,7 @@ class ESResultStatus(object):
 
 
 class InternalCache(object):
+
     NAMESPACE = 'CTTV_REST_API_CACHE'
 
     def __init__(self, r_server,
@@ -215,8 +217,6 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
-                 # docname_search_target=None,
-                 # docname_search_disease=None,
                  docname_relation=None,
                  cache=None,
                  log_level=logging.DEBUG):
@@ -615,8 +615,7 @@ class esQuery():
             if 'suggest' in res:
                 suggestions = self._digest_suggest(res)
 
-            return EmptySimpleResult(None, data = {}, suggest=suggestions)
-
+            return EmptySimpleResult(None, data={}, suggest=suggestions)
 
         return SimpleResult(None, params, data)
 
@@ -683,10 +682,10 @@ class esQuery():
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
                                       body={'query': {
-                                              "ids": {
-                                                  "values": efo_codes
-                                              },
+                                          "ids": {
+                                              "values": efo_codes
                                           },
+                                      },
                                           'size': 10000
                                       }
                                       )
@@ -715,7 +714,7 @@ class esQuery():
                                   )
         return SimpleResult(res,
                             params,
-                            data = [hit['_source'] for hit in res['hits']['hits']])
+                            data=[hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
@@ -732,56 +731,26 @@ class esQuery():
             return hit['_source']
 
     def get_evidence(self,
-                     targets=[],
-                     diseases=[],
-                     evidence_types=[],
-                     datasources=[],
-                     datatypes=[],
-                     gene_operator='OR',
-                     object_operator='OR',
-                     evidence_type_operator='OR',
                      **kwargs):
         params = SearchParams(**kwargs)
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
-        '''convert boolean to elasticsearch syntax'''
-        gene_operator = getattr(BooleanFilterOperator, gene_operator.upper())
-        object_operator = getattr(BooleanFilterOperator, object_operator.upper())
-        evidence_type_operator = getattr(BooleanFilterOperator, evidence_type_operator.upper())
-        '''create multiple condition boolean query'''
-        conditions = []
-        if targets:
-            conditions.append(self.get_complex_target_filter(targets, gene_operator))
-        if diseases:
-            conditions.append(self.get_complex_disease_filter(diseases, object_operator,
-                                                              is_direct=False))  # temporary until params.is_direct is supported again
-        if evidence_types:
-            conditions.append(self._get_complex_evidence_type_filter(evidence_types, evidence_type_operator))
-        if datasources or datatypes:
-            requested_datasources = []
-            if datasources:
-                requested_datasources.extend(datasources)
-            if datatypes:
-                for datatype in datatypes:
-                    requested_datasources.extend(self.datatypes.get_datasources(datatype))
-            requested_datasources = list(set(requested_datasources))
-            conditions.append(
-                self._get_complex_datasource_filter_evidencestring(requested_datasources, BooleanFilterOperator.OR))
-        if params.pathway:
-            pathway_filter = self._get_complex_pathway_filter(params.pathway)
-            if pathway_filter:
-                conditions.append(pathway_filter)
-        if params.uniprot_kw:
-            uniprotkw_filter = self._get_complex_uniprot_kw_filter(params.uniprot_kw, BooleanFilterOperator.OR)
-            if uniprotkw_filter:
-                conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
-        if params.filters[FilterTypes.SCORE_RANGE][1] < 1 or \
-                params.filters[FilterTypes.SCORE_RANGE][0] >0 :
-            score_filter = self._get_evidence_score_range_filter(params)
-            if score_filter:
-                conditions.append(score_filter)
-        # if not conditions:
-        #     return EmptyPaginatedResult([], params, )
+        '''create faceted evidence query with
+           aggregations and post-filters for enabling faceted search'''
+
+        agg_builder = AggregationBuilder(self, 'evidence')
+        agg_builder.build_evidence_query(params)
+        aggs = agg_builder.aggs
+        post_filters = agg_builder.post_filters
+        query_body = {"match_all": {}}
+
+
+        source = SourceDataStructureOptions.getSource(params.datastructure, params)
+
+        if 'include' in source:
+            params.requested_fields = source['include']
+
+
         '''boolean query joining multiple conditions with an AND'''
         source_filter = SourceDataStructureOptions.getSource(params.datastructure)
         if params.fields:
@@ -794,39 +763,34 @@ class esQuery():
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
 
+        ev_query_body = {
+            "query":  query_body,
+            'size': params.size,
+            'from': params.start_from,
+            "sort": self._digest_sort_strings(params),
+            '_source': source_filter,
+        }
+
+        # calculate aggregation using proper ad hoc filters
+        if aggs:
+            ev_query_body['aggs'] = aggs
+        # filter out the results as requested, this will not be applied to the facets aggregation
+        if post_filters:
+
+            ev_query_body['post_filter'] = {
+                "bool": {
+                    "must": post_filters.values()
+
+                }
+            }
+
         res = self._cached_search(index=self._index_data,
-                                  # doc_type=self._docname_data,
-                                  body=q.to_dict(),
+                                  #doc_type = self._docname_data,
+                                  body=ev_query_body,
                                   timeout="10m",
                                   )
 
-        return PaginatedResult(res, params, )
-
-        #     res = helpers.scan(client= self.handler,
-        #                                     index=self._index_data,
-        #                                     query={
-        #                                       "query": {
-        #                                           "filtered": {
-        #                                               "filter": {
-        #                                                   "bool": {
-        #                                                       "must": conditions
-        #                                                   }
-        #                                               }
-        #
-        #                                           }
-        #                                       },
-        #                                       'size': params.size,
-        #                                       'from': params.start_from,
-        #                                       '_source': source_filter,
-        #                                     },
-        #                                     scroll= "1m",
-        #                                     timeout="10m",
-        #                        )
-        #
-        #
-        #
-        #
-        # return PaginatedResult(None, params, data = [i for i in res])
+        return PaginatedResult(res, params,)
 
     def get_associations_by_id(self, associationid, **kwargs):
 
@@ -837,20 +801,21 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
-        #TODO:use get or mget methods here
+        # TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
-                                  body={"query": {
-                                            "ids": {"values": associationid},
-                                            },
-                                        "size": len(associationid),
-                                        'from': params.start_from,
-                                        }
+                                  body={"filter": {
+                                      "ids": {"values": associationid},
+                                  },
+                                      "size": len(associationid),
+                                      'from': params.start_from,
+                                  }
+
                                   )
         data = [Association(a,
                             params.association_score_method,
                             self.datatypes,
                             cap_scores=params.cap_scores).data
-                    for a in res['hits']['hits']]
+                for a in res['hits']['hits']]
 
         return PaginatedResult(res,
                                params,
@@ -870,7 +835,7 @@ class esQuery():
 
         '''create multiple condition boolean query'''
 
-        agg_builder = AggregationBuilder(self)
+        agg_builder = AggregationBuilder(self,'association')
         agg_builder.load_params(params)
         aggs = agg_builder.aggs
         filter_data_conditions = agg_builder.filters
@@ -971,7 +936,7 @@ class esQuery():
                                     self.datatypes,
                                     cap_scores=params.cap_scores)
                         for h in ass_data['hits']['hits'])
-                        # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
+        # for h in ass_data['hits']['hits'] if h['_source']['disease']['id'] != 'cttv_root']
         scores = [a.data for a in associations if a.data]
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
@@ -979,6 +944,7 @@ class esQuery():
 
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
+
 
         # inject tissue information: anatomical part and organs
         data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
@@ -994,13 +960,14 @@ class esQuery():
                         therapeutic_areas.add(s['target']['id'] + '-' + ta_code)
                 therapeutic_areas = list(therapeutic_areas)
                 ta_data = self._cached_search(index=self._index_association,
-                                              body={"query": {
-                                                        "ids": {"values": therapeutic_areas},
-                                                    },
-                                                    "size": 1000,
-                                                    '_source': source,
-                                                    },
-                                                )
+                                              body={"filter": {
+                                                  "ids": {"values": therapeutic_areas},
+                                              },
+                                                  "size": 1000,
+                                                  '_source': source,
+                                              },
+                                              )
+
                 ta_associations = (Association(h,
                                                params.association_score_method,
                                                self.datatypes,
@@ -1012,16 +979,15 @@ class esQuery():
 
 
                 return PaginatedResult(ass_data,
-                                       params,
-                                       data['data'],
-                                       facets=data['facets'],
-                                       available_datatypes=self.datatypes.available_datatypes,
-                                       therapeutic_areas=ta_scores,
-                                       )
+                                     params,
+                                     data['data'],
+                                     facets=data['facets'],
+                                     available_datatypes=self.datatypes.available_datatypes,
+                                     therapeutic_areas = ta_scores,
+)
 
             except KeyError:
                 current_app.logger.debug('fields containing therapeutic area information not available')
-
         return PaginatedResult(ass_data,
                                params,
                                data['data'],
@@ -1064,6 +1030,7 @@ class esQuery():
                                    include_negative=False,
                                    field='subject'
                                    ):
+
 
         '''
         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
@@ -1313,9 +1280,9 @@ class esQuery():
             "efo_path_labels": {},
             "ortholog.*.symbol": {},
             "ortholog.*.name": {},
-            "ortholog.*.id":{},
-            "drugs.*":{},
-            "phenotypes.*":{},
+            "ortholog.*.id": {},
+            "drugs.*": {},
+            "phenotypes.*": {},
         }
         }
 
@@ -1713,10 +1680,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         try:
             res = self._cached_search(index=self._index_search,
-                                   doc_type=doc_types,
-                                   body=body,
-                                   )
-        except TransportError as e :#TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
+                                      doc_type=doc_types,
+                                      body=body,
+                                      )
+        except TransportError as e:  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
             raise
@@ -1847,12 +1814,12 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
-                s=s[1:]
+                s = s[1:]
                 mode = 'min'
             if s.startswith('association_score'):
-                s= s.replace('association_score', params.association_score_method)
-            digested.append({s : {"order": order,
-                                  "mode": mode}})
+                s = s.replace('association_score', params.association_score_method)
+            digested.append({s: {"order": order,
+                                 "mode": mode}})
         return digested
 
     def _get_evidence_score_range_filter(self, params):
@@ -1957,7 +1924,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             "sort": self._digest_sort_strings(params),
             '_source': True,
 
-        }
+            }
 
         res = self._cached_search(index=self._index_relation,
                                   body=query_body,
@@ -1974,7 +1941,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                params,
                                data,
                                )
-
 
 
     def _get_free_text_suggestions(self, searchphrase):
@@ -2077,6 +2043,20 @@ class SearchParams(object):
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
         self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
+        self.filters[FilterTypes.ABSTRACT] = kwargs.get(FilterTypes.ABSTRACT)
+        self.filters[FilterTypes.JOURNAL] = kwargs.get(FilterTypes.JOURNAL)
+        self.filters[FilterTypes.PUB_DATE] = kwargs.get(FilterTypes.PUB_DATE)
+        self.filters[FilterTypes.DATATYPE] = kwargs.get(FilterTypes.DATATYPE)
+        self.filters[FilterTypes.DISEASE_KW] = kwargs.get(FilterTypes.DISEASE_KW)
+        self.filters[FilterTypes.MESHTERMS] = kwargs.get(FilterTypes.MESHTERMS)
+
+        self.evidence_filters = dict()
+        self.evidence_filters[EvidenceFacetTypes.ABSTRACT] = kwargs.get(EvidenceFacetTypes.ABSTRACT)
+        self.evidence_filters[EvidenceFacetTypes.JOURNAL] = kwargs.get(EvidenceFacetTypes.JOURNAL)
+        self.evidence_filters[EvidenceFacetTypes.PUB_DATE] = kwargs.get(EvidenceFacetTypes.PUB_DATE)
+        self.evidence_filters[EvidenceFacetTypes.DATATYPE] = kwargs.get(EvidenceFacetTypes.DATATYPE)
+        self.evidence_filters[EvidenceFacetTypes.DISEASE] = kwargs.get(EvidenceFacetTypes.DISEASE)
+        self.evidence_filters[EvidenceFacetTypes.MESHTERMS] = kwargs.get(EvidenceFacetTypes.MESHTERMS)
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -2089,6 +2069,7 @@ class SearchParams(object):
             datasource_filter = None
         self.filters[FilterTypes.DATATYPE] = datasource_filter
 
+        self.is_direct = kwargs.get('direct', False)
         # required for evidence query. TODO: harmonise it with the filters in association endpoint
         self.pathway = kwargs.get('pathway', []) or []
         self.target_class = kwargs.get('target_class', []) or []
@@ -2159,6 +2140,7 @@ class AggregationUnit(object):
     def build_agg(self, filters):
         pass
         # raise NotImplementedError
+
 
     def get_default_size(self):
         raise NotImplementedError
@@ -2253,6 +2235,23 @@ class AggregationUnitDisease(AggregationUnit):
                     }
                 }
             }
+
+
+
+class AggregationUnitEvidenceDisease(AggregationUnitDisease):
+    def build_agg(self, filters):
+        self.agg = self._get_disease_facet_aggregation(filters)
+
+    def _get_disease_facet_aggregation(self, filters):
+        return {
+
+            "terms": {
+                "field": "disease.id",
+                'size': 10,
+
+            }
+
+        }
 
 
 class AggregationUnitTherapeuticArea(AggregationUnit):
@@ -2360,7 +2359,7 @@ class AggregationUnitUniprotKW(AggregationUnit):
         return {
             "filter": {
                 "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.IS_DIRECT, filters),
+                    "must": self._get_complimentary_facet_filters(FilterTypes.UNIPROT_KW, filters),
                 }
             },
             "aggs": {
@@ -2522,14 +2521,13 @@ class AggregationUnitPathway(AggregationUnit):
                     {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
                     {"terms": {"private.facets.reactome.pathway_type_code": pathway_codes}},
                 ]
-                }
+            }
             }
 
         return dict()
 
 
 class AggregationUnitTargetClass(AggregationUnit):
-
     def build_query_filter(self):
         if self.filter is not None:
             self.query_filter = self._get_target_class_filter(self.filter)
@@ -2613,7 +2611,7 @@ class AggregationUnitTargetClass(AggregationUnit):
                     {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
                     {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
                 ]
-                }
+            }
             }
 
         return dict()
@@ -3115,8 +3113,11 @@ class AggregationUnitScoreRange(AggregationUnit):
                                 }
                               }
                               for st in params.scorevalue_types]
-                    }
+
                 }
+
+            }
+
 
 # class AggregationUnitUniprotKW(AggregationUnit):
 #
@@ -3184,7 +3185,11 @@ class AggregationUnitDatasource(AggregationUnit):
                 else:
                     requested_datasources.append(d)
             requested_datasources = list(set(requested_datasources))
-            self.query_filter = self._get_complex_datasource_filter(requested_datasources,
+            if self.facet_type == 'evidence':
+                self.query_filter = self.handler._get_complex_datasource_filter_evidencestring(requested_datasources,
+                                                                    BooleanFilterOperator.OR)
+            else:
+                self.query_filter = self._get_complex_datasource_filter(requested_datasources,
                                                                     BooleanFilterOperator.OR)
 
     def build_agg(self, filters):
@@ -3264,6 +3269,312 @@ class AggregationUnitDatasource(AggregationUnit):
         return dict()
 
 
+class AggregationUnitAbstract(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_abstract_kw_filter(self.filter,
+                                                                     BooleanFilterOperator.OR)
+
+    def build_agg(self, filters):
+        self.agg = self._get_abstract_keywords_facet_aggregation(filters)
+
+    def _get_abstract_keywords_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.ABSTRACT, filters),
+                }
+            },
+
+            "aggs": {
+                "data": {
+
+                    "significant_terms": {
+                        "field": "private.facets.abstract_lemmas.value",
+                        "size": 25,
+                        "chi_square": {"include_negatives": True,
+                                       "background_is_superset": False},
+                    },
+                    "aggs": {
+                        "cluster_terms": {
+                            "significant_terms": {
+                                "field": "private.facets.abstract_lemmas.value",
+                                "size": 5
+                            }
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+
+        }
+
+    def _get_complex_abstract_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of abstract keyword strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        if kw:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    # TODO : use fuzzy query instead??
+                    "match": {"literature.abstract": kw}
+
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "match": {
+                                      "literature.abstract": term}
+                              }
+                              for term in kw]
+                    }
+                }
+        return dict()
+
+
+class AggregationUnitPubDate(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_pub_date_filter(self.filter,
+                                                                  BooleanFilterOperator.OR)
+
+    def build_agg(self, filters):
+        self.agg = self._pub_date_facet_aggregation(filters)
+
+    def _pub_date_facet_aggregation(self, filters):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.PUB_DATE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "literature.date",
+                        'size': 25,
+                 },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+
+    def _get_complex_pub_date_filter(self, kw, bol):
+
+        '''
+        :param kw: list of publication date kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        # TODO- Date formatting
+        if kw:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    "terms": {"literature.date": kw}
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "terms": {
+                                      "literature.date": [term]}
+                              }
+                              for term in kw]
+                    }
+                }
+        return dict()
+
+
+class AggregationUnitJournal(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_journal_kw_filter(self.filter,
+                                                                    BooleanFilterOperator.OR)
+
+    def build_agg(self, filters):
+        self.agg = self._get_journal_keywords_facet_aggregation(filters)
+
+    def _get_journal_keywords_facet_aggregation(self, filters):
+        # TODO : do not analyze medlineAbbreviation field
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.JOURNAL, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "literature.journal_data.medlineAbbreviation",
+                        'size': 25,
+                    },
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+
+    def _get_complex_journal_kw_filter(self, kw, bol):
+
+        '''
+        :param kw: list of journal kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        # TODO
+        if kw:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    "match": {"literature.journal_data.medlineAbbreviation": kw}
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "match": {
+                                      "literature.journal_data.medlineAbbreviation": term}
+                              }
+                              for term in kw]
+                    }
+                }
+        return dict()
+
+
+class AggregationUnitEvidenceMeshTerms(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_complex_meshterms_kw_filter(self.filter,
+                                                                      BooleanFilterOperator.OR)
+
+    def build_agg(self, filters):
+        self.agg = self._get_meshterms_facet_aggregation(filters)
+
+    def _get_meshterms_facet_aggregation(self, filters):
+
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.MESHTERMS, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "significant_terms": {
+                        "field": "private.facets.literature.mesh_headings.id",
+                        'size': 25,
+
+                    },
+                    "aggs": {
+                        "label": {
+                            "terms": {
+                                "field": "private.facets.literature.mesh_headings.label",
+                                'size': 1,
+                            },
+                        },
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        },
+                    }
+                },
+            }
+        }
+
+
+
+    def _get_complex_meshterms_kw_filter(self, kw, bol):
+        pass
+        '''
+        :param kw: list of journal kw strings
+        :param bol: boolean operator to use for combining filters
+        :return: boolean filter
+        '''
+        # TODO
+        if kw:
+            if bol == BooleanFilterOperator.OR:
+                return {
+                    "match": {"private.facets.literature.mesh_headings": kw}
+                }
+            else:
+                return {
+                    "bool": {
+                        bol: [{
+                                  "match": {
+                                      "private.facets.literature.mesh_headings": term}
+                              }
+                              for term in kw]
+                    }
+                }
+        return dict()
+
+
+
+class AggregationUnitEvidenceDatasource(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            requested_datasources = []
+            for d in self.filter:
+                if d in self.handler.datatypes.datatypes:
+                    requested_datasources.extend(self.handler.datatypes.get_datasources(d))
+                else:
+                    requested_datasources.append(d)
+            requested_datasources = list(set(requested_datasources))
+            self.query_filter = self.handler._get_complex_datasource_filter_evidencestring(requested_datasources,
+                                                                                           BooleanFilterOperator.OR)
+
+    def build_agg(self, filters):
+        self.agg = self.get_datatype_facet_aggregation(filters)
+
+    def get_datatype_facet_aggregation(self, filters):
+
+        return {
+            "terms": {
+                "field": "sourceID",
+                'size': 25,
+            }
+        }
 class AggregationBuilder(object):
     '''
     handles the construction of an aggregation query based on a set of filters
@@ -3291,12 +3602,30 @@ class AggregationBuilder(object):
                              FilterTypes.SCORE_RANGE
                              ]
 
-    def __init__(self, handler):
+    _EVIDENCE_FACET_MAP = {
+        # EvidenceFacetTypes.DATATYPE : AggregationUnitDatasource,
+        EvidenceFacetTypes.ABSTRACT: AggregationUnitAbstract,
+        EvidenceFacetTypes.JOURNAL: AggregationUnitJournal,
+        EvidenceFacetTypes.PUB_DATE: AggregationUnitPubDate,
+        EvidenceFacetTypes.DISEASE: AggregationUnitEvidenceDisease,
+        EvidenceFacetTypes.MESHTERMS: AggregationUnitEvidenceMeshTerms
+    }
+
+    _EVIDENCE_UNIT_MAP = {
+        FilterTypes.DATATYPE: AggregationUnitEvidenceDatasource,
+        FilterTypes.DISEASE: AggregationUnitDisease,
+        FilterTypes.TARGET: AggregationUnitTarget,
+
+    }
+
+    def __init__(self, handler,facet_type):
+        self.facet_type = facet_type
         self.handler = handler
         self.filter_types = FilterTypes().__dict__
         self.units = {}
         self.aggs = {}
         self.filters = {}
+        self.post_filters = {}
 
     def load_params(self, params):
         '''define and init units'''
@@ -3323,12 +3652,45 @@ class AggregationBuilder(object):
                             self.aggs[agg] = self.units[agg].agg
 
 
-    def _get_AggregationUnit(self,str):
+    def build_evidence_query(self, params):
+
+        unit_map = self._EVIDENCE_FILTER_MAP.copy()
+        unit_map.update(self._EVIDENCE_FACET_MAP)
+
+        '''define and init units'''
+        for unit_type in unit_map:
+            self.units[unit_type] = unit_map[unit_type](params.filters[unit_type],
+                                                              params,
+                                                              self.handler,
+                                                              self.facet_type,
+                                                              compute_aggs=params.facets)
+        '''get filters'''
+        for query_filter in self._EVIDENCE_FILTER_MAP:
+            self.filters[query_filter] = self.units[query_filter].query_filter
+
+        '''get aggregations if requested'''
+        if params.facets:
+            aggs_not_to_be_returned = self._get_aggs_not_to_be_returned(params)
+            '''get available aggregations'''
+            for agg in self._EVIDENCE_FACET_MAP:
+                if agg not in aggs_not_to_be_returned:
+                    self.units[agg].build_agg(self.filters)
+                    if self.units[agg].agg:
+                        self.aggs[agg] = self.units[agg].agg
+
+        '''handle post-filters for evidence'''
+        for query_filter in unit_map:
+            self.post_filters[query_filter] = self.units[query_filter].query_filter
+
+
+
+
+    def _get_AggregationUnit(self, str):
         return getattr(sys.modules[__name__], str)
 
     def _get_aggs_not_to_be_returned(self, params):
         '''avoid calculate a big facet if only one parameter is passed'''
-        filters_to_apply = list(set([k for k,v in params.filters.items() if v is not None]))
+        filters_to_apply = list(set([k for k, v in params.filters.items() if v is not None]))
         for filter_type in self._SERVICE_FILTER_TYPES:
             if filter_type in filters_to_apply:
                 filters_to_apply.pop(filters_to_apply.index(filter_type))
@@ -3338,11 +3700,9 @@ class AggregationBuilder(object):
 
         return aggs_not_to_be_returned
 
-
-
-    #
-    # def _get_go_facet_aggregation(self, filters):
-    #     pass
+                   #
+        # def _get_go_facet_aggregation(self, filters):
+        #     pass
 
     #
     #
@@ -3366,3 +3726,30 @@ class AggregationBuilder(object):
     #
     #     }
 
+
+class esStore(object):
+    def __init__(self,
+                 es,
+                 eventlog_index,
+                 cache,
+                 ):
+        self.es = es
+        self.eventlog_index = eventlog_index
+        self.cache = cache
+
+    def store_event(self, event):
+        event['org_from_ip'] = self.get_ip_org(event['ip'])
+        index_name = self.eventlog_index + '_' + '-'.join(map(str, datetime.now().isocalendar()[:2]))
+        self.es.index(index=index_name,
+                      doc_type='event',
+                      body=event)
+
+    def get_ip_org(self, ip):
+        host_from_ip = self.cache.get(ip)
+        if host_from_ip is None:
+            try:
+                host_from_ip = socket.gethostbyaddr(ip)[0]
+                self.cache.set(ip, host_from_ip, 24 * 60 * 60)
+            except:
+                pass
+        return host_from_ip
