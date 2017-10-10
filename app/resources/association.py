@@ -86,7 +86,6 @@ class FilterBy(restful.Resource):
 
         args = parser.parse_args()
         self.remove_empty_params(args)
-        args = self._prop_search_after(args)
 
         data = self.get_association(params=args)
 
@@ -105,7 +104,6 @@ class FilterBy(restful.Resource):
         start_time = time.time()
         args = request.get_json(force=True)
         self.remove_empty_params(args)
-        args = self._prop_search_after(args)
 
         data = self.get_association(params=args)
         format = None
@@ -123,13 +121,6 @@ class FilterBy(restful.Resource):
             abort(404, message=e.message)
 
         return res
-
-    def _prop_search_after(self, args):
-        prop = u'search_after'
-        if args and prop not in args:
-            args[prop] = u''
-
-        return args
 
     def remove_empty_params(self,args):
         for k,v in args.items():

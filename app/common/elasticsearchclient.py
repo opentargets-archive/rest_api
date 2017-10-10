@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
+import ast
 
 import addict
 import jmespath
@@ -24,7 +25,6 @@ from app.common.scoring_conf import ScoringMethods
 from config import Config
 import pprint
 
-
 __author__ = 'andreap'
 
 KEYWORD_MAPPING_FIELDS = ["name",
@@ -36,6 +36,14 @@ KEYWORD_MAPPING_FIELDS = ["name",
                           "ensembl_gene_id",
                           "efo_url",
                           ]
+
+
+def _tryeval(val):
+  try:
+    val = ast.literal_eval(val)
+  except ValueError:
+    pass
+  return val
 
 
 def ex_level_meet_conditions(x, y, min_level, max_level):
@@ -926,7 +934,7 @@ class esQuery():
             "sort": self._digest_sort_strings(params)
         }
 
-        if params.search_after is not None:
+        if params.sa:
             if params.search_after:
                 ass_query_body['search_after'] = params.search_after
 
@@ -946,12 +954,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2003,15 +2011,23 @@ class SearchParams(object):
 
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
-        if self.size is None:
-            self.size = self._default_return_size
-        if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
-
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
-        self.search_after = kwargs.get('search_after', None)
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+        self.sa = kwargs.get('sa', False)
+
+        if self.size is None:
+            self.size = self._default_return_size
+
+        if self.size > -1 and \
+            (self.size * self.start_from > self._max_search_result_limit):
+            raise AttributeError('(size * from) cannot be bigger than '
+                                 '%i use search_after' % self._max_search_result_limit)
+
+        self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]
+        if self.sa:
+            self.start_from = -1
+
         if self.cap_scores is None:
             self.cap_scores = True
         if self.cap_scores:
