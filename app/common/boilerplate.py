@@ -1,5 +1,6 @@
 
 from flask.ext.restful import reqparse
+from flask_restful.inputs import boolean
 
 __author__ = 'andreap'
 
@@ -11,6 +12,9 @@ def get_parser():
     parser.add_argument('format', type=str, required=False, help="return format, can be: 'json','xml','tab','csv", choices=['json','xml','tab', 'csv'])
     parser.add_argument('datastructure', type=str, required=False, help="Type of data structure to return. Can be: 'full','simple','ids', 'count' ",choices=['full','simple','ids', 'count'])
     parser.add_argument('fields', type=str, action='append', required=False, help="fields you want to retrieve")
+    parser.add_argument('sa', type=boolean, required=False, help="enable search_after", default=False,)
+    parser.add_argument('search_after', action='append', required=False, help="search_after query parameters", default=[],)
+
     # parser.add_argument('groupby', type=str, action='append', required=False, help="group returned elements by the indicated value")
     # parser.add_argument('auth_token', type=str, required=False, help="a valid auth token")
 

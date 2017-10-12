@@ -57,6 +57,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      )
     api.add_resource(EfoLabelFromCode,
                      '/private/disease/<string:disease_id>')
+    api.add_resource(EfoLabelFromCode,
+                     '/private/disease',
+                     endpoint="disease-facets"
+                    )
     api.add_resource(EcoLabelFromCode,
                      '/private/eco/<string:code>')
     api.add_resource(TargetInfoSingle,

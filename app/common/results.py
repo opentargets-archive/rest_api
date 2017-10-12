@@ -194,7 +194,8 @@ class PaginatedResult(Result):
                     'size': len(self.data) or 0,
                     'from': self.params.start_from,
                     'data_version' : Config.DATA_VERSION,
-                    'query': self.params.query_params
+                    'query': self.params.query_params,
+                    'sa': self.params.sa,
                     }
         if self.facets:
             response[ 'facets'] = self.facets
