@@ -14,6 +14,7 @@ from elasticsearch import helpers
 from flask import current_app, request
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
+import re
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
@@ -694,36 +695,88 @@ class esQuery():
             q = addict.Dict()
             q.query.bool.filter.ids['values'] = gene_ids
             q._source = source_filter
-            q.size = len(gene_ids)
+            if params.size == 0 :
+                q.size = 0
+            else:
+                q.size = len(gene_ids)
             q['from'] = params.start_from
+
+            if params.facets == 'true':
+                # q.aggregations.go_terms.terms.field = "go.value.term"
+                q.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
+                # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term.keyword"
+                # q.aggregations.significant_go_terms.significant_terms.include = "P:*" #|c:*|f:.*"
+                q.aggregations.significant_go_terms.significant_terms.size = "25"
+                # q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
+                q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
+            # if params.facets:
+            #     q.aggregations.go_terms.terms.field = "go.value.term"
+            #     q.aggregations.go_terms.terms.include = "p:*|c:*|f:.*"
+            #     q.aggregations.go_terms.terms.size = 25
+
+            if params.go_term:
+                q.post_filter.term['go.id.keyword'] = params.go_term
+
+            if params.fields:
+                q._source = params.fields
 
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
                                       body=q.to_dict())
 
-            if res['hits']['total']:
-                return SimpleResult(res, params)
+            if 'aggregations' in res:
+                res['aggregations']['significant_go_terms']['buckets']  = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
 
-    def get_efo_info_from_code(self, efo_codes, **kwargs):
+            return PaginatedResult(res,params)
+
+    def _process_go_info(self,bucket_list):
+        go_term_buckets = list()
+        for bucket in bucket_list:
+            bucket_dict = dict()
+            bucket_dict['key'] = bucket['key']
+            bucket_dict['doc_count'] = bucket['doc_count']
+
+            term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
+            # if term[0].startswith('P:') or term[0].startswith('F:'):
+            #label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
+            # bucket_dict['label'] = label[0][1]
+            bucket_dict['label'] = term[0]
+            go_term_buckets.append(bucket_dict)
+        return go_term_buckets
+
+
+
+
+    def get_efo_info_from_code(self, efo_codes,**kwargs):
         params = SearchParams(**kwargs)
+
         if not isinstance(efo_codes, list):
             efo_codes = [efo_codes]
+
+        query_body = addict.Dict()
+        query_body.query.ids["values"] = efo_codes
+        if params.size == 0:
+            query_body.size = 0
+        else:
+            query_body.size = len(efo_codes)
+
+        if params.facets == 'true':
+            query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels.keyword"
+            query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "25"
+
+        if params.path_label:
+            query_body.post_filter.term['path_labels.keyword'] = params.path_label
+
+        if params.fields:
+            query_body._source = params.fields
+
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body={'query': {
-                                              "ids": {
-                                                  "values": efo_codes
-                                              },
-                                          },
-                                          'size': 10000
-                                      }
+                                      body= query_body.to_dict()
                                       )
-            if res['hits']['total']:
-                if res['hits']['total'] == 1:
-                    return [res['hits']['hits'][0]['_source']]
-                else:
-                    return [hit['_source'] for hit in res['hits']['hits']]
+            return PaginatedResult(res, params)
+
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
 
@@ -1572,7 +1625,7 @@ class esQuery():
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
-        efo_data = self.get_efo_info_from_code(therapeutic_areas)
+        efo_data = self.get_efo_info_from_code(therapeutic_areas).toDict()['data']
         therapeutic_area_labels = {}
         if efo_data:
             therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])
@@ -2059,7 +2112,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                )
 
 
-
     def _get_free_text_suggestions(self, searchphrase):
         return {
             "text": searchphrase,
@@ -2214,6 +2266,8 @@ class SearchParams(object):
 
         self.facets = kwargs.get('facets', "false") or "false"
         self.facets_size = kwargs.get('facets_size', None) or None
+        self.path_label = kwargs.get('path_label', None)
+        self.go_term = kwargs.get('go_term', None)
 
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
