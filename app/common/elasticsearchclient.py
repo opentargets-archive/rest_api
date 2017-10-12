@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
+import ast
 
 import addict
 import jmespath
@@ -24,7 +25,7 @@ from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
 import pprint
-
+from elasticsearch_dsl import aggs
 
 __author__ = 'andreap'
 
@@ -37,6 +38,14 @@ KEYWORD_MAPPING_FIELDS = ["name",
                           "ensembl_gene_id",
                           "efo_url",
                           ]
+
+
+def _tryeval(val):
+  try:
+    val = ast.literal_eval(val)
+  except ValueError:
+    pass
+  return val
 
 
 def ex_level_meet_conditions(x, y, min_level, max_level):
@@ -117,6 +126,26 @@ def _inject_tissue_data(response, t2m):
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
                     bl[i]['key'] = k
+                except:
+                    pass
+
+        if 'zscore_expression_tissue' in response['facets']:
+            bl = response['facets']['zscore_expression_tissue']['data']['buckets'] \
+                    if 'data' in response['facets']['zscore_expression_tissue'] else \
+                    response['facets']['zscore_expression_tissue']['buckets']
+            for i in xrange(len(bl)):
+                try:
+                    k = __clean_id(bl[i]['key'])
+                    bl[i]['data'] = t2m['codes'][k]
+                    bl[i]['key'] = k
+                except:
+                    pass
+
+    else:
+        if 'tissues' in response:
+            for k, _ in response['tissues'].iteritems():
+                try:
+                    response['tissues'][k]['data'] = t2m['codes'][k]
                 except:
                     pass
 
@@ -979,7 +1008,7 @@ class esQuery():
             "sort": self._digest_sort_strings(params)
         }
 
-        if params.search_after is not None:
+        if params.sa:
             if params.search_after:
                 ass_query_body['search_after'] = params.search_after
 
@@ -999,12 +1028,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+#         print "------------"
+#         print ""
+#         pprint.pprint(ass_query_body)
+#
+#         print ""
+#         print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -1449,6 +1478,7 @@ class esQuery():
 
     def get_expression(self,
                        genes,
+                       aggregate,
                        **kwargs):
         '''
         returns the expression data for a list of genes
@@ -1456,6 +1486,34 @@ class esQuery():
         :param params: query parameters
         :return: tissue expression data object
         '''
+        def _compat_aggregated_expression(aggs):
+            compat_aggs = {}
+
+            # per tissue bucket
+            for bucket in aggs['tissues']['buckets']:
+                tname = bucket['key']
+                compat_aggs[tname] = {'zscore': {},
+                                      'level': {},
+                                      'plevel': {}}
+
+                for level_bucket in bucket['level']['buckets']:
+                    genes = level_bucket['genes']['buckets']
+                    compat_aggs[tname]['level'][level_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for zscore_bucket in bucket['zscore']['buckets']:
+                    genes = zscore_bucket['genes']['buckets']
+                    compat_aggs[tname]['zscore'][zscore_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for plevel_bucket in bucket['plevel']['buckets']:
+                    genes = plevel_bucket['genes']['buckets']
+                    compat_aggs[tname]['plevel'][plevel_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+
+            return compat_aggs
+
         params = SearchParams(**kwargs)
         if genes:
 
@@ -1469,10 +1527,35 @@ class esQuery():
 #             q.size = params.size
 #             q._source = OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
+            if aggregate:
+                q.size = 0
+                q.aggs.tissues.terms.field = 'tissues.efo_code'
+                q.aggs.tissues.terms.size = 1000
+
+                q.aggs.tissues.aggs.zscore.terms.field = 'tissues.rna.zscore'
+                q.aggs.tissues.aggs.zscore.terms.size = 100
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.level.terms.field = 'tissues.rna.level'
+                q.aggs.tissues.aggs.level.terms.size = 100
+                q.aggs.tissues.aggs.level.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.level.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.plevel.terms.field = 'tissues.protein.level'
+                q.aggs.tissues.aggs.plevel.terms.size = 100
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.size = 1000
+
             res = self._cached_search(index=self._index_expression,
                                       body=q.to_dict()
                                       )
-            data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+            if aggregate:
+                data = {'tissues': _compat_aggregated_expression(res['aggregations'])}
+                data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
+            else:
+                data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+
             return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
@@ -2055,15 +2138,23 @@ class SearchParams(object):
 
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
-        if self.size is None:
-            self.size = self._default_return_size
-        if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
-
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
-        self.search_after = kwargs.get('search_after', None)
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+        self.sa = kwargs.get('sa', False)
+
+        if self.size is None:
+            self.size = self._default_return_size
+
+        if self.size > -1 and \
+            (self.size * self.start_from > self._max_search_result_limit):
+            raise AttributeError('(size * from) cannot be bigger than '
+                                 '%i use search_after' % self._max_search_result_limit)
+
+        self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]
+        if self.sa:
+            self.start_from = -1
+
         if self.cap_scores is None:
             self.cap_scores = True
         if self.cap_scores:
@@ -2107,6 +2198,10 @@ class SearchParams(object):
             kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, [])
+        self.filters[FilterTypes.ZSCORE_EXPRESSION_LEVEL] = \
+            kwargs.get(FilterTypes.ZSCORE_EXPRESSION_LEVEL, 0)
+        self.filters[FilterTypes.ZSCORE_EXPRESSION_TISSUE] = \
+            kwargs.get(FilterTypes.ZSCORE_EXPRESSION_TISSUE, [])
         self.filters[FilterTypes.PROTEIN_EXPRESSION_LEVEL] = \
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
@@ -2156,6 +2251,12 @@ class SearchParams(object):
 
         setattr(self, FilterTypes.RNA_EXPRESSION_TISSUE,
                 kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, []))
+
+        setattr(self, FilterTypes.ZSCORE_EXPRESSION_LEVEL,
+                kwargs.get(FilterTypes.ZSCORE_EXPRESSION_LEVEL, 0))
+
+        setattr(self, FilterTypes.ZSCORE_EXPRESSION_TISSUE,
+                kwargs.get(FilterTypes.ZSCORE_EXPRESSION_TISSUE, []))
 
         setattr(self, FilterTypes.PROTEIN_EXPRESSION_LEVEL,
                 kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0))
@@ -3141,6 +3242,240 @@ class AggregationUnitPROExTissue(AggregationUnit):
         return expression
 
 
+class AggregationUnitZSCOREExLevel(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_zscore_range_filter(self.params)
+
+    def get_default_size(self):
+        return 1000
+
+    def build_agg(self, filters):
+        d = ex_level_tissues_to_terms_list('zscore', self.params.zscore_expression_tissue,
+                                           1)
+
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='zscore_expression_tissue',
+                                             zscore_expression_tissue=d)
+
+        self.agg = self._get_aggregation_on_zscore_expression_level(
+            mut_filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.zscore_expression_level)
+
+
+    @staticmethod
+    def _get_association_zscore_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.zscore_expression_level, 11, 1, 11)
+
+        q = {}
+        if range_ok:
+            # spinal tap up to 11
+            range = str(params.zscore_expression_level) + "_.*"
+            # here the functionality
+
+            q = { "regexp":{
+                        "private.facets.expression_tissues.zscore.id.keyword": \
+                        range
+                    }
+                }
+
+        return q
+
+    @staticmethod
+    def _get_aggregation_on_zscore_expression_level(filters, filters_func, size,
+                                                 ex_level):
+        f_agg = {}
+        if ex_level > 0:
+            f_agg = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.ZSCORE_EXPRESSION_LEVEL,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.zscore.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
+        else:
+            f_agg = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(0, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.zscore.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
+        return f_agg
+
+
+class AggregationUnitZSCOREExTissue(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_zscore_range_filter(self.params)
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_zscore_expression_tissue(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.zscore_expression_level)
+
+    def get_default_size(self):
+        return 1000
+
+    @staticmethod
+    def _get_association_zscore_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.zscore_expression_level, 11, 1, 11)
+
+        tissues = params.zscore_expression_tissue
+        t2tl = ex_level_tissues_to_terms_list
+
+        q_score = {}
+        if range_ok and tissues:
+            # here the functionality
+            q_score = {
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'should': t2tl('zscore', tissues, params.zscore_expression_level)
+                        }
+                    }
+                }
+            }
+
+        return q_score
+
+    @staticmethod
+    def _get_aggregation_on_zscore_expression_tissue(filters, filters_func, size,
+                                                     ex_level):
+        agg_filter = {}
+        range = ""
+
+        if ex_level > 0:
+            range = str(ex_level) + "_.*"
+
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.ZSCORE_EXPRESSION_TISSUE,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                       "terms": {
+                            "field": "private.facets.expression_tissues.zscore.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        else:
+            range = "0_.*"
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(0, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.zscore.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        return agg_filter
+
+
 class AggregationUnitScoreRange(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
@@ -3337,6 +3672,8 @@ class AggregationBuilder(object):
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
         FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
         FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
+        FilterTypes.ZSCORE_EXPRESSION_LEVEL: AggregationUnitZSCOREExLevel,
+        FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
     }

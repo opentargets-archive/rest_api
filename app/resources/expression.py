@@ -10,6 +10,7 @@ from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.utils import fix_empty_strings
 import time
+from flask_restful.inputs import boolean
 
 __author__ = 'andreap'
 
@@ -28,13 +29,16 @@ class Expression(restful.Resource):
         start_time = time.time()
         parser = reqparse.RequestParser()
         parser.add_argument('gene', type=str, action='append', required=False, help="gene identifier")
+        parser.add_argument('aggregate', type=boolean, required=False)
 
 
         args = parser.parse_args()
         genes = args.pop('gene',[]) or []
+        aggregate = args.pop('aggregate', False)
+
         if not (genes ):
             abort(400, message='Please provide at least one gene')
-        expression_data = self.get_expression(genes,params=args)
+        expression_data = self.get_expression(genes, aggregate, params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
     @is_authenticated
@@ -47,18 +51,20 @@ class Expression(restful.Resource):
         start_time = time.time()
         args = request.get_json()
         genes = fix_empty_strings(args.pop('gene',[]) or [])
+        aggregate = args.pop('aggregate', False)
 
         if not genes:
             abort(400, message='Please provide at least one gene')
-        expression_data = self.get_expression(genes,params=args)
+        expression_data = self.get_expression(genes, aggregate, params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
     def get_expression(self,
                      genes,
+                     aggregate,
                      params ={}):
 
         es = current_app.extensions['esquery']
-        res = es.get_expression(genes = genes,
+        res = es.get_expression(genes=genes, aggregate=aggregate,
                                         **params)
         # if not res:
         #     abort(404, message='Cannot find tissue expression data for  %s'%', '.join(genes))
