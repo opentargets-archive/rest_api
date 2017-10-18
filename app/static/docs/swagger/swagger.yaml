@@ -459,6 +459,25 @@ paths:
       responses:
         200:
           description: Successful response
+  /private/disease:
+    post:
+      operationId: postDisease
+      tags:
+        - private
+      description: |
+        Complex queries and filters for disease objects can also be submitted using a JSON object.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"disease":["disease1", "disease2"]}
+          description: Filters to apply when retrieving disease objects.
+          required: true
+      responses:
+        200:
+          description: Successful response
   /private/eco/{ECO_ID}:
     get:
       operationId: getECObyID
@@ -488,6 +507,25 @@ paths:
           required: true
           description: An Ensembl gene ID for the target of interest.
           type: string
+      responses:
+        200:
+          description: Successful response
+  /private/target:
+    post:
+      operationId: postTarget
+      tags:
+        - private
+      description: |
+        Complex queries and filters for target objects can also be submitted using a JSON object.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"]}
+          description: Filters to apply when retrieving target objects.
+          required: true
       responses:
         200:
           description: Successful response
