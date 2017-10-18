@@ -1625,8 +1625,15 @@ class esQuery():
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
-        efo_data = self.get_efo_info_from_code(therapeutic_areas).toDict()['data']
+
+        efo_data = {}
         therapeutic_area_labels = {}
+
+        t_areas = self.get_efo_info_from_code(therapeutic_areas)
+
+        if t_areas:
+            efo_data = t_areas.toDict()['data']
+
         if efo_data:
             therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])
 
@@ -2785,7 +2792,7 @@ class AggregationUnitRNAExLevel(AggregationUnit):
 
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue,
-                                           1)
+                                           self.params.rna_expression_level)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
@@ -3020,7 +3027,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('protein',
                                             self.params.protein_expression_tissue,
-                                            1)
+                                            self.params.protein_expression_level)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='protein_expression_tissue',
@@ -3253,7 +3260,7 @@ class AggregationUnitZSCOREExLevel(AggregationUnit):
 
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('zscore', self.params.zscore_expression_tissue,
-                                           1)
+                                           self.params.zscore_expression_level)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='zscore_expression_tissue',
