@@ -36,6 +36,9 @@ jobs:
   push-containers:
     docker:
       - image: circleci/python:2.7
+    environment:
+      QUAY_REPO: quay.io/opentargets/rest_api
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
     working_directory: ~/circulate
     steps:
       - checkout
@@ -45,14 +48,53 @@ jobs:
           command: |
             docker build -t circle-${CIRCLE_SHA1} -f docker/Dockerfile .
       - run:
+          name: Push to Google Container Registry (gcr.io)
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            docker login -u _json_key -p "$(cat ${HOME}/gcp-key.json)" https://eu.gcr.io
+            if [ -n "${CIRCLE_TAG:+1}" ]; then
+              ## tag tag :) and push
+              echo -e "building for tag ${CIRCLE_TAG}"
+              docker tag circle-${CIRCLE_SHA1} "${GCR_REPO}:${CIRCLE_TAG}"
+              docker push "${GCR_REPO}:${CIRCLE_TAG}"
+              docker tag ${GCR_REPO}:${CIRCLE_TAG} ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
+              ## branch tag and push
+              echo -e "building for branch"
+              docker tag circle-${CIRCLE_SHA1} ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            else
+              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
+              exit 1
+            fi
+            ## sha commit push
+            docker push ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            ## push latest if master
+            if [ "$CIRCLE_BRANCH" = "master" ] 
+              then
+                docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
+                docker push ${GCR_REPO}:latest
+            fi
+      - run:
           name: Push to Quay
           command: |
             docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
-            ## branch tag and push
-            docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-            docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
+            if [ -n "${CIRCLE_TAG:+1}" ]; then
+              ## tag tag :) and push
+              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_TAG}
+              docker push ${GCR_REPO}:${CIRCLE_TAG}
+              docker tag ${QUAY_REPO}:${CIRCLE_TAG} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
+              ## branch tag and push
+              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
+              docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
+            else
+              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
+              exit 1
+            fi
             ## sha commit push
-            docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
             docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
             ## push latest if master
             if [ "$CIRCLE_BRANCH" = "master" ] 
@@ -60,13 +102,27 @@ jobs:
                 docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
                 docker push ${QUAY_REPO}:latest
             fi
-
   deploy:
     working_directory: ~/circulate
     docker:
       - image: google/cloud-sdk
+    environment:
+      #TODO? read ES_URL variable from google metadata using
+      # `gcloud --project ${GOOGLE_PROJECT_ID} compute project-info describe --format json`
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.132.0.3:9200
+      DEPLOYED_DATA_VERSION: ck_17.09
+      MAX_NUM_INSTANCES: 1
+      CPU: 1
+      MEMORY_GB: 1
+      DISK_SIZE_GB: 10
     steps:
       - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -74,78 +130,435 @@ jobs:
           name: Authenticate to Google Cloud
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-            gcloud config set project ${GOOGLE_PROJECT_ID}
-      - run:
-          name: configure google cloud endpoints
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
           command: |
-            cd app/static/docs/swagger 
-            echo ">> Checking if swagger.yaml is one of the files changed in the *latest* commit"
-            echo ">> WARNING: you may have to run this manually if swagger.yaml was changed in an earlier commit, even if it was all a single push"
-            git diff-tree --no-commit-id --name-only -r HEAD 
-            git diff-tree --no-commit-id --name-only -r HEAD | while read filename; do
-              if [ "$filename" == "app/static/docs/swagger/swagger.yaml" ]; then
-                echo ">> swagger.yaml changed. redeploying endpoints configuration..."
-                echo gcloud service-management deploy swagger.yaml
-              else
-                echo ">> swagger.yaml not changed in the latest commit."
-                echo ">> Keeping the same Endpoints configuration"
-              fi
-            done 
-      - run:
-          name: Substitute ENV vars for deploy
-          command: |
-            bash .circleci/render.sh app.yaml.template > ~/circulate/app.yaml
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+ 
       - run:
           name: Deploy branch to google AppEngine
-          #NOTE: this creates another docker container with a uWSGI app and no NGINX in front
+
           command: |
-            gcloud version
-            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project $GOOGLE_PROJECT_ID
+            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_BRANCH
+          when: on_fail
+
   api-tests:
     docker:
       - image: circleci/python:2.7
-        environment:
-          DEPLOYEDURL: ${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
     working_directory: ~/circulate
     steps:
       - checkout
       - run:
-          name: Install requests library
+          name: Run runscope tests
           command: |
-            pip install virtualenv
-            virtualenv venv
-            . venv/bin/activate
-            pip install -r .circleci/runscope/requirements.txt
+            source .circleci/runscope/run.sh
+  
+  stop-instance:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-eu-dev
+    steps:
       - run:
-          name: Wait for appengine deployment
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
           command: |
-            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-            until $(curl --output /dev/null --silent --head --fail https://${DEPLOYEDURL}/api/latest/public/utils/version); do
-            printf '.'
-            sleep 20
-            done
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Stop running version (if master)
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
+
+
+  deploy-staging:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://130.211.109.152:39200
+      DEPLOYED_DATA_VERSION: ck_17.09
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
 
       - run:
-          name: Trigger runscope dev-k8s tests on deployed branch
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
           command: |
-            export DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-            . venv/bin/activate
-            python .circleci/runscope/app.py "https://api.runscope.com/radar/${RUNSCOPE_TEST_UUID}/trigger?runscope_environment=${RUNSCOPE_ENV_UUID_EU_DEV}&host=${DEPLOYEDURL}"
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+ 
+      - run:
+          name: Deploy branch to google AppEngine
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
+  api-tests-staging:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+
+  deploy-prod-eu:
+    working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.132.0.5:9200
+      DEPLOYED_DATA_VERSION: 17.09
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+      - run:
+          name: Deploy branch to google AppEngine (EU prod)
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
+  api-tests-prod-eu:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+
+  deploy-prod-us:
+    working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-us
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.150.0.2:9200
+      DEPLOYED_DATA_VERSION: 17.09
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+      - run:
+          name: Deploy branch to google AppEngine (US prod)
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
+  api-tests-prod-us:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-us
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+
+  deploy-prod-jp:
+    working_directory: ~/circulate
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-jp
+      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      ES_URL: http://10.146.0.3:9200
+      DEPLOYED_DATA_VERSION: 17.09
+      MAX_NUM_INSTANCES: 1
+      CPU: 2
+      MEMORY_GB: 2
+      DISK_SIZE_GB: 30
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: 
+          name: install jq & envsubst
+          command: apt-get install -y jq gettext-base && jq --version
+
+      - run:
+          name: Decode Google Cloud Credentials
+          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      - run:
+          name: Authenticate to Google Cloud
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      - run: 
+          name: Deploy to google endpoints (if a new branch or a new version)
+          command: |
+            set -o allexport
+            echo -e "### Reading api version from VERSION file ..."
+            source VERSION
+            echo "major: $API_VERSION"
+            echo "minor: $API_VERSION_MINOR"
+
+            source .circleci/sortendpt.sh
+            
+            #make it available
+            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
+            envsubst < app.template.yaml > app.yaml
+
+      - run:
+          name: Deploy branch to google AppEngine (EU prod)
+          command: |
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: delete instance if deployment has failed / timed out
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+          when: on_fail
+
+  api-tests-prod-jp:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-jp
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+
 
 workflows:
   version: 2
   build-test-and-deploy:
     jobs:
-      - build
+      # This is really confusing: check https://circleci.com/docs/2.0/workflows/#git-tag-job-execution
+      # - For a branch push unaffected by any filters, CircleCI runs the job.
+      # - For a tag push unaffected by any filters, CircleCI skips the job.
+      # - a job must have a filters tags section to run as a part of a tag push
+      # - all its transitively dependent jobs must also have a filters tags
+      # Also see https://discuss.circleci.com/t/build-required-steps-automatically-for-tag-filtered-workflows/15185
+      - build:
+          filters:
+            tags:
+              only: 
+                - /^prod.*/
+                - /^staging.*/
       - push-containers:
           requires:
             - build	
+          filters:
+            tags:
+              only: 
+                - /^prod.*/
+                - /^staging.*/
       - deploy:
           requires:
-            - build
+            - push-containers
       - api-tests:
           requires:
-            - deploy	
-          # filters:
-          #   branches:
-          #     only: master
+            - deploy
+      - stop-instance:
+          requires:
+            - api-tests
+          filters:
+            branches:
+              ignore: master
+      - deploy-staging:
+          requires:
+            - push-containers
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /^staging.*/
+      - holdprod:
+          type: approval
+          requires:
+           - push-containers
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+
+      - deploy-prod-eu:
+          requires:
+            - holdprod
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - deploy-prod-us:
+          requires:
+            - holdprod
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - deploy-prod-jp:
+          requires:
+            - holdprod
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-eu:
+          requires:
+            - deploy-prod-eu
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-us:
+          requires:
+            - deploy-prod-us
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-jp:
+          requires:
+            - deploy-prod-jp
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+
+

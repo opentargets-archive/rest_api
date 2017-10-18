@@ -7,12 +7,15 @@ import uuid
 
 from app import create_app
 from app.common.auth import AuthKey
+from envparse import env
 
 __author__ = 'andreap'
 
 
 class GenericTestCase(unittest.TestCase):
     _AUTO_GET_TOKEN='auto'
+    env.read_envfile('VERSION')
+    API_VERSION = env.str('API_VERSION')
 
     def setUp(self):
 
@@ -43,7 +46,7 @@ class GenericTestCase(unittest.TestCase):
         self.app.extensions['redis-user'].delete(self.auth_key.get_key())
 
     def _make_token_request(self, expire = 10*60):
-        return self._make_request('/api/latest/public/auth/request_token',data={'app_name':self.auth_key.app_name,
+        return self._make_request('/platform/public/auth/request_token',data={'app_name':self.auth_key.app_name,
                                                                                'secret':self.auth_key.secret,
                                                                                 'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
@@ -78,17 +81,17 @@ class GenericTestCase(unittest.TestCase):
         if not rate_limit_fail:
             status_code = 429
             while status_code == 429:
-                response = self.client.open(path,**params)
+                response = self.client.open('/v' + self.API_VERSION + path,**params)
                 status_code = response.status_code
                 if status_code == 429:
                     time.sleep(10)
         else:
-            response = self.client.open(path,**params)
+            response = self.client.open('/v' + self.API_VERSION + path,**params)
         return response
 
     def update_token(self):
         if self.token:
-            token_valid_response = self._make_request('/api/latest/public/auth/validate_token',
+            token_valid_response = self._make_request('/platform/public/auth/validate_token',
                                                        headers={'Auth-Token':self.token})
             if token_valid_response.status_code == 200:
                 return

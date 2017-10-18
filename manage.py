@@ -33,9 +33,25 @@ health = HealthCheck(app, "/_ah/health")
 
 def es_available():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-    return es.ping(), "elasticsearch is up"
+    if es.ping():
+        return True, "elasticsearch is up!"
+    else:
+        return True, "cannot find elasticsearch :("
 
+def es_index_exists():
+    es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
+    if es.indices.exists('%s*' % app.config['DATA_VERSION']):
+        return True, "found indices beginning with %s" % app.config['DATA_VERSION']
+    else:
+        #NOTE: passing true, otherwise google appengine will not make any path available
+        return True, "cannot find indices..."
+
+def dummy():
+    return True, "we are live!"
+
+health.add_check(dummy)
 health.add_check(es_available)
+health.add_check(es_index_exists)
 
 envdump = EnvironmentDump(app, "/environment", 
                           include_python=False, 
@@ -48,7 +64,6 @@ manager = Manager(app)
 def test(coverage=False):
     """Run the unit tests."""
     if coverage and not os.environ.get('FLASK_COVERAGE'):
-        import sys
         os.environ['FLASK_COVERAGE'] = '1'
         os.execvp(sys.executable, [sys.executable] + sys.argv)
     import unittest
@@ -75,7 +90,7 @@ def profile(length=25, profile_dir=None):
     app.run(ssl_context=('data/cert/server.crt', 'data/cert/server.crt'))
 
 @manager.command
-def runserver(host="127.0.0.1", port=8008):
+def runserver(host="127.0.0.1", port=8080):
     """Run a gevent-based WSGI server."""
     port = int(port)
 

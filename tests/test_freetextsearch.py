@@ -1349,7 +1349,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testBraf")
     def testBraf(self):
 
-        response= self._make_request('/api/latest/public/search',
+        response= self._make_request('/platform/public/search',
                                      data={'q':'braf'},
                                      token=self._AUTO_GET_TOKEN)
 
@@ -1364,7 +1364,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testSearchFields")
     def testSearchFields(self):
 
-        response= self._make_request('/api/latest/public/search',
+        response= self._make_request('/platform/public/search',
                                      data={'q':'braf', 'fields':['id', 'approved_symbol'], 'size':1},
                                      token=self._AUTO_GET_TOKEN)
 
@@ -1381,7 +1381,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     # @unittest.skip("testSearchFieldsWithHighlight")
     def testSearchFieldsWithHighlight(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'braf',
                                             'fields': ['id', 'approved_symbol'],
                                             # 'highlight': True,
@@ -1404,7 +1404,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertEqual(first_result['id'], 'ENSG00000157764')
 
     def testSearchNoHighlight(self):
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'braf',
                                             'highlight': False},
                                       token=self._AUTO_GET_TOKEN)
@@ -1416,8 +1416,8 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     #@unittest.skip("testBestHitSearchFieldsNoFilter")
     def testBestHitSearchFieldsNoFilter(self):
-        response= self._make_request('/api/latest/private/besthitsearch',
-                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff']},
+        response= self._make_request('/platform/private/besthitsearch',
+                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff']},                                  
                                     token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
@@ -1472,7 +1472,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     #@unittest.skip(" testBestHitSearchFieldsTarget")
     def testBestHitSearchFieldsTarget(self):
-        response= self._make_request('/api/latest/private/besthitsearch',
+        response= self._make_request('/platform/private/besthitsearch',
                                     data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'],
                                           'fields':'approved_symbol',
                                            'filter':'target'},
@@ -1531,7 +1531,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     #@unittest.skip(" testBestHitSearchFieldsDisease")
     def testBestHitSearchFieldsDisease(self):
-        response= self._make_request('/api/latest/private/besthitsearch',
+        response= self._make_request('/platform/private/besthitsearch',
                                     data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff'],
                                           'filter':'disease',
                                           'fields': 'name',
@@ -1576,7 +1576,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     ##@unittest.skip("testBestHitSearchFieldsPostTarget")
     def testBestHitSearchFieldsPostTarget(self):
 
-        response= self._make_request('/api/latest/private/besthitsearch',
+        response= self._make_request('/platform/private/besthitsearch',
                                      data=json.dumps({
                                             'q':['braf', 'nr3c1', 'bra', 'rippa', 'ENSG00000157764', 'eff'],
                                             'fields':['approved_symbol', ],
@@ -1642,7 +1642,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testBestHitSearchExactMatchManyTargetPost(self):
         targets = GENE_SYMBOL_LIST
-        response = self._make_request('/api/latest/private/besthitsearch',
+        response = self._make_request('/platform/private/besthitsearch',
                                       data=json.dumps({
                                           'q': targets,
                                           'filter': 'target',
@@ -1661,7 +1661,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testBestHitSearchExactMatchMart410TargetPost(self):
         targets = TEST_MART_410
-        response = self._make_request('/api/latest/private/besthitsearch',
+        response = self._make_request('/platform/private/besthitsearch',
                                       data=json.dumps({
                                           'q': targets,
                                           'filter': 'target',
@@ -1681,7 +1681,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testBestHitSearchExactMatchGPCRTargetPost(self):
         targets = TEST_GPCR
-        response = self._make_request('/api/latest/private/besthitsearch',
+        response = self._make_request('/platform/private/besthitsearch',
                                       data=json.dumps({
                                           'q': targets,
                                           'filter': 'target',
@@ -1701,7 +1701,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     #@unittest.skip("testAsthma")
     def testAsthma(self):
-        response= self._make_request('/api/latest/public/search',
+        response= self._make_request('/platform/public/search',
                                      data={'q':'asthma'},
                                      token=self._AUTO_GET_TOKEN)
 
@@ -1732,7 +1732,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     #@unittest.skip("testQuickSearchBraf")
     def testQuickSearchBraf(self):
-        response= self._make_request('/api/latest/private/quicksearch',
+        response= self._make_request('/platform/private/quicksearch',
                                      data={'q':'braf'},
                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -1749,7 +1749,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testQuickSearchBrafOrtholog")
     def testQuickSearchBrafOrtholog(self):
         '''lin-45 is a braf ortholog in c.elegans'''
-        response= self._make_request('/api/latest/private/quicksearch',
+        response= self._make_request('/platform/private/quicksearch',
                                      data={'q':'lin-45'},
                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -1764,7 +1764,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     def testQuickSearchBrafOrtholog_misp(self):
         '''lin-45 is a braf ortholog in c.elegans, but 50% percent of people willuse lin45
         '''
-        response= self._make_request('/api/latest/private/quicksearch',
+        response= self._make_request('/platform/private/quicksearch',
                                      data={'q':'lin-45'},
                                      token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
@@ -1779,7 +1779,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testQuickSearchAsthma")
     def testQuickSearchAsthma(self):
 
-        response= self._make_request('/api/latest/private/quicksearch',
+        response= self._make_request('/platform/private/quicksearch',
                                      data={'q':'asthma'},
                                      token=self._AUTO_GET_TOKEN)
 
@@ -1794,7 +1794,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testQuickSearchCancer")
     def testQuickSearchCancer(self):
 
-        response = self._make_request('/api/latest/private/quicksearch',
+        response = self._make_request('/platform/private/quicksearch',
                                       data={'q': 'cancer'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1808,7 +1808,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testQuickSearchHumira(self):
 
-        response = self._make_request('/api/latest/private/quicksearch',
+        response = self._make_request('/platform/private/quicksearch',
                                       data={'q': 'humira'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1821,7 +1821,7 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         2000)
 
     def testSearchSildenafil(self):
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'SILDENAFIL',
                                             'filter': 'target'},
                                       token=self._AUTO_GET_TOKEN)
@@ -1835,7 +1835,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testSearchALS(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'als'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1847,7 +1847,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testSearchCOPD(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'COPD'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1859,7 +1859,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testSearchPhenotypesJointSwelling(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'joint swelling'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1870,7 +1870,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testSearchPhenotypesHyperlordosis(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'Hyperlordosis'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1881,7 +1881,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testSearchPhenotypesProgressiveJointDestruction(self):
 
-        response = self._make_request('/api/latest/public/search',
+        response = self._make_request('/platform/public/search',
                                       data={'q': 'progressive joint destruction'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1894,7 +1894,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testQuickSearchSLE(self):
 
-        response = self._make_request('/api/latest/private/quicksearch',
+        response = self._make_request('/platform/private/quicksearch',
                                       data={'q': 'sle'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1910,7 +1910,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     def testQuickSearchSuggestionAsthma(self):
 
-        response = self._make_request('/api/latest/private/quicksearch',
+        response = self._make_request('/platform/private/quicksearch',
                                       data={'q': 'astma'},
                                       token=self._AUTO_GET_TOKEN)
 
@@ -1919,7 +1919,7 @@ class FreeTextSearchTestCase(GenericTestCase):
         self.assertIn('asthma', json_response['suggest'])
 
     def testQuickSearchSuggestionPArkinson(self):
-            response = self._make_request('/api/latest/private/quicksearch',
+            response = self._make_request('/platform/private/quicksearch',
                                           data={'q': 'prakison'},
                                           token=self._AUTO_GET_TOKEN)
 
@@ -1931,7 +1931,7 @@ class FreeTextSearchTestCase(GenericTestCase):
 
     @unittest.skip("testAutocomplete")
     def testAutocomplete(self):
-        response= self._make_request('/api/latest/private/autocomplete',
+        response= self._make_request('/platform/private/autocomplete',
                                      data={'q':'ast'},
                                      token=self._AUTO_GET_TOKEN)
 

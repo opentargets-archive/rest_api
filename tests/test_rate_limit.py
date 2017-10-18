@@ -22,7 +22,7 @@ class RateLimitTestCase(GenericTestCase):
         token = self.get_token()
         while status_code == 200:
             req_count+=1
-            response= self._make_request('/api/latest/public/utils/ping',
+            response= self._make_request('/platform/public/utils/ping',
                                          rate_limit_fail=True,
                                          token = token)
             status_code = response.status_code

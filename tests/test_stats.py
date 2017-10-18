@@ -18,7 +18,7 @@ class StatsTestCase(GenericTestCase):
 
 
     def testStats(self):
-        response= self._make_request('/api/latest/public/utils/stats',
+        response= self._make_request('/platform/public/utils/stats',
                                    token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))

@@ -32,7 +32,7 @@ RUN pip install -r /var/www/app/requirements.txt
 COPY . /var/www/app
 
 #declare app port
-EXPOSE 80 443 8008 8009
+EXPOSE 80 443 8080 8009
 
 #define entrypoint
 COPY docker/docker-entrypoint.sh /
