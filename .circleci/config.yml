@@ -266,9 +266,9 @@ jobs:
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://10.132.0.5:9200
       DEPLOYED_DATA_VERSION: 17.09
-      MAX_NUM_INSTANCES: 1
+      MAX_NUM_INSTANCES: 3
       CPU: 2
-      MEMORY_GB: 2
+      MEMORY_GB: 4
       DISK_SIZE_GB: 30
     docker:
       - image: google/cloud-sdk
@@ -330,11 +330,11 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://10.150.0.2:9200
+      ES_URL: http://10.142.0.6:9200
       DEPLOYED_DATA_VERSION: 17.09
-      MAX_NUM_INSTANCES: 1
+      MAX_NUM_INSTANCES: 3
       CPU: 2
-      MEMORY_GB: 2
+      MEMORY_GB: 4
       DISK_SIZE_GB: 30
     docker:
       - image: google/cloud-sdk
@@ -398,9 +398,9 @@ jobs:
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://10.146.0.3:9200
       DEPLOYED_DATA_VERSION: 17.09
-      MAX_NUM_INSTANCES: 1
+      MAX_NUM_INSTANCES: 3
       CPU: 2
-      MEMORY_GB: 2
+      MEMORY_GB: 4
       DISK_SIZE_GB: 30
     docker:
       - image: google/cloud-sdk
