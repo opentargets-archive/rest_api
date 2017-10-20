@@ -10,7 +10,7 @@ info:
   # should revert to plain semantic versioning.
   version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
   title: Open Targets Platform REST API (${API_VERSION} ${CIRCLE_BRANCH})
-  description: Open Targets Platform REST API 
+  description: Open Targets Platform REST API
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -42,18 +42,18 @@ produces:
   - text/csv
 # Describe your paths here
 paths:
-  /swagger:
+  /platform/swagger:
     get:
       operationId: getSwagger
       tags:
         - private
       description: Get swagger.yaml specs for the API
       produces:
-      - "application/json"
+      - "text/yaml"
       responses:
         200:
           description: "Swagger.yaml file"
-  /docs:
+  /platform/docs:
     get:
       operationId: getApiDocs
       tags:
@@ -63,7 +63,7 @@ paths:
       - "application/json"
       responses:
         200:
-          description: "Markdown API documentation file"        
+          description: "Markdown API documentation file"
   /platform/public/evidence:
     get:
       operationId: getEvidenceById
@@ -596,6 +596,27 @@ paths:
             # items:
             #   type: string
           description: list of strings to search for
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /platform/private/enrichment/targets:
+    post:
+      operationId: postEnrichmentTarget
+      tags:
+        - private
+      description: |
+        Returns an enrichment analysis for a list of targets passed in the body
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target" : ["ENSG00000001", "ENSG00000002"],
+               "pvalue" : 0.001,
+               "size" : 20}
+          description: IDs of the targets to do the enrichment analysis for.
           required: true
       responses:
         200:

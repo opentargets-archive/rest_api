@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from flask import url_for
 from gevent import monkey
 monkey.patch_all()
 import os
@@ -53,8 +54,8 @@ health.add_check(dummy)
 health.add_check(es_available)
 health.add_check(es_index_exists)
 
-envdump = EnvironmentDump(app, "/environment", 
-                          include_python=False, 
+envdump = EnvironmentDump(app, "/environment",
+                          include_python=False,
                           include_os=False,
                           include_process=False)
 manager = Manager(app)
@@ -115,6 +116,24 @@ def runserver(host="127.0.0.1", port=8080):
     else:
         serve()
 
+
+@manager.command
+def list_routes():
+    import urllib
+    output = []
+    for rule in app.url_map.iter_rules():
+
+        options = {}
+        for arg in rule.arguments:
+            options[arg] = "[{0}]".format(arg)
+
+        methods = ','.join(rule.methods)
+        url = url_for(rule.endpoint, **options)
+        line = urllib.unquote("{:50s} {:20s} {}".format(rule.endpoint, methods, url))
+        output.append(line)
+
+    for line in sorted(output):
+        print line
 
 if __name__ == '__main__':
     manager.run()
