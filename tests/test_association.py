@@ -4,7 +4,7 @@ import unittest
 from app import create_app
 from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
-        
+
 import pytest
 pytestmark = pytest.mark.skipif(
     not pytest.config.getoption("--es"),
@@ -503,6 +503,48 @@ class AssociationTestCase(GenericTestCase):
         filtered_json_response = json.loads(response.data.decode('utf-8'),)
         self.assertGreater(filtered_json_response['total'],0)
         self.assertGreater(full_json_response['total'],filtered_json_response['total'])
+
+    def testAssociationPagination(self):
+        disease = 'EFO_0000311'
+        size = 5000
+        from_ = 0
+        '''check pagination'''
+        while True:
+            response = self._make_request('/platform/public/association/filter',
+                                          data={'disease': disease,
+                                                'size': size,
+                                                'from': from_,
+                                                },
+                                          token=self._AUTO_GET_TOKEN)
+            if from_+ size <=10000:
+                self.assertEquals(response.status_code, 200)
+            else:
+                self.assertEquals(response.status_code, 404)
+                break
+            from_+=size
+        '''check search_after'''
+        size = 5000
+        response = json.loads(self._make_request('/platform/public/association/filter',
+                                      data={'disease': disease,
+                                            'size': size,
+                                            },
+                                      token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
+        total_fetched = len(response['data'])
+        total = response['total']
+        for i in range(10):
+            response = json.loads(self._make_request('/platform/public/association/filter',
+                                          data={'disease': disease,
+                                                'size': size,
+                                                'search_after':response['data'][-1]['search_after']
+                                                },
+                                          token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
+            if response['data']:
+                total_fetched+= len(response['data'])
+            else:
+                break
+        self.assertEquals(total_fetched, total)
+
+
 
     def testAssociationCsvExport(self):
 

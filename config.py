@@ -46,7 +46,7 @@ class Config:
 
     ## [read from an .env file, if there]
     env.read_envfile()
-    
+
     ## the API version number comes from the VERSION file as single point of truth
     env.read_envfile('VERSION')
     API_VERSION = env('API_VERSION', cast=str)
@@ -58,7 +58,7 @@ class Config:
 
     ## [key configurations]
     ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='http://localhost:9200')
-    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='ck_17.09')
+    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='17.09')
 
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
     ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
@@ -100,7 +100,7 @@ class Config:
     PROFILE = False
     SECRET_KEY = env('SECRET_KEY', default=''.join(
         random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(32)))
-    
+
     '''datatype configuration'''
     DATATYPES = defaultdict(lambda: "other")
     DATATYPES['rna_expression'] = ['expression_atlas', ]

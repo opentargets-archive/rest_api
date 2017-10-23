@@ -1008,12 +1008,11 @@ class esQuery():
             "sort": self._digest_sort_strings(params)
         }
 
-        if params.sa:
-            if params.search_after:
-                ass_query_body['search_after'] = params.search_after
+        if params.search_after:
+            ass_query_body['search_after'] = params.search_after
+            # ass_query_body['from'] = -1
 
-            ass_query_body['sort'].append({"id.keyword": "desc"})
-            ass_query_body['from'] = -1
+        ass_query_body['sort'].append({"id.keyword": "desc"})
 
 
 
@@ -2148,19 +2147,18 @@ class SearchParams(object):
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
-        self.sa = kwargs.get('sa', False)
 
         if self.size is None:
             self.size = self._default_return_size
 
         if self.size > -1 and \
-            (self.size * self.start_from > self._max_search_result_limit):
+            (self.size + self.start_from > self._max_search_result_limit):
             raise AttributeError('(size * from) cannot be bigger than '
                                  '%i use search_after' % self._max_search_result_limit)
 
         self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]
-        if self.sa:
-            self.start_from = -1
+        if self.search_after:
+            self.start_from = 0
 
         if self.cap_scores is None:
             self.cap_scores = True

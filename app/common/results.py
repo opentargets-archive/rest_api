@@ -27,7 +27,7 @@ class Result(object):
                  suggest=None,
                  status = ['ok'],
                  therapeutic_areas = []):
-        
+
         '''
         :param res: elasticsearch query response
         :param params: get parameters
@@ -195,12 +195,13 @@ class PaginatedResult(Result):
                     'from': self.params.start_from,
                     'data_version' : Config.DATA_VERSION,
                     'query': self.params.query_params,
-                    'sa': self.params.sa,
                     }
         if self.facets:
             response[ 'facets'] = self.facets
         if self.therapeutic_areas:
             response['therapeutic_areas'] = self.therapeutic_areas
+        if self.params.search_after:
+            response['query']['search_after']= self.params.search_after,
         return response
 
 class EmptyPaginatedResult(Result):
