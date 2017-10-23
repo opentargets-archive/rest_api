@@ -1,12 +1,11 @@
 import json
 import unittest
-
 from tests import GenericTestCase
-
 import pytest
+from config import Config
 pytestmark = pytest.mark.skipif(
-    not pytest.config.getoption("--es"),
-    reason="needs ES; use --es option to run"
+    not Config.ELASTICSEARCH_URL,
+    reason="needs ES, pass url as ENV var: ELASTICSEARCH_URL"
 )
 
 GENE_SYMBOL_LIST = ['A1BG',
@@ -1417,7 +1416,7 @@ class FreeTextSearchTestCase(GenericTestCase):
     #@unittest.skip("testBestHitSearchFieldsNoFilter")
     def testBestHitSearchFieldsNoFilter(self):
         response= self._make_request('/platform/private/besthitsearch',
-                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff']},                                  
+                                    data={'q':['braf', 'nr3c1', 'Rpl18a', 'rippa', 'ENSG00000157764', 'eff']},
                                     token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)

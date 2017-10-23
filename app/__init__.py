@@ -65,7 +65,7 @@ def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     # This first loads the configuration from eg. config['development'] which corresponds to the DevelopmentConfig class in the config.py
     app.config.from_object(config[config_name])
-    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to. 
+    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to.
     # For eg:
     # $ export OPENTARGETS_API_LOCAL_SETTINGS=/path/to/settings.cfg
     #
@@ -73,9 +73,9 @@ def create_app(config_name):
     #
     # DEBUG = False
     # SECRET_KEY = 'foo'
-    # 
+    #
     app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
-    
+
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
@@ -93,16 +93,19 @@ def create_app(config_name):
     icache = InternalCache(app.extensions['redis-service'],
                            str(api_version_minor))
     ip2org = IP2Org(icache)
-    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
-                       # # sniff before doing anything
-                       # sniff_on_start=True,
-                       # # refresh nodes after a node fails to respond
-                       # sniff_on_connection_fail=True,
-                       # # and also every 60 seconds
-                       # sniffer_timeout=60
-                       timeout=60 * 20,
-                       maxsize=32,
-                       )
+    if app.config['ELASTICSEARCH_URL']:
+        es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
+                           # # sniff before doing anything
+                           # sniff_on_start=True,
+                           # # refresh nodes after a node fails to respond
+                           # sniff_on_connection_fail=True,
+                           # # and also every 60 seconds
+                           # sniffer_timeout=60
+                           timeout=60 * 20,
+                           maxsize=32,
+                           )
+    else:
+        es = None
     '''elasticsearch handlers'''
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
@@ -255,7 +258,7 @@ def create_app(config_name):
     @app.route('/platform/docs/swagger.yaml')
     def send_swagger():
         return serve_swagger()
- 
+
     @app.route('/v%s/platform/docs/swagger.yaml' % str(api_version))
     def send_swagger_current_cersion():
         return serve_swagger()
@@ -267,11 +270,11 @@ def create_app(config_name):
     # @app.route('/v%s/api-docs' % str(api_version))
     # def docs_current_version():
     #     return serve_docs()
- 
+
     @app.route('/platform/docs/api-description.md')
     def docs_description():
         return serve_docs()
- 
+
 
 
 

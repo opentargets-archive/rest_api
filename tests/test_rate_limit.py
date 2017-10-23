@@ -7,7 +7,6 @@ test exceeding the limit
 
 drop local redis
 '''
-import json
 
 from tests import GenericTestCase
 

@@ -57,7 +57,7 @@ class Config:
     # PRIVATE_API_BASE_PATH = '/api/private/v'
 
     ## [key configurations]
-    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='http://localhost:9200')
+    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
     DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='17.09')
 
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag

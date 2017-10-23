@@ -1,16 +1,11 @@
 import ujson as json
 import unittest
-from pprint import pprint
-
-from app import create_app
-from app.common.request_templates import FilterTypes
 from tests import GenericTestCase
-
-
 import pytest
+from config import Config
 pytestmark = pytest.mark.skipif(
-    not pytest.config.getoption("--es"),
-    reason="needs ES; use --es option to run"
+    not Config.ELASTICSEARCH_URL,
+    reason="needs ES, pass url as ENV var: ELASTICSEARCH_URL"
 )
 
 class RelationTestCase(GenericTestCase):
