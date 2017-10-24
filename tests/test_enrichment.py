@@ -18,7 +18,7 @@ class AssociationTestCase(GenericTestCase):
         '''first call'''
         start_time = time.time()
         response = self._make_request('/platform/private/enrichment/targets',
-                                      data={'target': self.IBD_GENES,
+                                      data={'target': IBD_GENES,
                                             'method': 'POST',
                                             'no_cache': True
                                             },

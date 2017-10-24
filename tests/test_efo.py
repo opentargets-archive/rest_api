@@ -36,7 +36,7 @@ class EFOTestCase(GenericTestCase):
         self.assertTrue(response.status_code == 200)
 
         json_response = json.loads(response.data.decode('utf-8'))
-        sig_labels = [bucket['key'] for bucket in json_response['facets']['significantTherapeuticAreas']['buckets']]
+        sig_labels = [bucket['key'] for bucket in json_response['facets']['significant_therapeutic_areas']['buckets']]
         # print 'Groups of related diseases {}'.format(sig_labels)
         # print 'Related Diseases with labels {}'.format(json_response['data'])
         self.assertGreater(len(json_response['data']), 0)
@@ -213,7 +213,7 @@ class EFOTestCase(GenericTestCase):
                                       token=self._AUTO_GET_TOKEN)
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
-        sig_labels = [bucket['key'] for bucket in json_response['facets']['significantTherapeuticAreas']['buckets']]
+        sig_labels = [bucket['key'] for bucket in json_response['facets']['significant_therapeutic_areas']['buckets']]
         # print 'Groups of related diseases {}'.format(sig_labels)
         # print 'Related Diseases  - after selecting specific path_label {}'.format(json_response['data'])
         self.assertGreater(len(json_response['data']), 0)

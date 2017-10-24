@@ -1803,7 +1803,7 @@ class FreeTextSearchTestCase(GenericTestCase):
                                         'cancer',
                                         'cancer',
                                         None,
-                                        20000)
+                                        10000)
 
     def testQuickSearchHumira(self):
 

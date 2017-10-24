@@ -692,32 +692,32 @@ class esQuery():
             source_filter["includes"] = params.fields
 
         if gene_ids:
-            q = addict.Dict()
-            q.query.bool.filter.ids['values'] = gene_ids
-            q._source = source_filter
+            query_body = addict.Dict()
+            query_body.query.bool.filter.ids['values'] = gene_ids
+            query_body._source = source_filter
             if params.size == 0 :
-                q.size = 0
+                query_body.size = 0
             else:
-                q.size = len(gene_ids)
-            q['from'] = params.start_from
+                query_body.size = len(gene_ids)
+            query_body['from'] = params.start_from
 
             if params.facets == 'true':
-                q.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
-                q.aggregations.significant_go_terms.significant_terms.size = 25
-                q.aggregations.significant_go_terms.significant_terms.min_doc_count= 1
-                q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
+                query_body.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
+                query_body.aggregations.significant_go_terms.significant_terms.size = 25
+                query_body.aggregations.significant_go_terms.significant_terms.min_doc_count= 1
+                query_body.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
 
             if params.go_term:
-                q.post_filter.term['go.id.keyword'] = params.go_term
+                query_body.post_filter.term['go.id.keyword'] = params.go_term
 
             if params.fields:
-                q._source = params.fields
+                query_body._source = params.fields
 
-            pprint.pprint(q)
+            pprint.pprint(query_body)
 
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
-                                      body=q.to_dict())
+                                      body=query_body.to_dict())
 
             if 'aggregations' in res:
                 res['aggregations']['significant_go_terms']['buckets']  = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
@@ -732,9 +732,6 @@ class esQuery():
             bucket_dict['doc_count'] = bucket['doc_count']
 
             term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
-            # if term[0].startswith('P:') or term[0].startswith('F:'):
-            #label = re.findall(r'(\w):([\w+\s]+[\w+])', term[0])
-            # bucket_dict['label'] = label[0][1]
             bucket_dict['label'] = term[0]
             go_term_buckets.append(bucket_dict)
         return go_term_buckets
@@ -750,17 +747,11 @@ class esQuery():
 
         query_body = addict.Dict()
         query_body.query.ids["values"] = efo_codes
-        if params.size == 0:
-            query_body.size = 0
-        else:
-            query_body.size = len(efo_codes)
-
+        query_body.size = params.size
         if params.facets == 'true':
-            query_body.aggregations.significantTherapeuticAreas.significant_terms.field = "path_labels.keyword"
-            query_body.aggregations.significantTherapeuticAreas.significant_terms.size = "25"
-
-        if params.path_label:
-            query_body.post_filter.term['path_labels.keyword'] = params.path_label
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.field = "therapeutic_labels.keyword"
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.size = 25
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.min_doc_count = 2
 
         if params.fields:
             query_body._source = params.fields

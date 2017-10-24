@@ -13,7 +13,7 @@ class EvidenceTestCase(GenericTestCase):
 
 
     def testEvidenceByID(self):
-        id = 'e1704ccbf8f2874000c5beb0ec84c2b8'
+        id = '624c0036a0793d4db3ee7f9f09dbec9d'
         response = self._make_request('/platform/public/evidence',
                                       data={'id':id},
                                       token=self._AUTO_GET_TOKEN)
