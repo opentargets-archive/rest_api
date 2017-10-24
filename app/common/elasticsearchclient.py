@@ -702,23 +702,18 @@ class esQuery():
             q['from'] = params.start_from
 
             if params.facets == 'true':
-                # q.aggregations.go_terms.terms.field = "go.value.term"
                 q.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
-                # q.aggregations.significant_go_terms.significant_terms.field = "go.value.term.keyword"
-                # q.aggregations.significant_go_terms.significant_terms.include = "P:*" #|c:*|f:.*"
-                q.aggregations.significant_go_terms.significant_terms.size = "25"
-                # q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits.size= 1
+                q.aggregations.significant_go_terms.significant_terms.size = 25
+                q.aggregations.significant_go_terms.significant_terms.min_doc_count= 1
                 q.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
-            # if params.facets:
-            #     q.aggregations.go_terms.terms.field = "go.value.term"
-            #     q.aggregations.go_terms.terms.include = "p:*|c:*|f:.*"
-            #     q.aggregations.go_terms.terms.size = 25
 
             if params.go_term:
                 q.post_filter.term['go.id.keyword'] = params.go_term
 
             if params.fields:
                 q._source = params.fields
+
+            pprint.pprint(q)
 
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
