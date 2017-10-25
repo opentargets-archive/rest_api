@@ -175,11 +175,13 @@ class TokenAuthentication():
 def is_authenticated(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        '''DISABLED IN API VERSION 3'''
+
         # authorized =False # set to false to authorise only requests with token
         authorized =True
-        token = request.headers.get('Auth-Token')
-        if token:
-            authorized = TokenAuthentication.is_valid(token)
+        # token = request.headers.get('Auth-Token')
+        # if token:
+        #     authorized = TokenAuthentication.is_valid(token)
         if authorized:
             return func(*args, **kwargs)
 
