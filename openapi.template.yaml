@@ -457,7 +457,27 @@ paths:
           in: path
           type: string
           required: true
-          description: An EFO ID of the disease of interest.
+          description: An EFO identifier.
+      responses:
+        200:
+          description: Successful response
+  /platform/private/disease:
+    post:
+      operationId: postDiseaseById
+      tags:
+        - private
+      description: |
+        Get `disease` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"disease":["disease1", "disease2"],
+              "facets" = "true"}
+          description: An EFO identifier.
+          required: true
       responses:
         200:
           description: Successful response
@@ -490,6 +510,26 @@ paths:
           required: true
           description: An Ensembl gene ID for the target of interest.
           type: string
+      responses:
+        200:
+          description: Successful response
+  /platform/private/target:
+    post:
+      operationId: postTargetByENSGID
+      tags:
+        - private
+      description: |
+         Get `target` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"],
+              "facets" = "true"}
+          description: An Ensembl gene identifier.
+          required: true
       responses:
         200:
           description: Successful response
@@ -536,7 +576,7 @@ paths:
         Get `relation` objects starting from diseases.
       parameters:
         - name: target
-          in: query
+          in: path
           description: An Ensembl gene identifier.
           required: true
           type: string
