@@ -44,6 +44,8 @@ def get_http_exception_handler(app):
         resp = jsonify({'code':exc.code, 'message':exc.description})
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers', 'Content-Type,Auth-Token')
+        resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+
         return resp, exc.code
     return ret_val
 
@@ -314,6 +316,7 @@ def create_app(config_name):
             # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
+            resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
             if do_not_cache(request):# do not cache in the browser
                 resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
             else:
