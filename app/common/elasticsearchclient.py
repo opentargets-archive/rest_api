@@ -12,13 +12,14 @@ import numpy as np
 from elasticsearch import TransportError
 from elasticsearch import helpers
 from flask import current_app, request
+from flask_restful import abort
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
 import re
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation
+from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject
 from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
@@ -862,13 +863,21 @@ class esQuery():
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
 
+        if params.search_after:
+            q.search_after = params.search_after
+        q.sort.append({"id.keyword": "desc"})
+
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=q.to_dict(),
                                   timeout="10m",
                                   )
 
-        return PaginatedResult(res, params, )
+        evidence = [SearchMetadataObject(h).data
+                        for h in res['hits']['hits']]
+
+
+        return PaginatedResult(res, params, data = evidence)
 
         #     res = helpers.scan(client= self.handler,
         #                                     index=self._index_data,
@@ -996,8 +1005,6 @@ class esQuery():
 
         if params.search_after:
             ass_query_body['search_after'] = params.search_after
-            # ass_query_body['from'] = -1
-
         ass_query_body['sort'].append({"id.keyword": "desc"})
 
 
@@ -2137,12 +2144,13 @@ class SearchParams(object):
         if self.size is None:
             self.size = self._default_return_size
 
-        if self.size > -1 and \
+        if self.size  and \
             (self.size + self.start_from > self._max_search_result_limit):
-            raise AttributeError('(size * from) cannot be bigger than '
+            abort(404, message='(size + from) cannot be bigger than '
                                  '%i use search_after' % self._max_search_result_limit)
 
-        self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]
+        # self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]# does not work for this id u'9f0264d610f087731dc6fab29d459946'
+        self.search_after = kwargs.get('search_after', [])
         if self.search_after:
             self.start_from = 0
 

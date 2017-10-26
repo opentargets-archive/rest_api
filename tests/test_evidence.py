@@ -265,6 +265,48 @@ class EvidenceTestCase(GenericTestCase):
     #         #                                   token=self._AUTO_GET_TOKEN)
     #         #     self.assertEqual(response.status_code,200)
 
+    def testEvidencePagination(self):
+        disease = 'EFO_0000311'
+        size = 5000
+        from_ = 0
+        '''check pagination'''
+        while True:
+            response = self._make_request('/platform/public/evidence/filter',
+                                          data={'disease': disease,
+                                                'size': size,
+                                                'from': from_,
+                                                },
+                                          token=self._AUTO_GET_TOKEN)
+            if from_+ size <=10000:
+                self.assertEquals(response.status_code, 200)
+            else:
+                self.assertEquals(response.status_code, 404)# evidence is iterating deeper than 10000 in elasticsearch, TODO: check es conf
+                break
+            from_+=size
+        '''check search_after'''
+        size = 2000
+        response = json.loads(self._make_request('/platform/public/evidence/filter',
+                                      data={'disease': disease,
+                                            'size': size,
+                                            },
+                                      token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
+        total_fetched = len(response['data'])
+        total = response['total']
+        for i in range(10):
+            response = json.loads(self._make_request('/platform/public/evidence/filter',
+                                          data={'disease': disease,
+                                                'size': size,
+                                                'search_after':response['data'][-1]['search_metadata']['sort']
+                                                },
+                                          token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
+            if response['data']:
+                total_fetched+= len(response['data'])
+            elif not response['data'][-1]:
+                break
+            else:
+                break
+        self.assertEquals(total_fetched, min(total, 11*size))
+
 
 
 if __name__ == "__main__":

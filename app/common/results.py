@@ -66,7 +66,7 @@ class Result(object):
         return dicttoxml(self.toDict(), custom_root='cttv-api-result')
 
     def toCSV(self, delimiter = '\t'):
-        NOT_ALLOWED_FIELDS = ['evidence.evidence_chain', 'search_after']
+        NOT_ALLOWED_FIELDS = ['evidence.evidence_chain', 'search_metadata', 'search_metadata.sort']
         output = BytesIO()
         if not self.data:
             self.flatten(self.toDict())  # populate data if empty

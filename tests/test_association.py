@@ -536,14 +536,14 @@ class AssociationTestCase(GenericTestCase):
             response = json.loads(self._make_request('/platform/public/association/filter',
                                           data={'disease': disease,
                                                 'size': size,
-                                                'search_after':response['data'][-1]['search_after']
+                                                'search_after':response['data'][-1]['search_metadata']['sort']
                                                 },
                                           token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
             if response['data']:
                 total_fetched+= len(response['data'])
             else:
                 break
-        self.assertEquals(total_fetched, total)
+        self.assertEquals(total_fetched, min(total, 11*size))
 
 
 
