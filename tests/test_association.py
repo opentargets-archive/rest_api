@@ -97,6 +97,19 @@ class AssociationTestCase(GenericTestCase):
         self.assertTrue('disease' in json_response['facets'])
         self.assertFalse('datatype' in json_response['facets'])
 
+    def testAssociationsTherapeuticAreaFacet(self):
+        target = 'ENSG00000157764'
+        response = self._make_request('/platform/public/association/filter',
+                                      data={'target':target, 'facets':"therapeutic_area", 'no_cache':True, 'size':0},
+                                      token=self._AUTO_GET_TOKEN)
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self.assertIsNotNone(json_response['facets'])
+        self.assertTrue('therapeutic_area' in json_response['facets'])
+        for b in json_response['facets']['therapeutic_area']['buckets']:
+            if b['key'] != 'other':
+                self.assertNotEqual(b['key'], b['label'])
+
     def testAssociationsExpressionFilter(self):
         response = self._make_request('/platform/public/association/filter',
                                       data={'protein_expression_level': 1,

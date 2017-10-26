@@ -1621,7 +1621,7 @@ class esQuery():
         efo_data = {}
         therapeutic_area_labels = {}
 
-        t_areas = self.get_efo_info_from_code(therapeutic_areas)
+        t_areas = self.get_efo_info_from_code(therapeutic_areas, size = len(therapeutic_areas))
 
         if t_areas:
             efo_data = t_areas.toDict()['data']
