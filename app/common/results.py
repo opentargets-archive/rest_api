@@ -200,8 +200,9 @@ class PaginatedResult(Result):
             response[ 'facets'] = self.facets
         if self.therapeutic_areas:
             response['therapeutic_areas'] = self.therapeutic_areas
-        if self.params.search_after:
-            response['query']['search_after']= self.params.search_after,
+        if hasattr(self.params, 'next_'):
+            response['next'] = self.params.next_
+
         return response
 
 class EmptyPaginatedResult(Result):

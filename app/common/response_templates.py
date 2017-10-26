@@ -115,8 +115,8 @@ class Association(object):
 
     def parse_hit(self):
         self.data = self.hit_source
-        if self.search_metadata:
-            self.data['search_metadata'] = self.search_metadata
+        # if self.search_metadata:
+        #     self.data['search_metadata'] = self.search_metadata
         if self._scoring_method in self.hit_source:
             self.data['association_score'] = self.hit_source[self._scoring_method]
             del self.data[self._scoring_method]
@@ -163,8 +163,8 @@ class SearchMetadataObject(object):
 
     def parse_hit(self):
         self.data = self.hit_source
-        if self.search_metadata:
-            self.data['search_metadata'] = self.search_metadata
+        # if self.search_metadata:
+        #     self.data['search_metadata'] = self.search_metadata
 
 
 

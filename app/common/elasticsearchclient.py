@@ -863,8 +863,8 @@ class esQuery():
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
 
-        if params.search_after:
-            q.search_after = params.search_after
+        if params.pagination_index:
+            q.search_after = params.pagination_index
         q.sort.append({"id.keyword": "desc"})
 
         res = self._cached_search(index=self._index_data,
@@ -875,35 +875,11 @@ class esQuery():
 
         evidence = [SearchMetadataObject(h).data
                         for h in res['hits']['hits']]
-
+        if res['hits']['hits']:
+            params.next_ = res['hits']['hits'][-1]['sort']
 
         return PaginatedResult(res, params, data = evidence)
 
-        #     res = helpers.scan(client= self.handler,
-        #                                     index=self._index_data,
-        #                                     query={
-        #                                       "query": {
-        #                                           "filtered": {
-        #                                               "filter": {
-        #                                                   "bool": {
-        #                                                       "must": conditions
-        #                                                   }
-        #                                               }
-        #
-        #                                           }
-        #                                       },
-        #                                       'size': params.size,
-        #                                       'from': params.start_from,
-        #                                       '_source': source_filter,
-        #                                     },
-        #                                     scroll= "1m",
-        #                                     timeout="10m",
-        #                        )
-        #
-        #
-        #
-        #
-        # return PaginatedResult(None, params, data = [i for i in res])
 
     def get_associations_by_id(self, associationid, **kwargs):
 
@@ -1003,8 +979,8 @@ class esQuery():
             "sort": self._digest_sort_strings(params)
         }
 
-        if params.search_after:
-            ass_query_body['search_after'] = params.search_after
+        if params.pagination_index:
+            ass_query_body['search_after'] = params.pagination_index
         ass_query_body['sort'].append({"id.keyword": "desc"})
 
 
@@ -1050,6 +1026,10 @@ class esQuery():
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
+
+        if ass_data['hits']['hits']:
+            params.next_ = ass_data['hits']['hits'][-1]['sort']
+
 
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
@@ -2150,8 +2130,8 @@ class SearchParams(object):
                                  '%i use search_after' % self._max_search_result_limit)
 
         # self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]# does not work for this id u'9f0264d610f087731dc6fab29d459946'
-        self.search_after = kwargs.get('search_after', [])
-        if self.search_after:
+        self.pagination_index = kwargs.get('next', [])
+        if self.pagination_index:
             self.start_from = 0
 
         if self.cap_scores is None:

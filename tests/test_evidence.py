@@ -296,7 +296,7 @@ class EvidenceTestCase(GenericTestCase):
             response = json.loads(self._make_request('/platform/public/evidence/filter',
                                           data={'disease': disease,
                                                 'size': size,
-                                                'search_after':response['data'][-1]['search_metadata']['sort']
+                                                'next':response['next']
                                                 },
                                           token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
             if response['data']:
@@ -306,6 +306,15 @@ class EvidenceTestCase(GenericTestCase):
             else:
                 break
         self.assertEquals(total_fetched, min(total, 11*size))
+
+    def testEmptyResponse(self):
+        response = json.loads(self._make_request('/platform/public/evidence/filter',
+                                      data={'disease': 'adfjbfhjkbasdhkfbdsahjbdhkjabfhjdsbfkhjadsbf',
+                                            },
+                                      token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
+        self.assertEqual(response['data'],[])
+        self.assertEqual(response['total'], 0)
+
 
 
 
