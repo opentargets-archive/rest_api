@@ -552,9 +552,8 @@ class AssociationTestCase(GenericTestCase):
                                                 'next':response['next']
                                                 },
                                           token=self._AUTO_GET_TOKEN).data.decode('utf-8'))
-            if response['data']:
-                total_fetched+= len(response['data'])
-            else:
+            total_fetched += len(response['data'])
+            if not 'next' in response:
                 break
         self.assertEquals(total_fetched, min(total, 11*size))
 

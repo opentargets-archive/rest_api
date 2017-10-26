@@ -875,7 +875,7 @@ class esQuery():
 
         evidence = [SearchMetadataObject(h).data
                         for h in res['hits']['hits']]
-        if res['hits']['hits']:
+        if res['hits']['hits'] and len(res['hits']['hits']) == params.size:
             params.next_ = res['hits']['hits'][-1]['sort']
 
         return PaginatedResult(res, params, data = evidence)
@@ -1027,7 +1027,7 @@ class esQuery():
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
 
-        if ass_data['hits']['hits']:
+        if ass_data['hits']['hits'] and len(ass_data['hits']['hits']) == params.size:
             params.next_ = ass_data['hits']['hits'][-1]['sort']
 
 
