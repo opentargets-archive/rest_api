@@ -567,7 +567,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/relation/target/{target}:
+  /platform/private/relation/target/{target}:
     get:
       operationId: getRelationByENSGID
       tags:
@@ -583,7 +583,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/relation:
+  /platform/private/relation:
     post:
       operationId: postRelation
       tags:
@@ -602,7 +602,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/relation/disease/{disease}:
+  /platform/private/relation/disease/{disease}:
     get:
       operationId: getRelationByEFOID
       tags:

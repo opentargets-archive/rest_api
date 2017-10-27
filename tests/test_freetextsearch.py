@@ -1790,6 +1790,47 @@ class FreeTextSearchTestCase(GenericTestCase):
                                    None,
                                    2086)
 
+    # @unittest.skip("testQuickSearchAsthma")
+    def testQuickSearchPartialBreastCarcinoma(self):
+        query_string = 'breast carcinoma'
+        response = self._make_request('/platform/private/quicksearch',
+                                      data={'q': query_string},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        query_string,
+                                       )
+        response = self._make_request('/platform/private/quicksearch',
+                                      data={'q': 'breast carci'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        query_string,
+                                        )
+        response = self._make_request('/platform/private/quicksearch',
+                                      data={'q': 'breast car'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        query_string,
+                                        )
+        response = self._make_request('/platform/private/quicksearch',
+                                      data={'q': 'breast'},
+                                      token=self._AUTO_GET_TOKEN)
+
+        self.assertTrue(response.status_code == 200)
+        json_response = json.loads(response.data.decode('utf-8'))
+        self._assert_quicksearch_result(json_response,
+                                        query_string,
+                                        )
+
+
     #@unittest.skip("testQuickSearchCancer")
     def testQuickSearchCancer(self):
 
@@ -1870,13 +1911,13 @@ class FreeTextSearchTestCase(GenericTestCase):
     def testSearchPhenotypesHyperlordosis(self):
 
         response = self._make_request('/platform/public/search',
-                                      data={'q': 'Hyperlordosis'},
+                                      data={'q': 'hyperlordosis'},
                                       token=self._AUTO_GET_TOKEN)
 
         self.assertTrue(response.status_code == 200)
         json_response = json.loads(response.data.decode('utf-8'))
         second_result = json_response['data'][0]['data']
-        self.assertEqual(second_result['name'], 'Duchenne and Becker muscular dystrophy')
+        self.assertEqual(second_result['name'], 'Spondyloepiphyseal dysplasia and spondyloepimetaphyseal dysplasia')
 
     def testSearchPhenotypesProgressiveJointDestruction(self):
 

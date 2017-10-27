@@ -1,10 +1,11 @@
+import ast
 import hashlib
 import json as json
 import logging
+import pprint
 import sys
 import time
 from collections import defaultdict
-import ast
 
 import addict
 import jmespath
@@ -15,7 +16,6 @@ from flask import current_app, request
 from flask_restful import abort
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
-import re
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
@@ -25,8 +25,6 @@ from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySi
 from app.common.scoring import Scorer
 from app.common.scoring_conf import ScoringMethods
 from config import Config
-import pprint
-from elasticsearch_dsl import aggs
 
 __author__ = 'andreap'
 
@@ -1030,7 +1028,6 @@ class esQuery():
         if ass_data['hits']['hits'] and len(ass_data['hits']['hits']) == params.size:
             params.next_ = ass_data['hits']['hits'][-1]['sort']
 
-
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
 
@@ -1269,81 +1266,128 @@ class esQuery():
         return q.to_dict()
 
     def _get_free_text_query(self, searchphrase):
-        mm_f1 = ["name^3", "description^2", "efo_synonyms",
-                 "symbol_synonyms", "approved_symbol", "approved_name",
-                 "name_synonyms", "gene_family_description",
-                 "efo_path_labels^0.1", "ortholog.*.symbol^0.2",
-                 "ortholog.*.name^0.2", "drugs.*^0.5", "phenotypes.*^0.3"]
+        query_body = {
+            "function_score": {
+                "score_mode": "multiply",
+                'query': {
+                    "bool": {
+                        "should": [
+                            {"multi_match": {
+                                "query": searchphrase,
+                                "fields": ["name^3",
+                                           "description^2",
+                                           "efo_synonyms",
+                                           "symbol_synonyms",
+                                           "approved_symbol",
+                                           "approved_name",
+                                           "name_synonyms",
+                                           "gene_family_description",
+                                           "efo_path_labels^0.1",
+                                           "ortholog.*.symbol^0.5",
+                                           "ortholog.*.name^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.label^0.3"
+                                           ],
+                                "analyzer": 'standard',
+                                # "fuzziness": "AUTO",
+                                "tie_breaker": 0.0,
+                                "type": "phrase_prefix",
+                            }
+                            },
+                            {"multi_match": {
+                                "query": searchphrase,
+                                "fields": ["name^3",
+                                           "description^2",
+                                           "id",
+                                           "approved_symbol",
+                                           "symbol_synonyms",
+                                           "name_synonyms",
+                                           "uniprot_accessions",
+                                           "hgnc_id",
+                                           "ensembl_gene_id",
+                                           "efo_path_codes",
+                                           "efo_url",
+                                           "efo_synonyms^2",
+                                           "ortholog.*.symbol^0.2",
+                                           "ortholog.*.id^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.*"
+                                           ],
+                                "analyzer": 'keyword',
+                                # "fuzziness": "AUTO",
+                                "tie_breaker": 0,
+                                "type": "best_fields",
+                            },
+                            },
+                            # {"multi_match": {
+                            #     "query": searchphrase,
+                            #     "fields": ["name^3",
+                            #                "description",
+                            #                "approved_symbol",
+                            #                "symbol_synonyms",
+                            #                "name_synonyms",
+                            #                "efo_synonyms^0.1",
+                            #                "ortholog.*.symbol^0.5",
+                            #                "ortholog.*.name^0.2"
+                            #                ],
+                            #     "word_delimiter_analyzer":{
+                            #         "tokenizer":"whitespace",
+                            #         "filter":[
+                            #             "lowercase",
+                            #             "word_delimiter"
+                            #
+                            #         ],
+                            #         "ignore_case":True,
+                            #     },
+                            #     # "fuzziness": "AUTO",
+                            #     "tie_breaker": 0,
+                            #     "type": "best_fields",
+                            #     }
+                            # },
+                        ]
+                    },
+                },
+                "functions": [
+                    # "path_score": {
+                    #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
+                    #   "lang": "groovy",
+                    # },
+                    # "script_score": {
+                    #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
+                    #   "lang": "groovy",
+                    # }
+                    {
+                        "field_value_factor": {
+                            "field": "association_counts.total",
+                            "factor": 0.01,
+                            "modifier": "sqrt",
+                            "missing": 1,
+                            # "weight": 0.01,
+                        }
+                    },
+                    # {
+                    # "field_value_factor":{
+                    #     "field": "min_path_len",
+                    #     "factor": 0.5,
+                    #     "modifier": "reciprocal",
+                    #     "missing": 1,
+                    #     # "weight": 0.5,
+                    #     }
+                    # }
+                ],
+                # "filter": {
+                #     "exists": {
+                #       "field": "min_path_len"
+                #     }
+                #   }
 
-        mm1 = addict.Dict()
-        mm1.multi_match.query = searchphrase
-        mm1.multi_match.fields = mm_f1
-        mm1.multi_match.analyzer = 'standard'
-        mm1.multi_match.tie_breaker = '0'
-        mm1.multi_match.type = 'phrase_prefix'
+            }
 
-        mm_f2 = ["name^3", "description", "id", "approved_symbol",
-                 "symbol_synonyms", "name_synonyms", "uniprot_accessions",
-                 "hgnc_id", "ensembl_gene_id", "efo_path_codes", "efo_url",
-                 "efo_synonyms^2", "ortholog.*.symbol^0.2", "ortholog.*.id^0.2",
-                 "drugs.*^0.5", "phenotypes.*^0.3"]
-
-        mm2 = addict.Dict()
-        mm2.multi_match.query = searchphrase
-        mm2.multi_match.fields = mm_f2
-        mm2.multi_match.analyzer = 'keyword'
-        mm2.multi_match.tie_breaker = 0
-        mm2.multi_match.type = 'best_fields'
-
-        q = addict.Dict()
-        q.function_score.score_mode = 'multiply'
-        q.function_score.query.bool.should = [mm1, mm2]
-        q.function_score.query.bool.filter = {
-            # "not":{ "term": { "biotype": 'processed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'antisense' }},
-            # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'lincRNA' }},
-            # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'sense_intronic' }},
-            # "not":{ "term": { "biotype": 'processed_transcript' }},
-            # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
-            # "not":{ "term": { "biotype": 'miRNA' }},
         }
 
-        f1 = addict.Dict()
-        f1.field_value_factor.field = 'association_counts.total'
-        f1.field_value_factor.factor = 0.05
-        f1.field_value_factor.modifier = 'sqrt'
-        f1.field_value_factor.missing = 1
-        # f1.field_value_factor.weight = 0.01
+        return query_body
 
-        q.function_score.functions = [f1]
 
-                # "path_score": {
-                #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                #   "lang": "groovy",
-                # },
-                # "script_score": {
-                #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                #   "lang": "groovy",
-                # }
-                # {
-                # "field_value_factor":{
-                #     "field": "min_path_len",
-                #     "factor": 0.5,
-                #     "modifier": "reciprocal",
-                #     "missing": 1,
-                #     # "weight": 0.5,
-                #     }
-                # }
-            # "filter": {
-            #     "exists": {
-            #       "field": "min_path_len"
-            #     }
-            #   }
-
-        return q.to_dict()
 
     def _get_free_text_highlight(self):
         return {"fields": {
