@@ -502,10 +502,19 @@ workflows:
               ignore: /.*/
             tags:
               only: /^staging.*/
+      - holdprod:
+        type: approval
+        requires:
+          - push-containers
+        filters:
+          branches:
+            ignore: /.*/
+          tags:
+              only: /^prod.*/
 
       - deploy-prod-eu:
           requires:
-            - push-containers
+            - holdprod
           filters:
             branches:
               ignore: /.*/
@@ -513,7 +522,7 @@ workflows:
               only: /^prod.*/
       - deploy-prod-us:
           requires:
-            - push-containers
+            - holdprod
           filters:
             branches:
               ignore: /.*/
@@ -521,7 +530,7 @@ workflows:
               only: /^prod.*/
       - deploy-prod-jp:
           requires:
-            - push-containers
+            - holdprod
           filters:
             branches:
               ignore: /.*/
