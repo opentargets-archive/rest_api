@@ -42,6 +42,16 @@ jobs:
     working_directory: ~/circulate
     steps:
       - checkout
+      - run:
+          name: install envsubst and prepare swagger doc
+          command: |
+            sudo apt-get install -y gettext-base
+            set -o allexport
+            echo -e "### Reading API_VERSION from VERSION file ..."
+            source VERSION
+            echo -e "### sed hacking to clean up the template ..."
+            sed 's/host: .*/host: \"api.opentargets.io\"/' openapi.template.yaml | sed '/.*x-google.*/,+3d' | envsubst > app/static/docs/swagger/swagger.yaml
+            
       - setup_remote_docker
       - run:
           name: Build Docker image
