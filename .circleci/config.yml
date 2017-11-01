@@ -503,13 +503,13 @@ workflows:
             tags:
               only: /^staging.*/
       - holdprod:
-        type: approval
-        requires:
-          - push-containers
-        filters:
-          branches:
-            ignore: /.*/
-          tags:
+          type: approval
+          requires:
+            - push-containers
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
               only: /^prod.*/
 
       - deploy-prod-eu:
