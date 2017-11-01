@@ -45,7 +45,7 @@ jobs:
       - run:
           name: install envsubst and prepare swagger doc
           command: |
-            apt-get install -y gettext-base
+            sudo apt-get install -y gettext-base
             set -o allexport
             echo -e "### Reading API_VERSION from VERSION file ..."
             source VERSION
