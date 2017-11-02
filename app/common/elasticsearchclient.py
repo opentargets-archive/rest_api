@@ -1925,18 +1925,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                "data": {
                                                                    "terms": {
                                                                        "field": "type.keyword",
-                                                                       'size': 10,
+                                                                       'size': 100,
                                                                    },
                                                                    "aggs": {
                                                                        "datasources": {
                                                                            "terms": {
                                                                                "field": "sourceID.keyword",
+                                                                               'size': 100,
                                                                            },
                                                                        }
                                                                    }
                                                                }
                                                            },
-                                                           'size': 1,
+                                                           'size': 0,
                                                            '_source': False,
                                                            },
                                                      timeout="10m",
@@ -1950,18 +1951,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                              "data": {
                                                                  "terms": {
                                                                      "field": "private.facets.datatype.keyword",
-                                                                     'size': 10,
+                                                                     'size': 100,
                                                                  },
                                                                  "aggs": {
                                                                      "datasources": {
                                                                          "terms": {
                                                                              "field": "private.facets.datasource.keyword",
+                                                                             'size': 100,
                                                                          },
                                                                      }
                                                                  }
                                                              }
                                                          },
-                                                         'size': 1,
+                                                         'size': 0,
                                                          '_source': False,
                                                          },
                                                    timeout="10m",
