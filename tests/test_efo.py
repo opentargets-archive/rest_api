@@ -14,6 +14,7 @@ class EFOTestCase(GenericTestCase):
         ids = ['EFO_0000311',#cancer
                'EFO_0000270', #asthma
                'EFO_0004591',#child onset asthma
+               'EFO_0005537'
                ]
         for id in ids:
             response = self._make_request('/platform/private/disease/%s'%id, token=self._AUTO_GET_TOKEN)
