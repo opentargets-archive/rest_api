@@ -25,7 +25,7 @@ health_check:
 
 # NOTE: Values below are commonly inserted by our CI system..
 env_variables:
-  ELASTICSEARCH_URL: "http://10.132.0.16:9200"
+    ELASTICSEARCH_URL: "http://10.132.0.16:9200"
     OPENTARGETS_API_CONFIG: production
     OPENTARGETS_DATA_VERSION: "17.09_gk"
     GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
