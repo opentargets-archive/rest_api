@@ -259,7 +259,7 @@ def create_app(config_name):
     with open("api-description.md", "r") as f:
         desc = f.read()
     openapi_def['info']['description'] = desc
-
+    openapi_def['basePath'] = '/v%s' % str(api_version)
     @app.route('/v%s/platform/swagger' % str(api_version))
     def serve_swagger(apiversion=api_version):
         return jsonify(openapi_def)

@@ -9,8 +9,10 @@ info:
   # NOTE how for tags (ie. when CIRCLE_BRANCH is unset) the API_VERSION_MINOR
   # should revert to plain semantic versioning.
   version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
-  title: Open Targets Platform REST API (${API_VERSION} ${CIRCLE_BRANCH})
+  title: Open Targets Platform REST API
   description: Open Targets Platform REST API
+  x-logo:
+    url: "https://www.targetvalidation.org/imgs/logo/ot_logo_webheader_280x104.png"
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
