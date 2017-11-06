@@ -251,10 +251,12 @@ def create_app(config_name):
         '''
         NOTE: this file gets created only at deployment time
         '''
-        openapi_def = yaml.load(file('openapi.yaml', 'r'))
+        openapi_def = yaml.load(file('app/static/openapi.yaml', 'r'))
+        app.logger.info('parsing swagger from static/openapi.yaml')
     except IOError:
         '''if we are not deployed, then simply use the template'''
         openapi_def = yaml.load(file('openapi.template.yaml', 'r'))
+        app.logger.info('parsing swagger from openapi.template.yaml')
 
     with open("api-description.md", "r") as f:
         desc = f.read()
