@@ -197,7 +197,7 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
       - run:
-          name: Stop running version (if master)
+          name: Stop running version (unless it's master or has the [keepup] tag)
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
 
@@ -503,7 +503,9 @@ workflows:
             - api-tests
           filters:
             branches:
-              ignore: master
+              ignore: 
+                - master
+                - /.*[keepup].*/
       - deploy-staging:
           requires:
             - push-containers
