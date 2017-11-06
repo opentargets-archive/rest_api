@@ -598,7 +598,7 @@ paths:
           schema:
             type: string
             example: |
-              {"gene":["gene1", "gene2"]}
+              {"subject":["gene1", "gene2"]}
           description: An Ensembl gene identifier.
           required: true
       responses:
