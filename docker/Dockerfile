@@ -18,9 +18,9 @@ COPY docker/selfsigned.server.crt /etc/ssl/nginx/server.crt
 COPY docker/selfsigned.server.key /etc/ssl/nginx/server.key
 
 #install swagger ui
-RUN cd /var/www &&  \
-    curl -sL https://github.com/CTTV/swagger-ui/archive/master.tar.gz | tar xz && \
-    mv swagger-ui-master swagger-ui
+# RUN cd /var/www &&  \
+#     curl -sL https://github.com/CTTV/swagger-ui/archive/master.tar.gz | tar xz && \
+#     mv swagger-ui-master swagger-ui
 
 WORKDIR /var/www/app
 
