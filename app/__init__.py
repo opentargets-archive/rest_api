@@ -253,7 +253,6 @@ def create_app(config_name):
         '''
         openapi_def = yaml.load(file('app/static/openapi.yaml', 'r'))
         app.logger.info('parsing swagger from static/openapi.yaml')
-        app.logger.info(openapi_def.keys())
 
     except IOError:
         '''if we are not deployed, then simply use the template'''
