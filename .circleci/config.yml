@@ -323,6 +323,11 @@ jobs:
             gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
+          name: Cleanup STOPPED and stale AppEngine versions
+          command: |
+            source .circleci/clean_appeng_versions.sh
+
+      - run:
           name: delete instance if deployment has failed / timed out
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
@@ -387,6 +392,11 @@ jobs:
           name: Deploy branch to google AppEngine (US prod)
           command: |
             gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+      
+      - run:
+          name: Cleanup STOPPED and stale AppEngine versions
+          command: |
+            source .circleci/clean_appeng_versions.sh
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -453,6 +463,11 @@ jobs:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
             gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: Cleanup STOPPED and stale AppEngine versions
+          command: |
+            source .circleci/clean_appeng_versions.sh
 
       - run:
           name: delete instance if deployment has failed / timed out
