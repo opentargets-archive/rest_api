@@ -194,7 +194,7 @@ class ProductionConfig(Config):
 
         for logger in loggers:
             logger.addHandler(console_handler)
-            logger.setLevel(logging.INFO)
+            logger.setLevel(logging.WARN)
 
         Config.init_app(app)
 
