@@ -177,13 +177,12 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    ## kubernetes automatically defines DNS names for each service, at least on GKE
     APP_CACHE_EXPIRY_TIMEOUT = 60 * 60 * 6  # 6 hours
 
     @classmethod
     def init_app(cls, app):
         console_handler = logging.StreamHandler(stream=sys.stdout)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.WARN)
         jsonformatter = jsonlogger.JsonFormatter(
             '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         console_handler.setFormatter(jsonformatter)
@@ -191,6 +190,11 @@ class ProductionConfig(Config):
         loggers = [app.logger,
                    getLogger('elasticsearch'),
                    getLogger('redislite')]
+
+        # Sadly, this does not work:
+        # wlog = getLogger('werkzeug')
+        # # log.setLevel(logging.ERROR)
+        # wlog.disabled = True
 
         for logger in loggers:
             logger.addHandler(console_handler)
