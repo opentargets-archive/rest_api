@@ -50,6 +50,7 @@ jobs:
             echo -e "### Reading API_VERSION from VERSION file ..."
             source VERSION
             echo -e "### sed hacking to clean up the template ..."
+            mkdir app/static
             sed 's/host: .*/host: \"api.opentargets.io\"/' openapi.template.yaml | sed '/.*x-google.*/,+3d' | envsubst > app/static/openapi.yaml
             
       - setup_remote_docker
