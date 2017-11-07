@@ -12,7 +12,7 @@ info:
   title: Open Targets Platform REST API
   description: Open Targets Platform REST API
   x-logo:
-    url: "https://www.targetvalidation.org/imgs/logo/ot_logo_webheader_280x104.png"
+    url: "https://www.targetvalidation.org/imgs/logo/ot_logo_webheader.svg"
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
