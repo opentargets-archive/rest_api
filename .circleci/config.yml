@@ -462,7 +462,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: Cleanup STOPPED and stale AppEngine versions

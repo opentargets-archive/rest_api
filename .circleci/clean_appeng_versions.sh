@@ -11,7 +11,7 @@ gcloud --project=$GOOGLE_PROJECT_ID app versions list --format json --filter="ve
         echo "Attempting to delete: $id in project $PROJECT"
         # TODO: to fix.. unless you send deletes as a background process,
         #  gcloud interrupts execution after the first succesful deletion (crazy!)
-        gcloud --project=$GOOGLE_PROJECT_ID --quiet app versions delete $id
+        gcloud --project=$GOOGLE_PROJECT_ID --quiet app versions delete $id || echo 'failed. will try again another time'
      done
 
 done
