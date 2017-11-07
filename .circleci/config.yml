@@ -249,7 +249,12 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+
+      - run:
+          name: Cleanup STOPPED and stale AppEngine versions
+          command: |
+            source .circleci/clean_appeng_versions.sh
 
       - run:
           name: delete instance if deployment has failed / timed out
