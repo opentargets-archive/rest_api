@@ -249,7 +249,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine
           command: |
-            gcloud app deploy --promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: Cleanup STOPPED and stale AppEngine versions
@@ -274,6 +274,25 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
+
+  promote-staging:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+    steps:
+      - checkout
+      - run:
+          name: Decode Google Cloud Credentials and authenticate
+          command: | 
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Migrate traffic to the deployed version
+          command: |
+            gcloud --project ${GOOGLE_PROJECT_ID} app versions migrate $CIRCLE_TAG
+
 
   deploy-prod-eu:
     working_directory: ~/circulate
@@ -530,6 +549,22 @@ workflows:
       - deploy-staging:
           requires:
             - push-containers
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^staging.*/
+      - api-tests-staging:
+          requires:
+            - deploy-staging
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^staging.*/
+      - promote-staging:
+          requires:
+            - api-tests-staging
           filters:
             branches:
               ignore: /.*/
