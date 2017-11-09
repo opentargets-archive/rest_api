@@ -3,7 +3,7 @@ LABEL maintainer="ops@opentargets.org"
 
 
 # setup
-RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor && \
+RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor /var/log/app_engine && \
  rm /etc/nginx/sites-enabled/default && \
  ln -sf /dev/stdout /var/log/nginx/access.log && \
  ln -sf /dev/stderr /var/log/nginx/error.log
@@ -17,10 +17,6 @@ COPY docker/nginx-servers.conf /etc/nginx/sites-enabled/
 COPY docker/selfsigned.server.crt /etc/ssl/nginx/server.crt
 COPY docker/selfsigned.server.key /etc/ssl/nginx/server.key
 
-#install swagger ui
-RUN cd /var/www &&  \
-    curl -sL https://github.com/CTTV/swagger-ui/archive/master.tar.gz | tar xz && \
-    mv swagger-ui-master swagger-ui
 
 WORKDIR /var/www/app
 

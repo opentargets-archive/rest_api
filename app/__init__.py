@@ -5,7 +5,8 @@ from datetime import datetime
 from functools import wraps
 
 import requests
-from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify
+import json, yaml
+from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify, render_template
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -233,7 +234,7 @@ def create_app(config_name):
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
 
-
+    '''set the right prefixes'''
 
     create_api(latest_blueprint, api_version, specpath)
     create_api(current_version_blueprint, api_version, specpath)
@@ -243,41 +244,36 @@ def create_app(config_name):
     app.register_blueprint(current_version_blueprint, url_prefix='/v'+str(api_version) + '/platform')
     app.register_blueprint(current_minor_version_blueprint, url_prefix='/v'+str(api_version_minor) + '/platform')
 
-    def serve_docs():
-        return app.send_static_file('docs/api-description.md')
 
-    def serve_swagger():
-        return app.send_static_file('docs/swagger/swagger.yaml')
+    '''serve the static docs'''
+    
+    try:
+        '''
+        NOTE: this file gets created only at deployment time
+        '''
+        openapi_def = yaml.load(file('app/static/openapi.yaml', 'r'))
+        app.logger.info('parsing swagger from static/openapi.yaml')
 
-    @app.route('/v%s/platform/swagger.yaml' % str(api_version))
-    def send_swagger_latest_suffixed():
-        return serve_swagger()
+    except IOError:
+        '''if we are not deployed, then simply use the template'''
+        openapi_def = yaml.load(file('openapi.template.yaml', 'r'))
+        app.logger.error('parsing swagger from openapi.template.yaml')
 
+    with open("api-description.md", "r") as f:
+        desc = f.read()
+    openapi_def['info']['description'] = desc
+    openapi_def['basePath'] = '/v%s' % str(api_version)
     @app.route('/v%s/platform/swagger' % str(api_version))
-    def send_swagger_latest():
-        return serve_swagger()
+    def serve_swagger(apiversion=api_version):
+        return jsonify(openapi_def)
 
-    @app.route('/platform/docs/swagger.yaml')
-    def send_swagger():
-        return serve_swagger()
-
-    @app.route('/v%s/platform/docs/swagger.yaml' % str(api_version))
-    def send_swagger_current_cersion():
-        return serve_swagger()
 
     @app.route('/v%s/platform/docs' % str(api_version))
-    def send_docs_latest():
-        return serve_docs()
-
-    # @app.route('/v%s/api-docs' % str(api_version))
-    # def docs_current_version():
-    #     return serve_docs()
-
-    @app.route('/platform/docs/api-description.md')
-    def docs_description():
-        return serve_docs()
+    def render_redoc(apiversion=api_version):
+        return render_template('docs.html',api_version=apiversion)
 
 
+    '''pre and post-request'''
 
 
     @app.before_request
