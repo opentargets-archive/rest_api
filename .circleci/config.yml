@@ -42,6 +42,16 @@ jobs:
     working_directory: ~/circulate
     steps:
       - checkout
+      - run:
+          name: install envsubst and prepare swagger doc
+          command: |
+            sudo apt-get install -y gettext-base
+            set -o allexport
+            echo -e "### Reading API_VERSION from VERSION file ..."
+            source VERSION
+            echo -e "### sed hacking to clean up the template ..."
+            sed 's/host: .*/host: \"api.opentargets.io\"/' openapi.template.yaml | sed '/.*x-google.*/,+3d' | envsubst > app/static/docs/swagger/swagger.yaml
+            
       - setup_remote_docker
       - run:
           name: Build Docker image
@@ -264,7 +274,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1709-0lgb:9200
+      ES_URL: http://es5-1710311047-1709-v2-1jr7:9200
       DEPLOYED_DATA_VERSION: 17.09
       MAX_NUM_INSTANCES: 3
       CPU: 2
@@ -330,7 +340,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1709-kmgx:9200
+      ES_URL: http://es5-1710311047-1709-v2-w6p4:9200
       DEPLOYED_DATA_VERSION: 17.09
       MAX_NUM_INSTANCES: 3
       CPU: 2
@@ -396,7 +406,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-jp
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1709-s7fx:9200
+      ES_URL: http://es5-1710311047-1709-v2-c3m5:9200
       DEPLOYED_DATA_VERSION: 17.09
       MAX_NUM_INSTANCES: 3
       CPU: 2
@@ -499,13 +509,13 @@ workflows:
             - push-containers
           filters:
             branches:
-              only: master
+              ignore: /.*/
             tags:
               only: /^staging.*/
       - holdprod:
           type: approval
           requires:
-           - push-containers
+            - push-containers
           filters:
             branches:
               ignore: /.*/
