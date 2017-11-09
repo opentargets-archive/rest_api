@@ -3,13 +3,16 @@ set -o allexport
 source VERSION
 BASEPATH=/v${API_VERSION}/platform
 
-if [ -n "${CIRCLE_TAG:+1}" ]; then
-    DEPLOYEDURL=${CIRCLE_TAG}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
-    DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
-else
-    echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
-    exit 1
+if [ -z "${DEPLOYEDURL+1}" ]; then
+
+    if [ -n "${CIRCLE_TAG:+1}" ]; then
+        DEPLOYEDURL=${CIRCLE_TAG}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+    elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
+        DEPLOYEDURL=${CIRCLE_BRANCH}-dot-${GOOGLE_PROJECT_ID}.appspot.com
+    else
+        echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
+        exit 1
+    fi
 fi
 
 echo -e "### Pointing at ${DEPLOYEDURL}${BASEPATH}\n"

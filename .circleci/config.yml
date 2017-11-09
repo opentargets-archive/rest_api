@@ -339,7 +339,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy  --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -352,11 +352,14 @@ jobs:
           command: |
             source .circleci/clean_appeng_versions.sh
 
-  api-tests-prod-eu:
+  api-tests-prod:
     docker:
       - image: circleci/python:2.7
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+      RUNSCOPE_ENV_UUID_EU_DEV: 2bb0c681-e6af-4f59-be1a-d3f4a54fe7a4
+      DEPLOYEDURL: api.opentargets.io
+      # pointing to a runscope shared environment which tests from 3 locations 
     working_directory: ~/circulate
     steps:
       - checkout
@@ -364,6 +367,25 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
+
+  migrate-traffic:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run:
+          name: Decode Google Cloud Credentials
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Deploy branch to google AppEngine (EU prod)
+          command: |
+            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-eu
+            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-us
+            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-jp
+
 
   deploy-prod-us:
     working_directory: ~/circulate
@@ -410,7 +432,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
-            gcloud app deploy  --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy  --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -423,18 +445,6 @@ jobs:
           command: |
             source .circleci/clean_appeng_versions.sh
 
-  api-tests-prod-us:
-    docker:
-      - image: circleci/python:2.7
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-api-prod-us
-    working_directory: ~/circulate
-    steps:
-      - checkout
-      - run:
-          name: Run runscope tests
-          command: |
-            source .circleci/runscope/run.sh
 
   deploy-prod-jp:
     working_directory: ~/circulate
@@ -481,7 +491,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -494,18 +504,7 @@ jobs:
           command: |
             source .circleci/clean_appeng_versions.sh
 
-  api-tests-prod-jp:
-    docker:
-      - image: circleci/python:2.7
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-api-prod-jp
-    working_directory: ~/circulate
-    steps:
-      - checkout
-      - run:
-          name: Run runscope tests
-          command: |
-            source .circleci/runscope/run.sh
+
 
 
 workflows:
@@ -604,25 +603,19 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - api-tests-prod-eu:
+      - api-tests-prod:
           requires:
             - deploy-prod-eu
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^prod.*/
-      - api-tests-prod-us:
-          requires:
             - deploy-prod-us
+            - deploy-prod-jp
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - api-tests-prod-jp:
+      - migrate-traffic:
           requires:
-            - deploy-prod-jp
+            - api-tests-prod
           filters:
             branches:
               ignore: /.*/
