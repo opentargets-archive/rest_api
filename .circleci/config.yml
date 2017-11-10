@@ -613,9 +613,18 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - migrate-traffic:
+      - holdmigrate:
+          type: approval
           requires:
             - api-tests-prod
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - migrate-traffic:
+          requires:
+            - holdmigrate
           filters:
             branches:
               ignore: /.*/
