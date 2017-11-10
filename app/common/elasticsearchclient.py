@@ -352,9 +352,9 @@ class esQuery():
 
     def get_enrichment_for_targets(self,
                                    targets,
-                                   pvalue_threshold = 1e-3,
-                                   from_ = 0,
-                                   size = 10,
+                                   pvalue_threshold=1e-3,
+                                   from_=0,
+                                   size=10,
                                    sort='enrichment.score'):
 
         '''
@@ -369,17 +369,17 @@ class esQuery():
 
         '''
 
-        params = SearchParams(targets = targets,
+        params = SearchParams(targets=targets,
                               pvalue=pvalue_threshold,
-                              from_ = from_,
-                              size = size,
-                              sort =sort)
+                              from_=from_,
+                              size=size,
+                              sort=sort)
 
         entry_time = time.time()
         query_cache_key = hashlib.md5(''.join(sorted(list(set(targets))))).hexdigest()
         data = None
-        M=len(targets)
-        if M <2  :
+        M = len(targets)
+        if M < 2  :
             data = []
         if data is None:
             data = self.cache.get(query_cache_key)
@@ -422,7 +422,7 @@ class esQuery():
                                       timeout='10m'
                                       )
             for a in all_data:
-                disease_id = jmespath.search('_source.disease.id',a)
+                disease_id = jmespath.search('_source.disease.id', a)
                 if disease_id not in disease_data:
                     disease_data[disease_id] = []
                 disease_data[disease_id].append(a)
@@ -430,10 +430,10 @@ class esQuery():
             # print 'get all data', time.time() - start_time
 
             start_time = time.time()
-            background = self.handler.mget(body = dict(ids=disease_data.keys()),
-                                           index = self._index_search,
-                                           doc_type = self._docname_search_disease,
-                                           _source = ['association_counts', 'name'],
+            background = self.handler.mget(body=dict(ids=disease_data.keys()),
+                                           index=self._index_search,
+                                           doc_type=self._docname_search_disease,
+                                           _source=['association_counts', 'name'],
                                            realtime=False,
                                           )
 
@@ -460,13 +460,13 @@ class esQuery():
                 k = bg["association_counts"]["total"]
                 x = len(disease_targets)
 
-                key = '_'.join(map(str,[N,M,k,x]))
+                key = '_'.join(map(str, [N, M, k, x]))
                 pvalue = score_cache.get(key)
                 if pvalue is None:
                     # pvalue = HypergeometricTest.run(N, M, k, x)
                     pvalue = hypergeom.pmf(x, N, k, M)
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
-                    score_cache[key] =pvalue
+                    score_cache[key] = pvalue
 
                 disease_properties = disease_targets[0]['_source']['disease']['efo_info']
                 target_data = []
@@ -498,7 +498,7 @@ class esQuery():
                     },
                     "targets": target_data
                 })
-            self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+            self.cache.set(query_cache_key, data, ttl=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             # print 'enrichment calculation', time.time() - start_time
         if pvalue_threshold < 1:
             data = [d for d in data if d['enrichment']['score'] <= pvalue_threshold]
@@ -507,8 +507,8 @@ class esQuery():
         # print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
         return PaginatedResult(None,
                                data=data[from_:from_ + size],
-                               total = len(data),
-                               took = int(total_time*1000),
+                               total=len(data),
+                               took=int(total_time * 1000),
                                params=params,
 
                                )
@@ -644,7 +644,7 @@ class esQuery():
             if 'suggest' in res:
                 suggestions = self._digest_suggest(res)
 
-            return EmptySimpleResult(None, data = {}, suggest=suggestions)
+            return EmptySimpleResult(None, data={}, suggest=suggestions)
 
 
         return SimpleResult(None, params, data)
@@ -703,7 +703,7 @@ class esQuery():
             if params.facets == 'true':
                 query_body.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
                 query_body.aggregations.significant_go_terms.significant_terms.size = 25
-                query_body.aggregations.significant_go_terms.significant_terms.min_doc_count= 1
+                query_body.aggregations.significant_go_terms.significant_terms.min_doc_count = 1
                 query_body.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
 
             if params.go_term:
@@ -712,18 +712,16 @@ class esQuery():
             if params.fields:
                 query_body._source = params.fields
 
-            pprint.pprint(query_body)
-
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
                                       body=query_body.to_dict())
 
             if 'aggregations' in res:
-                res['aggregations']['significant_go_terms']['buckets']  = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
+                res['aggregations']['significant_go_terms']['buckets'] = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
 
-            return PaginatedResult(res,params)
+            return PaginatedResult(res, params)
 
-    def _process_go_info(self,bucket_list):
+    def _process_go_info(self, bucket_list):
         go_term_buckets = list()
         for bucket in bucket_list:
             bucket_dict = dict()
@@ -738,7 +736,7 @@ class esQuery():
 
 
 
-    def get_efo_info_from_code(self, efo_codes,**kwargs):
+    def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
 
         if not isinstance(efo_codes, list):
@@ -758,7 +756,7 @@ class esQuery():
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body= query_body.to_dict()
+                                      body=query_body.to_dict()
                                       )
             return PaginatedResult(res, params)
 
@@ -782,7 +780,7 @@ class esQuery():
                                   )
         return SimpleResult(res,
                             params,
-                            data = [hit['_source'] for hit in res['hits']['hits']])
+                            data=[hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
@@ -843,7 +841,7 @@ class esQuery():
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
         if params.filters[FilterTypes.SCORE_RANGE][1] < 1 or \
-                params.filters[FilterTypes.SCORE_RANGE][0] >0 :
+                params.filters[FilterTypes.SCORE_RANGE][0] > 0 :
             score_filter = self._get_evidence_score_range_filter(params)
             if score_filter:
                 conditions.append(score_filter)
@@ -876,7 +874,7 @@ class esQuery():
         if res['hits']['hits'] and len(res['hits']['hits']) == params.size:
             params.next_ = res['hits']['hits'][-1]['sort']
 
-        return PaginatedResult(res, params, data = evidence)
+        return PaginatedResult(res, params, data=evidence)
 
 
     def get_associations_by_id(self, associationid, **kwargs):
@@ -888,7 +886,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
-        #TODO:use get or mget methods here
+        # TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
                                   body={"query": {
                                             "ids": {"values": associationid},
@@ -1127,14 +1125,14 @@ class esQuery():
         if subject_ids:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {field+".id": subject_ids}
+                    "terms": {field + ".id": subject_ids}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "terms": {
-                                      field+".id": [subject_id]}
+                                      field + ".id": [subject_id]}
                               }
                               for subject_id in subject_ids]
                     }
@@ -1645,7 +1643,7 @@ class esQuery():
         efo_data = {}
         therapeutic_area_labels = {}
 
-        t_areas = self.get_efo_info_from_code(therapeutic_areas, size = len(therapeutic_areas))
+        t_areas = self.get_efo_info_from_code(therapeutic_areas, size=len(therapeutic_areas))
 
         if t_areas:
             efo_data = t_areas.toDict()['data']
@@ -1875,7 +1873,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                    doc_type=doc_types,
                                    body=body,
                                    )
-        except TransportError as e :#TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
+        except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
             raise
@@ -2008,10 +2006,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
-                s=s[1:]
+                s = s[1:]
                 mode = 'min'
             if s.startswith('association_score'):
-                s= s.replace('association_score', params.association_score_method)
+                s = s.replace('association_score', params.association_score_method)
             digested.append({s : {"order": order,
                                   "mode": mode}})
         return digested
@@ -2300,10 +2298,10 @@ class SearchParams(object):
         self.highlight = kwargs.get('highlight', highlight_default)
         if self.highlight is None:
             self.highlight = highlight_default
-        self.pvalue =  kwargs.get('pvalue', self._default_pvalue)
-        self.query_params =  {k:v for k,v in self.__dict__.items() if k in kwargs}
+        self.pvalue = kwargs.get('pvalue', self._default_pvalue)
+        self.query_params = {k:v for k, v in self.__dict__.items() if k in kwargs}
         if 'from_' in kwargs:
-            self.query_params['from']=self.start_from
+            self.query_params['from'] = self.start_from
 
 
 class AggregationUnit(object):
@@ -3511,7 +3509,7 @@ class AggregationUnitScoreRange(AggregationUnit):
         if len(params.scorevalue_types) == 1:
             return {
                         "range" : {
-                            params.association_score_method+"."+params.scorevalue_types[0] : {
+                            params.association_score_method + "." + params.scorevalue_types[0] : {
                                 "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                 "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                             }
@@ -3522,7 +3520,7 @@ class AggregationUnitScoreRange(AggregationUnit):
                     "bool": {
                         'must': [{
                                 "range" : {
-                                    params.association_score_method+"."+st : {
+                                    params.association_score_method + "." + st : {
                                         "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                         "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                                     }
@@ -3739,12 +3737,12 @@ class AggregationBuilder(object):
                             self.aggs[agg] = self.units[agg].agg
 
 
-    def _get_AggregationUnit(self,str):
+    def _get_AggregationUnit(self, str):
         return getattr(sys.modules[__name__], str)
 
     def _get_aggs_not_to_be_returned(self, params):
         '''avoid calculate a big facet if only one parameter is passed'''
-        filters_to_apply = list(set([k for k,v in params.filters.items() if v is not None]))
+        filters_to_apply = list(set([k for k, v in params.filters.items() if v is not None]))
         for filter_type in self._SERVICE_FILTER_TYPES:
             if filter_type in filters_to_apply:
                 filters_to_apply.pop(filters_to_apply.index(filter_type))

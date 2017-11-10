@@ -157,6 +157,8 @@ class SearchMetadataObject(object):
         self.hit_source = {}
         if '_source' in hit:
             self.hit_source = hit['_source']
+            if 'id' in self.hit_source and not self.hit_source['id']:
+                self.hit_source['id'] =  hit['_id']
         if 'sort' in hit:
             self.search_metadata['sort'] = hit['sort']
         self.parse_hit()
