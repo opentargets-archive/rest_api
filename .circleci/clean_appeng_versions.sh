@@ -4,7 +4,9 @@
 STALEDATE=$(date --version &>/dev/null && date --date="5 days ago" +"%Y-%m-%d" || date -v-5d +"%Y"-"%m"-"%d")
 echo ... will remove all STOPPED AppEngine versions older than $STALEDATE
 
-gcloud --project=$GOOGLE_PROJECT_ID app versions list --format json --filter="version.createTime.date('%Y-%m-%d', Z)<$STALEDATE AND version.servingStatus=STOPPED" |\
+gcloud --project=$GOOGLE_PROJECT_ID app versions list \
+    --format json \
+    --filter="version.createTime.date('%Y-%m-%d', Z)<$STALEDATE AND version.servingStatus=STOPPED" |\
      jq -r '.[] | .id' |\
      while read id
      do
@@ -13,5 +15,3 @@ gcloud --project=$GOOGLE_PROJECT_ID app versions list --format json --filter="ve
         #  gcloud interrupts execution after the first succesful deletion (crazy!)
         gcloud --project=$GOOGLE_PROJECT_ID --quiet app versions delete $id || echo 'failed. will try again another time'
      done
-
-done
