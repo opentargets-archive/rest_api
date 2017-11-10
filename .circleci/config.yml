@@ -203,7 +203,7 @@ jobs:
           command: |
             echo $GIT_COMMIT_DESC
             if [[ $GIT_COMMIT_DESC == *"[deploy]"* ]]; then
-              echo "We shall not tear this down!"
+              echo "We shall not tear this down!!"
             fi
             gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
 
