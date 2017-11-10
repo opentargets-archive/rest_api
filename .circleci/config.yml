@@ -252,9 +252,9 @@ jobs:
 
 
       - run:
-          name: Deploy branch to google AppEngine
+          name: Deploy branch to google AppEngine (Staging)
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -279,24 +279,6 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
-
-  promote-staging:
-    working_directory: ~/circulate
-    docker:
-      - image: google/cloud-sdk
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-staging
-    steps:
-      - checkout
-      - run:
-          name: Decode Google Cloud Credentials and authenticate
-          command: | 
-            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-      - run:
-          name: Migrate traffic to the deployed version
-          command: |
-            gcloud --project ${GOOGLE_PROJECT_ID} app versions migrate $CIRCLE_TAG
 
 
   deploy-prod-eu:
@@ -344,7 +326,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy  --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -437,7 +419,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
-            gcloud app deploy  --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -496,7 +478,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -564,14 +546,7 @@ workflows:
               ignore: /.*/
             tags:
               only: /^staging.*/
-      - promote-staging:
-          requires:
-            - api-tests-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^staging.*/
+
       - holdprod:
           type: approval
           requires:
@@ -611,23 +586,6 @@ workflows:
             - deploy-prod-eu
             - deploy-prod-us
             - deploy-prod-jp
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^prod.*/
-      - holdmigrate:
-          type: approval
-          requires:
-            - api-tests-prod
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^prod.*/
-      - migrate-traffic:
-          requires:
-            - holdmigrate
           filters:
             branches:
               ignore: /.*/
