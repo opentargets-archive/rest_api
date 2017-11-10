@@ -356,24 +356,6 @@ jobs:
           command: |
             source .circleci/runscope/run.sh
 
-  migrate-traffic:
-    working_directory: ~/circulate
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run:
-          name: Decode Google Cloud Credentials
-          command: |
-            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-      - run:
-          name: Deploy branch to google AppEngine (EU prod)
-          command: |
-            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-eu
-            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-us
-            gcloud app versions migrate $CIRCLE_TAG --project open-targets-api-prod-jp
-
 
   deploy-prod-us:
     working_directory: ~/circulate
