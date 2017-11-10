@@ -189,7 +189,7 @@ jobs:
       - image: google/cloud-sdk
     environment:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
-      GIT_COMMIT_DESC: git log --format=oneline -n 1 $CIRCLE_SHA1
+      GIT_COMMIT_DESC: $(git log --format=oneline -n 1 $CIRCLE_SHA1)
     steps:
       - run:
           name: Decode Google Cloud Credentials
