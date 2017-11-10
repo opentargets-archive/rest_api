@@ -189,6 +189,7 @@ jobs:
       - image: google/cloud-sdk
     environment:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
+      GIT_COMMIT_DESC: git log --format=oneline -n 1 $CIRCLE_SHA1
     steps:
       - run:
           name: Decode Google Cloud Credentials
@@ -198,8 +199,12 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
       - run:
-          name: Stop running version (unless it's master or has the [keepup] tag)
+          name: Stop running version (unless it's master)
           command: |
+            echo $GIT_COMMIT_DESC
+            if [[ $GIT_COMMIT_DESC == *"[deploy]"* ]]; then
+              echo "We shall not tear this down!"
+            fi
             gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
 
 
@@ -542,9 +547,7 @@ workflows:
             - api-tests
           filters:
             branches:
-              ignore: 
-                - master
-                - /.*[keepup].*/
+              ignore: master
       - deploy-staging:
           requires:
             - push-containers
