@@ -266,6 +266,7 @@ jobs:
           name: Cleanup STOPPED and stale AppEngine versions
           command: |
             source .circleci/clean_appeng_versions.sh
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
   api-tests-staging:
     docker:
