@@ -199,7 +199,7 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
       - run:
-          name: Stop running version (unless it's master)
+          name: Stop running version (unless [deploy] is in the last commit message)
           command: |
             echo $GIT_COMMIT_DESC
             if [[ $GIT_COMMIT_DESC == *"[deploy]"* ]]; then
