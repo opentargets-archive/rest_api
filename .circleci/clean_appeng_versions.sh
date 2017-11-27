@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-# this is complicated because gnu date and BSD date have different implementations
-STALEDATE=$(date --version &>/dev/null && date --date="5 days ago" +"%Y-%m-%d" || date -v-5d +"%Y"-"%m"-"%d")
-echo ... will remove all STOPPED AppEngine versions older than $STALEDATE
+echo ... will remove all STOPPED AppEngine versions older than 5 days
 
 gcloud --project=$GOOGLE_PROJECT_ID app versions list \
     --format json \
-    --filter="version.createTime.date('%Y-%m-%d', Z)<$STALEDATE AND version.servingStatus=STOPPED" |\
+    --filter="(version.createTime < '-p5d') AND version.servingStatus=STOPPED" |\
      jq -r '.[] | .id' |\
      while read id
      do
