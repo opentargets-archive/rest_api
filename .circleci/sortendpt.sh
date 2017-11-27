@@ -3,7 +3,6 @@
 # Ugly script that checks for the existence of an existing Google Endpoints deployment.
 # It spins a new one if:
 # - VERSION changed
-# - openapi.template.yml has changed
 # - new branch
 
 # Requires following env vars to be defined:
