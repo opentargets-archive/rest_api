@@ -353,10 +353,7 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
 
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
+
 
   api-tests-prod:
     docker:
@@ -428,10 +425,6 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
       
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
 
 
   deploy-prod-jp:
@@ -486,12 +479,31 @@ jobs:
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
-      
+
+
+
+split-traffic-prod:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
       - run:
-          name: Cleanup STOPPED and stale AppEngine versions
+          name: Decode Google Cloud Credentials + authenticate
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Split traffic over to new versions (prod)
+          command: |
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-jp 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-eu 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-us 
+      - run:
+          name: Cleanup STOPPED AppEngine versions (prod)
           command: |
             source .circleci/clean_appeng_versions.sh
-
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
 
@@ -595,6 +607,14 @@ workflows:
             - deploy-prod-eu
             - deploy-prod-us
             - deploy-prod-jp
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - split-traffic-prod:
+          requires:
+            - api-tests-prod
           filters:
             branches:
               ignore: /.*/
