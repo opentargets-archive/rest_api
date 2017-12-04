@@ -285,6 +285,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: install jq
+          command: apt-get install -y jq && jq --version
+      - run:
           name: Decode Google Cloud Credentials + authenticate
           command: |
             echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -488,6 +491,9 @@ split-traffic-prod:
       - image: google/cloud-sdk
     steps:
       - checkout
+      - run:
+          name: install jq
+          command: apt-get install -y jq && jq --version
       - run:
           name: Decode Google Cloud Credentials + authenticate
           command: |
