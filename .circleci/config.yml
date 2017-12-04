@@ -300,6 +300,9 @@ jobs:
           name: Cleanup ALL PREVIOUS AppEngine versions (staging)
           command: |
             source .circleci/clean_appeng_versions_with_no_traffic.sh
+      - run:
+          name: Cleanup DANGLING Endpoints versions (staging)
+          command: |
             source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
