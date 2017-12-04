@@ -159,7 +159,7 @@ jobs:
 
 
       - run:
-          name: Deploy branch to google AppEngine
+          name: Deploy branch to google AppEngine (DEV)
 
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
@@ -189,8 +189,8 @@ jobs:
       - image: google/cloud-sdk
     environment:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
-      GIT_COMMIT_DESC: $(git log --format=oneline -n 1 $CIRCLE_SHA1)
     steps:
+      - checkout
       - run:
           name: Decode Google Cloud Credentials
           command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
@@ -201,11 +201,13 @@ jobs:
       - run:
           name: Stop running version (unless [deploy] is in the last commit message)
           command: |
+            GIT_COMMIT_DESC=$(git log --format=oneline -n 1 $CIRCLE_SHA1)
             echo $GIT_COMMIT_DESC
             if [[ $GIT_COMMIT_DESC == *"[deploy]"* ]]; then
               echo "We shall not tear this down!!"
+            else
+              gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
             fi
-            gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
 
 
   deploy-staging:
@@ -215,8 +217,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://130.211.109.152:39200
-      DEPLOYED_DATA_VERSION: ck_17.09
+      ES_URL: http://es5-1712041235:9200
+      DEPLOYED_DATA_VERSION: 17.12
       MAX_NUM_INSTANCES: 1
       CPU: 2
       MEMORY_GB: 2
@@ -254,7 +256,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (Staging)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --no-stop-previous-version --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -262,11 +264,6 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
 
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
-            source .circleci/mark_stale_endpoint_for_deletion.sh
 
   api-tests-staging:
     docker:
@@ -280,6 +277,35 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
+
+  split-traffic-staging:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+    steps:
+      - checkout
+      - run:
+          name: install jq
+          command: apt-get install -y jq && jq --version
+      - run:
+          name: Decode Google Cloud Credentials + authenticate
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Split traffic over to new version (staging)
+          command: |
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID} 
+      - run:
+          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
+          command: |
+            source .circleci/clean_appeng_versions_with_no_traffic.sh
+      - run:
+          name: Cleanup DANGLING Endpoints versions (staging)
+          command: |
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
   deploy-prod-eu:
@@ -327,7 +353,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -335,19 +361,13 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
 
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
 
-  api-tests-prod:
+
+  api-tests-prod-eu:
     docker:
       - image: circleci/python:2.7
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
-      RUNSCOPE_ENV_UUID_EU_DEV: 2bb0c681-e6af-4f59-be1a-d3f4a54fe7a4
-      DEPLOYEDURL: api.opentargets.io
-      # pointing to a runscope shared environment which tests from 3 locations 
     working_directory: ~/circulate
     steps:
       - checkout
@@ -356,6 +376,31 @@ jobs:
           command: |
             source .circleci/runscope/run.sh
 
+  api-tests-prod-us:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+  
+  api-tests-prod-jp:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
 
   deploy-prod-us:
     working_directory: ~/circulate
@@ -402,7 +447,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (US prod)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -410,10 +455,6 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
       
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
 
 
   deploy-prod-jp:
@@ -459,21 +500,43 @@ jobs:
             envsubst < app.template.yaml > app.yaml
 
       - run:
-          name: Deploy branch to google AppEngine (EU prod)
+          name: Deploy branch to google AppEngine (JP prod)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
-      
+
+
+
+split-traffic-prod:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
       - run:
-          name: Cleanup STOPPED and stale AppEngine versions
+          name: install jq
+          command: apt-get install -y jq && jq --version
+      - run:
+          name: Decode Google Cloud Credentials + authenticate
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Split traffic over to new versions (prod)
+          command: |
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-jp 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-eu 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-us 
+      - run:
+          name: Cleanup STOPPED AppEngine versions (prod)
           command: |
             source .circleci/clean_appeng_versions.sh
-
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
 
@@ -529,6 +592,14 @@ workflows:
               ignore: /.*/
             tags:
               only: /^staging.*/
+      - split-traffic-staging:
+          requires:
+            - api-tests-staging
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^staging.*/
 
       - holdprod:
           type: approval
@@ -564,11 +635,35 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - api-tests-prod:
+      - api-tests-prod-eu:
           requires:
             - deploy-prod-eu
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-us:
+          requires:
             - deploy-prod-us
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-jp:
+          requires:
             - deploy-prod-jp
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - split-traffic-prod:
+          requires:
+            - api-tests-prod-eu
+            - api-tests-prod-us
+            - api-tests-prod-jp
           filters:
             branches:
               ignore: /.*/
