@@ -361,14 +361,11 @@ jobs:
 
 
 
-  api-tests-prod:
+  api-tests-prod-eu:
     docker:
       - image: circleci/python:2.7
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
-      RUNSCOPE_ENV_UUID_EU_DEV: 2bb0c681-e6af-4f59-be1a-d3f4a54fe7a4
-      DEPLOYEDURL: api.opentargets.io
-      # pointing to a runscope shared environment which tests from 3 locations 
     working_directory: ~/circulate
     steps:
       - checkout
@@ -377,6 +374,31 @@ jobs:
           command: |
             source .circleci/runscope/run.sh
 
+  api-tests-prod-us:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
+  
+  api-tests-prod-jp:
+    docker:
+      - image: circleci/python:2.7
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-api-prod-eu
+    working_directory: ~/circulate
+    steps:
+      - checkout
+      - run:
+          name: Run runscope tests
+          command: |
+            source .circleci/runscope/run.sh
 
   deploy-prod-us:
     working_directory: ~/circulate
@@ -611,10 +633,24 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - api-tests-prod:
+      - api-tests-prod-eu:
           requires:
             - deploy-prod-eu
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-us:
+          requires:
             - deploy-prod-us
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+      - api-tests-prod-jp:
+          requires:
             - deploy-prod-jp
           filters:
             branches:
@@ -623,7 +659,9 @@ workflows:
               only: /^prod.*/
       - split-traffic-prod:
           requires:
-            - api-tests-prod
+            - api-tests-prod-eu
+            - api-tests-prod-us
+            - api-tests-prod-jp
           filters:
             branches:
               ignore: /.*/
