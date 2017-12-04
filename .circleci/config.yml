@@ -254,7 +254,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (Staging)
           command: |
-            gcloud app deploy --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
+            gcloud app deploy --no-promote --no-stop-previous-version --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
@@ -262,11 +262,6 @@ jobs:
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
 
-      - run:
-          name: Cleanup STOPPED and stale AppEngine versions
-          command: |
-            source .circleci/clean_appeng_versions.sh
-            source .circleci/mark_stale_endpoint_for_deletion.sh
 
   api-tests-staging:
     docker:
@@ -280,6 +275,28 @@ jobs:
           name: Run runscope tests
           command: |
             source .circleci/runscope/run.sh
+
+  split-traffic-staging:
+    working_directory: ~/circulate
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      GOOGLE_PROJECT_ID: open-targets-staging
+    steps:
+      - run:
+          name: Decode Google Cloud Credentials + authenticate
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run:
+          name: Split traffic over to new version (staging)
+          command: |
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID} 
+      - run:
+          name: Cleanup STOPPED and stale AppEngine versions
+          command: |
+            source .circleci/clean_appeng_versions.sh
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
   deploy-prod-eu:
@@ -524,6 +541,14 @@ workflows:
       - api-tests-staging:
           requires:
             - deploy-staging
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^staging.*/
+      - split-traffic-staging:
+          requires:
+            - api-tests-staging
           filters:
             branches:
               ignore: /.*/
