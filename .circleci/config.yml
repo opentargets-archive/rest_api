@@ -189,7 +189,6 @@ jobs:
       - image: google/cloud-sdk
     environment:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
-      GIT_COMMIT_DESC: $(git log --format=oneline -n 1 $CIRCLE_SHA1)
     steps:
       - run:
           name: Decode Google Cloud Credentials
@@ -201,6 +200,7 @@ jobs:
       - run:
           name: Stop running version (unless [deploy] is in the last commit message)
           command: |
+            GIT_COMMIT_DESC=$(git log --format=oneline -n 1 $CIRCLE_SHA1)
             echo $GIT_COMMIT_DESC
             if [[ $GIT_COMMIT_DESC == *"[deploy]"* ]]; then
               echo "We shall not tear this down!!"
