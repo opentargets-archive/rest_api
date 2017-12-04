@@ -45,6 +45,16 @@ TAG=$( echo staging-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
 TAG=$( echo prod-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
 ```
 
+### To delete stale "test" tags (except the last two):
+
+```sh
+git tag | grep prod-test | head -n -2 | xargs -n 1 -I% gitpush --delete origin %
+
+git tag | grep staging-test | head -n -2 | xargs -n 1 -I% gitpush --delete origin %
+
+```
+
+
 ## What about VERSION?
 Deployment does not depend on a change in the VERSION file, but a different version will trigger a new google endpoint deployment and a new `openapi.yaml` specification
 
