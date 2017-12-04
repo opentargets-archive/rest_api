@@ -6,6 +6,7 @@ This is the code that defines our CI/CD flow on CircleCI
 Deploying to `dev` is automatic for all branches. 
 However only the `master` branch is kept running at all times. All other branches are turned off by default (see the `stop-instance` step in config.yml). To allow traffic to pass, one must "start" the instance in the appEngine console.
 We have chosen to do this to keep AppEngine costs down.
+To override this behaviour include `[deploy]` in your commit message.
 
 Each **branch** that gets deployed and has been started can be reached as
 https://<branchname>-dot-open-targets-eu-dev.appspot.com/v<major>/platform
