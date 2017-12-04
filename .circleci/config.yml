@@ -283,6 +283,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
     steps:
+      - checkout
       - run:
           name: Decode Google Cloud Credentials + authenticate
           command: |
@@ -293,9 +294,9 @@ jobs:
           command: |
             gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID} 
       - run:
-          name: Cleanup STOPPED and stale AppEngine versions
+          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
           command: |
-            source .circleci/clean_appeng_versions.sh
+            source .circleci/clean_appeng_versions_with_no_traffic.sh
             source .circleci/mark_stale_endpoint_for_deletion.sh
 
 
