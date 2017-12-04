@@ -157,18 +157,24 @@ jobs:
             echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
             envsubst < app.template.yaml > app.yaml
 
-
       - run:
           name: Deploy branch to google AppEngine (DEV)
 
           command: |
             gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
-
       - run:
           name: delete instance if deployment has failed / timed out
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_BRANCH
           when: on_fail
+      - run:
+          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
+          command: |
+            source .circleci/clean_appeng_versions.sh
+      - run:
+          name: Cleanup DANGLING Endpoints versions (staging)
+          command: |
+            source .circleci/mark_stale_endpoint_for_deletion.sh
 
   api-tests:
     docker:
