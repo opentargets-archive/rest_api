@@ -31,7 +31,7 @@ def main():
 
         if fail_count > 0:
             print "{} test runs passed. {} test runs failed.".format(pass_count, fail_count)
-            exit(1)
+            sys.exit(1)
 
         print "All test runs passed."
 
@@ -40,7 +40,7 @@ def _get_result(test_run):
     # generate Personal Access Token at https://www.runscope.com/applications
     if not "RUNSCOPE_ACCESS_TOKEN" in os.environ:
         print "Please set the environment variable RUNSCOPE_ACCESS_TOKEN. You can get an access token by going to https://www.runscope.com/applications"
-        exit(1)
+        sys.exit(1)
 
     API_TOKEN = os.environ["RUNSCOPE_ACCESS_TOKEN"]
     
