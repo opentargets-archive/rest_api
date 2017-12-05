@@ -4,6 +4,11 @@ Circle CI build: [![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?s
 
 (maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base)
 
+## How to deploy
+
+Documentation on how we deploy the public version lives at https://github.com/opentargets/rest_api/tree/master/.circleci
+
+
 ## Contributing
 ### Testing locally
 

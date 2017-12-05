@@ -34,12 +34,13 @@ as well as through our proxy at https://<tagname>.api.opentargets.io/v<major>/pl
  
 
 
-### You might want to:
 
-* change ES_URL variables in the `config.yml` to reflect the ES for each project.
+### To trigger a staging/production deployment:
+**! First ! check** that:
+1. you have changed in `config.yml` the value of `ES_URL` for all 3 deploy-jobs
+2. you have changed in `config.yml` the value of `DATA_VERSION` for all 3 deploy-jobs
+3. Then tag the repo and push:
 
-
-### To trigger a production deployment:
 ```sh
 TAG=$( echo staging-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
 
@@ -52,7 +53,6 @@ TAG=$( echo prod-`date "+%Y%m%d-%H%M"`); git tag $TAG && git push origin $TAG
 git tag | grep prod-test | head -n -2 | xargs -n 1 -I% gitpush --delete origin %
 
 git tag | grep staging-test | head -n -2 | xargs -n 1 -I% gitpush --delete origin %
-
 ```
 
 
