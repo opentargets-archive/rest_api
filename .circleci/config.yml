@@ -186,8 +186,7 @@ jobs:
       - checkout
       - run:
           name: Run runscope tests
-          command: |
-            source .circleci/runscope/run.sh
+          command: .circleci/runscope/run.sh
 
   stop-instance:
     working_directory: ~/circulate
