@@ -665,11 +665,22 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      - split-traffic-prod:
+      
+      - holdsplit:
+          type: approval
           requires:
             - api-tests-prod-eu
             - api-tests-prod-us
             - api-tests-prod-jp
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^prod.*/
+
+      - split-traffic-prod:
+          requires:
+            - holdsplit
           filters:
             branches:
               ignore: /.*/
