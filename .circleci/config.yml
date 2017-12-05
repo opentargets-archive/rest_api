@@ -223,7 +223,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712041235:9200
+      ES_URL: http://es5-1712051350:9200
       DEPLOYED_DATA_VERSION: 17.12
       MAX_NUM_INSTANCES: 1
       CPU: 2
