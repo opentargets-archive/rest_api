@@ -518,7 +518,7 @@ jobs:
 
 
 
-split-traffic-prod:
+  split-traffic-prod:
     working_directory: ~/circulate
     docker:
       - image: google/cloud-sdk
