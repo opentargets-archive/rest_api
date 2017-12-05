@@ -173,8 +173,7 @@ jobs:
             source .circleci/clean_appeng_versions.sh
       - run:
           name: Cleanup DANGLING Endpoints versions (staging)
-          command: |
-            source .circleci/mark_stale_endpoint_for_deletion.sh
+          command: source .circleci/mark_stale_endpoint_for_deletion.sh
 
   api-tests:
     docker:
