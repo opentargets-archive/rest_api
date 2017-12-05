@@ -41,7 +41,7 @@ def es_available():
 
 def es_index_exists():
     es = Elasticsearch(app.config['ELASTICSEARCH_URL'])
-    if es.indices.exists('%s*' % app.config['DATA_VERSION']):
+    if es.indices.exists('%s*' % app.config['DATA_VERSION'],allow_no_indices=False):
         return True, "found indices beginning with %s" % app.config['DATA_VERSION']
     else:
         #NOTE: passing true, otherwise google appengine will not make any path available
