@@ -18,6 +18,12 @@ def host_url():
 def base_path():
     return '/v{}/platform'.format(os.environ['API_VERSION'])
 
+def ping():
+    return requests.get('https://' + 
+                            host_url() + 
+                            base_path() + 
+                            '/public/utils/ping')
+
 TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_UUID'])
 
 
@@ -30,17 +36,16 @@ PAYLOAD = {
 
 def main():
 
-    print 'Attempting to connect to API deployed at {}{}'.format(host_url(),PAYLOAD['basePath'])
+    print 'Attempting to connect to API deployed at {}{}'.format(host_url(),base_path())
 
-    attempts = 0
-    while (attempts < 10) and (ping.status_code != 200):
-        ping = requests.get(host_url() + base_path() + '/public/utils/ping')
-        if ping.status_code == 200: 
-            print 'API /ping method responded with 200!'
-            break
-        print '.'
+    attempts=1
+    while ping().status_code != 200:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        time.sleep(1)
         attempts+=1
-        time.sleep(5.0)
+        if attempts > 10: raise SystemExit('no API available')
+
 
     print 'Triggering runscope tests'    
     trigger_resp = requests.get(TRIGGER_URL,params=PAYLOAD)
