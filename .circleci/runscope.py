@@ -24,7 +24,7 @@ def ping():
                             base_path() + 
                             '/public/utils/ping')
 
-TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_UUID'])
+TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_ID'])
 
 
 PAYLOAD = {
