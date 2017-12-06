@@ -534,6 +534,7 @@ jobs:
             gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
       - run:
           name: Split traffic over to new versions (prod)
+          no_output_timeout: 30m
           command: |
             gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-jp 
             gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-eu 
