@@ -175,6 +175,7 @@ jobs:
           name: Cleanup DANGLING Endpoints versions (staging)
           command: source .circleci/mark_stale_endpoint_for_deletion.sh
 
+
   api-tests:
     docker:
       - image: circleci/python:2.7
@@ -184,8 +185,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run runscope tests
-          command: .circleci/runscope/run.sh
+          name: Install requests library
+          command: pip install requests
+      - run:
+          name: Trigger runscope tests on deployed branch
+          command: |
+            source VERSION
+            python .circleci/runscope.py
+
 
   stop-instance:
     working_directory: ~/circulate
@@ -278,9 +285,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run runscope tests
+          name: Install requests library
+          command: pip install requests
+      - run:
+          name: Trigger runscope tests on deployed branch
           command: |
-            source .circleci/runscope/run.sh
+            source VERSION
+            python .circleci/runscope.py
 
   split-traffic-staging:
     working_directory: ~/circulate
@@ -376,9 +387,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run runscope tests
+          name: Install requests library
+          command: pip install requests
+      - run:
+          name: Trigger runscope tests on deployed branch
           command: |
-            source .circleci/runscope/run.sh
+            source VERSION
+            python .circleci/runscope.py
 
   api-tests-prod-us:
     docker:
@@ -389,9 +404,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run runscope tests
+          name: Install requests library
+          command: pip install requests
+      - run:
+          name: Trigger runscope tests on deployed branch
           command: |
-            source .circleci/runscope/run.sh
+            source VERSION
+            python .circleci/runscope.py
   
   api-tests-prod-jp:
     docker:
@@ -402,9 +421,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run runscope tests
+          name: Install requests library
+          command: pip install requests
+      - run:
+          name: Trigger runscope tests on deployed branch
           command: |
-            source .circleci/runscope/run.sh
+            source VERSION
+            python .circleci/runscope.py
 
   deploy-prod-us:
     working_directory: ~/circulate

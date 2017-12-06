@@ -1,12 +1,49 @@
+#!/usr/bin/env python
+
 import requests
 import sys
 import time
 import os
 
 
+def host_url():
+    if 'CIRCLE_TAG' in os.environ:
+        return '{}-dot-{}.appspot.com'.format(os.environ['CIRCLE_TAG'],os.environ['GOOGLE_PROJECT_ID'])
+    elif 'CIRCLE_BRANCH':
+        return '{}-dot-{}.appspot.com'.format(os.environ['CIRCLE_BRANCH'],os.environ['GOOGLE_PROJECT_ID'])
+    else:
+        print "CIRCLE_BRANCH or CIRCLE_TAGGED not defined - which service should we test?"
+        raise SystemExit
+
+def base_path():
+    return '/v{}/platform'.format(os.environ['API_VERSION'])
+
+TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_UUID'])
+
+
+PAYLOAD = {
+    'runscope_environment': os.environ['RUNSCOPE_ENV_UUID_EU_DEV'],
+    'host': host_url(),
+    'basePath': base_path()
+    }
+
+
 def main():
-    trigger_url = sys.argv[1]
-    trigger_resp = requests.get(trigger_url)
+
+    print 'Attempting to connect to API deployed at {}{}'.format(host_url(),PAYLOAD['basePath'])
+
+    attempts = 0
+    while (attempts < 10) and (ping.status_code != 200):
+        ping = requests.get(host_url() + base_path() + '/public/utils/ping')
+        if ping.status_code == 200: 
+            print 'API /ping method responded with 200!'
+            break
+        print '.'
+        attempts+=1
+        time.sleep(5.0)
+
+    print 'Triggering runscope tests'    
+    trigger_resp = requests.get(TRIGGER_URL,params=PAYLOAD)
 
     if trigger_resp.ok:
         trigger_json = trigger_resp.json().get("data", {})
