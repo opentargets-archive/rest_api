@@ -289,6 +289,7 @@ jobs:
       - run:
           name: Trigger runscope tests on deployed branch
           command: |
+            set -o allexport
             source VERSION
             python .circleci/runscope.py
 
@@ -390,6 +391,7 @@ jobs:
       - run:
           name: Trigger runscope tests on deployed branch
           command: |
+            set -o allexport
             source VERSION
             python .circleci/runscope.py
 
@@ -406,6 +408,7 @@ jobs:
       - run:
           name: Trigger runscope tests on deployed branch
           command: |
+            set -o allexport
             source VERSION
             python .circleci/runscope.py
   
@@ -422,6 +425,7 @@ jobs:
       - run:
           name: Trigger runscope tests on deployed branch
           command: |
+            set -o allexport
             source VERSION
             python .circleci/runscope.py
 
