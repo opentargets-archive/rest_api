@@ -1,13 +1,18 @@
 swagger: '2.0'
-host: "open-targets-eu-dev.appspot.com"
+host: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
 # x-google-allow: all
 x-google-endpoints:
-  - name: "open-targets-eu-dev.appspot.com"
+  - name: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
     allowCors: "true"
+basePath: "/v${API_VERSION}"
 info:
-  version: 2.1.1
-  title: The Open Targets Platform REST API
-  description: The Open Targets Platform API 
+  # NOTE how for tags (ie. when CIRCLE_BRANCH is unset) the API_VERSION_MINOR
+  # should revert to plain semantic versioning.
+  version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
+  title: Open Targets Platform REST API
+  description: Open Targets Platform REST API
+  x-logo:
+    url: "https://www.targetvalidation.org/imgs/logo/ot_logo_webheader.svg"
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -30,7 +35,6 @@ tags:
   - name: utils
     # open: true
     description: Utility methods.
-basePath: /api/latest
 consumes:
   - application/json
 produces:
@@ -40,18 +44,18 @@ produces:
   - text/csv
 # Describe your paths here
 paths:
-  /swagger:
+  /platform/swagger:
     get:
       operationId: getSwagger
       tags:
         - private
       description: Get swagger.yaml specs for the API
       produces:
-      - "application/json"
+      - "text/yaml"
       responses:
         200:
           description: "Swagger.yaml file"
-  /docs:
+  /platform/docs:
     get:
       operationId: getApiDocs
       tags:
@@ -61,8 +65,8 @@ paths:
       - "application/json"
       responses:
         200:
-          description: "Markdown API documentation file"        
-  /public/evidence:
+          description: "Markdown API documentation file"
+  /platform/public/evidence:
     get:
       operationId: getEvidenceById
       tags:
@@ -130,7 +134,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /public/evidence/filter:
+  /platform/public/evidence/filter:
     get:
       operationId: getEvidenceFilter
       tags:
@@ -253,7 +257,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /public/association:
+  /platform/public/association:
     get:
       operationId: getAssociationById
       tags:
@@ -276,7 +280,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/association/filter:
+  /platform/public/association/filter:
     get:
       operationId: getAssociationFilter
       tags:
@@ -443,7 +447,7 @@ paths:
           #     properties:
           #       id:
           #         type: string
-  /private/disease/{disease}:
+  /platform/private/disease/{disease}:
     get:
       operationId: getDiseaseById
       tags:
@@ -455,11 +459,31 @@ paths:
           in: path
           type: string
           required: true
-          description: An EFO ID of the disease of interest.
+          description: An EFO identifier.
       responses:
         200:
           description: Successful response
-  /private/eco/{ECO_ID}:
+  /platform/private/disease:
+    post:
+      operationId: postDiseaseById
+      tags:
+        - private
+      description: |
+        Get `disease` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"disease":["disease1", "disease2"],
+              "facets" = "true"}
+          description: An EFO identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /platform/private/eco/{ECO_ID}:
     get:
       operationId: getECObyID
       tags:
@@ -475,7 +499,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/target/{target}:
+  /platform/private/target/{target}:
     get:
       operationId: getTargetByENSGID
       tags:
@@ -491,7 +515,27 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/target/expression:
+  /platform/private/target:
+    post:
+      operationId: postTargetByENSGID
+      tags:
+        - private
+      description: |
+         Get `target` objects.
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target":["target1", "target2"],
+              "facets" = "true"}
+          description: An Ensembl gene identifier.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /platform/private/target/expression:
     get:
       operationId: getTargetExpressionByENSGID
       tags:
@@ -525,7 +569,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/relation/target/{target}:
+  /platform/private/relation/target/{target}:
     get:
       operationId: getRelationByENSGID
       tags:
@@ -534,14 +578,14 @@ paths:
         Get `relation` objects starting from diseases.
       parameters:
         - name: target
-          in: query
+          in: path
           description: An Ensembl gene identifier.
           required: true
           type: string
       responses:
         200:
           description: Successful response
-  /private/relation:
+  /platform/private/relation:
     post:
       operationId: postRelation
       tags:
@@ -554,13 +598,13 @@ paths:
           schema:
             type: string
             example: |
-              {"gene":["gene1", "gene2"]}
+              {"subject":["gene1", "gene2"]}
           description: An Ensembl gene identifier.
           required: true
       responses:
         200:
           description: Successful response
-  /private/relation/disease/{disease}:
+  /platform/private/relation/disease/{disease}:
     get:
       operationId: getRelationByEFOID
       tags:
@@ -576,7 +620,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/besthitsearch:
+  /platform/private/besthitsearch:
     post:
       operationId: postBestHitSearch
       tags:
@@ -598,7 +642,28 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/search:
+  /platform/private/enrichment/targets:
+    post:
+      operationId: postEnrichmentTarget
+      tags:
+        - private
+      description: |
+        Returns an enrichment analysis for a list of targets passed in the body
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"target" : ["ENSG00000001", "ENSG00000002"],
+               "pvalue" : 0.001,
+               "size" : 20}
+          description: IDs of the targets to do the enrichment analysis for.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /platform/public/search:
     get:
       operationId: getSearch
       tags:
@@ -631,7 +696,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/quicksearch:
+  /platform/private/quicksearch:
     get:
       operationId: getQuickSearch
       tags:
@@ -652,7 +717,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /private/autocomplete:
+  /platform/private/autocomplete:
     get:
       operationId: getAutocomplete
       tags:
@@ -673,7 +738,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/auth/request_token:
+  /platform/public/auth/request_token:
     get:
       operationId: getAuthToken
       tags:
@@ -710,7 +775,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/auth/validate_token:
+  /platform/public/auth/validate_token:
     get:
       operationId: ValidateToken
       tags:
@@ -723,7 +788,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/ping:
+  /platform/public/utils/ping:
     get:
       operationId: getPing
       tags:
@@ -734,7 +799,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/version:
+  /platform/public/utils/version:
     get:
       operationId: getVersion
       tags:
@@ -745,7 +810,7 @@ paths:
       responses:
         200:
           description: Successful response
-  /public/utils/stats:
+  /platform/public/utils/stats:
     get:
       operationId: getDataStats
       tags:

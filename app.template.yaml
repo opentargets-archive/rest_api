@@ -1,0 +1,38 @@
+runtime: custom
+env: flex
+# entrypoint: uwsgi --http 0.0.0.0:8080 --master  --http-auto-chunked  --wsgi-file manage.py --module manage --callable app  --gevent 1000 --max-requests 1000 --harakiri 300   --processes 16  --cheaper 2 --http-timeout 300  --http-auto-gzip
+
+# runtime_config:
+#   python_version: 2
+
+resources:
+  cpu: ${CPU}
+  memory_gb: ${MEMORY_GB}
+  disk_size_gb: ${DISK_SIZE_GB}
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: ${MAX_NUM_INSTANCES}
+  cool_down_period_sec: 60 # default value
+  cpu_utilization:
+    target_utilization: 0.9
+
+threadsafe: true
+
+health_check:
+  enable_health_check: True
+
+
+# NOTE: Values below are commonly inserted by our CI system..
+env_variables:
+    ELASTICSEARCH_URL: ${ES_URL}
+    OPENTARGETS_API_CONFIG: production
+    OPENTARGETS_DATA_VERSION: ${DEPLOYED_DATA_VERSION}
+    GITHUB_AUTH_TOKEN: ${GITHUB_PERSONAL_TOKEN}
+    USAGE_LIMIT_DEFAULT_SHORT: 5000000
+    USAGE_LIMIT_DEFAULT_LONG: 10000000
+
+endpoints_api_service:
+  name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
+  config_id: ${GCENDPOINT_VERSION}
+  #TODO make sure this config_id updates for every deployment

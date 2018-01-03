@@ -6,7 +6,7 @@ allows programmatic retrieval of our data via a set of
 services.
 
 You can make calls to the latest version of our API using the base URL
- `https://www.targetvalidation.org/api/latest`. Please make sure you use `https` instead of the unencrypted
+ `https://api.opentargets.io/v3/platform`. Please make sure you use `https` instead of the unencrypted
  `http` calls, which we do not accept. Note that we only serve the latest version of the API. If you are interested in querying
  an old version, please [get in touch](mailto:support@targetvalidation.org) so that we can help.
 
@@ -39,7 +39,7 @@ use a `POST` request instead of  `GET`. `POST` methods require a body encoded as
 When querying for a specific disease using the latest version of the API, your call would look like the example below:
 
 ```sh
-curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://www.targetvalidation.org/api/latest/public/evidence/filter
+curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://api.opentargets.io/v3/platform/public/evidence/filter
 ```
 ### How to interpret a response
 
@@ -51,62 +51,11 @@ In the body of the response, you will find the data you have requested for in a 
 [jq](https://stedolan.github.io/jq/) program is a useful tool to parse the json response while on the command line.
 
 ```sh
-curl https://www.targetvalidation.org/api/latest/public/association/filter\?target\=ENSG00000157764 | jq
+curl https://api.opentargets.io/v3/platform/public/association/filter\?target\=ENSG00000157764 | jq
 ```
-
-### Fair Usage and API keys
-
-We have a usage limit to the calls made to our Open Targets Platform API. The usage is computed based on how much time the
-queries take to get executed in our servers.
-The limit is expressed in milliseconds and is computed over two time windows, namely 10 seconds and 1 hour.
-You can check the usage status in the header response. If the quota is exceeded, a `429` error will get returned.
-The response will also show how much time is needed to wait until a new call can be made. This will be in the `Retry-After` header.
-Please note that if you continue making calls despite the `429` error, your future usage within that time window will be compromised.
-
-The default usage limit will not impact a typical use of the REST API. But if you plan to do large numbers of requests or are building
-an application leveraging our API, you need to complete our [Open Targets API key request form](http://goo.gl/forms/heGJvffv7PuUpWzG2).
-The API key will allow you to make more requests than an anonymous user. Using an API key will also help if you are behind a firewall
-(or proxy) in your institution, when many users reach our servers from the same IP address.
-
-* Request a token with your credentials using the method '/public/auth/request_token'
-
-```python
-import requests
-API='https://www.targetvalidation.org/api/latest/'
-
-jwt = requests.get(API + 'public/auth/request_token',
-                 params={'app_name':<appname>,'secret':<secret>})
-
-print(jwt.json())
-```
-Once you have the API key, which consists of 'app_name' and 'secret', you need to go through the authorization workflow to use it.
-
-* Read the token served in the response and pass it into any other following request as an `Auth-Token` header
-
-```python
-import requests
-
-def get_token(app_name,secret):
-  jwt = requests.get(API + 'public/auth/request_token',
-                 params={'app_name':app_name,'secret':secret})
-  return jwt.json()['token']
-
-token = get_token(<appname>,<secret>)
-
-response = requests.get(API + 'association/filter',
-                    params={'disease':'EFO_0000270'},
-                    headers={'Auth-Token': token})
-
-print(response.json())
-```
-
-* By default tokens will expire after 20 minutes. Once your token expires, you will get a `429` error. If it happens you need to request another token.
-
-Please refrain from requesting a new token for each request you make. This would both impact your usage limit and slow down the calls.
 
 We do not analyse the nature of any specific API queries except for the purposes of improving the performance of our API.
 Read more in our [privacy section](https://www.targetvalidation.org/terms_of_use#privacy).
-
 
 How can we make the Open Targets Platform API more useful to you? Would you like additional methods to be implemented?
 Please [get in touch](mailto:support@targetvalidation.org) and send your suggestions.

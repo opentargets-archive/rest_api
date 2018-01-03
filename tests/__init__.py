@@ -7,15 +7,18 @@ import uuid
 
 from app import create_app
 from app.common.auth import AuthKey
+from envparse import env
 
 __author__ = 'andreap'
 
 
 class GenericTestCase(unittest.TestCase):
     _AUTO_GET_TOKEN='auto'
+    env.read_envfile('VERSION')
+    API_VERSION = env.str('API_VERSION')
 
-    def setUp(self):
-
+    @classmethod
+    def setUpClass(cls):
         auth_credentials = {'domain': '',
                             'reference': 'andreap@ebi.ac.uk',
                             'app_name': 'api-test',
@@ -23,27 +26,31 @@ class GenericTestCase(unittest.TestCase):
                             'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
                             'users_allowed': 'true',
                             'long_window_rate': '6000000'}
-        self.auth_key = AuthKey(**auth_credentials)
-        self.app = create_app('testing')
-        self.app.extensions['redis-user'].hmset(self.auth_key.get_key(), self.auth_key.__dict__)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        self.client = self.app.test_client()
-        self.host = 'http://'+self.app_context.url_adapter.get_host('')
+        cls.auth_key = AuthKey(**auth_credentials)
+        cls.app = create_app('testing')
+        cls.app.extensions['redis-user'].hmset(cls.auth_key.get_key(), cls.auth_key.__dict__)
+        cls.app_context = cls.app.app_context()
+        cls.app_context.push()
+        cls.client = cls.app.test_client()
+        cls.host = 'http://' + cls.app_context.url_adapter.get_host('')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app_context.pop()
+        cls.app.extensions['redis-user'].hdel(cls.auth_key.get_key(), cls.auth_key.__dict__.keys())
+        cls.app.extensions['redis-user'].delete(cls.auth_key.get_key())
+
+    def setUp(self):
+
+
         self.token = None
         self.update_token()
         # log = logging.getLogger('dd.datadogpy')
         # log.setLevel(logging.DEBUG)
 
 
-
-    def tearDown(self):
-        self.app_context.pop()
-        self.app.extensions['redis-user'].hdel(self.auth_key.get_key(), self.auth_key.__dict__.keys())
-        self.app.extensions['redis-user'].delete(self.auth_key.get_key())
-
     def _make_token_request(self, expire = 10*60):
-        return self._make_request('/api/latest/public/auth/request_token',data={'app_name':self.auth_key.app_name,
+        return self._make_request('/platform/public/auth/request_token',data={'app_name':self.auth_key.app_name,
                                                                                'secret':self.auth_key.secret,
                                                                                 'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
@@ -78,17 +85,17 @@ class GenericTestCase(unittest.TestCase):
         if not rate_limit_fail:
             status_code = 429
             while status_code == 429:
-                response = self.client.open(path,**params)
+                response = self.client.open('/v' + self.API_VERSION + path,**params)
                 status_code = response.status_code
                 if status_code == 429:
                     time.sleep(10)
         else:
-            response = self.client.open(path,**params)
+            response = self.client.open('/v' + self.API_VERSION + path,**params)
         return response
 
     def update_token(self):
         if self.token:
-            token_valid_response = self._make_request('/api/latest/public/auth/validate_token',
+            token_valid_response = self._make_request('/platform/public/auth/validate_token',
                                                        headers={'Auth-Token':self.token})
             if token_valid_response.status_code == 200:
                 return

@@ -27,7 +27,7 @@ class Result(object):
                  suggest=None,
                  status = ['ok'],
                  therapeutic_areas = []):
-        
+
         '''
         :param res: elasticsearch query response
         :param params: get parameters
@@ -66,7 +66,7 @@ class Result(object):
         return dicttoxml(self.toDict(), custom_root='cttv-api-result')
 
     def toCSV(self, delimiter = '\t'):
-        NOT_ALLOWED_FIELDS = ['evidence.evidence_chain']
+        NOT_ALLOWED_FIELDS = ['evidence.evidence_chain', 'search_metadata', 'search_metadata.sort']
         output = BytesIO()
         if not self.data:
             self.flatten(self.toDict())  # populate data if empty
@@ -194,12 +194,15 @@ class PaginatedResult(Result):
                     'size': len(self.data) or 0,
                     'from': self.params.start_from,
                     'data_version' : Config.DATA_VERSION,
-                    'query': self.params.query_params
+                    'query': self.params.query_params,
                     }
         if self.facets:
             response[ 'facets'] = self.facets
         if self.therapeutic_areas:
             response['therapeutic_areas'] = self.therapeutic_areas
+        if hasattr(self.params, 'next_'):
+            response['next'] = self.params.next_
+
         return response
 
 class EmptyPaginatedResult(Result):

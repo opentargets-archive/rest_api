@@ -1,6 +1,8 @@
+import ast
 import hashlib
 import json as json
 import logging
+import pprint
 import sys
 import time
 from collections import defaultdict
@@ -11,12 +13,13 @@ import numpy as np
 from elasticsearch import TransportError
 from elasticsearch import helpers
 from flask import current_app, request
+from flask_restful import abort
 from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation
+from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject
 from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
@@ -34,6 +37,14 @@ KEYWORD_MAPPING_FIELDS = ["name",
                           "ensembl_gene_id",
                           "efo_url",
                           ]
+
+
+def _tryeval(val):
+  try:
+    val = ast.literal_eval(val)
+  except ValueError:
+    pass
+  return val
 
 
 def ex_level_meet_conditions(x, y, min_level, max_level):
@@ -64,10 +75,10 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
                         }
                     }
                }
-    else:
-        range = str(expression_level) + "_.*"
-        ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
-                          range}}
+#     else:
+#         range = str(expression_level) + "_.*"
+#         ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
+#                           range}}
 
     return ret
 
@@ -114,6 +125,26 @@ def _inject_tissue_data(response, t2m):
                     k = __clean_id(bl[i]['key'])
                     bl[i]['data'] = t2m['codes'][k]
                     bl[i]['key'] = k
+                except:
+                    pass
+
+        if 'zscore_expression_tissue' in response['facets']:
+            bl = response['facets']['zscore_expression_tissue']['data']['buckets'] \
+                    if 'data' in response['facets']['zscore_expression_tissue'] else \
+                    response['facets']['zscore_expression_tissue']['buckets']
+            for i in xrange(len(bl)):
+                try:
+                    k = __clean_id(bl[i]['key'])
+                    bl[i]['data'] = t2m['codes'][k]
+                    bl[i]['key'] = k
+                except:
+                    pass
+
+    else:
+        if 'tissues' in response:
+            for k, _ in response['tissues'].iteritems():
+                try:
+                    response['tissues'][k]['data'] = t2m['codes'][k]
                 except:
                     pass
 
@@ -321,9 +352,9 @@ class esQuery():
 
     def get_enrichment_for_targets(self,
                                    targets,
-                                   pvalue_threshold = 1e-3,
-                                   from_ = 0,
-                                   size = 10,
+                                   pvalue_threshold=1e-3,
+                                   from_=0,
+                                   size=10,
                                    sort='enrichment.score'):
 
         '''
@@ -338,17 +369,17 @@ class esQuery():
 
         '''
 
-        params = SearchParams(targets = targets,
+        params = SearchParams(targets=targets,
                               pvalue=pvalue_threshold,
-                              from_ = from_,
-                              size = size,
-                              sort =sort)
+                              from_=from_,
+                              size=size,
+                              sort=sort)
 
         entry_time = time.time()
         query_cache_key = hashlib.md5(''.join(sorted(list(set(targets))))).hexdigest()
         data = None
-        M=len(targets)
-        if M <2  :
+        M = len(targets)
+        if M < 2  :
             data = []
         if data is None:
             data = self.cache.get(query_cache_key)
@@ -391,7 +422,7 @@ class esQuery():
                                       timeout='10m'
                                       )
             for a in all_data:
-                disease_id = jmespath.search('_source.disease.id',a)
+                disease_id = jmespath.search('_source.disease.id', a)
                 if disease_id not in disease_data:
                     disease_data[disease_id] = []
                 disease_data[disease_id].append(a)
@@ -399,10 +430,10 @@ class esQuery():
             # print 'get all data', time.time() - start_time
 
             start_time = time.time()
-            background = self.handler.mget(body = dict(ids=disease_data.keys()),
-                                           index = self._index_search,
-                                           doc_type = self._docname_search_disease,
-                                           _source = ['association_counts', 'name'],
+            background = self.handler.mget(body=dict(ids=disease_data.keys()),
+                                           index=self._index_search,
+                                           doc_type=self._docname_search_disease,
+                                           _source=['association_counts', 'name'],
                                            realtime=False,
                                           )
 
@@ -429,13 +460,13 @@ class esQuery():
                 k = bg["association_counts"]["total"]
                 x = len(disease_targets)
 
-                key = '_'.join(map(str,[N,M,k,x]))
+                key = '_'.join(map(str, [N, M, k, x]))
                 pvalue = score_cache.get(key)
                 if pvalue is None:
                     # pvalue = HypergeometricTest.run(N, M, k, x)
                     pvalue = hypergeom.pmf(x, N, k, M)
                     # print key, hypergeom.pmf(x,N, k, M), HypergeometricTest.run(N, M, k, x)
-                    score_cache[key] =pvalue
+                    score_cache[key] = pvalue
 
                 disease_properties = disease_targets[0]['_source']['disease']['efo_info']
                 target_data = []
@@ -467,7 +498,7 @@ class esQuery():
                     },
                     "targets": target_data
                 })
-            self.cache.set(query_cache_key, data, ttl = current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
+            self.cache.set(query_cache_key, data, ttl=current_app.config['APP_CACHE_EXPIRY_TIMEOUT'])
             # print 'enrichment calculation', time.time() - start_time
         if pvalue_threshold < 1:
             data = [d for d in data if d['enrichment']['score'] <= pvalue_threshold]
@@ -476,8 +507,8 @@ class esQuery():
         # print 'total time: %f | Targets = %i | Time per target %f'%(total_time, len(targets), total_time/len(targets))
         return PaginatedResult(None,
                                data=data[from_:from_ + size],
-                               total = len(data),
-                               took = int(total_time*1000),
+                               total=len(data),
+                               took=int(total_time * 1000),
                                params=params,
 
                                )
@@ -613,7 +644,7 @@ class esQuery():
             if 'suggest' in res:
                 suggestions = self._digest_suggest(res)
 
-            return EmptySimpleResult(None, data = {}, suggest=suggestions)
+            return EmptySimpleResult(None, data={}, suggest=suggestions)
 
 
         return SimpleResult(None, params, data)
@@ -660,39 +691,75 @@ class esQuery():
             source_filter["includes"] = params.fields
 
         if gene_ids:
-            q = addict.Dict()
-            q.query.bool.filter.ids['values'] = gene_ids
-            q._source = source_filter
-            q.size = len(gene_ids)
-            q['from'] = params.start_from
+            query_body = addict.Dict()
+            query_body.query.bool.filter.ids['values'] = gene_ids
+            query_body._source = source_filter
+            if params.size == 0 :
+                query_body.size = 0
+            else:
+                query_body.size = len(gene_ids)
+            query_body['from'] = params.start_from
+
+            if params.facets == 'true':
+                query_body.aggregations.significant_go_terms.significant_terms.field = "go.id.keyword"
+                query_body.aggregations.significant_go_terms.significant_terms.size = 25
+                query_body.aggregations.significant_go_terms.significant_terms.min_doc_count = 1
+                query_body.aggregations.significant_go_terms.aggregations.top_hits_goterms.top_hits._source = ['go']
+
+            if params.go_term:
+                query_body.post_filter.term['go.id.keyword'] = params.go_term
+
+            if params.fields:
+                query_body._source = params.fields
 
             res = self._cached_search(index=self._index_genename,
                                       doc_type=self._docname_genename,
-                                      body=q.to_dict())
+                                      body=query_body.to_dict())
 
-            if res['hits']['total']:
-                return SimpleResult(res, params)
+            if 'aggregations' in res:
+                res['aggregations']['significant_go_terms']['buckets'] = self._process_go_info(res['aggregations']['significant_go_terms']['buckets'])
+
+            return PaginatedResult(res, params)
+
+    def _process_go_info(self, bucket_list):
+        go_term_buckets = list()
+        for bucket in bucket_list:
+            bucket_dict = dict()
+            bucket_dict['key'] = bucket['key']
+            bucket_dict['doc_count'] = bucket['doc_count']
+
+            term = [go['value']['term'] for go in bucket['top_hits_goterms']['hits']['hits'][0]['_source']['go'] if go['id'] == bucket_dict['key']]
+            bucket_dict['label'] = term[0]
+            go_term_buckets.append(bucket_dict)
+        return go_term_buckets
+
+
+
 
     def get_efo_info_from_code(self, efo_codes, **kwargs):
         params = SearchParams(**kwargs)
+
         if not isinstance(efo_codes, list):
             efo_codes = [efo_codes]
+
+        query_body = addict.Dict()
+        query_body.query.ids["values"] = efo_codes
+        query_body.size = params.size
+        if params.facets == 'true':
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.field = "therapeutic_labels.keyword"
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.size = 25
+            query_body.aggregations.significant_therapeutic_areas.significant_terms.min_doc_count = 2
+
+        if params.fields:
+            query_body._source = params.fields
+
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
                                       doc_type=self._docname_efo,
-                                      body={'query': {
-                                              "ids": {
-                                                  "values": efo_codes
-                                              },
-                                          },
-                                          'size': 10000
-                                      }
+                                      body=query_body.to_dict()
                                       )
-            if res['hits']['total']:
-                if res['hits']['total'] == 1:
-                    return [res['hits']['hits'][0]['_source']]
-                else:
-                    return [hit['_source'] for hit in res['hits']['hits']]
+            return PaginatedResult(res, params)
+
 
     def get_evidences_by_id(self, evidenceid, **kwargs):
 
@@ -713,7 +780,7 @@ class esQuery():
                                   )
         return SimpleResult(res,
                             params,
-                            data = [hit['_source'] for hit in res['hits']['hits']])
+                            data=[hit['_source'] for hit in res['hits']['hits']])
 
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
@@ -774,7 +841,7 @@ class esQuery():
             if uniprotkw_filter:
                 conditions.append(uniprotkw_filter)  # Proto-oncogene Nucleus
         if params.filters[FilterTypes.SCORE_RANGE][1] < 1 or \
-                params.filters[FilterTypes.SCORE_RANGE][0] >0 :
+                params.filters[FilterTypes.SCORE_RANGE][0] > 0 :
             score_filter = self._get_evidence_score_range_filter(params)
             if score_filter:
                 conditions.append(score_filter)
@@ -792,39 +859,23 @@ class esQuery():
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
 
+        if params.pagination_index:
+            q.search_after = params.pagination_index
+        q.sort.append({"id.keyword": "desc"})
+
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=q.to_dict(),
                                   timeout="10m",
                                   )
 
-        return PaginatedResult(res, params, )
+        evidence = [SearchMetadataObject(h).data
+                        for h in res['hits']['hits']]
+        if res['hits']['hits'] and len(res['hits']['hits']) == params.size:
+            params.next_ = res['hits']['hits'][-1]['sort']
 
-        #     res = helpers.scan(client= self.handler,
-        #                                     index=self._index_data,
-        #                                     query={
-        #                                       "query": {
-        #                                           "filtered": {
-        #                                               "filter": {
-        #                                                   "bool": {
-        #                                                       "must": conditions
-        #                                                   }
-        #                                               }
-        #
-        #                                           }
-        #                                       },
-        #                                       'size': params.size,
-        #                                       'from': params.start_from,
-        #                                       '_source': source_filter,
-        #                                     },
-        #                                     scroll= "1m",
-        #                                     timeout="10m",
-        #                        )
-        #
-        #
-        #
-        #
-        # return PaginatedResult(None, params, data = [i for i in res])
+        return PaginatedResult(res, params, data=evidence)
+
 
     def get_associations_by_id(self, associationid, **kwargs):
 
@@ -835,7 +886,7 @@ class esQuery():
         if params.datastructure == SourceDataStructureOptions.DEFAULT:
             params.datastructure = SourceDataStructureOptions.FULL
 
-        #TODO:use get or mget methods here
+        # TODO:use get or mget methods here
         res = self._cached_search(index=self._index_association,
                                   body={"query": {
                                             "ids": {"values": associationid},
@@ -924,12 +975,9 @@ class esQuery():
             "sort": self._digest_sort_strings(params)
         }
 
-        if params.search_after is not None:
-            if params.search_after:
-                ass_query_body['search_after'] = params.search_after
-
-            ass_query_body['sort'].append({"id.keyword": "desc"})
-            ass_query_body['from'] = -1
+        if params.pagination_index:
+            ass_query_body['search_after'] = params.pagination_index
+        ass_query_body['sort'].append({"id.keyword": "desc"})
 
 
 
@@ -974,6 +1022,9 @@ class esQuery():
         # efo_with_data = list(set([a.data['disease']['id'] for a in associations if a.is_direct]))
         if 'aggregations' in ass_data:
             aggregation_results = ass_data['aggregations']
+
+        if ass_data['hits']['hits'] and len(ass_data['hits']['hits']) == params.size:
+            params.next_ = ass_data['hits']['hits'][-1]['sort']
 
         '''build data structure to return'''
         data = self._return_association_flat_data_structures(scores, aggregation_results)
@@ -1074,14 +1125,14 @@ class esQuery():
         if subject_ids:
             if bol == BooleanFilterOperator.OR:
                 return {
-                    "terms": {field+".id": subject_ids}
+                    "terms": {field + ".id": subject_ids}
                 }
             else:
                 return {
                     "bool": {
                         bol: [{
                                   "terms": {
-                                      field+".id": [subject_id]}
+                                      field + ".id": [subject_id]}
                               }
                               for subject_id in subject_ids]
                     }
@@ -1213,81 +1264,128 @@ class esQuery():
         return q.to_dict()
 
     def _get_free_text_query(self, searchphrase):
-        mm_f1 = ["name^3", "description^2", "efo_synonyms",
-                 "symbol_synonyms", "approved_symbol", "approved_name",
-                 "name_synonyms", "gene_family_description",
-                 "efo_path_labels^0.1", "ortholog.*.symbol^0.2",
-                 "ortholog.*.name^0.2", "drugs.*^0.5", "phenotypes.*^0.3"]
+        query_body = {
+            "function_score": {
+                "score_mode": "multiply",
+                'query': {
+                    "bool": {
+                        "should": [
+                            {"multi_match": {
+                                "query": searchphrase,
+                                "fields": ["name^3",
+                                           "description^2",
+                                           "efo_synonyms",
+                                           "symbol_synonyms",
+                                           "approved_symbol",
+                                           "approved_name",
+                                           "name_synonyms",
+                                           "gene_family_description",
+                                           "efo_path_labels^0.1",
+                                           "ortholog.*.symbol^0.5",
+                                           "ortholog.*.name^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.label^0.3"
+                                           ],
+                                "analyzer": 'standard',
+                                # "fuzziness": "AUTO",
+                                "tie_breaker": 0.0,
+                                "type": "phrase_prefix",
+                            }
+                            },
+                            {"multi_match": {
+                                "query": searchphrase,
+                                "fields": ["name^3",
+                                           "description^2",
+                                           "id",
+                                           "approved_symbol",
+                                           "symbol_synonyms",
+                                           "name_synonyms",
+                                           "uniprot_accessions",
+                                           "hgnc_id",
+                                           "ensembl_gene_id",
+                                           "efo_path_codes",
+                                           "efo_url",
+                                           "efo_synonyms^2",
+                                           "ortholog.*.symbol^0.2",
+                                           "ortholog.*.id^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.*"
+                                           ],
+                                "analyzer": 'keyword',
+                                # "fuzziness": "AUTO",
+                                "tie_breaker": 0,
+                                "type": "best_fields",
+                            },
+                            },
+                            # {"multi_match": {
+                            #     "query": searchphrase,
+                            #     "fields": ["name^3",
+                            #                "description",
+                            #                "approved_symbol",
+                            #                "symbol_synonyms",
+                            #                "name_synonyms",
+                            #                "efo_synonyms^0.1",
+                            #                "ortholog.*.symbol^0.5",
+                            #                "ortholog.*.name^0.2"
+                            #                ],
+                            #     "word_delimiter_analyzer":{
+                            #         "tokenizer":"whitespace",
+                            #         "filter":[
+                            #             "lowercase",
+                            #             "word_delimiter"
+                            #
+                            #         ],
+                            #         "ignore_case":True,
+                            #     },
+                            #     # "fuzziness": "AUTO",
+                            #     "tie_breaker": 0,
+                            #     "type": "best_fields",
+                            #     }
+                            # },
+                        ]
+                    },
+                },
+                "functions": [
+                    # "path_score": {
+                    #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
+                    #   "lang": "groovy",
+                    # },
+                    # "script_score": {
+                    #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
+                    #   "lang": "groovy",
+                    # }
+                    {
+                        "field_value_factor": {
+                            "field": "association_counts.total",
+                            "factor": 0.01,
+                            "modifier": "sqrt",
+                            "missing": 1,
+                            # "weight": 0.01,
+                        }
+                    },
+                    # {
+                    # "field_value_factor":{
+                    #     "field": "min_path_len",
+                    #     "factor": 0.5,
+                    #     "modifier": "reciprocal",
+                    #     "missing": 1,
+                    #     # "weight": 0.5,
+                    #     }
+                    # }
+                ],
+                # "filter": {
+                #     "exists": {
+                #       "field": "min_path_len"
+                #     }
+                #   }
 
-        mm1 = addict.Dict()
-        mm1.multi_match.query = searchphrase
-        mm1.multi_match.fields = mm_f1
-        mm1.multi_match.analyzer = 'standard'
-        mm1.multi_match.tie_breaker = '0'
-        mm1.multi_match.type = 'phrase_prefix'
+            }
 
-        mm_f2 = ["name^3", "description", "id", "approved_symbol",
-                 "symbol_synonyms", "name_synonyms", "uniprot_accessions",
-                 "hgnc_id", "ensembl_gene_id", "efo_path_codes", "efo_url",
-                 "efo_synonyms^2", "ortholog.*.symbol^0.2", "ortholog.*.id^0.2",
-                 "drugs.*^0.5", "phenotypes.*^0.3"]
-
-        mm2 = addict.Dict()
-        mm2.multi_match.query = searchphrase
-        mm2.multi_match.fields = mm_f2
-        mm2.multi_match.analyzer = 'keyword'
-        mm2.multi_match.tie_breaker = 0
-        mm2.multi_match.type = 'best_fields'
-
-        q = addict.Dict()
-        q.function_score.score_mode = 'multiply'
-        q.function_score.query.bool.should = [mm1, mm2]
-        q.function_score.query.bool.filter = {
-            # "not":{ "term": { "biotype": 'processed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'antisense' }},
-            # "not":{ "term": { "biotype": 'unprocessed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'lincRNA' }},
-            # "not":{ "term": { "biotype": 'transcribed_unprocessed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'transcribed_processed_pseudogene' }},
-            # "not":{ "term": { "biotype": 'sense_intronic' }},
-            # "not":{ "term": { "biotype": 'processed_transcript' }},
-            # "not":{ "term": { "biotype": 'IG_V_pseudogene' }},
-            # "not":{ "term": { "biotype": 'miRNA' }},
         }
 
-        f1 = addict.Dict()
-        f1.field_value_factor.field = 'association_counts.total'
-        f1.field_value_factor.factor = 0.05
-        f1.field_value_factor.modifier = 'sqrt'
-        f1.field_value_factor.missing = 1
-        # f1.field_value_factor.weight = 0.01
+        return query_body
 
-        q.function_score.functions = [f1]
 
-                # "path_score": {
-                #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                #   "lang": "groovy",
-                # },
-                # "script_score": {
-                #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                #   "lang": "groovy",
-                # }
-                # {
-                # "field_value_factor":{
-                #     "field": "min_path_len",
-                #     "factor": 0.5,
-                #     "modifier": "reciprocal",
-                #     "missing": 1,
-                #     # "weight": 0.5,
-                #     }
-                # }
-            # "filter": {
-            #     "exists": {
-            #       "field": "min_path_len"
-            #     }
-            #   }
-
-        return q.to_dict()
 
     def _get_free_text_highlight(self):
         return {"fields": {
@@ -1394,6 +1492,7 @@ class esQuery():
 
     def get_expression(self,
                        genes,
+                       aggregate,
                        **kwargs):
         '''
         returns the expression data for a list of genes
@@ -1401,6 +1500,34 @@ class esQuery():
         :param params: query parameters
         :return: tissue expression data object
         '''
+        def _compat_aggregated_expression(aggs):
+            compat_aggs = {}
+
+            # per tissue bucket
+            for bucket in aggs['tissues']['buckets']:
+                tname = bucket['key']
+                compat_aggs[tname] = {'zscore': {},
+                                      'level': {},
+                                      'plevel': {}}
+
+                for level_bucket in bucket['level']['buckets']:
+                    genes = level_bucket['genes']['buckets']
+                    compat_aggs[tname]['level'][level_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for zscore_bucket in bucket['zscore']['buckets']:
+                    genes = zscore_bucket['genes']['buckets']
+                    compat_aggs[tname]['zscore'][zscore_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+                for plevel_bucket in bucket['plevel']['buckets']:
+                    genes = plevel_bucket['genes']['buckets']
+                    compat_aggs[tname]['plevel'][plevel_bucket['key']] = \
+                        [el['key'] for el in genes]
+
+
+            return compat_aggs
+
         params = SearchParams(**kwargs)
         if genes:
 
@@ -1414,10 +1541,35 @@ class esQuery():
 #             q.size = params.size
 #             q._source = OutputDataStructureOptions.getSource(OutputDataStructureOptions.COUNT)
 
+            if aggregate:
+                q.size = 0
+                q.aggs.tissues.terms.field = 'tissues.efo_code'
+                q.aggs.tissues.terms.size = 1000
+
+                q.aggs.tissues.aggs.zscore.terms.field = 'tissues.rna.zscore'
+                q.aggs.tissues.aggs.zscore.terms.size = 100
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.zscore.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.level.terms.field = 'tissues.rna.level'
+                q.aggs.tissues.aggs.level.terms.size = 100
+                q.aggs.tissues.aggs.level.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.level.aggs.genes.terms.size = 1000
+
+                q.aggs.tissues.aggs.plevel.terms.field = 'tissues.protein.level'
+                q.aggs.tissues.aggs.plevel.terms.size = 100
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.field = 'gene'
+                q.aggs.tissues.aggs.plevel.aggs.genes.terms.size = 1000
+
             res = self._cached_search(index=self._index_expression,
                                       body=q.to_dict()
                                       )
-            data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+            if aggregate:
+                data = {'tissues': _compat_aggregated_expression(res['aggregations'])}
+                data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
+            else:
+                data = dict([(hit['_id'], hit['_source']) for hit in res['hits']['hits']])
+
             return SimpleResult(res, params, data)
 
     def _get_efo_with_data(self, conditions):
@@ -1487,8 +1639,15 @@ class esQuery():
 
         reactome_ids = list(set(reactome_ids))
         reactome_labels = self._get_labels_for_reactome_ids(reactome_ids)
-        efo_data = self.get_efo_info_from_code(therapeutic_areas)
+
+        efo_data = {}
         therapeutic_area_labels = {}
+
+        t_areas = self.get_efo_info_from_code(therapeutic_areas, size=len(therapeutic_areas))
+
+        if t_areas:
+            efo_data = t_areas.toDict()['data']
+
         if efo_data:
             therapeutic_area_labels = dict([(efo['path_codes'][0][-1], efo['label']) for efo in efo_data])
 
@@ -1714,7 +1873,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                    doc_type=doc_types,
                                    body=body,
                                    )
-        except TransportError as e :#TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
+        except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
             raise
@@ -1764,18 +1923,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                                "data": {
                                                                    "terms": {
                                                                        "field": "type.keyword",
-                                                                       'size': 10,
+                                                                       'size': 100,
                                                                    },
                                                                    "aggs": {
                                                                        "datasources": {
                                                                            "terms": {
                                                                                "field": "sourceID.keyword",
+                                                                               'size': 100,
                                                                            },
                                                                        }
                                                                    }
                                                                }
                                                            },
-                                                           'size': 1,
+                                                           'size': 0,
                                                            '_source': False,
                                                            },
                                                      timeout="10m",
@@ -1789,18 +1949,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                                              "data": {
                                                                  "terms": {
                                                                      "field": "private.facets.datatype.keyword",
-                                                                     'size': 10,
+                                                                     'size': 100,
                                                                  },
                                                                  "aggs": {
                                                                      "datasources": {
                                                                          "terms": {
                                                                              "field": "private.facets.datasource.keyword",
+                                                                             'size': 100,
                                                                          },
                                                                      }
                                                                  }
                                                              }
                                                          },
-                                                         'size': 1,
+                                                         'size': 0,
                                                          '_source': False,
                                                          },
                                                    timeout="10m",
@@ -1845,10 +2006,10 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             mode = 'min'
             if s.startswith('~'):
                 order = 'asc'
-                s=s[1:]
+                s = s[1:]
                 mode = 'min'
             if s.startswith('association_score'):
-                s= s.replace('association_score', params.association_score_method)
+                s = s.replace('association_score', params.association_score_method)
             digested.append({s : {"order": order,
                                   "mode": mode}})
         return digested
@@ -1974,7 +2135,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                )
 
 
-
     def _get_free_text_suggestions(self, searchphrase):
         return {
             "text": searchphrase,
@@ -2001,15 +2161,23 @@ class SearchParams(object):
 
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
-        if self.size is None:
-            self.size = self._default_return_size
-        if (self.size > self._max_search_result_limit):
-            raise AttributeError('Size cannot be bigger than %i' % self._max_search_result_limit)
-
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
-        self.search_after = kwargs.get('search_after', None)
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+
+        if self.size is None:
+            self.size = self._default_return_size
+
+        if self.size  and \
+            (self.size + self.start_from > self._max_search_result_limit):
+            abort(404, message='(size + from) cannot be bigger than '
+                                 '%i use search_after' % self._max_search_result_limit)
+
+        # self.search_after = [_tryeval(x) for x in kwargs.get('search_after', [])]# does not work for this id u'9f0264d610f087731dc6fab29d459946'
+        self.pagination_index = kwargs.get('next', [])
+        if self.pagination_index:
+            self.start_from = 0
+
         if self.cap_scores is None:
             self.cap_scores = True
         if self.cap_scores:
@@ -2053,6 +2221,10 @@ class SearchParams(object):
             kwargs.get(FilterTypes.RNA_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.RNA_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, [])
+        self.filters[FilterTypes.ZSCORE_EXPRESSION_LEVEL] = \
+            kwargs.get(FilterTypes.ZSCORE_EXPRESSION_LEVEL, 0)
+        self.filters[FilterTypes.ZSCORE_EXPRESSION_TISSUE] = \
+            kwargs.get(FilterTypes.ZSCORE_EXPRESSION_TISSUE, [])
         self.filters[FilterTypes.PROTEIN_EXPRESSION_LEVEL] = \
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
@@ -2103,6 +2275,12 @@ class SearchParams(object):
         setattr(self, FilterTypes.RNA_EXPRESSION_TISSUE,
                 kwargs.get(FilterTypes.RNA_EXPRESSION_TISSUE, []))
 
+        setattr(self, FilterTypes.ZSCORE_EXPRESSION_LEVEL,
+                kwargs.get(FilterTypes.ZSCORE_EXPRESSION_LEVEL, 0))
+
+        setattr(self, FilterTypes.ZSCORE_EXPRESSION_TISSUE,
+                kwargs.get(FilterTypes.ZSCORE_EXPRESSION_TISSUE, []))
+
         setattr(self, FilterTypes.PROTEIN_EXPRESSION_LEVEL,
                 kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0))
 
@@ -2111,6 +2289,8 @@ class SearchParams(object):
 
         self.facets = kwargs.get('facets', "false") or "false"
         self.facets_size = kwargs.get('facets_size', None) or None
+        self.path_label = kwargs.get('path_label', None)
+        self.go_term = kwargs.get('go_term', None)
 
         self.association_score_method = kwargs.get('association_score_method', ScoringMethods.DEFAULT)
 
@@ -2118,10 +2298,10 @@ class SearchParams(object):
         self.highlight = kwargs.get('highlight', highlight_default)
         if self.highlight is None:
             self.highlight = highlight_default
-        self.pvalue =  kwargs.get('pvalue', self._default_pvalue)
-        self.query_params =  {k:v for k,v in self.__dict__.items() if k in kwargs}
+        self.pvalue = kwargs.get('pvalue', self._default_pvalue)
+        self.query_params = {k:v for k, v in self.__dict__.items() if k in kwargs}
         if 'from_' in kwargs:
-            self.query_params['from']=self.start_from
+            self.query_params['from'] = self.start_from
 
 
 class AggregationUnit(object):
@@ -2627,7 +2807,8 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         return 1000
 
     def build_agg(self, filters):
-        d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue, 0)
+        d = ex_level_tissues_to_terms_list('rna', self.params.rna_expression_tissue,
+                                           self.params.rna_expression_level)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='rna_expression_tissue',
@@ -2862,7 +3043,7 @@ class AggregationUnitPROExLevel(AggregationUnit):
     def build_agg(self, filters):
         d = ex_level_tissues_to_terms_list('protein',
                                             self.params.protein_expression_tissue,
-                                            0)
+                                            self.params.protein_expression_level)
 
         mut_filters = _copy_and_mutate_dict(filters,
                                              del_k='protein_expression_tissue',
@@ -3084,6 +3265,240 @@ class AggregationUnitPROExTissue(AggregationUnit):
         return expression
 
 
+class AggregationUnitZSCOREExLevel(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_zscore_range_filter(self.params)
+
+    def get_default_size(self):
+        return 1000
+
+    def build_agg(self, filters):
+        d = ex_level_tissues_to_terms_list('zscore', self.params.zscore_expression_tissue,
+                                           self.params.zscore_expression_level)
+
+        mut_filters = _copy_and_mutate_dict(filters,
+                                             del_k='zscore_expression_tissue',
+                                             zscore_expression_tissue=d)
+
+        self.agg = self._get_aggregation_on_zscore_expression_level(
+            mut_filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.zscore_expression_level)
+
+
+    @staticmethod
+    def _get_association_zscore_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.zscore_expression_level, 11, 1, 11)
+
+        q = {}
+        if range_ok:
+            # spinal tap up to 11
+            range = str(params.zscore_expression_level) + "_.*"
+            # here the functionality
+
+            q = { "regexp":{
+                        "private.facets.expression_tissues.zscore.id.keyword": \
+                        range
+                    }
+                }
+
+        return q
+
+    @staticmethod
+    def _get_aggregation_on_zscore_expression_level(filters, filters_func, size,
+                                                 ex_level):
+        f_agg = {}
+        if ex_level > 0:
+            f_agg = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.ZSCORE_EXPRESSION_LEVEL,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.zscore.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
+        else:
+            f_agg = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(0, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field":
+                            "private.facets.expression_tissues.zscore.level",
+                            "order": {
+                                "unique_target_count": "desc"
+                            },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                },
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+
+        return f_agg
+
+
+class AggregationUnitZSCOREExTissue(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_zscore_range_filter(self.params)
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_zscore_expression_tissue(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.zscore_expression_level)
+
+    def get_default_size(self):
+        return 1000
+
+    @staticmethod
+    def _get_association_zscore_range_filter(params):
+        range_ok = ex_level_meet_conditions(
+            params.zscore_expression_level, 11, 1, 11)
+
+        tissues = params.zscore_expression_tissue
+        t2tl = ex_level_tissues_to_terms_list
+
+        q_score = {}
+        if range_ok and tissues:
+            # here the functionality
+            q_score = {
+                'constant_score': {
+                    'filter': {
+                        'bool': {
+                            'should': t2tl('zscore', tissues, params.zscore_expression_level)
+                        }
+                    }
+                }
+            }
+
+        return q_score
+
+    @staticmethod
+    def _get_aggregation_on_zscore_expression_tissue(filters, filters_func, size,
+                                                     ex_level):
+        agg_filter = {}
+        range = ""
+
+        if ex_level > 0:
+            range = str(ex_level) + "_.*"
+
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(FilterTypes.ZSCORE_EXPRESSION_TISSUE,
+                                             filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                       "terms": {
+                            "field": "private.facets.expression_tissues.zscore.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        else:
+            range = "0_.*"
+            agg_filter = {
+                "filter": {
+                    "bool": {
+                        "must": filters_func(0, filters)
+                    }
+                },
+                "aggs": {
+                    "data": {
+                        "terms": {
+                            "field": "private.facets.expression_tissues.zscore.id.keyword",
+                            "include": range,
+                            "order" : { "_term" : "asc" },
+                            'size': size
+                        },
+                        "aggs": {
+                            "unique_target_count": {
+                                "cardinality": {
+                                    "field": "target.id",
+                                    "precision_threshold": 1000
+                                }
+                            },
+                            "unique_disease_count": {
+                                "cardinality": {
+                                    "field": "disease.id",
+                                    "precision_threshold": 1000
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        return agg_filter
+
+
 class AggregationUnitScoreRange(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
@@ -3094,7 +3509,7 @@ class AggregationUnitScoreRange(AggregationUnit):
         if len(params.scorevalue_types) == 1:
             return {
                         "range" : {
-                            params.association_score_method+"."+params.scorevalue_types[0] : {
+                            params.association_score_method + "." + params.scorevalue_types[0] : {
                                 "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                 "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                             }
@@ -3105,7 +3520,7 @@ class AggregationUnitScoreRange(AggregationUnit):
                     "bool": {
                         'must': [{
                                 "range" : {
-                                    params.association_score_method+"."+st : {
+                                    params.association_score_method + "." + st : {
                                         "gte": params.filters[FilterTypes.SCORE_RANGE][0],
                                         "lte": params.filters[FilterTypes.SCORE_RANGE][1]
                                     }
@@ -3280,6 +3695,8 @@ class AggregationBuilder(object):
         FilterTypes.TARGET_CLASS: AggregationUnitTargetClass,
         FilterTypes.RNA_EXPRESSION_LEVEL: AggregationUnitRNAExLevel,
         FilterTypes.RNA_EXPRESSION_TISSUE: AggregationUnitRNAExTissue,
+        FilterTypes.ZSCORE_EXPRESSION_LEVEL: AggregationUnitZSCOREExLevel,
+        FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
     }
@@ -3320,12 +3737,12 @@ class AggregationBuilder(object):
                             self.aggs[agg] = self.units[agg].agg
 
 
-    def _get_AggregationUnit(self,str):
+    def _get_AggregationUnit(self, str):
         return getattr(sys.modules[__name__], str)
 
     def _get_aggs_not_to_be_returned(self, params):
         '''avoid calculate a big facet if only one parameter is passed'''
-        filters_to_apply = list(set([k for k,v in params.filters.items() if v is not None]))
+        filters_to_apply = list(set([k for k, v in params.filters.items() if v is not None]))
         for filter_type in self._SERVICE_FILTER_TYPES:
             if filter_type in filters_to_apply:
                 filters_to_apply.pop(filters_to_apply.index(filter_type))

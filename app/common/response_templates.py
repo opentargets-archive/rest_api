@@ -12,7 +12,7 @@ __author__ = 'andreap'
 
 from flask import Flask, Response, current_app, request
 from flask.ext.restful import fields
-
+import pprint
 
 class ResponseType():
     JSON='json'
@@ -41,15 +41,16 @@ class CTTVResponse():
             pass
 
         accept_header = request.headers.get('Accept')
+
         if type is None and accept_header:
             if 'application/json' in accept_header:
                 type = ResponseType.JSON
             elif "text/xml"in accept_header:
                 type = ResponseType.XML
-            elif "text/tab-separated-values"in accept_header:
+            elif "text/tab-separated-values" in accept_header:
                 type = ResponseType.TSV
             elif "text/csv" in accept_header:
-                type = ResponseType.TSV
+                type = ResponseType.CSV
 
 
         if type == ResponseType.JSON or result.format == ResponseType.JSON:
@@ -97,7 +98,7 @@ class Association(object):
         '''
 
         self.data ={}
-        self.search_after = None
+        self.search_metadata = {}
         self._scoring_method = scoring_method
         if datatypes is None:
             datatypes = DataTypes(current_app)
@@ -107,35 +108,15 @@ class Association(object):
             self.hit_source = hit['_source']
         self.is_scoring_capped = cap_scores
 
-        # setting search_after field into the filtered response
         if 'sort' in hit:
-            self.search_after = hit['sort']
+            self.search_metadata['sort'] = hit['sort']
 
         self.parse_hit()
 
     def parse_hit(self):
         self.data = self.hit_source
-        if self.search_after:
-            self.data['search_after'] = self.search_after
-        # self.data['target'] = {}
-        # self.data['target']['id'] = self.hit['target']['id']
-        # self.data['target']['name'] = self.hit['target']['gene_info']['name']
-        # self.data['target']['symbol'] = self.hit['target']['gene_info']['symbol']
-        #
-        # self.data['disease'] = {}
-        # self.data['disease']['id'] = self.hit['disease']['id']
-        # self.data['disease']['name'] = self.hit['disease']['efo_info']['label']
-        # # self.data['label'] = self.hit['disease']['efo_info']['label']
-        # self.data['disease']['therapeutic_area'] = self.hit['disease']['efo_info']['therapeutic_area']
-        # self.data['disease']['path'] = self.hit['disease']['efo_info']['path']
-        #
-        # self.data['id'] = self.hit['id']
-        #
-        # self.data['is_direct'] = self.hit['is_direct']
-        # self.is_direct = self.hit['is_direct']
-        #
-        # evidence_count = self.hit['evidence_count']
-        # self.data['evidence_count'] = evidence_count['total']
+        # if self.search_metadata:
+        #     self.data['search_metadata'] = self.search_metadata
         if self._scoring_method in self.hit_source:
             self.data['association_score'] = self.hit_source[self._scoring_method]
             del self.data[self._scoring_method]
@@ -149,19 +130,6 @@ class Association(object):
                     self.data['association_score']['datasources'][ds] = self._cap_score(
                         self.data['association_score']['datasources'][ds])
 
-    # self.data['datatypes']=[]
-        # for dt in score['datatypes']:
-        #     datasources = []
-        #     for ds in self._datatypes.get_datasources(dt):
-        #         datasources.append(dict(datasource = ds,
-        #                                 association_score = self._cap_score(score['datasources'][ds]),
-        #                                 evidence_count = evidence_count['datasource'][ds],))
-        #
-        #     self.data['datatypes'].append(dict(datatype = dt,
-        #                                        association_score = self._cap_score(score['datatypes'][dt]),
-        #                                        evidence_count = evidence_count['datatype'][dt],
-        #                                        datasources =datasources))
-
     def _cap_score(self, score):
         if self.is_scoring_capped:
             return self.cap_score(score)
@@ -172,6 +140,34 @@ class Association(object):
         if score >1:
             return 1.
         return score
+
+class SearchMetadataObject(object):
+
+    def __init__(self,
+                 hit,):
+        '''
+
+        :param hit: association object coming from elasticsearch
+        :param scoring_method: association object coming from elasticsearch
+        :return:
+        '''
+
+        self.data ={}
+        self.search_metadata = {}
+        self.hit_source = {}
+        if '_source' in hit:
+            self.hit_source = hit['_source']
+            if 'id' in self.hit_source and not self.hit_source['id']:
+                self.hit_source['id'] =  hit['_id']
+        if 'sort' in hit:
+            self.search_metadata['sort'] = hit['sort']
+        self.parse_hit()
+
+    def parse_hit(self):
+        self.data = self.hit_source
+        # if self.search_metadata:
+        #     self.data['search_metadata'] = self.search_metadata
+
 
 
 class DataStats(object):

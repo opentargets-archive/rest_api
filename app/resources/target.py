@@ -26,6 +26,8 @@ class TargetInfo(restful.Resource):
         parser.add_argument('fields', type=str, required=False, action='append',
                             help="fields to include in the output"
                             )
+        parser.add_argument('facets', type=str, required=False,  default="")
+
 
         kwargs = parser.parse_args()
         target_ids = kwargs.pop('id', []) or []

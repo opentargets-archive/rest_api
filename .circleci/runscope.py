@@ -1,12 +1,54 @@
+#!/usr/bin/env python
+
 import requests
 import sys
 import time
 import os
 
 
+def host_url():
+    if 'CIRCLE_TAG' in os.environ:
+        return '{}-dot-{}.appspot.com'.format(os.environ['CIRCLE_TAG'],os.environ['GOOGLE_PROJECT_ID'])
+    elif 'CIRCLE_BRANCH':
+        return '{}-dot-{}.appspot.com'.format(os.environ['CIRCLE_BRANCH'],os.environ['GOOGLE_PROJECT_ID'])
+    else:
+        print "CIRCLE_BRANCH or CIRCLE_TAGGED not defined - which service should we test?"
+        raise SystemExit
+
+def base_path():
+    return '/v{}/platform'.format(os.environ['API_VERSION'])
+
+def ping():
+    return requests.get('https://' + 
+                            host_url() + 
+                            base_path() + 
+                            '/public/utils/ping')
+
+TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_ID'])
+
+
+PAYLOAD = {
+    'runscope_environment': os.environ['RUNSCOPE_ENV_UUID_EU_DEV'],
+    'host': host_url(),
+    'basePath': base_path()
+    }
+
+
 def main():
-    trigger_url = sys.argv[1]
-    trigger_resp = requests.get(trigger_url)
+
+    print 'Attempting to connect to API deployed at {}{}'.format(host_url(),base_path())
+
+    attempts=1
+    while ping().status_code != 200:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        time.sleep(1)
+        attempts+=1
+        if attempts > 10: raise SystemExit('no API available')
+
+
+    print 'Triggering runscope tests'    
+    trigger_resp = requests.get(TRIGGER_URL,params=PAYLOAD)
 
     if trigger_resp.ok:
         trigger_json = trigger_resp.json().get("data", {})
@@ -31,7 +73,7 @@ def main():
 
         if fail_count > 0:
             print "{} test runs passed. {} test runs failed.".format(pass_count, fail_count)
-            exit(1)
+            sys.exit(1)
 
         print "All test runs passed."
 
@@ -40,7 +82,7 @@ def _get_result(test_run):
     # generate Personal Access Token at https://www.runscope.com/applications
     if not "RUNSCOPE_ACCESS_TOKEN" in os.environ:
         print "Please set the environment variable RUNSCOPE_ACCESS_TOKEN. You can get an access token by going to https://www.runscope.com/applications"
-        exit(1)
+        sys.exit(1)
 
     API_TOKEN = os.environ["RUNSCOPE_ACCESS_TOKEN"]
     

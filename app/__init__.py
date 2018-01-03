@@ -5,7 +5,8 @@ from datetime import datetime
 from functools import wraps
 
 import requests
-from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify
+import json, yaml
+from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify, render_template
 from flask.ext.compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -44,6 +45,8 @@ def get_http_exception_handler(app):
         resp = jsonify({'code':exc.code, 'message':exc.description})
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Headers', 'Content-Type,Auth-Token')
+        resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+
         return resp, exc.code
     return ret_val
 
@@ -65,7 +68,7 @@ def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     # This first loads the configuration from eg. config['development'] which corresponds to the DevelopmentConfig class in the config.py
     app.config.from_object(config[config_name])
-    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to. 
+    # Then you can override the values with the contents of the file the OPENTARGETS_API_LOCAL_SETTINGS environment variable points to.
     # For eg:
     # $ export OPENTARGETS_API_LOCAL_SETTINGS=/path/to/settings.cfg
     #
@@ -73,9 +76,9 @@ def create_app(config_name):
     #
     # DEBUG = False
     # SECRET_KEY = 'foo'
-    # 
+    #
     app.config.from_envvar("OPENTARGETS_API_LOCAL_SETTINGS", silent=True)
-    
+
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
@@ -93,16 +96,19 @@ def create_app(config_name):
     icache = InternalCache(app.extensions['redis-service'],
                            str(api_version_minor))
     ip2org = IP2Org(icache)
-    es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
-                       # # sniff before doing anything
-                       # sniff_on_start=True,
-                       # # refresh nodes after a node fails to respond
-                       # sniff_on_connection_fail=True,
-                       # # and also every 60 seconds
-                       # sniffer_timeout=60
-                       timeout=60 * 20,
-                       maxsize=32,
-                       )
+    if app.config['ELASTICSEARCH_URL']:
+        es = Elasticsearch(app.config['ELASTICSEARCH_URL'],
+                           # # sniff before doing anything
+                           # sniff_on_start=True,
+                           # # refresh nodes after a node fails to respond
+                           # sniff_on_connection_fail=True,
+                           # # and also every 60 seconds
+                           # sniffer_timeout=60
+                           timeout=60 * 20,
+                           maxsize=32,
+                           )
+    else:
+        es = None
     '''elasticsearch handlers'''
     app.extensions['esquery'] = esQuery(es,
                                         DataTypes(app),
@@ -148,7 +154,7 @@ def create_app(config_name):
                                                allowed_domains=app.config['PROXY_SETTINGS']['allowed_domains'],
                                                allowed_request_domains=app.config['PROXY_SETTINGS']['allowed_request_domains'])
 
-    basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
+    # basepath = app.config['PUBLIC_API_BASE_PATH']+api_version
     # cors = CORS(app, resources=r'/api/*', allow_headers='Content-Type,Auth-Token')
 
     ''' define cache'''
@@ -228,56 +234,46 @@ def create_app(config_name):
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
 
-
+    '''set the right prefixes'''
 
     create_api(latest_blueprint, api_version, specpath)
     create_api(current_version_blueprint, api_version, specpath)
     create_api(current_minor_version_blueprint, api_version_minor, specpath)
 
-    app.register_blueprint(latest_blueprint, url_prefix='/api/latest')
-    app.register_blueprint(current_version_blueprint, url_prefix='/api/'+str(api_version))
-    app.register_blueprint(current_minor_version_blueprint, url_prefix='/api/'+str(api_version_minor))
+    # app.register_blueprint(latest_blueprint, url_prefix='/latest/platform')
+    app.register_blueprint(current_version_blueprint, url_prefix='/v'+str(api_version) + '/platform')
+    app.register_blueprint(current_minor_version_blueprint, url_prefix='/v'+str(api_version_minor) + '/platform')
 
-    def serve_docs():
-        return app.send_static_file('docs/api-description.md')
 
-    def serve_swagger():
-        return app.send_static_file('docs/swagger/swagger.yaml')
+    '''serve the static docs'''
+    
+    try:
+        '''
+        NOTE: this file gets created only at deployment time
+        '''
+        openapi_def = yaml.load(file('app/static/openapi.yaml', 'r'))
+        app.logger.info('parsing swagger from static/openapi.yaml')
 
-    @app.route('/api/latest/swagger.yaml')
-    def send_swagger_latest_suffixed():
-        return serve_swagger()
+    except IOError:
+        '''if we are not deployed, then simply use the template'''
+        openapi_def = yaml.load(file('openapi.template.yaml', 'r'))
+        app.logger.error('parsing swagger from openapi.template.yaml')
 
-    @app.route('/api/latest/swagger')
-    def send_swagger_latest():
-        return serve_swagger()
+    with open("api-description.md", "r") as f:
+        desc = f.read()
+    openapi_def['info']['description'] = desc
+    openapi_def['basePath'] = '/v%s' % str(api_version)
+    @app.route('/v%s/platform/swagger' % str(api_version))
+    def serve_swagger(apiversion=api_version):
+        return jsonify(openapi_def)
 
-    @app.route('/api/latest/docs')
-    def send_docs_latest():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
 
-    @app.route('/api-docs/%s' % str(api_version_minor))
-    def docs_current_minor_version():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
- 
-    @app.route('/api-docs/%s'%str(api_version))
-    def docs_current_version():
-        # return redirect('/api/swagger/index.html')
-        return serve_docs()
- 
-    @app.route('/api/docs/api-description.md')
-    def docs_description():
-        return serve_docs()
- 
-    @app.route('/api/docs/swagger.yaml')
-    def send_swagger():
-        return serve_swagger()
- 
-    @app.route('/api/'+str(api_version)+'/docs/swagger.yaml')
-    def send_swagger_current_cersion():
-        return serve_swagger()
+    @app.route('/v%s/platform/docs' % str(api_version))
+    def render_redoc(apiversion=api_version):
+        return render_template('docs.html',api_version=apiversion)
+
+
+    '''pre and post-request'''
 
 
     @app.before_request
@@ -316,6 +312,7 @@ def create_app(config_name):
             # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
+            resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
             if do_not_cache(request):# do not cache in the browser
                 resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
             else:
