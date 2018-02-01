@@ -853,7 +853,9 @@ class esQuery():
             source_filter["includes"] = params.fields
 
         q_range = None
-        if all([params.range_begin > 0, params.range_end > 0, len(params.range_chromosome) > 0]):
+        if all([params.range_begin > 0,
+                params.range_end > 0,
+                len(params.range_chromosome) > 0 if params.range_chromosome else False]):
             # we have all parameters to create a range query
             q_range = addict.Dict()
 
