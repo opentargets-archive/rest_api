@@ -102,7 +102,6 @@ class FilterBy(restful.Resource, Paginable):
         # parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
-        parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('sort', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
