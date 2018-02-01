@@ -889,7 +889,6 @@ class esQuery():
             q.search_after = params.pagination_index
         q.sort.append({"id.keyword": "desc"})
 
-        pprint.pprint(q)
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=q.to_dict(),
