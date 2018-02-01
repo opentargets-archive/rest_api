@@ -106,6 +106,10 @@ class FilterBy(restful.Resource, Paginable):
         parser.add_argument('scorevalue_max', type=float, required=False, help="filter by maximum score value")
         parser.add_argument('sort', type=str, action='append', required=False, help="order the results by the given list of fields. default is score.association_score")
 
+        parser.add_argument('begin', type=long, required=False, help="filter by range with this start")
+        parser.add_argument('end', type=long, required=False, help="filter by range with this end")
+        parser.add_argument('chromosome', type=str, required=False, help="filter by range required chromosome location")
+
         args = parser.parse_args()
         targets = args.pop('target',[]) or []
         # gene_operator = args.pop('gene-bool','OR') or 'OR'

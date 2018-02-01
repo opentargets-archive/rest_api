@@ -852,6 +852,32 @@ class esQuery():
         if params.fields:
             source_filter["includes"] = params.fields
 
+        q_range = None
+        if all([params.range_begin > 0, params.range_end > 0, len(params.range_chromosome) > 0]):
+            # we have all parameters to create a range query
+            q_range = addict.Dict()
+
+            gene_begin = addict.Dict()
+            gene_begin.range["loci." + params.range_chromosome + ".gene_begin"].gte = params.range_begin
+            gene_begin.range["loci." + params.range_chromosome + ".gene_begin"].lte = params.range_end
+
+            gene_end = addict.Dict()
+            gene_end.range["loci." + params.range_chromosome + ".gene_end"].gte = params.range_begin
+            gene_end.range["loci." + params.range_chromosome + ".gene_end"].lte = params.range_end
+
+            variant_begin = addict.Dict()
+            variant_begin.range["loci." + params.range_chromosome + ".variant_begin"].gte = params.range_begin
+            variant_begin.range["loci." + params.range_chromosome + ".variant_begin"].lte = params.range_end
+
+            variant_end = addict.Dict()
+            variant_end.range["loci." + params.range_chromosome + ".variant_end"].gte = params.range_begin
+            variant_end.range["loci." + params.range_chromosome + ".variant_end"].lte = params.range_end
+
+            q_range.bool.filter.bool.should = [gene_begin, gene_end, variant_begin, variant_end]
+
+        if q_range is not None:
+            conditions.append(q_range)
+
         q = addict.Dict()
         q.query.bool.filter.bool.must = conditions
         q.size = params.size
@@ -863,6 +889,7 @@ class esQuery():
             q.search_after = params.pagination_index
         q.sort.append({"id.keyword": "desc"})
 
+        pprint.pprint(q)
         res = self._cached_search(index=self._index_data,
                                   # doc_type=self._docname_data,
                                   body=q.to_dict(),
@@ -2164,6 +2191,11 @@ class SearchParams(object):
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+
+        # range query
+        self.range_begin = kwargs.get('begin', 0)
+        self.range_end = kwargs.get('end', 0)
+        self.range_chromosome = kwargs.get('chromosome', '')
 
         if self.size is None:
             self.size = self._default_return_size
