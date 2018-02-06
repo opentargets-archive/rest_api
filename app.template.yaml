@@ -32,6 +32,7 @@ env_variables:
     USAGE_LIMIT_DEFAULT_SHORT: 5000000
     USAGE_LIMIT_DEFAULT_LONG: 10000000
 
+#should we change anything here?
 endpoints_api_service:
   name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
   config_id: ${GCENDPOINT_VERSION}
