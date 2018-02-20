@@ -158,11 +158,17 @@ jobs:
             envsubst < app.template.yaml > app.yaml
 
       - run:
-          # --no-promote on master gives problems in order to update master
           name: Deploy branch to google AppEngine (DEV)
 
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            # By default promote only if it is the master branch
+            if [ "$CIRCLE_BRANCH" = "master" ]
+              then
+                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+              else
+                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            fi
+            
       - run:
           name: delete instance if deployment has failed / timed out
           command: |
