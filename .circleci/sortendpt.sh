@@ -26,7 +26,7 @@ fi
 
 
 # is there an endpoint deployment for this branch?
-if GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
+if GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} endpoints \
                      configs list --format json \
                      --service=${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com \
                     | jq -r '.[0] | .id') ; then
@@ -35,7 +35,7 @@ if GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management
     echo -e "\n### Found a Google Endpoint for ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
     
     echo -e "### Checking if the existing config [ ${GCENDPOINT_VERSION} ] matches the version \n"
-    GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
+    GCENDPOINT_API_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} endpoints \
                              configs describe ${GCENDPOINT_VERSION} --format json \
                              --service=${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com \
                             | jq -r '.apis[0] | .version')
@@ -49,7 +49,7 @@ if GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management
         echo -e "\n\n### API version mismatch or openAPI definition changed. "
         echo -e "### Re-deploying to Google Endpoints for API version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}\n\n"
         envsubst < openapi.template.yaml > openapi.yaml
-        gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+        gcloud --project ${GOOGLE_PROJECT_ID} endpoints services deploy openapi.yaml
     else
         echo -e "\n\n### API version matches. Will use the same Google Endpoint deployment.\n\n"
     fi
@@ -59,12 +59,12 @@ else
     echo -e "### Deploying to Google Endpoints for the [${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com] service\n"
 
     envsubst < openapi.template.yaml > openapi.yaml
-    gcloud --project ${GOOGLE_PROJECT_ID} service-management deploy openapi.yaml
+    gcloud --project ${GOOGLE_PROJECT_ID} endpoints services deploy openapi.yaml
 fi
 
 
 echo -e "### get the ENDPOINT ID of the deployment to substitute"
-export GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} service-management \
+export GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} endpoints services \
                          configs list --format json \
                          --service=${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com \
                         | jq -r '.[0] | .id')
