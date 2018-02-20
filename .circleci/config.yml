@@ -158,6 +158,7 @@ jobs:
             envsubst < app.template.yaml > app.yaml
 
       - run:
+          # --no-promote on master gives problems in order to update master
           name: Deploy branch to google AppEngine (DEV)
 
           command: |
