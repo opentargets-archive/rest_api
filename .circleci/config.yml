@@ -123,7 +123,7 @@ jobs:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://es5-mk1710:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 1
       CPU: 1
       MEMORY_GB: 1
