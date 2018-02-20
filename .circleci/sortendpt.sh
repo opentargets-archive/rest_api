@@ -64,7 +64,7 @@ fi
 
 
 echo -e "### get the ENDPOINT ID of the deployment to substitute"
-export GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} endpoints services \
+export GCENDPOINT_VERSION=$(gcloud --project ${GOOGLE_PROJECT_ID} endpoints \
                          configs list --format json \
                          --service=${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com \
                         | jq -r '.[0] | .id')
