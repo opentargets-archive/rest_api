@@ -1295,7 +1295,7 @@ class esQuery():
         query_body = {
             "function_score": {
                 "score_mode": "multiply",
-                'query': {
+                "query": {
                     "bool": {
                         "should": [
                             {"multi_match": {
@@ -1314,8 +1314,7 @@ class esQuery():
                                            "drugs.*^0.5",
                                            "phenotypes.label^0.3"
                                            ],
-                                "analyzer": 'whitespace_analyzer',
-                                # "fuzziness": "AUTO",
+                                "analyzer": "whitespace_analyzer",
                                 "tie_breaker": 0.0,
                                 "type": "phrase_prefix",
                             }
@@ -1339,49 +1338,33 @@ class esQuery():
                                            "drugs.*^0.5",
                                            "phenotypes.*"
                                            ],
-                                "analyzer": 'edgeNGram_analyzer',
+                                "analyzer": "edgeNGram_analyzer",
+                                "tie_breaker": 0,
+                                "type": "best_fields",
+                            }
+                            },
+                            {"multi_match": {
+                                "query": searchphrase,
+                                "fields": ["name^3",
+                                           "description^2",
+                                           "approved_symbol",
+                                           "symbol_synonyms",
+                                           "name_synonyms",
+                                           "efo_synonyms^2",
+                                           "ortholog.*.symbol^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.*"
+                                           ],
+                                "analyzer": "onechunk_analyzer",
                                 # "fuzziness": "AUTO",
                                 "tie_breaker": 0,
                                 "type": "best_fields",
-                            },
-                            },
-                            # {"multi_match": {
-                            #     "query": searchphrase,
-                            #     "fields": ["name^3",
-                            #                "description",
-                            #                "approved_symbol",
-                            #                "symbol_synonyms",
-                            #                "name_synonyms",
-                            #                "efo_synonyms^0.1",
-                            #                "ortholog.*.symbol^0.5",
-                            #                "ortholog.*.name^0.2"
-                            #                ],
-                            #     "word_delimiter_analyzer":{
-                            #         "tokenizer":"whitespace",
-                            #         "filter":[
-                            #             "lowercase",
-                            #             "word_delimiter"
-                            #
-                            #         ],
-                            #         "ignore_case":True,
-                            #     },
-                            #     # "fuzziness": "AUTO",
-                            #     "tie_breaker": 0,
-                            #     "type": "best_fields",
-                            #     }
-                            # },
+                            }
+                            }
                         ]
                     },
                 },
                 "functions": [
-                    # "path_score": {
-                    #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                    #   "lang": "groovy",
-                    # },
-                    # "script_score": {
-                    #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                    #   "lang": "groovy",
-                    # }
                     {
                         "field_value_factor": {
                             "field": "association_counts.total",
@@ -1390,25 +1373,9 @@ class esQuery():
                             "missing": 1,
                             # "weight": 0.01,
                         }
-                    },
-                    # {
-                    # "field_value_factor":{
-                    #     "field": "min_path_len",
-                    #     "factor": 0.5,
-                    #     "modifier": "reciprocal",
-                    #     "missing": 1,
-                    #     # "weight": 0.5,
-                    #     }
-                    # }
-                ],
-                # "filter": {
-                #     "exists": {
-                #       "field": "min_path_len"
-                #     }
-                #   }
-
+                    }
+                ]
             }
-
         }
 
         return query_body
