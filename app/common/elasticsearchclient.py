@@ -1311,7 +1311,9 @@ class esQuery():
                                            "efo_path_labels^0.1",
                                            "ortholog.*.symbol^0.5",
                                            "ortholog.*.name^0.2",
-                                           "drugs.*^0.5",
+                                           "drugs.evidence_data^0.5",
+                                           "drugs.chembl_drugs.synonyms^0.5",
+                                           "drugs.drugbank^0.5",
                                            "phenotypes.label^0.3"
                                            ],
                                 "analyzer": "whitespace_analyzer",
