@@ -1314,7 +1314,7 @@ class esQuery():
                                            "drugs.*^0.5",
                                            "phenotypes.label^0.3"
                                            ],
-                                "analyzer": 'standard',
+                                "analyzer": 'whitespace_analyzer',
                                 # "fuzziness": "AUTO",
                                 "tie_breaker": 0.0,
                                 "type": "phrase_prefix",
@@ -1339,7 +1339,7 @@ class esQuery():
                                            "drugs.*^0.5",
                                            "phenotypes.*"
                                            ],
-                                "analyzer": 'keyword',
+                                "analyzer": 'edgeNGram_analyzer',
                                 # "fuzziness": "AUTO",
                                 "tie_breaker": 0,
                                 "type": "best_fields",
