@@ -1333,14 +1333,14 @@ class esQuery():
         if params:
             if 'drug' in params.search_entities:
                 ngram_fields = [
-                    # "drugs.evidence_data",
+                    "drugs.evidence_data",
                     "drugs.chembl_drugs.synonyms",
                     # "drugs.drugbank"
                 ]
                 ngram_analyzer = "keyword"
 
                 whitespace_fields = [
-                    #"drugs.evidence_data",
+                    "drugs.evidence_data",
                     "drugs.chembl_drugs.synonyms",
                     # "drugs.drugbank"
                 ]
