@@ -2166,7 +2166,7 @@ class SearchParams(object):
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
 
-        self.search_entities = kwargs.pop('search_entities') or ['all']
+        self.search_entities = kwargs.pop('search_entities', None) or ['all']
 
         # range query
         self.range_begin = kwargs.get('begin', 0)
