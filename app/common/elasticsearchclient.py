@@ -1291,97 +1291,86 @@ class esQuery():
 
         return q.to_dict()
 
-    def _get_free_text_query(self, searchphrase):
+    def _get_free_text_query(self, searchphrase, params=None):
+        ngram_analyzer = "edgeNGram_analyzer"
+        ngram_fields = ["name^5",
+                       "full_name^3",
+                       "description^2",
+                       "efo_synonyms",
+                       "id",
+                       "approved_symbol",
+                       "symbol_synonyms",
+                       "name_synonyms^2.5",
+                       "uniprot_accessions",
+                       "hgnc_id",
+                       "ensembl_gene_id",
+                       "efo_path_codes",
+                       "efo_url",
+                       "ortholog.*.symbol^0.2",
+                       "ortholog.*.id^0.2",
+                       "drugs.evidence_data",
+                       "drugs.chembl_drugs.synonyms",
+                       "drugs.drugbank",
+                       "phenotypes.*"]
+
+        whitespace_fields = ["name^5",
+                           "full_name^3",
+                           "description^2",
+                           "efo_synonyms",
+                           "symbol_synonyms",
+                           "approved_symbol",
+                           "approved_name",
+                           "name_synonyms^2.5",
+                           "gene_family_description",
+                           "efo_path_labels^0.1",
+                           "ortholog.*.symbol^0.5",
+                           "ortholog.*.name^0.2",
+                           "drugs.evidence_data",
+                           "drugs.chembl_drugs.synonyms",
+                           "drugs.drugbank",
+                           "phenotypes.label^0.3"]
+
+        if params:
+            if 'drug' in params.search_entities:
+                ngram_fields = [
+                    "drugs.evidence_data",
+                    "drugs.chembl_drugs.synonyms",
+                    # "drugs.drugbank"
+                ]
+                ngram_analyzer = "keyword"
+
+                whitespace_fields = [
+                    "drugs.evidence_data",
+                    "drugs.chembl_drugs.synonyms",
+                    # "drugs.drugbank"
+                ]
+                
         query_body = {
             "function_score": {
                 "score_mode": "multiply",
-                'query': {
+                "query": {
                     "bool": {
                         "should": [
                             {"multi_match": {
                                 "query": searchphrase,
-                                "fields": ["name^3",
-                                           "description^2",
-                                           "efo_synonyms",
-                                           "symbol_synonyms",
-                                           "approved_symbol",
-                                           "approved_name",
-                                           "name_synonyms",
-                                           "gene_family_description",
-                                           "efo_path_labels^0.1",
-                                           "ortholog.*.symbol^0.5",
-                                           "ortholog.*.name^0.2",
-                                           "drugs.*^0.5",
-                                           "phenotypes.label^0.3"
-                                           ],
-                                "analyzer": 'standard',
-                                # "fuzziness": "AUTO",
-                                "tie_breaker": 0.0,
-                                "type": "phrase_prefix",
+                                "fields": ngram_fields,
+                                "analyzer": ngram_analyzer,
+                                "tie_breaker": 0,
+                                "type": "best_fields",  # trying other than best_fields
                             }
                             },
                             {"multi_match": {
                                 "query": searchphrase,
-                                "fields": ["name^3",
-                                           "description^2",
-                                           "id",
-                                           "approved_symbol",
-                                           "symbol_synonyms",
-                                           "name_synonyms",
-                                           "uniprot_accessions",
-                                           "hgnc_id",
-                                           "ensembl_gene_id",
-                                           "efo_path_codes",
-                                           "efo_url",
-                                           "efo_synonyms^2",
-                                           "ortholog.*.symbol^0.2",
-                                           "ortholog.*.id^0.2",
-                                           "drugs.*^0.5",
-                                           "phenotypes.*"
-                                           ],
-                                "analyzer": 'keyword',
-                                # "fuzziness": "AUTO",
-                                "tie_breaker": 0,
-                                "type": "best_fields",
-                            },
-                            },
-                            # {"multi_match": {
-                            #     "query": searchphrase,
-                            #     "fields": ["name^3",
-                            #                "description",
-                            #                "approved_symbol",
-                            #                "symbol_synonyms",
-                            #                "name_synonyms",
-                            #                "efo_synonyms^0.1",
-                            #                "ortholog.*.symbol^0.5",
-                            #                "ortholog.*.name^0.2"
-                            #                ],
-                            #     "word_delimiter_analyzer":{
-                            #         "tokenizer":"whitespace",
-                            #         "filter":[
-                            #             "lowercase",
-                            #             "word_delimiter"
-                            #
-                            #         ],
-                            #         "ignore_case":True,
-                            #     },
-                            #     # "fuzziness": "AUTO",
-                            #     "tie_breaker": 0,
-                            #     "type": "best_fields",
-                            #     }
-                            # },
+                                "fields": whitespace_fields,
+                                "analyzer": "whitespace_analyzer",
+                                "tie_breaker": 0.0,
+                                "type": "phrase_prefix",
+                            }
+                            }
                         ]
                     },
                 },
                 "functions": [
-                    # "path_score": {
-                    #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                    #   "lang": "groovy",
-                    # },
-                    # "script_score": {
-                    #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                    #   "lang": "groovy",
-                    # }
                     {
                         "field_value_factor": {
                             "field": "association_counts.total",
@@ -1390,25 +1379,9 @@ class esQuery():
                             "missing": 1,
                             # "weight": 0.01,
                         }
-                    },
-                    # {
-                    # "field_value_factor":{
-                    #     "field": "min_path_len",
-                    #     "factor": 0.5,
-                    #     "modifier": "reciprocal",
-                    #     "missing": 1,
-                    #     # "weight": 0.5,
-                    #     }
-                    # }
-                ],
-                # "filter": {
-                #     "exists": {
-                #       "field": "min_path_len"
-                #     }
-                #   }
-
+                    }
+                ]
             }
-
         }
 
         return query_body
@@ -1886,7 +1859,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         if params.fields:
             source_filter["includes"] = params.fields
 
-        body = {'query': self._get_free_text_query(searchphrase),
+        body = {'query': self._get_free_text_query(searchphrase, params),
                 'size': params.size,
                 'from': params.start_from,
                 '_source': source_filter,
@@ -2192,6 +2165,8 @@ class SearchParams(object):
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+
+        self.search_entities = kwargs.pop('search_entities', None) or ['all']
 
         # range query
         self.range_begin = kwargs.get('begin', 0)

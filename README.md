@@ -65,11 +65,8 @@ docker run -d -p 8080:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileg
 ```
 For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
-If you try to map port 80 inside the container with `-p 8080:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
-Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
-
 **Check that is running**
-Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/platform/docs](http://localhost:8080/platform/docs/swagger.yaml)
+Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/v3/platform/docs](http://localhost:8080/v3/platform/docs)
 
 You can ping the API with `curl localhost:8080/v3/platform/public/utils/ping`
 

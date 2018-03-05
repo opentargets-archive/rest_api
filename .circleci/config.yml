@@ -120,6 +120,7 @@ jobs:
     environment:
       #TODO? read ES_URL variable from google metadata using
       # `gcloud --project ${GOOGLE_PROJECT_ID} compute project-info describe --format json`
+      # this is a bit tricky, we should link data version to api branches
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://es5-mk1710:9200
