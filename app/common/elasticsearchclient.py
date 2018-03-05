@@ -1422,7 +1422,6 @@ class esQuery():
             }
         }
 
-        pprint.pprint(query_body)
         return query_body
 
 
