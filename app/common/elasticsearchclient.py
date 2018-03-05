@@ -1293,14 +1293,14 @@ class esQuery():
 
     def _get_free_text_query(self, searchphrase, params=None):
         ngram_analyzer = "edgeNGram_analyzer"
-        ngram_fields = ["name^5",
-                       "full_name^3",
-                       "description^2",
+        ngram_fields = ["name^4.8",
+                       "full_name^2.8",
+                       "description^1.8",
                        "efo_synonyms",
                        "id",
                        "approved_symbol",
                        "symbol_synonyms",
-                       "name_synonyms^2.5",
+                       "name_synonyms^2.2",
                        "uniprot_accessions",
                        "hgnc_id",
                        "ensembl_gene_id",
@@ -1313,6 +1313,7 @@ class esQuery():
                        "drugs.drugbank",
                        "phenotypes.*"]
 
+        whitespace_analyzer = "whitespace_analyzer"
         whitespace_fields = ["name^5",
                            "full_name^3",
                            "description^2",
@@ -1333,8 +1334,8 @@ class esQuery():
         if params:
             if 'drug' in params.search_entities:
                 ngram_fields = [
-                    "drugs.evidence_data",
-                    "drugs.chembl_drugs.synonyms",
+                    "drugs.evidence_data.keyword",
+                    "drugs.chembl_drugs.synonyms.keyword",
                     # "drugs.drugbank"
                 ]
                 ngram_analyzer = "keyword"
@@ -1344,7 +1345,53 @@ class esQuery():
                     "drugs.chembl_drugs.synonyms",
                     # "drugs.drugbank"
                 ]
-                
+            elif 'target' in params.search_entities:
+                ngram_analyzer = "keyword"
+                whitespace_analyzer = "whitespace_analyzer"
+
+
+                # ngram_fields = ["name.keyword",
+                #                 "full_name.keyword",
+                #                 "id.keyword",
+                #                 "approved_name.keyword",
+                #                 "approved_symbol.keyword",
+                #                 "symbol_synonyms.keyword",
+                #                 "name_synonyms.keyword",
+                #                 "uniprot_accessions.keyword",
+                #                 "hgnc_id.keyword",
+                #                 "ensembl_gene_id.keyword",
+                #                 "ortholog.*.symbol.keyword^0.2",
+                #                 "ortholog.*.id.keyword^0.2"
+                #                 ]
+
+                ngram_fields = ["name.keyword^3",
+                                "full_name.keyword",
+                                "id.keyword^2",
+                                "symbol.keyword^3",
+                                "approved_name.keyword^2.5",
+                                "approved_symbol.keyword^2.5",
+                                "symbol_synonyms.keyword^2",
+                                "name_synonyms.keyword^2",
+                                "uniprot_accessions.keyword",
+                                "hgnc_id.keyword",
+                                "ensembl_gene_id.keyword",
+                                "ortholog.*.symbol.keyword^0.2",
+                                "ortholog.*.id.keyword^0.2"
+                                ]
+
+                whitespace_fields = ["name",
+                                     "full_name",
+                                     "id",
+                                     "symbol",
+                                     "symbol_synonyms",
+                                     "approved_symbol",
+                                     "approved_name",
+                                     "name_synonyms",
+                                     "gene_family_description",
+                                     "ortholog.*.symbol^0.5",
+                                     "ortholog.*.name^0.2"
+                                     ]
+
         query_body = {
             "function_score": {
                 "score_mode": "multiply",
@@ -1362,7 +1409,7 @@ class esQuery():
                             {"multi_match": {
                                 "query": searchphrase,
                                 "fields": whitespace_fields,
-                                "analyzer": "whitespace_analyzer",
+                                "analyzer": whitespace_analyzer,
                                 "tie_breaker": 0.0,
                                 "type": "phrase_prefix",
                             }
@@ -1384,6 +1431,7 @@ class esQuery():
             }
         }
 
+        pprint.pprint(query_body)
         return query_body
 
 
@@ -1897,7 +1945,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         for searchphrase in searchphrases:
             # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
-            body = {'query': self._get_free_text_query(searchphrase.lower()),
+            body = {'query': self._get_free_text_query(searchphrase.lower(), params),
                     'size': 1,
                     'from': params.start_from,
                     '_source': source_filter,

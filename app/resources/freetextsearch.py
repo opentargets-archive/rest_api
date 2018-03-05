@@ -58,6 +58,8 @@ class BestHitSearch(restful.Resource, Paginable):
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
+    parser.add_argument('search_entities', type=str, required=False, action="append",
+                        help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
     @rate_limit
