@@ -59,9 +59,14 @@ docker build -t rest_api:local .
 or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api))
 
 ### Run
-Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable:
+Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable and the data version you have loaded in elasticsearch with
+the `OPEN_TARGETS_DATA_VERSION` environment variable (:warning: example below assumes `localhost:9200` and data version `17.12` - adjust to your
+own situation):
 ```bash
-docker run -d -p 8080:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged quay.io/opentargets/rest_api
+docker run -d -p 8080:80 \
+-e "ELASTICSEARCH_URL=http://localhost:9200" \
+-e "OPENTARGETS_DATA_VERSION=17.12" \
+--privileged quay.io/opentargets/rest_api
 ```
 For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
