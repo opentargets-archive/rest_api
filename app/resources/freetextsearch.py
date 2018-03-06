@@ -107,6 +107,8 @@ class QuickSearch(restful.Resource):
     parser.add_argument('size', type=int, required=False, help="number of objects to be returned per type")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
+    parser.add_argument('search_entities', type=str, required=False, action="append",
+                        help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
     @rate_limit

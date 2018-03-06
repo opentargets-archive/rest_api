@@ -1308,41 +1308,41 @@ class esQuery():
         ngram_analyzer = "edgeNGram_analyzer"
         ngram_type = "best_fields"
         ngram_fields = ["name",
-                       "full_name",
-                       "description^0.5",
-                       "efo_synonyms",
-                       "approved_symbol^0.5",
-                       "symbol_synonyms^0.5",
-                       "name_synonyms",
-                       "uniprot_accessions",
-                       "ortholog.*.name^0.2",
-                       "drugs.evidence_data",
-                       "drugs.chembl_drugs.synonyms",
-                       "drugs.drugbank",
-                       "phenotypes.label^0.3"]
+                        "full_name",
+                        "description^0.5",
+                        "efo_synonyms",
+                        "approved_symbol^0.5",
+                        "symbol_synonyms^0.5",
+                        "name_synonyms",
+                        "uniprot_accessions",
+                        "ortholog.*.name^0.2",
+                        "drugs.evidence_data",
+                        "drugs.chembl_drugs.synonyms",
+                        "drugs.drugbank",
+                        "phenotypes.label^0.3"]
 
         whitespace_analyzer = "whitespace_analyzer"
         whitespace_type = "phrase_prefix"
         whitespace_fields = ["name^5",
-                           "full_name^3",
-                           "description^0.5",
-                           "efo_synonyms",
-                           "symbol_synonyms^1.2",
-                           "approved_symbol^2",
-                           "approved_name",
-                            "efo_code",
+                             "full_name^3",
+                             "description^0.5",
+                             "efo_synonyms",
+                             "symbol_synonyms^1.2",
+                             "approved_symbol^2",
+                             "approved_name",
+                             "efo_code",
                              "hgnc_id",
                              "ensembl_gene_id",
                              "efo_path_codes",
                              "name_synonyms",
-                           "gene_family_description",
-                           "efo_path_labels^0.1",
-                           "ortholog.*.symbol^0.5",
-                           "ortholog.*.name^0.2",
-                           "drugs.evidence_data",
-                           "drugs.chembl_drugs.synonyms",
-                           "drugs.drugbank",
-                           "phenotypes.label^0.3"]
+                             "gene_family_description",
+                             "efo_path_labels^0.1",
+                             "ortholog.*.symbol^0.5",
+                             "ortholog.*.name^0.2",
+                             "drugs.evidence_data",
+                             "drugs.chembl_drugs.synonyms",
+                             "drugs.drugbank",
+                             "phenotypes.label^0.3"]
 
         keyword_analyzer = "keyword"
         keyword_type = "best_fields"
