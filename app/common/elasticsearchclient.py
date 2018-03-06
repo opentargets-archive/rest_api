@@ -1309,7 +1309,7 @@ class esQuery():
         ngram_type = "best_fields"
         ngram_fields = ["name",
                        "full_name",
-                       "description",
+                       "description^0.5",
                        "efo_synonyms",
                        "approved_symbol^0.5",
                        "symbol_synonyms^0.5",
@@ -1325,7 +1325,7 @@ class esQuery():
         whitespace_type = "phrase_prefix"
         whitespace_fields = ["name^5",
                            "full_name^3",
-                           "description^2",
+                           "description^0.5",
                            "efo_synonyms",
                            "symbol_synonyms^1.2",
                            "approved_symbol^2",
