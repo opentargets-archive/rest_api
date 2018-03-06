@@ -2,7 +2,7 @@
 
 Circle CI build: [![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?style=svg&circle-token=a6f30fb72fe7b0b079ad0f3cd232ef02a43b9e35)](https://circleci.com/gh/opentargets/rest_api)
 
-(maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base)
+(maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api)
 
 ## How to deploy
 
@@ -56,7 +56,7 @@ You can build the container from source:
 ```bash
 docker build -t rest_api:local .
 ```
-or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base))
+or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api))
 
 ### Run
 Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable:
