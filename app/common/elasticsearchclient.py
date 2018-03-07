@@ -1413,6 +1413,37 @@ class esQuery():
                     # "drugs.drugbank"
                 ]
 
+            elif 'target' in params.profile:
+                # score_function = self._generate_noop_function
+                ngram_analyzer = None
+
+
+                keyword_fields = ["name.keyword^8",
+                                  "full_name.keyword",
+                                  "id.keyword^20",
+                                  "symbol.keyword^10",
+                                  "approved_name.keyword^5",
+                                  "approved_symbol.keyword^5",
+                                  "symbol_synonyms.keyword^3",
+                                  "name_synonyms.keyword^3",
+                                  "uniprot_accessions.keyword",
+                                  "hgnc_id.keyword",
+                                  "ensembl_gene_id.keyword",
+                                  "ortholog.*.symbol.keyword^0.2",
+                                  "ortholog.*.id.keyword^0.2"
+                                  ]
+
+                whitespace_fields = ["name",
+                                     "full_name",
+                                     "symbol_synonyms",
+                                     "approved_symbol",
+                                     "approved_name",
+                                     "name_synonyms",
+                                     "gene_family_description",
+                                     "ortholog.*.symbol^0.5",
+                                     "ortholog.*.name^0.2"
+                                     ]
+
             elif 'batch' in params.profile:
                 # score_function = self._generate_noop_function
                 ngram_analyzer = None
