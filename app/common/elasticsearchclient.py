@@ -1414,37 +1414,31 @@ class esQuery():
                 ]
 
             elif 'target' in params.search_profile:
-                # score_function = self._generate_noop_function
+                score_function = self._generate_noop_function
                 ngram_analyzer = None
 
-                keyword_fields = ["name.keyword^8",
-                                  "full_name.keyword",
-                                  "id.keyword^20",
-                                  "symbol.keyword^10",
-                                  "approved_name.keyword^5",
-                                  "approved_symbol.keyword^5",
-                                  "symbol_synonyms.keyword^3",
-                                  "name_synonyms.keyword^3",
-                                  "uniprot_accessions.keyword",
-                                  "hgnc_id.keyword",
-                                  "ensembl_gene_id.keyword",
-                                  "ortholog.*.symbol.keyword^0.2",
-                                  "ortholog.*.id.keyword^0.2"
+                keyword_fields = ["id.keyword^100",
+                                  "symbol.keyword^100",
+                                  "approved_symbol.keyword^100",
+                                  "ensembl_gene_id.keyword^100",
+                                  "uniprot_accessions.keyword^100",
+                                  "hgnc_id.keyword^100"
                                   ]
 
-                whitespace_fields = ["name",
-                                     "full_name",
-                                     "symbol_synonyms",
-                                     "approved_symbol",
-                                     "approved_name",
-                                     "name_synonyms",
-                                     "gene_family_description",
-                                     "ortholog.*.symbol^0.5",
-                                     "ortholog.*.name^0.2"
-                                     ]
+                ngram_analyzer = None
+                # whitespace_fields = ["name",
+                #                      "full_name",
+                #                      "symbol_synonyms",
+                #                      "approved_symbol",
+                #                      "approved_name",
+                #                      "name_synonyms",
+                #                      "gene_family_description",
+                #                      "ortholog.*.symbol^0.5",
+                #                      "ortholog.*.name^0.2"
+                #                      ]
 
             elif 'batch' in params.search_profile:
-                # score_function = self._generate_noop_function
+                score_function = self._generate_noop_function
                 ngram_analyzer = None
 
 
@@ -1463,16 +1457,17 @@ class esQuery():
                                   "ortholog.*.id.keyword^0.2"
                                   ]
 
-                whitespace_fields = ["name",
-                                     "full_name",
-                                     "symbol_synonyms",
-                                     "approved_symbol",
-                                     "approved_name",
-                                     "name_synonyms",
-                                     "gene_family_description",
-                                     "ortholog.*.symbol^0.5",
-                                     "ortholog.*.name^0.2"
-                                     ]
+                ngram_analyzer = None
+                # whitespace_fields = ["name",
+                #                      "full_name",
+                #                      "symbol_synonyms",
+                #                      "approved_symbol",
+                #                      "approved_name",
+                #                      "name_synonyms",
+                #                      "gene_family_description",
+                #                      "ortholog.*.symbol^0.5",
+                #                      "ortholog.*.name^0.2"
+                #                      ]
 
             elif 'old' in params.search_profile:
                 score_function = self._generate_mult_function
@@ -2044,6 +2039,8 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                     "explain": current_app.config['DEBUG'],
                     'highlight': highlight,
                     }
+
+            pprint.pprint(body)
 
             multi_body.append(head)
             multi_body.append(body)
