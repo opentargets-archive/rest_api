@@ -1304,22 +1304,67 @@ class esQuery():
 
         return mmatch.to_dict()
 
+    @staticmethod
+    def _generate_mult_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "multiply"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = [
+            {
+                "field_value_factor": {
+                    "field": "association_counts.total",
+                    "factor": 0.01,
+                    "modifier": "sqrt",
+                    "missing": 1,
+                    # "weight": 0.01,
+                }
+            }
+        ]
+        return func_score.to_dict()
+
+    @staticmethod
+    def _generate_noop_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "max"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = []
+        return func_score.to_dict()
+
+    @staticmethod
+    def _generate_avg_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "avg"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = [
+            {
+                "field_value_factor": {
+                    "field": "association_counts.total",
+                    "factor": 0.01,
+                    "modifier": "ln2p",
+                    "missing": 1,
+                    # "weight": 0.01,
+                }
+            }
+        ]
+        return func_score.to_dict()
+
     def _get_free_text_query(self, searchphrase, params=None):
+        score_function = self._generate_avg_function
+
         ngram_analyzer = "edgeNGram_analyzer"
         ngram_type = "best_fields"
-        ngram_fields = ["name",
-                        "full_name",
+        ngram_fields = ["name^0.5",
+                        "full_name^0.5",
                         "description^0.5",
-                        "efo_synonyms",
-                        "approved_symbol^0.5",
-                        "symbol_synonyms^0.5",
-                        "name_synonyms",
-                        "uniprot_accessions",
-                        "ortholog.*.name^0.2",
-                        "drugs.evidence_data",
-                        "drugs.chembl_drugs.synonyms",
-                        "drugs.drugbank",
-                        "phenotypes.label^0.3"]
+                        "efo_synonyms^0.5",
+                        #"approved_symbol^0.5",
+                        #"symbol_synonyms^0.5",
+                        "name_synonyms^0.5",
+                        "ortholog.*.name^0.5",
+                        "drugs.evidence_data^0.5",
+                        "drugs.chembl_drugs.synonyms^0.5",
+                        "drugs.drugbank^0.5",
+                        "phenotypes.label^0.5"]
 
         whitespace_analyzer = "whitespace_analyzer"
         whitespace_type = "phrase_prefix"
@@ -1332,6 +1377,7 @@ class esQuery():
                              "approved_name",
                              "efo_code",
                              "hgnc_id",
+                             "uniprot_accessions",
                              "ensembl_gene_id",
                              "efo_path_codes",
                              "name_synonyms",
@@ -1347,18 +1393,18 @@ class esQuery():
         keyword_analyzer = "keyword"
         keyword_type = "best_fields"
         keyword_fields = ["id.keyword^100",
-                          "symbol.keyword^20",
+                          "symbol.keyword^100",
                           "approved_symbol.keyword^100",
-                          "uniprot_accessions.keyword^20",
+                          "uniprot_accessions.keyword^100",
                           ]
 
         if params:
-            if 'drug' in params.search_entities:
+            if 'drug' in params.profile:
                 ngram_analyzer = None
+
                 keyword_fields = [
                     "drugs.evidence_data.keyword",
                     "drugs.chembl_drugs.synonyms.keyword",
-                    # "drugs.drugbank"
                 ]
 
                 whitespace_fields = [
@@ -1366,8 +1412,11 @@ class esQuery():
                     "drugs.chembl_drugs.synonyms",
                     # "drugs.drugbank"
                 ]
-            elif 'target' in params.search_entities:
+
+            elif 'batch' in params.profile:
+                # score_function = self._generate_noop_function
                 ngram_analyzer = None
+
 
                 keyword_fields = ["name.keyword^8",
                                   "full_name.keyword",
@@ -1386,8 +1435,6 @@ class esQuery():
 
                 whitespace_fields = ["name",
                                      "full_name",
-                                     "id",
-                                     "symbol",
                                      "symbol_synonyms",
                                      "approved_symbol",
                                      "approved_name",
@@ -1397,33 +1444,55 @@ class esQuery():
                                      "ortholog.*.name^0.2"
                                      ]
 
+            elif 'old' in params.profile:
+                score_function = self._generate_mult_function
+
+                ngram_analyzer = None
+                whitespace_analyzer = "standard"
+                whitespace_type = "phrase_prefix"
+                whitespace_fields = ["name^3",
+                                           "description^2",
+                                           "efo_synonyms",
+                                           "symbol_synonyms",
+                                           "approved_symbol",
+                                           "approved_name",
+                                           "name_synonyms",
+                                           "gene_family_description",
+                                           "efo_path_labels^0.1",
+                                           "ortholog.*.symbol^0.5",
+                                           "ortholog.*.name^0.2",
+                                           "drugs.*^0.5",
+                                           "phenotypes.label^0.3"
+                                           ]
+
+                keyword_analyzer = "keyword"
+                keyword_type = "best_fields"
+                keyword_fields = ["name^3",
+                                  "description^2",
+                                  "id",
+                                  "approved_symbol",
+                                  "symbol_synonyms",
+                                  "name_synonyms",
+                                  "uniprot_accessions",
+                                  "hgnc_id",
+                                  "ensembl_gene_id",
+                                  "efo_path_codes",
+                                  "efo_url",
+                                  "efo_synonyms^2",
+                                  "ortholog.*.symbol^0.2",
+                                  "ortholog.*.id^0.2",
+                                  "drugs.*^0.5",
+                                  "phenotypes.*"
+                                  ]
+
+
         analyzers = [self._generate_multimatch(searchphrase, ann, ann_fields, ann_type) \
                         for ann, ann_fields, ann_type in [(ngram_analyzer, ngram_fields, ngram_type),
                                     (whitespace_analyzer, whitespace_fields, whitespace_type),
                                     (keyword_analyzer, keyword_fields, keyword_type)] \
                         if ann is not None]
 
-        query_body = {
-            "function_score": {
-                "score_mode": "multiply",
-                "query": {
-                    "bool": {
-                        "should": analyzers
-                    },
-                },
-                "functions": [
-                    {
-                        "field_value_factor": {
-                            "field": "association_counts.total",
-                            "factor": 0.01,
-                            "modifier": "ln2p",
-                            "missing": 1,
-                            # "weight": 0.01,
-                        }
-                    }
-                ]
-            }
-        }
+        query_body = score_function(analyzers)
 
         return query_body
 
@@ -2207,7 +2276,7 @@ class SearchParams(object):
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
 
-        self.search_entities = kwargs.pop('search_entities', None) or ['all']
+        self.profile = kwargs.pop('profile', '') or ''
 
         # range query
         self.range_begin = kwargs.get('begin', 0)

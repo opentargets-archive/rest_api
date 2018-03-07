@@ -24,7 +24,7 @@ class FreeTextSearch(restful.Resource, Paginable):
                         help="return where the query was matched, defaults to true")
     parser.add_argument('fields', type=str, action='append', required=False,
                         help="specify the fields to return for each object")
-    parser.add_argument('search_entities', type=str, required=False, action="append",
+    parser.add_argument('profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
@@ -58,7 +58,7 @@ class BestHitSearch(restful.Resource, Paginable):
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
-    parser.add_argument('search_entities', type=str, required=False, action="append",
+    parser.add_argument('profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
@@ -107,7 +107,7 @@ class QuickSearch(restful.Resource):
     parser.add_argument('size', type=int, required=False, help="number of objects to be returned per type")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
-    parser.add_argument('search_entities', type=str, required=False, action="append",
+    parser.add_argument('profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
