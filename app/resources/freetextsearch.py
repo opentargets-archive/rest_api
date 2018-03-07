@@ -132,6 +132,7 @@ class QuickSearch(restful.Resource):
 
 
 class AutoComplete(restful.Resource):
+    # TODO delete this function from the rest of the code
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")
