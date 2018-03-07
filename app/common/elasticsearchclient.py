@@ -1392,14 +1392,14 @@ class esQuery():
 
         keyword_analyzer = "keyword"
         keyword_type = "phrase"
-        keyword_fields = ["id^100",
+        keyword_fields = ["id.keyword^100",
                           "symbol.keyword^100",
                           "approved_symbol.keyword^100",
                           "uniprot_accessions.keyword^100",
                           ]
 
         if params:
-            if 'drug' in params.profile:
+            if 'drug' in params.search_profile:
                 ngram_analyzer = None
 
                 keyword_fields = [
@@ -1413,7 +1413,37 @@ class esQuery():
                     # "drugs.drugbank"
                 ]
 
-            elif 'target' in params.profile:
+            elif 'target' in params.search_profile:
+                # score_function = self._generate_noop_function
+                ngram_analyzer = None
+
+                keyword_fields = ["name.keyword^8",
+                                  "full_name.keyword",
+                                  "id.keyword^20",
+                                  "symbol.keyword^10",
+                                  "approved_name.keyword^5",
+                                  "approved_symbol.keyword^5",
+                                  "symbol_synonyms.keyword^3",
+                                  "name_synonyms.keyword^3",
+                                  "uniprot_accessions.keyword",
+                                  "hgnc_id.keyword",
+                                  "ensembl_gene_id.keyword",
+                                  "ortholog.*.symbol.keyword^0.2",
+                                  "ortholog.*.id.keyword^0.2"
+                                  ]
+
+                whitespace_fields = ["name",
+                                     "full_name",
+                                     "symbol_synonyms",
+                                     "approved_symbol",
+                                     "approved_name",
+                                     "name_synonyms",
+                                     "gene_family_description",
+                                     "ortholog.*.symbol^0.5",
+                                     "ortholog.*.name^0.2"
+                                     ]
+
+            elif 'batch' in params.search_profile:
                 # score_function = self._generate_noop_function
                 ngram_analyzer = None
 
@@ -1444,38 +1474,7 @@ class esQuery():
                                      "ortholog.*.name^0.2"
                                      ]
 
-            elif 'batch' in params.profile:
-                # score_function = self._generate_noop_function
-                ngram_analyzer = None
-
-
-                keyword_fields = ["name.keyword^8",
-                                  "full_name.keyword",
-                                  "id.keyword^20",
-                                  "symbol.keyword^10",
-                                  "approved_name.keyword^5",
-                                  "approved_symbol.keyword^5",
-                                  "symbol_synonyms.keyword^3",
-                                  "name_synonyms.keyword^3",
-                                  "uniprot_accessions.keyword",
-                                  "hgnc_id.keyword",
-                                  "ensembl_gene_id.keyword",
-                                  "ortholog.*.symbol.keyword^0.2",
-                                  "ortholog.*.id.keyword^0.2"
-                                  ]
-
-                whitespace_fields = ["name",
-                                     "full_name",
-                                     "symbol_synonyms",
-                                     "approved_symbol",
-                                     "approved_name",
-                                     "name_synonyms",
-                                     "gene_family_description",
-                                     "ortholog.*.symbol^0.5",
-                                     "ortholog.*.name^0.2"
-                                     ]
-
-            elif 'old' in params.profile:
+            elif 'old' in params.search_profile:
                 score_function = self._generate_mult_function
 
                 ngram_analyzer = None
@@ -2307,7 +2306,7 @@ class SearchParams(object):
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
 
-        self.profile = kwargs.pop('profile', '') or ''
+        self.search_profile = kwargs.pop('search_profile', '') or ''
 
         # range query
         self.range_begin = kwargs.get('begin', 0)
