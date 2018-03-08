@@ -347,8 +347,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-l5w4:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-ggkf:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -453,8 +453,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-9hfr:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-mrzp:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -508,8 +508,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-jp
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-z5z1:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-cwtz:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
