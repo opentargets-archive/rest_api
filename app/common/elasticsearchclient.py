@@ -1391,7 +1391,7 @@ class esQuery():
                              "phenotypes.label^0.3"]
 
         keyword_analyzer = "keyword"
-        keyword_type = "phrase"
+        keyword_type = "best_fields"
         keyword_fields = ["id.keyword^100",
                           "symbol.keyword^100",
                           "approved_symbol.keyword^100",
