@@ -2007,7 +2007,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         try:
             res = self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body=body,
+                                   body=body
                                    )
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
@@ -2039,8 +2039,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                     "explain": current_app.config['DEBUG'],
                     'highlight': highlight,
                     }
-
-            pprint.pprint(body)
 
             multi_body.append(head)
             multi_body.append(body)
