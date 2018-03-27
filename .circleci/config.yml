@@ -120,10 +120,11 @@ jobs:
     environment:
       #TODO? read ES_URL variable from google metadata using
       # `gcloud --project ${GOOGLE_PROJECT_ID} compute project-info describe --format json`
+      # this is a bit tricky, we should link data version to api branches
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://es5-mk1710:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 1
       CPU: 1
       MEMORY_GB: 1
@@ -161,7 +162,14 @@ jobs:
           name: Deploy branch to google AppEngine (DEV)
 
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            # By default promote only if it is the master branch
+            if [ "$CIRCLE_BRANCH" = "master" ]
+              then
+                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+              else
+                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+            fi
+            
       - run:
           name: delete instance if deployment has failed / timed out
           command: |
@@ -228,8 +236,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 1
       CPU: 2
       MEMORY_GB: 2
@@ -278,7 +286,7 @@ jobs:
 
   api-tests-staging:
     docker:
-      - image: python:2.7
+      - image: google/cloud-sdk
     environment:
       GOOGLE_PROJECT_ID: open-targets-staging
     steps:
@@ -292,6 +300,15 @@ jobs:
             set -o allexport
             source VERSION
             python .circleci/runscope.py
+      # it's actually useful to take a look at why staging is failing.
+      # - run:
+      #     name: delete instance if deployment has failed / timed out
+      #     command: |
+      #       echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+      #       gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+
+      #       gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
+      #     when: on_fail
 
   split-traffic-staging:
     working_directory: ~/circulate
@@ -314,13 +331,15 @@ jobs:
           command: |
             gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID} 
       - run:
-          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
-          command: |
-            source .circleci/clean_appeng_versions_with_no_traffic.sh
-      - run:
           name: Cleanup DANGLING Endpoints versions (staging)
           command: |
             source .circleci/mark_stale_endpoint_for_deletion.sh
+      - run:
+          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
+          command: |
+            source .circleci/clean_appeng_versions_with_no_traffic.sh
+
+
 
 
   deploy-prod-eu:
@@ -328,8 +347,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-l5w4:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-ggkf:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -434,8 +453,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-9hfr:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-mrzp:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -489,8 +508,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-jp
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1712051521-1712-z5z1:9200
-      DEPLOYED_DATA_VERSION: 17.12
+      ES_URL: http://es5-1803051109-1802-cwtz:9200
+      DEPLOYED_DATA_VERSION: 18.02
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4

@@ -42,7 +42,7 @@ def main():
     while ping().status_code != 200:
         sys.stdout.write('.')
         sys.stdout.flush()
-        time.sleep(1)
+        time.sleep(attempts)
         attempts+=1
         if attempts > 10: raise SystemExit('no API available')
 

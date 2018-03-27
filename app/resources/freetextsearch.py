@@ -24,6 +24,8 @@ class FreeTextSearch(restful.Resource, Paginable):
                         help="return where the query was matched, defaults to true")
     parser.add_argument('fields', type=str, action='append', required=False,
                         help="specify the fields to return for each object")
+    parser.add_argument('search_profile', type=str, required=False,
+                        help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
     @rate_limit
@@ -37,6 +39,7 @@ class FreeTextSearch(restful.Resource, Paginable):
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
         filter = kwargs.pop('filter') or ['all']
+
         if len(searchphrase) > 1:
             res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter=filter, **kwargs)
 
@@ -55,6 +58,8 @@ class BestHitSearch(restful.Resource, Paginable):
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
+    parser.add_argument('search_profile', type=str, required=False,
+                        help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
     @rate_limit
@@ -102,6 +107,8 @@ class QuickSearch(restful.Resource):
     parser.add_argument('size', type=int, required=False, help="number of objects to be returned per type")
     parser.add_argument('highlight', type=boolean, required=False,
                         help="return where the query was matched, defaults to true")
+    parser.add_argument('search_profile', type=str, required=False,
+                        help="specify the entity type to look for. Only {drug|all} at the momment")
 
     @is_authenticated
     @rate_limit
@@ -125,6 +132,7 @@ class QuickSearch(restful.Resource):
 
 
 class AutoComplete(restful.Resource):
+    # TODO delete this function from the rest of the code
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")

@@ -2,7 +2,7 @@
 
 Circle CI build: [![CircleCI](https://circleci.com/gh/opentargets/rest_api.svg?style=svg&circle-token=a6f30fb72fe7b0b079ad0f3cd232ef02a43b9e35)](https://circleci.com/gh/opentargets/rest_api)
 
-(maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base)
+(maintained, but not used in dev/prod:) [![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api)
 
 ## How to deploy
 
@@ -56,20 +56,22 @@ You can build the container from source:
 ```bash
 docker build -t rest_api:local .
 ```
-or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/opentargets_rest_api_base/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/opentargets_rest_api_base))
+or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api))
 
 ### Run
-Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable:
+Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable and the data version you have loaded in elasticsearch with
+the `OPEN_TARGETS_DATA_VERSION` environment variable (:warning: example below assumes `localhost:9200` and data version `17.12` - adjust to your
+own situation):
 ```bash
-docker run -d -p 8080:80 -e "ELASTICSEARCH_URL=http://localhost:9200" --privileged quay.io/opentargets/rest_api
+docker run -d -p 8080:80 \
+-e "ELASTICSEARCH_URL=http://localhost:9200" \
+-e "OPENTARGETS_DATA_VERSION=17.12" \
+--privileged quay.io/opentargets/rest_api
 ```
 For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
-If you try to map port 80 inside the container with `-p 8080:80` you may get a `403 access forbidden` as it will check the domain to be `*.targetvalidation.org`.
-Unless you map `localhost` to `local.targetvalidation.org` in your `/etc/host` this will cause issues.
-
 **Check that is running**
-Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/platform/docs](http://localhost:8080/platform/docs/swagger.yaml)
+Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/v3/platform/docs](http://localhost:8080/v3/platform/docs)
 
 You can ping the API with `curl localhost:8080/v3/platform/public/utils/ping`
 

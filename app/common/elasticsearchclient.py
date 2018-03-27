@@ -1291,16 +1291,191 @@ class esQuery():
 
         return q.to_dict()
 
-    def _get_free_text_query(self, searchphrase):
-        query_body = {
-            "function_score": {
-                "score_mode": "multiply",
-                'query': {
-                    "bool": {
-                        "should": [
-                            {"multi_match": {
-                                "query": searchphrase,
-                                "fields": ["name^3",
+    @staticmethod
+    def _generate_multimatch(search_phrase, analyzer_name, fields_list,
+                             type="best_fields", tie_breaker=0.0):
+        mmatch = addict.Dict()
+
+        mmatch.multi_match.query = search_phrase
+        mmatch.multi_match.fields = fields_list
+        mmatch.multi_match.analyzer = analyzer_name
+        mmatch.multi_match.tie_breaker = tie_breaker
+        mmatch.multi_match.type = type
+
+        return mmatch.to_dict()
+
+    @staticmethod
+    def _generate_mult_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "multiply"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = [
+            {
+                "field_value_factor": {
+                    "field": "association_counts.total",
+                    "factor": 0.01,
+                    "modifier": "sqrt",
+                    "missing": 1,
+                    # "weight": 0.01,
+                }
+            }
+        ]
+        return func_score.to_dict()
+
+    @staticmethod
+    def _generate_noop_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "max"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = []
+        return func_score.to_dict()
+
+    @staticmethod
+    def _generate_avg_function(analyzer_list):
+        func_score = addict.Dict()
+        func_score.function_score.score_mode = "avg"
+        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.functions = [
+            {
+                "field_value_factor": {
+                    "field": "association_counts.total",
+                    "factor": 0.01,
+                    "modifier": "ln2p",
+                    "missing": 1,
+                    # "weight": 0.01,
+                }
+            }
+        ]
+        return func_score.to_dict()
+
+    def _get_free_text_query(self, searchphrase, params=None):
+        score_function = self._generate_avg_function
+
+        ngram_analyzer = "edgeNGram_analyzer"
+        ngram_type = "best_fields"
+        ngram_fields = ["name^0.5",
+                        "full_name^0.5",
+                        "description^0.5",
+                        "efo_synonyms^0.5",
+                        #"approved_symbol^0.5",
+                        #"symbol_synonyms^0.5",
+                        "name_synonyms^0.5",
+                        "ortholog.*.name^0.5",
+                        "drugs.evidence_data^0.5",
+                        "drugs.chembl_drugs.synonyms^0.5",
+                        "drugs.drugbank^0.5",
+                        "phenotypes.label^0.5"]
+
+        whitespace_analyzer = "whitespace_analyzer"
+        whitespace_type = "phrase_prefix"
+        whitespace_fields = ["name^5",
+                             "full_name^3",
+                             "description^0.5",
+                             "efo_synonyms",
+                             "symbol_synonyms^1.2",
+                             "approved_symbol^2",
+                             "approved_name",
+                             "efo_code",
+                             "hgnc_id",
+                             "uniprot_accessions",
+                             "ensembl_gene_id",
+                             # "efo_path_codes",
+                             "name_synonyms",
+                             "gene_family_description",
+                             # "efo_path_labels^0.1",
+                             "ortholog.*.symbol^0.5",
+                             "ortholog.*.name^0.2",
+                             "drugs.evidence_data",
+                             "drugs.chembl_drugs.synonyms",
+                             "drugs.drugbank",
+                             "phenotypes.label^0.3"]
+
+        keyword_analyzer = "keyword"
+        keyword_type = "best_fields"
+        keyword_fields = ["id.keyword^100",
+                          "symbol.keyword^100",
+                          "approved_symbol.keyword^100",
+                          "uniprot_accessions.keyword^100",
+                          ]
+
+        if params:
+            if 'drug' in params.search_profile:
+                ngram_analyzer = None
+
+                keyword_fields = [
+                    "drugs.evidence_data.keyword",
+                    "drugs.chembl_drugs.synonyms.keyword",
+                ]
+
+                whitespace_fields = [
+                    "drugs.evidence_data",
+                    "drugs.chembl_drugs.synonyms",
+                    # "drugs.drugbank"
+                ]
+
+            elif 'target' in params.search_profile:
+                score_function = self._generate_noop_function
+                ngram_analyzer = None
+
+                keyword_fields = ["id.keyword^100",
+                                  "symbol.keyword^100",
+                                  "approved_symbol.keyword^100",
+                                  "ensembl_gene_id.keyword^100",
+                                  "uniprot_accessions.keyword^100",
+                                  "hgnc_id.keyword^100"
+                                  ]
+
+                ngram_analyzer = None
+                # whitespace_fields = ["name",
+                #                      "full_name",
+                #                      "symbol_synonyms",
+                #                      "approved_symbol",
+                #                      "approved_name",
+                #                      "name_synonyms",
+                #                      "gene_family_description",
+                #                      "ortholog.*.symbol^0.5",
+                #                      "ortholog.*.name^0.2"
+                #                      ]
+
+            elif 'batch' in params.search_profile:
+                score_function = self._generate_noop_function
+                ngram_analyzer = None
+
+
+                keyword_fields = ["name.keyword^8",
+                                  "full_name.keyword",
+                                  "id.keyword^20",
+                                  "symbol.keyword^10",
+                                  "approved_name.keyword^5",
+                                  "approved_symbol.keyword^5",
+                                  "symbol_synonyms.keyword^3",
+                                  "name_synonyms.keyword^3",
+                                  "uniprot_accessions.keyword",
+                                  "hgnc_id.keyword",
+                                  "ensembl_gene_id.keyword",
+                                  "ortholog.*.symbol.keyword^0.2",
+                                  "ortholog.*.id.keyword^0.2"
+                                  ]
+
+                ngram_analyzer = None
+                # whitespace_fields = ["name",
+                #                      "full_name",
+                #                      "symbol_synonyms",
+                #                      "approved_symbol",
+                #                      "approved_name",
+                #                      "name_synonyms",
+                #                      "gene_family_description",
+                #                      "ortholog.*.symbol^0.5",
+                #                      "ortholog.*.name^0.2"
+                #                      ]
+
+            elif 'old' in params.search_profile:
+                score_function = self._generate_mult_function
+
+                ngram_analyzer = None
+                whitespace_analyzer = "standard"
+                whitespace_type = "phrase_prefix"
+                whitespace_fields = ["name^3",
                                            "description^2",
                                            "efo_synonyms",
                                            "symbol_synonyms",
@@ -1313,103 +1488,36 @@ class esQuery():
                                            "ortholog.*.name^0.2",
                                            "drugs.*^0.5",
                                            "phenotypes.label^0.3"
-                                           ],
-                                "analyzer": 'standard',
-                                # "fuzziness": "AUTO",
-                                "tie_breaker": 0.0,
-                                "type": "phrase_prefix",
-                            }
-                            },
-                            {"multi_match": {
-                                "query": searchphrase,
-                                "fields": ["name^3",
-                                           "description^2",
-                                           "id",
-                                           "approved_symbol",
-                                           "symbol_synonyms",
-                                           "name_synonyms",
-                                           "uniprot_accessions",
-                                           "hgnc_id",
-                                           "ensembl_gene_id",
-                                           "efo_path_codes",
-                                           "efo_url",
-                                           "efo_synonyms^2",
-                                           "ortholog.*.symbol^0.2",
-                                           "ortholog.*.id^0.2",
-                                           "drugs.*^0.5",
-                                           "phenotypes.*"
-                                           ],
-                                "analyzer": 'keyword',
-                                # "fuzziness": "AUTO",
-                                "tie_breaker": 0,
-                                "type": "best_fields",
-                            },
-                            },
-                            # {"multi_match": {
-                            #     "query": searchphrase,
-                            #     "fields": ["name^3",
-                            #                "description",
-                            #                "approved_symbol",
-                            #                "symbol_synonyms",
-                            #                "name_synonyms",
-                            #                "efo_synonyms^0.1",
-                            #                "ortholog.*.symbol^0.5",
-                            #                "ortholog.*.name^0.2"
-                            #                ],
-                            #     "word_delimiter_analyzer":{
-                            #         "tokenizer":"whitespace",
-                            #         "filter":[
-                            #             "lowercase",
-                            #             "word_delimiter"
-                            #
-                            #         ],
-                            #         "ignore_case":True,
-                            #     },
-                            #     # "fuzziness": "AUTO",
-                            #     "tie_breaker": 0,
-                            #     "type": "best_fields",
-                            #     }
-                            # },
-                        ]
-                    },
-                },
-                "functions": [
-                    # "path_score": {
-                    #   "script": "def score=doc['min_path_len'].value; if (score ==0) {score = 1}; 1/score;",
-                    #   "lang": "groovy",
-                    # },
-                    # "script_score": {
-                    #   "script": "def score=doc['total_associations'].value; if (score ==0) {score = 1}; score/10;",
-                    #   "lang": "groovy",
-                    # }
-                    {
-                        "field_value_factor": {
-                            "field": "association_counts.total",
-                            "factor": 0.01,
-                            "modifier": "sqrt",
-                            "missing": 1,
-                            # "weight": 0.01,
-                        }
-                    },
-                    # {
-                    # "field_value_factor":{
-                    #     "field": "min_path_len",
-                    #     "factor": 0.5,
-                    #     "modifier": "reciprocal",
-                    #     "missing": 1,
-                    #     # "weight": 0.5,
-                    #     }
-                    # }
-                ],
-                # "filter": {
-                #     "exists": {
-                #       "field": "min_path_len"
-                #     }
-                #   }
+                                           ]
 
-            }
+                keyword_analyzer = "keyword"
+                keyword_type = "best_fields"
+                keyword_fields = ["name^3",
+                                  "description^2",
+                                  "id",
+                                  "approved_symbol",
+                                  "symbol_synonyms",
+                                  "name_synonyms",
+                                  "uniprot_accessions",
+                                  "hgnc_id",
+                                  "ensembl_gene_id",
+                                  "efo_path_codes",
+                                  "efo_url",
+                                  "efo_synonyms^2",
+                                  "ortholog.*.symbol^0.2",
+                                  "ortholog.*.id^0.2",
+                                  "drugs.*^0.5",
+                                  "phenotypes.*"
+                                  ]
 
-        }
+
+        analyzers = [self._generate_multimatch(searchphrase, ann, ann_fields, ann_type) \
+                        for ann, ann_fields, ann_type in [(ngram_analyzer, ngram_fields, ngram_type),
+                                    (whitespace_analyzer, whitespace_fields, whitespace_type),
+                                    (keyword_analyzer, keyword_fields, keyword_type)] \
+                        if ann is not None]
+
+        query_body = score_function(analyzers)
 
         return query_body
 
@@ -1886,7 +1994,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         if params.fields:
             source_filter["includes"] = params.fields
 
-        body = {'query': self._get_free_text_query(searchphrase),
+        body = {'query': self._get_free_text_query(searchphrase, params),
                 'size': params.size,
                 'from': params.start_from,
                 '_source': source_filter,
@@ -1899,7 +2007,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         try:
             res = self._cached_search(index=self._index_search,
                                    doc_type=doc_types,
-                                   body=body,
+                                   body=body
                                    )
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
@@ -1924,7 +2032,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         for searchphrase in searchphrases:
             # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
-            body = {'query': self._get_free_text_query(searchphrase.lower()),
+            body = {'query': self._get_free_text_query(searchphrase.lower(), params),
                     'size': 1,
                     'from': params.start_from,
                     '_source': source_filter,
@@ -2192,6 +2300,8 @@ class SearchParams(object):
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
         self._max_score = 1e6
         self.cap_scores = kwargs.get('cap_scores', True)
+
+        self.search_profile = kwargs.pop('search_profile', '') or ''
 
         # range query
         self.range_begin = kwargs.get('begin', 0)
