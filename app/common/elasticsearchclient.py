@@ -1301,6 +1301,7 @@ class esQuery():
         mmatch.multi_match.analyzer = analyzer_name
         mmatch.multi_match.tie_breaker = tie_breaker
         mmatch.multi_match.type = type
+        # mmatch.multi_match.fuzziness = "AUTO"
 
         return mmatch.to_dict()
 
@@ -1352,25 +1353,41 @@ class esQuery():
         score_function = self._generate_avg_function
 
         ngram_analyzer = "edgeNGram_analyzer"
-        ngram_type = "best_fields"
-        ngram_fields = ["name^0.5",
-                        "full_name^0.5",
-                        "description^0.5",
-                        "efo_synonyms^0.5",
-                        #"approved_symbol^0.5",
-                        #"symbol_synonyms^0.5",
-                        "name_synonyms^0.5",
-                        "ortholog.*.name^0.5",
-                        "drugs.evidence_data^0.5",
-                        "drugs.chembl_drugs.synonyms^0.5",
-                        "drugs.drugbank^0.5",
-                        "phenotypes.label^0.5"]
+        ngram_type = "cross_fields"
+        # ngram_fields = ["name^0.5",
+        #                 "full_name^0.5",
+        #                 "description^0.5",
+        #                 "efo_synonyms^0.5",
+        #                 #"approved_symbol^0.5",
+        #                 #"symbol_synonyms^0.5",
+        #                 "name_synonyms^0.5",
+        #                 "ortholog.*.name^0.5",
+        #                 "drugs.evidence_data^0.5",
+        #                 "drugs.chembl_drugs.synonyms^0.5",
+        #                 "drugs.drugbank^0.5",
+        #                 "phenotypes.label^0.5"]
+        ngram_fields = ["name^5",
+                         "full_name^3",
+                         "description^0.5",
+                         "efo_synonyms",
+                         "symbol_synonyms^1.2",
+                         "approved_symbol^2",
+                         "approved_name",
+                         "uniprot_accessions",
+                         "name_synonyms",
+                         "gene_family_description",
+                         "ortholog.*.symbol^0.5",
+                         "ortholog.*.name^0.2",
+                         "drugs.evidence_data",
+                         "drugs.chembl_drugs.synonyms",
+                         "drugs.drugbank",
+                         "phenotypes.label^0.3"]
 
         whitespace_analyzer = "whitespace_analyzer"
         whitespace_type = "phrase_prefix"
-        whitespace_fields = ["name^5",
-                             "full_name^3",
-                             "description^0.5",
+        whitespace_fields = ["name",
+                             "full_name",
+                             "description",
                              "efo_synonyms",
                              "symbol_synonyms^1.2",
                              "approved_symbol^2",
@@ -1379,10 +1396,8 @@ class esQuery():
                              "hgnc_id",
                              "uniprot_accessions",
                              "ensembl_gene_id",
-                             # "efo_path_codes",
                              "name_synonyms",
                              "gene_family_description",
-                             # "efo_path_labels^0.1",
                              "ortholog.*.symbol^0.5",
                              "ortholog.*.name^0.2",
                              "drugs.evidence_data",
@@ -1518,6 +1533,8 @@ class esQuery():
                         if ann is not None]
 
         query_body = score_function(analyzers)
+
+        pprint.pprint(query_body)
 
         return query_body
 
@@ -2009,6 +2026,8 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                    doc_type=doc_types,
                                    body=body
                                    )
+
+            pprint.pprint(res)
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
