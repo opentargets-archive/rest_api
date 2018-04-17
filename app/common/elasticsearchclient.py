@@ -1509,7 +1509,7 @@ class esQuery():
 
         query_body = score_function(analyzers)
 
-        pprint.pprint(query_body)
+        # pprint.pprint(query_body)
 
         return query_body
 
@@ -2002,7 +2002,7 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
                                    body=body
                                    )
 
-            pprint.pprint(res)
+            # pprint.pprint(res)
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
