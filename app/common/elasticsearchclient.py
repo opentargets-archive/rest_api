@@ -1431,6 +1431,7 @@ class esQuery():
             elif 'target' in params.search_profile:
                 score_function = self._generate_noop_function
                 ngram_analyzer = None
+                # whitespace_analyzer = None
 
                 keyword_fields = ["id.keyword^100",
                                   "symbol.keyword^100",
@@ -1440,22 +1441,8 @@ class esQuery():
                                   "hgnc_id.keyword^100"
                                   ]
 
-                ngram_analyzer = None
-                # whitespace_fields = ["name",
-                #                      "full_name",
-                #                      "symbol_synonyms",
-                #                      "approved_symbol",
-                #                      "approved_name",
-                #                      "name_synonyms",
-                #                      "gene_family_description",
-                #                      "ortholog.*.symbol^0.5",
-                #                      "ortholog.*.name^0.2"
-                #                      ]
-
             elif 'batch' in params.search_profile:
                 score_function = self._generate_noop_function
-                ngram_analyzer = None
-
 
                 keyword_fields = ["name.keyword^8",
                                   "full_name.keyword",
@@ -1471,18 +1458,6 @@ class esQuery():
                                   "ortholog.*.symbol.keyword^0.2",
                                   "ortholog.*.id.keyword^0.2"
                                   ]
-
-                ngram_analyzer = None
-                # whitespace_fields = ["name",
-                #                      "full_name",
-                #                      "symbol_synonyms",
-                #                      "approved_symbol",
-                #                      "approved_name",
-                #                      "name_synonyms",
-                #                      "gene_family_description",
-                #                      "ortholog.*.symbol^0.5",
-                #                      "ortholog.*.name^0.2"
-                #                      ]
 
             elif 'old' in params.search_profile:
                 score_function = self._generate_mult_function
