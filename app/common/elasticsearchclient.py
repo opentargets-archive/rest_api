@@ -1293,16 +1293,20 @@ class esQuery():
 
     @staticmethod
     def _generate_multimatch(search_phrase, analyzer_name, fields_list,
-                             type="best_fields", tie_breaker=0.0):
+                             type="best_fields", operator="or"):
         mmatch = addict.Dict()
 
         mmatch.multi_match.query = search_phrase
         mmatch.multi_match.fields = fields_list
         mmatch.multi_match.analyzer = analyzer_name
-        mmatch.multi_match.tie_breaker = tie_breaker
+        mmatch.multi_match.tie_breaker = 0.0
         mmatch.multi_match.type = type
+        if operator is not None:
+            mmatch.multi_match.operator = operator
+
         # mmatch.multi_match.fuzziness = "AUTO"
 
+        ## pprint.pprint(mmatch.to_dict())
         return mmatch.to_dict()
 
     @staticmethod
@@ -1354,6 +1358,8 @@ class esQuery():
 
         ngram_analyzer = "edgeNGram_analyzer"
         ngram_type = "cross_fields"
+        ngram_operator = None
+
         # ngram_fields = ["name^0.5",
         #                 "full_name^0.5",
         #                 "description^0.5",
@@ -1366,38 +1372,39 @@ class esQuery():
         #                 "drugs.chembl_drugs.synonyms^0.5",
         #                 "drugs.drugbank^0.5",
         #                 "phenotypes.label^0.5"]
-        ngram_fields = ["name^5",
-                         "full_name^3",
+        ngram_fields = ["name",
+                         "full_name",
+                        "approved_name",
                          "description^0.5",
-                         "efo_synonyms",
-                         "symbol_synonyms^1.2",
-                         "approved_symbol^2",
-                         "approved_name",
-                         "uniprot_accessions",
-                         "name_synonyms",
-                         "gene_family_description",
-                         "ortholog.*.symbol^0.5",
-                         "ortholog.*.name^0.2",
+                         "efo_synonyms^0.5",
+                         "symbol_synonyms^0.5",
+                         "approved_symbol^0.5",
+                         # "uniprot_accessions",
+                         "name_synonyms^0.5",
+                         # "gene_family_description^0.5",
+                         # "ortholog.*.symbol^0.2",
+                         # "ortholog.*.name^0.2",
                          "drugs.evidence_data",
-                         "drugs.chembl_drugs.synonyms",
-                         "drugs.drugbank",
-                         "phenotypes.label^0.3"]
+                         "drugs.chembl_drugs.synonyms^0.2",
+                         "drugs.drugbank^0.2",
+                         "phenotypes.label^0.2"]
 
+        whitespace_operator = None
         whitespace_analyzer = "whitespace_analyzer"
         whitespace_type = "phrase_prefix"
-        whitespace_fields = ["name",
-                             "full_name",
+        whitespace_fields = ["name^5",
+                             "full_name^3",
                              "description",
                              "efo_synonyms",
                              "symbol_synonyms^1.2",
                              "approved_symbol^2",
-                             "approved_name",
+                             "approved_name^2",
                              "efo_code",
                              "hgnc_id",
                              "uniprot_accessions",
                              "ensembl_gene_id",
                              "name_synonyms",
-                             "gene_family_description",
+                             # "gene_family_description",
                              "ortholog.*.symbol^0.5",
                              "ortholog.*.name^0.2",
                              "drugs.evidence_data",
@@ -1405,6 +1412,7 @@ class esQuery():
                              "drugs.drugbank",
                              "phenotypes.label^0.3"]
 
+        keyword_operator = None
         keyword_analyzer = "keyword"
         keyword_type = "best_fields"
         keyword_fields = ["id.keyword^100",
@@ -1501,15 +1509,15 @@ class esQuery():
                                   ]
 
 
-        analyzers = [self._generate_multimatch(searchphrase, ann, ann_fields, ann_type) \
-                        for ann, ann_fields, ann_type in [(ngram_analyzer, ngram_fields, ngram_type),
-                                    (whitespace_analyzer, whitespace_fields, whitespace_type),
-                                    (keyword_analyzer, keyword_fields, keyword_type)] \
+        analyzers = [self._generate_multimatch(searchphrase, ann, ann_fields, ann_type, ann_operator) \
+                        for ann, ann_fields, ann_type, ann_operator in [(ngram_analyzer, ngram_fields, ngram_type, ngram_operator),
+                                    (whitespace_analyzer, whitespace_fields, whitespace_type, whitespace_operator),
+                                    (keyword_analyzer, keyword_fields, keyword_type, keyword_operator)] \
                         if ann is not None]
 
         query_body = score_function(analyzers)
 
-        # pprint.pprint(query_body)
+        ## pprint.pprint(query_body)
 
         return query_body
 
