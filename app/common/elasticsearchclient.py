@@ -1306,7 +1306,7 @@ class esQuery():
 
         # mmatch.multi_match.fuzziness = "AUTO"
 
-        ## pprint.pprint(mmatch.to_dict())
+        # pprint.pprint(mmatch.to_dict())
         return mmatch.to_dict()
 
     @staticmethod
@@ -1330,9 +1330,7 @@ class esQuery():
     @staticmethod
     def _generate_noop_function(analyzer_list):
         func_score = addict.Dict()
-        func_score.function_score.score_mode = "max"
-        func_score.function_score.query.bool.should = analyzer_list
-        func_score.function_score.functions = []
+        func_score.bool.should = analyzer_list
         return func_score.to_dict()
 
     @staticmethod
@@ -1452,20 +1450,50 @@ class esQuery():
             elif 'batch' in params.search_profile:
                 score_function = self._generate_noop_function
 
-                keyword_fields = ["name.keyword^8",
-                                  "full_name.keyword",
-                                  "id.keyword^20",
-                                  "symbol.keyword^10",
-                                  "approved_name.keyword^5",
-                                  "approved_symbol.keyword^5",
-                                  "symbol_synonyms.keyword^3",
-                                  "name_synonyms.keyword^3",
-                                  "uniprot_accessions.keyword",
-                                  "hgnc_id.keyword",
-                                  "ensembl_gene_id.keyword",
-                                  "ortholog.*.symbol.keyword^0.2",
-                                  "ortholog.*.id.keyword^0.2"
+                ngram_analyzer = None
+
+                whitespace_operator = None
+                whitespace_analyzer = "whitespace_analyzer"
+                # whitespace_analyzer = None
+                whitespace_type = "phrase_prefix"
+                whitespace_fields = ["name",
+                                  "id",
+                                  "symbol",
+                                  "approved_symbol",
+                                  "symbol_synonyms",
+                                  "name_synonyms",
+                                  "uniprot_accessions",
+                                  "hgnc_id",
+                                  "ensembl_gene_id",
+                                  "ortholog.*.symbol^0.2",
+                                  "ortholog.*.id^0.2"
                                   ]
+
+                keyword_operator = None
+                keyword_analyzer = "keyword"
+                keyword_type = "phrase"
+
+                keyword_fields = ["name.keyword^100",
+                                  "id^100",
+                                  "symbol^100",
+                                  "approved_name.keyword^100",
+                                  "approved_symbol^100",
+                                  "symbol_synonyms^100",
+                                  "name_synonyms^100",
+                                  "uniprot_accessions^100",
+                                  "hgnc_id^100",
+                                  "ensembl_gene_id^100",
+                                  "ortholog.*.symbol^0.2",
+                                  "ortholog.*.id^0.2"
+                ]
+
+                # keyword_fields = ["id.keyword^100",
+                #                   "symbol.keyword^100",
+                #                   "approved_symbol.keyword^100",
+                #                   "ensembl_gene_id.keyword^100",
+                #                   "uniprot_accessions.keyword^100",
+                #                   "hgnc_id.keyword^100"
+                #                   ]
 
             elif 'old' in params.search_profile:
                 score_function = self._generate_mult_function
