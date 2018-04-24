@@ -1457,10 +1457,8 @@ class esQuery():
                 # whitespace_analyzer = None
                 whitespace_type = "phrase_prefix"
                 whitespace_fields = ["name",
-                                  "full_name",
                                   "id",
                                   "symbol",
-                                  "approved_name",
                                   "approved_symbol",
                                   "symbol_synonyms",
                                   "name_synonyms",
@@ -1473,13 +1471,12 @@ class esQuery():
 
                 keyword_operator = None
                 keyword_analyzer = "keyword"
-                keyword_type = "best_fields"
+                keyword_type = "phrase"
 
-                keyword_fields = ["name^100",
-                                  "full_name^100",
+                keyword_fields = ["name.keyword^100",
                                   "id^100",
                                   "symbol^100",
-                                  "approved_name^100",
+                                  "approved_name.keyword^100",
                                   "approved_symbol^100",
                                   "symbol_synonyms^100",
                                   "name_synonyms^100",
