@@ -52,7 +52,7 @@ jobs:
             echo -e "### sed hacking to clean up the template ..."
             mkdir app/static
             sed 's/host: .*/host: \"api.opentargets.io\"/' openapi.template.yaml | sed '/.*x-google.*/,+3d' | envsubst > app/static/openapi.yaml
-            
+
       - setup_remote_docker
       - run:
           name: Build Docker image
@@ -170,7 +170,7 @@ jobs:
               else
                 gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
             fi
-            
+
       - run:
           name: delete instance if deployment has failed / timed out
           command: |
@@ -275,14 +275,10 @@ jobs:
 
       - run:
           name: Deploy branch to google AppEngine (Staging)
+          no_output_timeout: 30m
           command: |
             gcloud app deploy --no-promote --no-stop-previous-version --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
-      - run:
-          name: delete instance if deployment has failed / timed out
-          command: |
-            gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
-          when: on_fail
 
 
   api-tests-staging:
@@ -330,7 +326,7 @@ jobs:
       - run:
           name: Split traffic over to new version (staging)
           command: |
-            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID} 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID}
       - run:
           name: Cleanup DANGLING Endpoints versions (staging)
           command: |
@@ -431,7 +427,7 @@ jobs:
             set -o allexport
             source VERSION
             python .circleci/runscope.py
-  
+
   api-tests-prod-jp:
     docker:
       - image: python:2.7
@@ -501,7 +497,7 @@ jobs:
           command: |
             gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
           when: on_fail
-      
+
 
 
   deploy-prod-jp:
@@ -577,9 +573,9 @@ jobs:
           name: Split traffic over to new versions (prod)
           no_output_timeout: 30m
           command: |
-            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-jp 
-            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-eu 
-            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-us 
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-jp
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-eu
+            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project open-targets-api-prod-us
       - run:
           name: Cleanup STOPPED AppEngine versions (prod)
           command: |
@@ -698,7 +694,7 @@ workflows:
               ignore: /.*/
             tags:
               only: /^prod.*/
-      
+
       - holdsplit:
           type: approval
           requires:
