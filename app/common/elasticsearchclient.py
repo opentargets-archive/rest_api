@@ -1413,11 +1413,21 @@ class esQuery():
         keyword_operator = None
         keyword_analyzer = "keyword"
         keyword_type = "best_fields"
-        keyword_fields = ["id.keyword^100",
-                          "symbol.keyword^100",
-                          "approved_symbol.keyword^100",
-                          "uniprot_accessions.keyword^100",
-                          ]
+        # keyword_fields = ["id.keyword^100",
+        #                   "symbol.keyword^100",
+        #                   "approved_symbol.keyword^100",
+        #                   "uniprot_accessions.keyword^100",
+        #                   ]
+        keyword_fields = ["name.keyword^100",
+                          "id^100",
+                          "symbol^100",
+                          "approved_name.keyword^100",
+                          "approved_symbol^100",
+                          "symbol_synonyms^100",
+                          "name_synonyms^100",
+                          "uniprot_accessions^100",
+                          "hgnc_id^100",
+                          "ensembl_gene_id^100"]
 
         if params:
             if 'drug' in params.search_profile:
