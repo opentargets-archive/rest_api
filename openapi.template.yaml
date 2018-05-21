@@ -23,6 +23,15 @@ info:
     Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
     least a 24 hour ban.
 tags:
+  - name: filters
+    # open: true
+    description: Methods to filter the available evidence.
+  - name: retrieve
+    # open: true
+    description: Methods to get specific evidence.
+  - name: search
+    # open: true
+    description: Methods to search for target or diseases.
   - name: public
     # open: true
     description: Publicly supported stable API.
@@ -38,11 +47,16 @@ tags:
 x-tagGroups:
   - name: Stable
     tags:
-      - public
+      - filter
+      - retrieve
+      - search
   - name: Utilities
     tags:
-      - private
       - utils
+      - private
+  - name: All
+      - public
+      - private
 consumes:
   - application/json
 produces:
@@ -94,6 +108,7 @@ paths:
       operationId: getEvidenceById
       tags:
         - public
+        - retrieve
       description: |
         We call **evidence** a unit of data that support a connection between a target and a disease.
         The Open Targets Platform integrates multiple types of evidence including genetic associations,
@@ -131,6 +146,7 @@ paths:
       operationId: postEvidenceById
       tags:
         - public
+        - retrieve
       description: |
         This is the POST version of [/public/evidence](#!/public/get_public_evidence).
         It allows to query for a list of evidence strings encoded in a `json` object to be passed in the body.
@@ -164,6 +180,7 @@ paths:
       operationId: getEvidenceFilter
       tags:
         - public
+        - filter
       description: |
         The filter method allows to retrieve the specific data that supports a connection between targets and diseases.
         Filters can be used to restrict the results by source and type of data,
@@ -256,6 +273,7 @@ paths:
       operationId: postEvidenceFilter
       tags:
         - public
+        - filter
       description: |
         POST version of [/public/evidence/filter](#!/public/get_public_evidence_filter).
         Filters can be specified as part of a `json` object in the body, simplifying the submission of queries.
@@ -289,6 +307,7 @@ paths:
       operationId: getAssociationById
       tags:
         - public
+        - retrieve
       description: |
        Once we integrate all evidence connecting a target to a specific disease, we
         compute an association score by the means of an harmonic sum. This *association score* provides
@@ -313,6 +332,7 @@ paths:
       operationId: getAssociationFilter
       tags:
         - public
+        - filter
       description: |
         More complex queries for associations scores and objects can be done using
         this method, which allows to sort in different order, restrict to a specific class
@@ -449,6 +469,7 @@ paths:
       operationId: postAssociationFilter
       tags:
         - public
+        - filter
       description: |
         Complex queries and filters for association objects can also be submitted using a JSON
         object and the equivalent POST method.
@@ -477,8 +498,8 @@ paths:
           #       id:
           #         type: string
   /platform/private/disease/{disease}:
-    summary: Find information about a disease
     get:
+      summary: Find information about a disease
       operationId: getDiseaseById
       tags:
         - private
@@ -494,8 +515,8 @@ paths:
         200:
           description: Successful response
   /platform/private/disease:
-    summary: Find information about a list of diseases
     post:
+      summary: Find information about a list of diseases
       operationId: postDiseaseById
       tags:
         - private
@@ -710,6 +731,7 @@ paths:
       operationId: getSearch
       tags:
         - public
+        - search
       description: |
         This method allows you to look for gene or diseases of interest using a free text search,
         replicating the functionality of the search box on our homepage. It should be used to identify
