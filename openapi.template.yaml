@@ -268,6 +268,11 @@ paths:
       responses:
         200:
           description: Successful response
+      x-code-samples:
+        - lang: 'httpie'
+          source: |
+            http https://www.targetvalidation.org/api/latest/public/evidence/filter target==ENSG00000167207 disease==EFO_0003767 datastructure==simple
+
     post:
       summary: Batch filter available evidence
       operationId: postEvidenceFilter
@@ -464,6 +469,10 @@ paths:
           #     properties:
           #       id:
           #         type: string
+      x-code-samples:
+        - lang: 'httpie'
+          source: |
+            http https://www.targetvalidation.org/api/latest/public/association/filter target==ENSG00000167207 disease==EFO_0003767
     post:
       summary: Batch query available associations
       operationId: postAssociationFilter
@@ -760,6 +769,19 @@ paths:
       responses:
         200:
           description: Successful response
+      x-code-samples:
+        - lang: 'httpie'
+          source: |
+            http https://api.opentargets.io/api/latest/public/search q==NOD2 size==1 filter==target
+        - lang: 'Python'
+          source: |
+            import requests
+            from pprint import pprint
+            r = requests.get('https://www.targetvalidation.org/api/latest/public/search',
+                            params={"q":"NOD2","size":1})
+            pprint(r.json())
+
+
   /platform/private/quicksearch:
     get:
       summary: Search most relevant results
