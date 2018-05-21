@@ -25,8 +25,6 @@ The available methods can be grouped in four types:
 * __private__ - Methods used by the web app to serve additional data not specific to our platform. These methods
 may change without notice and should be used with caution.
 * __utils__ - Methods to get statistics and technical data about our API.
-* __auth__ - Methods used for authentication. These are only relevant if you have an API key (see the 'Fair Usage
-and API keys' section below for more details).
 
 ### Supported formats
 
