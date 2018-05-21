@@ -60,12 +60,23 @@ paths:
       operationId: getApiDocs
       tags:
         - private
-      description: Get api-description.md for the API
+      description: Access api docs as served by Redoc
       produces:
       - "application/json"
       responses:
         200:
-          description: "Markdown API documentation file"
+          description: "Redoc API documentation file"
+  /platform/docs/swagger-ui:
+    get:
+      operationId: getApiSwaggerUI
+      tags:
+        - private
+      description: Interactive API docs using swagger-ui
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Swagger-UI API documentation file"
   /platform/public/evidence:
     get:
       operationId: getEvidenceById
