@@ -35,6 +35,14 @@ tags:
   - name: utils
     # open: true
     description: Utility methods.
+x-tagGroups:
+  - name: Stable
+    tags:
+      - public
+  - name: Utilities
+    tags:
+      - private
+      - utils
 consumes:
   - application/json
 produces:
@@ -46,6 +54,7 @@ produces:
 paths:
   /platform/swagger:
     get:
+      summary: Get OpenAPI schema
       operationId: getSwagger
       tags:
         - private
@@ -57,6 +66,7 @@ paths:
           description: "Swagger.yaml file"
   /platform/docs:
     get:
+      summary: Browse API documentation
       operationId: getApiDocs
       tags:
         - private
@@ -68,6 +78,7 @@ paths:
           description: "Redoc API documentation file"
   /platform/docs/swagger-ui:
     get:
+      summary: Browse interactive API documentation
       operationId: getApiSwaggerUI
       tags:
         - private
@@ -79,6 +90,7 @@ paths:
           description: "Swagger-UI API documentation file"
   /platform/public/evidence:
     get:
+      summary: Get evidence by ID
       operationId: getEvidenceById
       tags:
         - public
@@ -96,7 +108,7 @@ paths:
       parameters:
         - name: id
           in: query
-          description: ID of the evidence string to retrieve.
+          description: Internal unique ID of the evidence string to retrieve.
           required: true
           type: string
       responses:
@@ -115,6 +127,7 @@ paths:
           #       id:
           #         type: string
     post:
+      summary: Get evidence for a list of IDs
       operationId: postEvidenceById
       tags:
         - public
@@ -147,6 +160,7 @@ paths:
           #         type: string
   /platform/public/evidence/filter:
     get:
+      summary: Filter available evidence
       operationId: getEvidenceFilter
       tags:
         - public
@@ -238,6 +252,7 @@ paths:
         200:
           description: Successful response
     post:
+      summary: Batch filter available evidence
       operationId: postEvidenceFilter
       tags:
         - public
@@ -270,6 +285,7 @@ paths:
           #         type: string
   /platform/public/association:
     get:
+      summary: Get association by id
       operationId: getAssociationById
       tags:
         - public
@@ -293,6 +309,7 @@ paths:
           description: Successful response
   /platform/public/association/filter:
     get:
+      summary: Filter available associations
       operationId: getAssociationFilter
       tags:
         - public
@@ -428,6 +445,7 @@ paths:
           #       id:
           #         type: string
     post:
+      summary: Batch query available associations
       operationId: postAssociationFilter
       tags:
         - public
@@ -459,6 +477,7 @@ paths:
           #       id:
           #         type: string
   /platform/private/disease/{disease}:
+    summary: Find information about a disease
     get:
       operationId: getDiseaseById
       tags:
@@ -475,6 +494,7 @@ paths:
         200:
           description: Successful response
   /platform/private/disease:
+    summary: Find information about a list of diseases
     post:
       operationId: postDiseaseById
       tags:
@@ -496,6 +516,7 @@ paths:
           description: Successful response
   /platform/private/eco/{ECO_ID}:
     get:
+      summary: Get evidence code by ID
       operationId: getECObyID
       tags:
         - private
@@ -512,6 +533,7 @@ paths:
           description: Successful response
   /platform/private/target/{target}:
     get:
+      summary: Find information about a target
       operationId: getTargetByENSGID
       tags:
         - private
@@ -528,11 +550,12 @@ paths:
           description: Successful response
   /platform/private/target:
     post:
+      summary: Find information about a list of targets
       operationId: postTargetByENSGID
       tags:
         - private
       description: |
-         Get `target` objects.
+         Get `target` objects. Used for the target profile page.
       parameters:
         - name: body
           in: body
@@ -548,6 +571,7 @@ paths:
           description: Successful response
   /platform/private/target/expression:
     get:
+      summary: Query expression levels
       operationId: getTargetExpressionByENSGID
       tags:
         - private
@@ -563,6 +587,7 @@ paths:
         200:
           description: Successful response
     post:
+      summary: Batch query expression levels
       operationId: postTargetExpressionByENSGID
       tags:
         - private
@@ -582,6 +607,7 @@ paths:
           description: Successful response
   /platform/private/relation/target/{target}:
     get:
+      summary: Find related entities by target
       operationId: getRelationByENSGID
       tags:
         - private
@@ -598,6 +624,7 @@ paths:
           description: Successful response
   /platform/private/relation:
     post:
+      summary: Find related entities
       operationId: postRelation
       tags:
         - private
@@ -617,6 +644,7 @@ paths:
           description: Successful response
   /platform/private/relation/disease/{disease}:
     get:
+      summary: Find related entities by disease
       operationId: getRelationByEFOID
       tags:
         - private
@@ -633,6 +661,7 @@ paths:
           description: Successful response
   /platform/private/besthitsearch:
     post:
+      summary: Find the best hit
       operationId: postBestHitSearch
       tags:
         - private
@@ -655,6 +684,7 @@ paths:
           description: Successful response
   /platform/private/enrichment/targets:
     post:
+      summary: Enrichment analysis
       operationId: postEnrichmentTarget
       tags:
         - private
@@ -676,6 +706,7 @@ paths:
           description: Successful response
   /platform/public/search:
     get:
+      summary: Search for a disease or a target
       operationId: getSearch
       tags:
         - public
@@ -709,11 +740,12 @@ paths:
           description: Successful response
   /platform/private/quicksearch:
     get:
+      summary: Search most relevant results
       operationId: getQuickSearch
       tags:
         - private
       description: |
-        Get `search-result` objects.
+        Get `search-result` objects. Enables search bar functionality.
       parameters:
         - name: q
           in: query
@@ -730,11 +762,12 @@ paths:
           description: Successful response
   /platform/private/autocomplete:
     get:
+      summary: Get `autocomplete` objects.
       operationId: getAutocomplete
       tags:
         - private
       description: |
-        Get `autocomplete` objects.
+        Search for the closest term to autocomplete in the search box.
       parameters:
         - name: q
           in: query
@@ -801,34 +834,49 @@ paths:
           description: Successful response
   /platform/public/utils/ping:
     get:
+      summary: Ping service
       operationId: getPing
       tags:
         - public
         - utils
       description: |
-        Ping service
+        Check if the API is up
       responses:
         200:
           description: Successful response
   /platform/public/utils/version:
     get:
+      summary: Get API version
       operationId: getVersion
       tags:
         - public
         - utils
       description: |
-        Get current API version.
+        Returns current API version.
       responses:
         200:
           description: Successful response
+      x-code-samples:
+        - lang: 'Shell'
+          source: |
+            curl -X GET https://www.targetvalidation.org/api/latest/public/utils/version
   /platform/public/utils/stats:
     get:
+      summary: Get statistics about the current data release
       operationId: getDataStats
       tags:
         - public
         - utils
       description: |
-        Get stats about available data.
+        Returns the number of associations and evidences, divided by datasource.
       responses:
         200:
           description: Successful response
+      x-code-samples:
+        - lang: 'Python'
+          source: |
+            import requests
+            r = requests.get('https://www.targetvalidation.com/api/latest/public/stats')
+            assert r.status_code == 200
+            assert r.headers['content-type'] == 'application/json'
+            print(r.json())
