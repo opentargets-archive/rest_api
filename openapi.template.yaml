@@ -29,9 +29,6 @@ tags:
   - name: private
     description: Unstable API methods. Subject to change without prior notice. Use at your own risk.
     # open: false
-  - name: auth
-    description: Authentication methods.
-    # open: false
   - name: utils
     # open: true
     description: Utility methods.
@@ -735,56 +732,6 @@ paths:
           description: Maximum amount of results to return. Defaults to 5.
           required: false
           type: string
-      responses:
-        200:
-          description: Successful response
-  /platform/public/auth/request_token:
-    get:
-      operationId: getAuthToken
-      tags:
-        - public
-        - auth
-      description: |
-        Get an authentication token in the form of [JWT](https://jwt.io/).
-      parameters:
-        - name: app_name
-          in: query
-          description: The name of the app you are using to request a token. You need to register the app before you will be able to request a token.
-          required: true
-          type: string
-        - name: secret
-          in: query
-          description: The secret you were given when registering your app.
-          required: true
-          type: string
-        #- name: uid
-        #  in: query
-        #  description: the id of the user that is using your app
-        #  required: false
-        #  type: string
-        #- name: password
-        #  in: query
-        #  description: the password of the user that is using your app
-        #  required: false
-        #  type: string
-        - name: expiry
-          in: query
-          description: Seconds before the token expires
-          required: false
-          type: string
-      responses:
-        200:
-          description: Successful response
-  /platform/public/auth/validate_token:
-    get:
-      operationId: ValidateToken
-      tags:
-        - public
-        - utils
-        - auth
-      description: |
-        It succeeds if token is valid. You should test this call by passing the token in the header
-        as 'Auth-Token'.
       responses:
         200:
           description: Successful response
