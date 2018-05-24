@@ -246,7 +246,7 @@ def create_app(config_name):
 
 
     '''serve the static docs'''
-    
+
     try:
         '''
         NOTE: this file gets created only at deployment time
@@ -272,6 +272,9 @@ def create_app(config_name):
     def render_redoc(apiversion=api_version):
         return render_template('docs.html',api_version=apiversion)
 
+    @app.route('/v%s/platform/docs/swagger-ui' % str(api_version))
+    def render_swaggerui(apiversion=api_version):
+        return render_template('swaggerui.html',api_version=apiversion)
 
     '''pre and post-request'''
 

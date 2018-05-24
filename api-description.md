@@ -6,9 +6,14 @@ allows programmatic retrieval of our data via a set of
 services.
 
 You can make calls to the latest version of our API using the base URL
- `https://api.opentargets.io/v3/platform`. Please make sure you use `https` instead of the unencrypted
- `http` calls, which we do not accept. Note that we only serve the latest version of the API. If you are interested in querying
- an old version, please [get in touch](mailto:support@targetvalidation.org) so that we can help.
+`https://api.opentargets.io/v3/platform`. Please make sure you use `https`
+instead of the unencrypted `http` calls, which we do not accept.
+
+Continue reading below or [try query in the interactive interface](https://api.opentargets.io/v3/platform/docs/swagger-ui)
+
+Note that we only serve the latest version of the API. If you are interested in querying an
+old version, please [get in touch](mailto:support@targetvalidation.org) so that
+we can help.
 
 We list below the methods available for you to query our data directly from the API. These methods will be
 automatically generated from our Swagger UI. For every request you create, the interface will display a [curl](https://curl.haxx.se/) command

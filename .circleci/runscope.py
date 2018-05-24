@@ -19,9 +19,9 @@ def base_path():
     return '/v{}/platform'.format(os.environ['API_VERSION'])
 
 def ping():
-    return requests.get('https://' + 
-                            host_url() + 
-                            base_path() + 
+    return requests.get('https://' +
+                            host_url() +
+                            base_path() +
                             '/public/utils/ping')
 
 TRIGGER_URL = "https://api.runscope.com/radar/bucket/{}/trigger".format(os.environ['RUNSCOPE_BUCKET_ID'])
@@ -42,12 +42,12 @@ def main():
     while ping().status_code != 200:
         sys.stdout.write('.')
         sys.stdout.flush()
-        time.sleep(attempts)
+        time.sleep(attempts ** 2)
         attempts+=1
-        if attempts > 10: raise SystemExit('no API available')
+        if attempts > 8: raise SystemExit('no API available')
 
 
-    print 'Triggering runscope tests'    
+    print 'Triggering runscope tests'
     trigger_resp = requests.get(TRIGGER_URL,params=PAYLOAD)
 
     if trigger_resp.ok:
@@ -85,7 +85,7 @@ def _get_result(test_run):
         sys.exit(1)
 
     API_TOKEN = os.environ["RUNSCOPE_ACCESS_TOKEN"]
-    
+
     opts = {
         "base_url": "https://api.runscope.com",
         "bucket_key": test_run.get("bucket_key"),
