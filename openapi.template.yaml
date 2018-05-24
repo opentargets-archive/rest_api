@@ -23,7 +23,7 @@ info:
     Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
     least a 24 hour ban.
 tags:
-  - name: filters
+  - name: filter
     # open: true
     description: Methods to filter the available evidence.
   - name: retrieve
@@ -55,6 +55,7 @@ x-tagGroups:
       - utils
       - private
   - name: All
+    tags:
       - public
       - private
 consumes:
