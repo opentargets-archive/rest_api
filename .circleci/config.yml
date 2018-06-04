@@ -94,12 +94,12 @@ jobs:
             if [ -n "${CIRCLE_TAG:+1}" ]; then
               ## tag tag :) and push
               docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_TAG}
-              docker push ${GCR_REPO}:${CIRCLE_TAG}
+              docker push ${QUAY_REPO}:${CIRCLE_TAG}
               docker tag ${QUAY_REPO}:${CIRCLE_TAG} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
             elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
               ## branch tag and push
               docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-              docker push ${GCR_REPO}:${CIRCLE_BRANCH}
+              docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
               docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
             else
               echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
