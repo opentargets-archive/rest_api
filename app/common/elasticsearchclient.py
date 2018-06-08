@@ -1412,7 +1412,7 @@ class esQuery():
 
         keyword_operator = None
         keyword_analyzer = "keyword"
-        keyword_type = "best_fields"
+        keyword_type = "phrase"
         # keyword_fields = ["id.keyword^100",
         #                   "symbol.keyword^100",
         #                   "approved_symbol.keyword^100",
@@ -1488,8 +1488,8 @@ class esQuery():
                                   "symbol^100",
                                   "approved_name.keyword^100",
                                   "approved_symbol^100",
-                                  "symbol_synonyms^100",
-                                  "name_synonyms^100",
+                                  "symbol_synonyms^60",
+                                  "name_synonyms^60",
                                   "uniprot_accessions^100",
                                   "hgnc_id^100",
                                   "ensembl_gene_id^100",
