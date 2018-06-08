@@ -125,7 +125,7 @@ jobs:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://es5-propofol:9200
-      DEPLOYED_DATA_VERSION: 18.04
+      DEPLOYED_DATA_VERSION: 18.06
       MAX_NUM_INSTANCES: 1
       CPU: 1
       MEMORY_GB: 1
