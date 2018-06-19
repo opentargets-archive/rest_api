@@ -597,6 +597,21 @@ paths:
       responses:
         200:
           description: Successful response
+      x-code-samples:
+        - lang: 'Python'
+          source: |
+            import requests
+            r = requests.get('http://api.opentargets.io/v3/platform/private/target/ENSG00000064687')
+            for ph in r.json()['mouse_phenotypes'][0]['phenotypes']:
+                    try:
+                        for link in ph['genotype_phenotype']:
+                            print(
+                                link['mp_identifier'],
+                                'https://europepmc.org/search?query=EXT_ID:'+link['pmid'],
+                                link['mp_label'],
+                                sep="\t")
+                    except KeyError:
+                        pass
   /platform/private/target/expression:
     get:
       summary: Query expression levels
