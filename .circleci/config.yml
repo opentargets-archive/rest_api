@@ -229,123 +229,13 @@ jobs:
               gcloud --project ${GOOGLE_PROJECT_ID} app versions stop $CIRCLE_BRANCH --service=default
             fi
 
-
-  deploy-staging:
-    working_directory: ~/circulate
-    docker:
-      - image: google/cloud-sdk
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-staging
-      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1805081502:9200
-      DEPLOYED_DATA_VERSION: 18.04
-      MAX_NUM_INSTANCES: 1
-      CPU: 2
-      MEMORY_GB: 2
-      DISK_SIZE_GB: 30
-    steps:
-      - checkout
-      - run:
-          name: install jq & envsubst
-          command: apt-get install -y jq gettext-base && jq --version
-
-      - run:
-          name: Decode Google Cloud Credentials
-          command: echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-      - run:
-          name: Authenticate to Google Cloud
-          command: |
-            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-
-      - run:
-          name: Deploy to google endpoints (if a new branch or a new version)
-          command: |
-            set -o allexport
-            echo -e "### Reading api version from VERSION file ..."
-            source VERSION
-            echo "major: $API_VERSION"
-            echo "minor: $API_VERSION_MINOR"
-
-            source .circleci/sortendpt.sh
-
-            #make it available
-            echo -e "\n\n### Substituting the config id [ ${GCENDPOINT_VERSION} ] in the appEngine yaml \n\n"
-            envsubst < app.template.yaml > app.yaml
-
-
-      - run:
-          name: Deploy branch to google AppEngine (Staging)
-          no_output_timeout: 30m
-          command: |
-            gcloud app deploy --no-promote --no-stop-previous-version --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
-
-
-
-  api-tests-staging:
-    docker:
-      - image: google/cloud-sdk
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-staging
-    steps:
-      - checkout
-      - run:
-          name: Install requests library
-          command: pip install requests
-      - run:
-          name: Trigger runscope tests on deployed branch
-          command: |
-            set -o allexport
-            source VERSION
-            python .circleci/runscope.py
-      # it's actually useful to take a look at why staging is failing.
-      # - run:
-      #     name: delete instance if deployment has failed / timed out
-      #     command: |
-      #       echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-      #       gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-
-      #       gcloud --project ${GOOGLE_PROJECT_ID} app versions delete --service=default $CIRCLE_TAG
-      #     when: on_fail
-
-  split-traffic-staging:
-    working_directory: ~/circulate
-    docker:
-      - image: google/cloud-sdk
-    environment:
-      GOOGLE_PROJECT_ID: open-targets-staging
-    steps:
-      - checkout
-      - run:
-          name: install jq
-          command: apt-get install -y jq && jq --version
-      - run:
-          name: Decode Google Cloud Credentials + authenticate
-          command: |
-            echo ${GOOGLE_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
-            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
-      - run:
-          name: Split traffic over to new version (staging)
-          command: |
-            gcloud app services set-traffic default --splits $CIRCLE_TAG=1 --project ${GOOGLE_PROJECT_ID}
-      - run:
-          name: Cleanup DANGLING Endpoints versions (staging)
-          command: |
-            source .circleci/mark_stale_endpoint_for_deletion.sh
-      - run:
-          name: Cleanup ALL PREVIOUS AppEngine versions (staging)
-          command: |
-            source .circleci/clean_appeng_versions_with_no_traffic.sh
-
-
-
-
   deploy-prod-eu:
     working_directory: ~/circulate
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1805081502-1804-8lm8:9200
-      DEPLOYED_DATA_VERSION: 18.04
+      ES_URL: http://es5-1806221405-1806-4h16:9200
+      DEPLOYED_DATA_VERSION: 18.06
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -450,8 +340,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-us
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1805081502-1804-ckzw:9200
-      DEPLOYED_DATA_VERSION: 18.04
+      ES_URL: http://es5-1806221405-1806-7mdj:9200
+      DEPLOYED_DATA_VERSION: 18.06
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -505,8 +395,8 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-jp
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http://es5-1805081502-1804-fwpk:9200
-      DEPLOYED_DATA_VERSION: 18.04
+      ES_URL: http://es5-1806221405-1806-26j7:9200
+      DEPLOYED_DATA_VERSION: 18.06
       MAX_NUM_INSTANCES: 3
       CPU: 2
       MEMORY_GB: 4
@@ -599,7 +489,6 @@ workflows:
             tags:
               only:
                 - /^prod.*/
-                - /^staging.*/
       - push-containers:
           requires:
             - build
@@ -607,7 +496,6 @@ workflows:
             tags:
               only:
                 - /^prod.*/
-                - /^staging.*/
       - deploy:
           requires:
             - push-containers
@@ -620,32 +508,6 @@ workflows:
           filters:
             branches:
               ignore: master
-      - deploy-staging:
-          requires:
-            - push-containers
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^staging.*/
-      - api-tests-staging:
-          requires:
-            - deploy-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^staging.*/
-      - split-traffic-staging:
-          requires:
-            - api-tests-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^staging.*/
-
-
       - deploy-prod-eu:
           requires:
             - push-containers
