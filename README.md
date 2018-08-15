@@ -87,3 +87,20 @@ at the moment we think that the performance gain is worth the privileged mode. b
 If a valid GITHUB_PERSONAL_TOKEN environment variable is passed to the container, then API keys are read at deployment time from a separate repo: https://github.com/opentargets/rest_api_auth/blob/master/rate_limit.csv
 Otherwise the code will look for a local rate_limit.csv file. If nothing is found, the API will run without rate limit or authentication.
 
+# Copyright
+Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
+
+This software was developed as part of the Open Targets project. For more information please see: http://www.opentargets.org
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
