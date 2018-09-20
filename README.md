@@ -83,10 +83,6 @@ nginx and uwsgi talks trough a binary protocol in a unix socket.
 it is very efficient, but by default sockets have a small queue, so if nginx is under heavy load and sends too many requests to uwsgi they get rejected by the socket and raise an error. to increase the size of the queue unfortunately you need root privileges.
 at the moment we think that the performance gain is worth the privileged mode. but it strongly depends on the environment you deploy the container into
 
-## Rate limit and authentication
-If a valid GITHUB_PERSONAL_TOKEN environment variable is passed to the container, then API keys are read at deployment time from a separate repo: https://github.com/opentargets/rest_api_auth/blob/master/rate_limit.csv
-Otherwise the code will look for a local rate_limit.csv file. If nothing is found, the API will run without rate limit or authentication.
-
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
 
