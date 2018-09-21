@@ -60,7 +60,7 @@ or use our docker containers on quay.io ([![Docker Repository on Quay](https://q
 
 ### Run
 Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable and the data version you have loaded in elasticsearch with
-the `OPEN_TARGETS_DATA_VERSION` environment variable (:warning: example below assumes `localhost:9200` and data version `17.12` - adjust to your
+the `OPENTARGETS_DATA_VERSION` environment variable (:warning: example below assumes `localhost:9200` and data version `17.12` - adjust to your
 own situation):
 ```bash
 docker run -d -p 8080:80 \
