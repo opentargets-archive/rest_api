@@ -25,8 +25,8 @@ class Datasets(restful.Resource):
         es = current_app.extensions['esquery']
         parser = boilerplate.get_parser()
         args = parser.parse_args()
-        dataset_name = args.pop('dataset', []) or []
-        es_query = args.pop('query', []) or []
+        dataset_name = args.pop('dataset', None)
+        es_query = args.pop('query', None)
         res = es.get_documents_from_dataset(dataset_name, es_query)
 
         if not res:
