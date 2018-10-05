@@ -24,6 +24,10 @@ class Datasets(restful.Resource):
         """
         es = current_app.extensions['esquery']
         parser = boilerplate.get_parser()
+
+        parser.add_argument('dataset', type=str, action='append', required=True, help="name of the dataset")
+        parser.add_argument('query', type=str, action='append', required=True, help="query to retrieve data in ES format")
+
         args = parser.parse_args()
 
         dataset_name = args.get('dataset', '')
@@ -44,8 +48,11 @@ class Datasets(restful.Resource):
         Given a list of subjects id, returns related entities
         """
         es = current_app.extensions['esquery']
-
         parser = boilerplate.get_parser()
+
+        parser.add_argument('dataset', type=str, action='append', required=True, help="name of the dataset")
+        parser.add_argument('query', type=str, action='append', required=True, help="query to retrieve data in ES format")
+        
         args = parser.parse_args()
         dataset_name = args.get('dataset', '')
         print("post ", dataset_name)
