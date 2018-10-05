@@ -28,7 +28,9 @@ class Datasets(restful.Resource):
 
         dataset_name = args.get('dataset', '')
         print("get ", dataset_name)
-        es_query = args.pop('query', None)
+        es_query = args.get('query', '')
+        if not es_query:
+            abort(404, message='No query specified in the request')
         res = es.get_documents_from_dataset(dataset_name, es_query)
 
         if not res:
@@ -45,8 +47,12 @@ class Datasets(restful.Resource):
 
         parser = boilerplate.get_parser()
         args = parser.parse_args()
-        dataset_name = args.pop('dataset', []) or []
-        es_query = args.pop('query', []) or []
+        dataset_name = args.get('dataset', '')
+        print("post ", dataset_name)
+        es_query = args.get('query', '')
+        if not es_query:
+            abort(404, message='No query specified in the request')
+
         res = es.get_documents_from_dataset(dataset_name, es_query)
 
         if not res:
