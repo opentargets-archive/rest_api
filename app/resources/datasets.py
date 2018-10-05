@@ -25,8 +25,8 @@ class Datasets(restful.Resource):
         es = current_app.extensions['esquery']
         parser = boilerplate.get_parser()
 
-        parser.add_argument('dataset', type=str, action='append', required=True, help="name of the dataset")
-        parser.add_argument('query', type=str, action='append', required=True, help="query to retrieve data in ES format")
+        parser.add_argument('dataset', type=str, required=True, help="name of the dataset")
+        parser.add_argument('query', type=str, required=True, help="query to retrieve data in ES format")
 
         args = parser.parse_args()
 
@@ -50,9 +50,9 @@ class Datasets(restful.Resource):
         es = current_app.extensions['esquery']
         parser = boilerplate.get_parser()
 
-        parser.add_argument('dataset', type=str, action='append', required=True, help="name of the dataset")
-        parser.add_argument('query', type=str, action='append', required=True, help="query to retrieve data in ES format")
-        
+        parser.add_argument('dataset', type=str, required=True, help="name of the dataset")
+        parser.add_argument('query', type=str, required=True, help="query to retrieve data in ES format")
+
         args = parser.parse_args()
         dataset_name = args.get('dataset', '')
         print("post ", dataset_name)
