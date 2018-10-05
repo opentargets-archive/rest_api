@@ -26,6 +26,7 @@ class Datasets(restful.Resource):
         parser = boilerplate.get_parser()
         args = parser.parse_args()
         dataset_name = args.pop('dataset', None)
+        print("get ", dataset_name)
         es_query = args.pop('query', None)
         res = es.get_documents_from_dataset(dataset_name, es_query)
 
