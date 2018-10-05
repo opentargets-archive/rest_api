@@ -1291,6 +1291,21 @@ class esQuery():
 
         return q.to_dict()
 
+    def get_documents_from_dataset(self, dataset_name, es_query):
+        index_name = Config.DATA_VERSION + '_' + dataset_name + '_dataset'
+        res = self._cached_search(index=index_name, body=es_query)
+        return SimpleResult(res=res,
+                            params=None,
+                            data=[hit['_source'] for hit in res['hits']['hits']])
+
+    def get_dataset_list(self):
+        prefix = Config.DATA_VERSION + '_'
+        postfix = '_dataset'
+        # in this case, we don't need the cached_search, we want to query ElasticSearch directly
+        indices = self.handler.indices.get_alias(prefix + '*' + postfix)
+        datasets = list(map(lambda x: x.replace(prefix, '').replace(postfix, ''), indices))
+        return RawResult(str(datasets))
+
     @staticmethod
     def _generate_multimatch(search_phrase, analyzer_name, fields_list,
                              type="best_fields", operator="or"):

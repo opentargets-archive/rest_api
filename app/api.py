@@ -32,6 +32,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources import association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
+    from app.resources.datasets import DatasetList, Datasets
     from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
@@ -69,6 +70,10 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/target')
     api.add_resource(Expression,
                      '/private/target/expression')
+    api.add_resource(Datasets,
+                     '/private/datasets/query')
+    api.add_resource(DatasetList,
+                     '/private/datasets/list')
     api.add_resource(BestHitSearch,
                      '/private/besthitsearch')
     api.add_resource(FreeTextSearch,
