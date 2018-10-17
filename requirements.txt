@@ -46,4 +46,6 @@ mixpanel-py-async
 jmespath==0.9.1
 scipy==0.18.0
 addict
+codecov
+pytest-cov
 elasticsearch-dsl>=5.0.0,<6.0.0
