@@ -25,8 +25,7 @@ jobs:
       - run:
           name: Run tests that do not depend on ES
           command: |
-            . venv/bin/activate
-            py.test --cov=. tests/
+            py.test --cov=app tests/
             codecov
       # - store_artifacts:
           # path: test-reports/
