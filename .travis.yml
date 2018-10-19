@@ -42,6 +42,11 @@ notifications:
     - ops@opentargets.org
     on_success: never
     on_failure: always
+addons:
+  apt:
+    packages:
+    - gettext-base
+    - jq
 after_success:
   - echo running codecov
   - codecov
@@ -61,7 +66,7 @@ after_success:
     fi
   - echo pull docker cloud-sdk
   - docker pull google/cloud-sdk:latest
-  - docker run could-sdk version
+  - docker run cloud-sdk version
 #  - if [ ! -d "google-cloud-sdk/bin" ]; then rm -rf "google-cloud-sdk"; curl 'https://sdk.cloud.google.com' | bash; fi
 #  - source google-cloud-sdk/path.bash.inc
 #  - gcloud version
