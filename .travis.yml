@@ -7,18 +7,12 @@ services:
   - docker
 env:
   global:
-    - ELASTICSEARCH_NODES="http://localhost:9200"
     - QUAY_REPO="quay.io/opentargets/rest_api"
 python:
   - 2.7
-before_install:
-  - docker pull docker.elastic.co/elasticsearch/elasticsearch:5.6.11
-  - docker run -d -p 9200:9200 -p 9300:9300 --name=ES elasticsearch:5.6.11
 install:
   - pip install -r requirements.txt
-  - pip install -e .
 script:
-  - make dry_run
   - pytest --cov=app --cov-report term tests/ --fulltrace
 branches:
   only:
@@ -49,20 +43,25 @@ notifications:
     on_success: never
     on_failure: always
 after_success:
+  - echo running codecov
   - codecov
+  - echo push to Quayio
   - docker pull "${QUAY_REPO}:${TRAVIS_BRANCH}" || true
-  - docker build --pull --cache-from "${QUAY_REPO}:${TRAVIS_BRANCH}" --tag "${QUAY_REPO}" .
+  - docker build --pull --cache-from "${QUAY_REPO}:${TRAVIS_BRANCH}" --tag "${QUAY_REPO}" -f docker/Dockerfile .
   - docker login -u="${QUAY_USER}" -p="${QUAY_PASSWORD}" quay.io
-#   - git_sha="$(git rev-parse --short HEAD)"
   - git_sha="${TRAVIS_COMMIT}"
   - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${TRAVIS_BRANCH}"
   - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
   - docker push "${QUAY_REPO}:${TRAVIS_BRANCH}" && docker push "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
+  - echo point latest tag to master
   - |
     if [ "TRAVIS_BRANCH" = "master" ]; then
       docker tag "${QUAY_REPO}:${TRAVIS_BRANCH}" "${QUAY_REPO}:latest"
       docker push "${QUAY_REPO}:latest"
     fi
+  - echo pull docker cloud-sdk
+  - docker pull google/cloud-sdk:latest
+  - docker run gcloud version
 #  - if [ ! -d "google-cloud-sdk/bin" ]; then rm -rf "google-cloud-sdk"; curl 'https://sdk.cloud.google.com' | bash; fi
 #  - source google-cloud-sdk/path.bash.inc
 #  - gcloud version

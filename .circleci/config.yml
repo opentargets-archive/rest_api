@@ -25,8 +25,7 @@ jobs:
       - run:
           name: Run tests that do not depend on ES
           command: |
-            pytest --cov=app tests/
-            codecov
+            pytest --cov=app --cov-report term tests/ --fulltrace
       # - store_artifacts:
           # path: test-reports/
           # destination: tr1
@@ -86,32 +85,6 @@ jobs:
               then
                 docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
                 docker push ${GCR_REPO}:latest
-            fi
-      - run:
-          name: Push to Quay
-          command: |
-            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
-            if [ -n "${CIRCLE_TAG:+1}" ]; then
-              ## tag tag :) and push
-              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_TAG}
-              docker push ${QUAY_REPO}:${CIRCLE_TAG}
-              docker tag ${QUAY_REPO}:${CIRCLE_TAG} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
-              ## branch tag and push
-              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-              docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
-              docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            else
-              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
-              exit 1
-            fi
-            ## sha commit push
-            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            ## push latest if master
-            if [ "$CIRCLE_BRANCH" = "master" ]
-              then
-                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
-                docker push ${QUAY_REPO}:latest
             fi
   deploy:
     working_directory: ~/circulate
