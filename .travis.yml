@@ -61,7 +61,7 @@ after_success:
       docker tag "${QUAY_REPO}:${TRAVIS_BRANCH}" "${QUAY_REPO}:latest"
       docker push "${QUAY_REPO}:latest"
     fi
-  - if [ ! -d "google-cloud-sdk/bin" ]; then rm -rf "google-cloud-sdk"; curl 'https://sdk.cloud.google.com' | bash; fi
+  - if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
   - source google-cloud-sdk/path.bash.inc
   - gcloud version
 #  - gcloud --quiet components update
