@@ -55,7 +55,7 @@ after_success:
   - docker push "${QUAY_REPO}:${TRAVIS_BRANCH}" && docker push "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
   - echo point latest tag to master
   - |
-    if [ "TRAVIS_BRANCH" = "master" ]; then
+    if [ "${TRAVIS_BRANCH}" = "master" ]; then
       docker tag "${QUAY_REPO}:${TRAVIS_BRANCH}" "${QUAY_REPO}:latest"
       docker push "${QUAY_REPO}:latest"
     fi

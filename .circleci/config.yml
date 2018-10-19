@@ -22,16 +22,6 @@ jobs:
           key: deps-a-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "venv"
-      - run:
-          name: Run tests that do not depend on ES
-          command: |
-            pytest --cov=app --cov-report term tests/ --fulltrace
-      # - store_artifacts:
-          # path: test-reports/
-          # destination: tr1
-      # - store_test_results:
-          # path: test-reports/
-
   push-containers:
     docker:
       - image: circleci/python:2.7
