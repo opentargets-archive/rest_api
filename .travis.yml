@@ -61,7 +61,7 @@ after_success:
     fi
   - echo pull docker cloud-sdk
   - docker pull google/cloud-sdk:latest
-  - docker run gcloud version
+  - docker run could-sdk version
 #  - if [ ! -d "google-cloud-sdk/bin" ]; then rm -rf "google-cloud-sdk"; curl 'https://sdk.cloud.google.com' | bash; fi
 #  - source google-cloud-sdk/path.bash.inc
 #  - gcloud version
