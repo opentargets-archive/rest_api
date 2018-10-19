@@ -48,9 +48,7 @@ addons:
     - gettext-base
     - jq
 after_success:
-  - echo running codecov
   - codecov
-  - echo push to Quayio
   - docker pull "${QUAY_REPO}:${TRAVIS_BRANCH}" || true
   - docker build --pull --cache-from "${QUAY_REPO}:${TRAVIS_BRANCH}" --tag "${QUAY_REPO}" -f docker/Dockerfile .
   - docker login -u="${QUAY_USER}" -p="${QUAY_PASSWORD}" quay.io
@@ -58,13 +56,11 @@ after_success:
   - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${TRAVIS_BRANCH}"
   - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
   - docker push "${QUAY_REPO}:${TRAVIS_BRANCH}" && docker push "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
-  - echo point latest tag to master
   - |
     if [ "${TRAVIS_BRANCH}" = "master" ]; then
       docker tag "${QUAY_REPO}:${TRAVIS_BRANCH}" "${QUAY_REPO}:latest"
       docker push "${QUAY_REPO}:latest"
     fi
-  - echo pull docker cloud-sdk
   - docker pull google/cloud-sdk:latest
   - docker run cloud-sdk version
 #  - if [ ! -d "google-cloud-sdk/bin" ]; then rm -rf "google-cloud-sdk"; curl 'https://sdk.cloud.google.com' | bash; fi
