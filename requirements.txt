@@ -2,7 +2,7 @@ coverage
 aniso8601==0.92
 dicttoxml==1.6.0
 envparse
-Flask==0.10.1
+Flask
 Flask-Cors
 Flask-Cache
 Flask-Limiter
