@@ -1,10 +1,8 @@
 import time
 from flask import current_app, request
 
-from flask_restful import abort,reqparse, Resource
-from app.common import boilerplate
-from app.common.boilerplate import Paginable
-from app.common.auth import TokenAuthentication, is_authenticated
+from flask_restful import reqparse, Resource
+from app.common.auth import TokenAuthentication
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
