@@ -4,10 +4,11 @@ from collections import defaultdict
 from datetime import datetime
 from functools import wraps
 
+import flask_restful as restful
 import requests
 import json, yaml
 from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify, render_template
-from flask.ext.compress import Compress
+from flask_compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
 from app.common.signals import LogApiCallWeight, IP2Org, MixPanelStore, esStore

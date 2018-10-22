@@ -1,11 +1,11 @@
-from flask.ext.restful.inputs import boolean
-from flask.ext.restful.reqparse import Argument
+from flask_restful.inputs import boolean
+from flask_restful.reqparse import Argument
 from app.common import boilerplate
 
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask.ext.restful import reqparse
+
+from flask_restful import abort, fields, marshal,marshal_with
+from flask_restful import reqparse, Resource
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.request_templates import FilterTypes
@@ -17,7 +17,7 @@ import pprint
 
 __author__ = 'andreap'
 
-class Association(restful.Resource):
+class Association(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, )
@@ -38,7 +38,7 @@ class Association(restful.Resource):
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return CTTVResponse.OK(res)
 
-class FilterBy(restful.Resource):
+class FilterBy(Resource):
 
 
     @is_authenticated

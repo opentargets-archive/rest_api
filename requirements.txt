@@ -13,7 +13,7 @@ Flask-SQLAlchemy
 Flask-SSLify
 healthcheck
 itsdangerous==0.24
-Jinja2==2.7.3
+Jinja2
 logstash==0.1.dev0
 MarkupSafe==0.23
 meld3==1.0.0
@@ -28,7 +28,7 @@ six
 ujson==1.33
 urllib3>=1.10.2
 uWSGI==2.0.17.1
-Werkzeug==0.10.1
+Werkzeug
 Yapsy==1.10.423
 numpy==1.9.2
 redislite==3.0.271

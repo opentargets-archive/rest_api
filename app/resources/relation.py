@@ -1,12 +1,9 @@
-from flask.ext.restful.inputs import boolean
-from flask.ext.restful.reqparse import Argument
+from flask_restful import Resource, abort
 from app.common import boilerplate
 
 
-from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask.ext.restful import reqparse
+from flask import current_app
+
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
@@ -14,7 +11,7 @@ import time
 
 __author__ = 'andreap'
 
-class Relations(restful.Resource):
+class Relations(Resource):
 
     @is_authenticated
     @rate_limit
@@ -63,7 +60,7 @@ class Relations(restful.Resource):
 
 
 
-class RelationTargetSingle(restful.Resource):
+class RelationTargetSingle(Resource):
 
     @is_authenticated
     @rate_limit
@@ -83,7 +80,7 @@ class RelationTargetSingle(restful.Resource):
 
 
 
-class RelationDiseaseSingle(restful.Resource):
+class RelationDiseaseSingle(Resource):
     @is_authenticated
     @rate_limit
     def get(self, disease_id):

@@ -8,6 +8,7 @@ import uuid
 from app import create_app
 from app.common.auth import AuthKey
 from envparse import env
+import flask_restful as restful
 
 __author__ = 'andreap'
 

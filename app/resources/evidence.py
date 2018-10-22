@@ -1,13 +1,13 @@
 import time
-from flask.ext.restful.inputs import boolean
+from flask_restful.inputs import boolean
 from app.common import boilerplate
 from app.common.rate_limit import rate_limit
 from app.common.request_templates import EvidenceSortOptions
 
 __author__ = 'andreap'
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import reqparse
+
+from flask_restful import reqparse, Resource
 from app.common.boilerplate import Paginable
 from app.common.response_templates import CTTVResponse
 from app.common.utils import fix_empty_strings
@@ -43,7 +43,7 @@ from app.common.auth import is_authenticated
 #   }
 
 
-class Evidence(restful.Resource):
+class Evidence(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True,
                         help="List of IDs to retrieve")
@@ -79,7 +79,7 @@ class Evidence(restful.Resource):
                                took=time.time() - start_time)
 
 
-class FilterBy(restful.Resource, Paginable):
+class FilterBy(Resource, Paginable):
 
     @is_authenticated
     @rate_limit

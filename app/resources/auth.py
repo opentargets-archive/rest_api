@@ -1,7 +1,7 @@
 import time
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort,reqparse
+
+from flask_restful import abort,reqparse, Resource
 from app.common import boilerplate
 from app.common.boilerplate import Paginable
 from app.common.auth import TokenAuthentication, is_authenticated
@@ -13,7 +13,7 @@ __author__ = 'andreap'
 
 
 
-class RequestToken(restful.Resource):
+class RequestToken(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('app_name', type=str, required=True, help="app name [appname] is required")
@@ -32,7 +32,7 @@ class RequestToken(restful.Resource):
         return CTTVResponse.OK(RawResult(token_data), took=time.time() - start_time)
 
 
-class ValidateToken(restful.Resource):
+class ValidateToken(Resource):
     @rate_limit
     def get(self, ):
         return TokenAuthentication.is_valid(request.headers.get('Auth-Token'))

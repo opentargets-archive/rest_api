@@ -3,13 +3,13 @@ from app.common.rate_limit import rate_limit
 
 __author__ = 'andreap'
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort
+
+from flask_restful import abort, Resource
 
 
 
 
-class ProxyEnsembl(restful.Resource):
+class ProxyEnsembl(Resource):
 
     @is_authenticated
     @rate_limit
@@ -38,7 +38,7 @@ class ProxyEnsembl(restful.Resource):
             abort(404, message="cannot proxy to: %s "%url)
 
 
-class ProxyGXA(restful.Resource):
+class ProxyGXA(Resource):
 
     @is_authenticated
     @rate_limit
@@ -53,7 +53,7 @@ class ProxyGXA(restful.Resource):
         else:
             abort(400, message="cannot proxy to: %s "%url)
 
-class ProxyPDB(restful.Resource):
+class ProxyPDB(Resource):
 
     @is_authenticated
     @rate_limit
@@ -68,7 +68,7 @@ class ProxyPDB(restful.Resource):
         else:
             abort(400, message="cannot proxy to: %s "%url)
 
-class ProxyEPMC(restful.Resource):
+class ProxyEPMC(Resource):
 
     @is_authenticated
     @rate_limit
@@ -84,7 +84,7 @@ class ProxyEPMC(restful.Resource):
             abort(400, message="cannot proxy to: %s "%url)
 
 
-class ProxyGeneric(restful.Resource):
+class ProxyGeneric(Resource):
 
     @is_authenticated
     @rate_limit

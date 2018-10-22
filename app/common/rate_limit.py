@@ -1,6 +1,6 @@
 import time
 
-from flask.ext.restful import abort, wraps
+from flask_restful import abort, wraps
 from flask import current_app, request
 
 from app.common.auth import get_token_payload, AuthKey
