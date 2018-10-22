@@ -60,10 +60,6 @@ def do_not_cache(request):
     return False
 
 
-def log_exception_to_datadog(sender, exception, **extra):
-    LogException(exception)
-
-
 def create_app(config_name):
     app = Flask(__name__, static_url_path='')
     # This first loads the configuration from eg. config['development'] which corresponds to the DevelopmentConfig class in the config.py
