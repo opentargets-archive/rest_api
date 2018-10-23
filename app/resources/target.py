@@ -3,15 +3,15 @@ from app.common import boilerplate
 import json
 from flask import request
 from flask import current_app
-from flask.ext import restful
-from flask.ext.restful import abort
+
+from flask_restful import abort, Resource
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
 
 
-class TargetInfo(restful.Resource):
+class TargetInfo(Resource):
     @is_authenticated
     @rate_limit
     def get(self):
@@ -57,7 +57,7 @@ class TargetInfo(restful.Resource):
         abort(404, message="Gene id %s cannot be found" % target_ids)
 
 
-class TargetInfoSingle(restful.Resource):
+class TargetInfoSingle(Resource):
     @is_authenticated
     @rate_limit
     def get(self, target_id):

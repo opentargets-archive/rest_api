@@ -1,25 +1,22 @@
-from flask.ext.restful.inputs import boolean
-from flask.ext.restful.reqparse import Argument
+from flask_restful.inputs import boolean
+from flask_restful.reqparse import Argument
 from app.common import boilerplate
 
 
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask.ext.restful import reqparse
+
+from flask_restful import reqparse, Resource, abort
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
-from app.common.request_templates import FilterTypes
 from app.common.response_templates import CTTVResponse
 from types import *
-import time
 
 
 __author__ = 'andreap'
 
 MAX_ELEMENT_SIZE = 1000
 
-class EnrichmentTargets(restful.Resource):
+class EnrichmentTargets(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('target', type=str, action='append', required=True, )

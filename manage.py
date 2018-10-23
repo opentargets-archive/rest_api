@@ -22,8 +22,7 @@ if os.environ.get('FLASK_COVERAGE'):
 
 from app import create_app
 # from app.models import User, Follow, Role, Permission, Post, Comment
-from flask.ext.script import Manager, Shell
-# from flask.ext.migrate import Migrate, MigrateCommand
+from flask_script import Manager, Shell
 
 # look for a .env file, where we might have specified OT_API_CONFIG
 env.read_envfile()

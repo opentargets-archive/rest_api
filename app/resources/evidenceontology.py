@@ -6,11 +6,11 @@ from app.common.response_templates import CTTVResponse
 
 __author__ = 'andreap'
 from flask import current_app
-from flask.ext import restful
-from flask.ext.restful import abort
+
+from flask_restful import abort, Resource
 
 
-class EcoLabelFromCode(restful.Resource):
+class EcoLabelFromCode(Resource):
 
 
     @is_authenticated

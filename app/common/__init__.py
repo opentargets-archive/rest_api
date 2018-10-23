@@ -7,6 +7,7 @@ from contextlib import contextmanager
 import tempfile as tmp
 import requests as r
 from config import Config
+import flask_restful as restful
 
 __author__ = 'andreap'
 

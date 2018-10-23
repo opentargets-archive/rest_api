@@ -6,7 +6,7 @@ from app.common import load_tissue_map
 
 __author__ = 'andreap'
 
-from flask.ext.restful import Api
+from flask_restful import Api
 
 
 def create_api(app, api_version = '0.0', specpath = '' ):

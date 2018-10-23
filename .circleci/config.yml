@@ -22,17 +22,6 @@ jobs:
           key: deps-a-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "venv"
-      - run:
-          name: Run tests that do not depend on ES
-          command: |
-            . venv/bin/activate
-            python -m pytest
-      # - store_artifacts:
-          # path: test-reports/
-          # destination: tr1
-      # - store_test_results:
-          # path: test-reports/
-
   push-containers:
     docker:
       - image: circleci/python:2.7
@@ -87,32 +76,6 @@ jobs:
                 docker tag ${GCR_REPO}:${CIRCLE_BRANCH} ${GCR_REPO}:latest
                 docker push ${GCR_REPO}:latest
             fi
-      - run:
-          name: Push to Quay
-          command: |
-            docker login -u="opentargets+quaybot" -p="${QUAYBOT_PASSWORD}" quay.io
-            if [ -n "${CIRCLE_TAG:+1}" ]; then
-              ## tag tag :) and push
-              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_TAG}
-              docker push ${QUAY_REPO}:${CIRCLE_TAG}
-              docker tag ${QUAY_REPO}:${CIRCLE_TAG} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            elif [ -n "${CIRCLE_BRANCH:+1}" ]; then
-              ## branch tag and push
-              docker tag circle-${CIRCLE_SHA1} ${QUAY_REPO}:${CIRCLE_BRANCH}
-              docker push ${QUAY_REPO}:${CIRCLE_BRANCH}
-              docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            else
-              echo -e "### No CIRCLE_TAG or CIRCLE_BRANCH defined"
-              exit 1
-            fi
-            ## sha commit push
-            docker push ${QUAY_REPO}:circle-${CIRCLE_SHA1}
-            ## push latest if master
-            if [ "$CIRCLE_BRANCH" = "master" ]
-              then
-                docker tag ${QUAY_REPO}:${CIRCLE_BRANCH} ${QUAY_REPO}:latest
-                docker push ${QUAY_REPO}:latest
-            fi
   deploy:
     working_directory: ~/circulate
     docker:
@@ -125,7 +88,7 @@ jobs:
       GOOGLE_PROJECT_ID: open-targets-eu-dev
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
       ES_URL: http://es5-naproxen:9200
-      DEPLOYED_DATA_VERSION: 18.08
+      DEPLOYED_DATA_VERSION: 18.10
       MAX_NUM_INSTANCES: 1
       CPU: 1
       MEMORY_GB: 1
