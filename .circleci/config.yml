@@ -129,9 +129,9 @@ jobs:
             # By default promote only if it is the master branch
             if [ "$CIRCLE_BRANCH" = "master" ]
               then
-                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:latest
+                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
               else
-                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:latest
+                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
             fi
 
       - run:
@@ -237,7 +237,7 @@ jobs:
       - run:
           name: Deploy branch to google AppEngine (EU prod)
           command: |
-            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:latest
+            gcloud app deploy --no-promote --version $CIRCLE_TAG --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:${CIRCLE_TAG}
 
       - run:
           name: delete instance if deployment has failed / timed out
