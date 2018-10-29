@@ -196,7 +196,8 @@ jobs:
     working_directory: ~/circulate
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
-      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      # GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      GCR_REPO: quay.io/opentargets/rest_api
       ES_URL: http://es5-1810241008-1810-136f:9200
       DEPLOYED_DATA_VERSION: 18.10
       MAX_NUM_INSTANCES: 3
