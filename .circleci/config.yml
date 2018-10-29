@@ -86,7 +86,8 @@ jobs:
       # this is a bit tricky, we should link data version to api branches
       # this should be changed to metadata
       GOOGLE_PROJECT_ID: open-targets-eu-dev
-      GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      # GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
+      GCR_REPO: quay.io/opentargets/rest_api
       ES_URL: http://es5-naproxen:9200
       DEPLOYED_DATA_VERSION: "18.10"
       MAX_NUM_INSTANCES: 1
@@ -129,9 +130,9 @@ jobs:
             # By default promote only if it is the master branch
             if [ "$CIRCLE_BRANCH" = "master" ]
               then
-                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+                gcloud app deploy --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:latest
               else
-                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:circle-${CIRCLE_SHA1}
+                gcloud app deploy --no-promote --version $CIRCLE_BRANCH --project ${GOOGLE_PROJECT_ID} --image-url ${GCR_REPO}:latest
             fi
 
       - run:
