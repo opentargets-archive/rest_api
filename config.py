@@ -115,6 +115,15 @@ class Config:
                         'animal_model', 'literature']
     # DATATYPES['protein_expression'] = ['hpa']
 
+    # Allow addition of custom datatypes from environment variables
+    # Environment variable must be named CUSTOM_DATASOURCE_{TYPE}, e.g. CUSTOM_DATASOURCE_GENETIC_ASSOCIATION
+    # Multiple custom data sources of the same type can be passed as a comma-separated list
+    for datatype in iter(DATATYPES):
+        env_var_name = 'CUSTOM_DATASOURCE_' + datatype.upper()
+        if env(env_var_name, default=''):
+            for custom_type in env(env_var_name).split(','):
+                DATATYPES[datatype].append(custom_type)
+
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
 
