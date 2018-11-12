@@ -52,9 +52,10 @@ mode there would allow code injection._
 
 ### Custom data sources
 
-Custom data sources can be specified via environment variables, assuming that the relevant indices exist in the Elasticsearch instance to which the API is pointing.
-Such environment variables must be named CUSTOM_DATASOURCE_{TYPE}, e.g. CUSTOM_DATASOURCE_GENETIC_ASSOCIATION. Multiple custom data sources of the same type can be passed as a comma-separated list.
-Example: `export CUSTOM_DATASOURCE_GENETIC_ASSOCIATION=genomics_england_tiering`
+Custom data sources can be specified via and environment variable, assuming that the relevant indices exist in the Elasticsearch instance to which the API is pointing.
+The environment variable must be named `CUSTOM_DATASOURCE`, and expressed in the form `new_data_source_name:data_type`, e.g.
+`export CUSTOM_DATASOURCE=genomics_england_tiering:genetic_association`
+Multiple custom data sources of the same type can be passed as a comma-separated list.
 
 ## Docker Container
 ### Build

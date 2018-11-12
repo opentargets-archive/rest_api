@@ -115,14 +115,19 @@ class Config:
                         'animal_model', 'literature']
     # DATATYPES['protein_expression'] = ['hpa']
 
-    # Allow addition of custom datatypes from environment variables
-    # Environment variable must be named CUSTOM_DATASOURCE_{TYPE}, e.g. CUSTOM_DATASOURCE_GENETIC_ASSOCIATION
+    # Allow addition of custom datatypes from environment variable
+    # Environment variable must be named CUSTOM_DATASOURCE
+    # Format is new_source:type e.g. genomics_england_tiering:genetic_association
     # Multiple custom data sources of the same type can be passed as a comma-separated list
-    for datatype in iter(DATATYPES):
-        env_var_name = 'CUSTOM_DATASOURCE_' + datatype.upper()
-        if env(env_var_name, default=''):
-            for custom_type in env(env_var_name).split(','):
-                DATATYPES[datatype].append(custom_type)
+    env_var = env('CUSTOM_DATASOURCE', default='')
+    if env_var:
+        for source_and_type in env_var.split(','):
+            source, datatype = source_and_type.split(':')
+            if datatype not in DATATYPES:
+                print "Cannot add env_var as %s is not a recognised datatype" % datatype
+            else:
+                DATATYPES[datatype].append(source)
+                print "Added %s to list of %s data sources, list is now " % (source, datatype), DATATYPES[datatype]
 
     DATASOURCE_SCORING_METHOD = defaultdict(lambda: ScoringMethods.SUM)
     # DATASOURCE_SCORING_METHOD['phenodigm'] = ScoringMethods.MAX
