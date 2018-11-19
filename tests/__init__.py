@@ -8,6 +8,7 @@ import uuid
 from app import create_app
 from app.common.auth import AuthKey
 from envparse import env
+import flask_restful as restful
 
 __author__ = 'andreap'
 
@@ -41,13 +42,8 @@ class GenericTestCase(unittest.TestCase):
         cls.app.extensions['redis-user'].delete(cls.auth_key.get_key())
 
     def setUp(self):
-
-
         self.token = None
         self.update_token()
-        # log = logging.getLogger('dd.datadogpy')
-        # log.setLevel(logging.DEBUG)
-
 
     def _make_token_request(self, expire = 10*60):
         return self._make_request('/platform/public/auth/request_token',data={'app_name':self.auth_key.app_name,
