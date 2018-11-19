@@ -1020,12 +1020,12 @@ class esQuery():
                 }
             }
 
-#         print "------------"
-#         print ""
-#         pprint.pprint(ass_query_body)
-#
-#         print ""
-#         print "------------"
+        print "------------"
+        print ""
+        pprint.pprint(ass_query_body)
+
+        print ""
+        print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2430,6 +2430,7 @@ class SearchParams(object):
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
         self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
+        self.filters[FilterTypes.TRACTABILITY] = kwargs.get(FilterTypes.TRACTABILITY)
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -3097,6 +3098,21 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             }
 
         return f_agg
+
+
+class AggregationTractability(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = \
+                self._get_association_rna_range_filter(self.params.filters[FilterTypes.TRACTABILITY])
+
+    def build_agg(self, filters):
+        self.agg = self._get_aggregation_on_rna_expression_tissue(
+            filters, self._get_complimentary_facet_filters,
+            self.get_size(), self.params.rna_expression_level)
+
+    def get_default_size(self):
+        return 100
 
 
 class AggregationUnitRNAExTissue(AggregationUnit):
@@ -3881,7 +3897,8 @@ class AggregationBuilder(object):
         FilterTypes.ZSCORE_EXPRESSION_LEVEL: AggregationUnitZSCOREExLevel,
         FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
-        FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue
+        FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
+        FilterTypes.TRACTABILITY: AggregationTractability
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
