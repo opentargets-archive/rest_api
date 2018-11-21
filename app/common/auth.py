@@ -40,11 +40,9 @@ class AuthKey(object):
         return '|'.join((self._AUTH_KEY_NAMESPACE,self.id))
 
     def get_loaded_data(self):
-        data = current_app.extensions['redis-user'].hgetall(self.get_key())
+        data = current_app.extensions['redis-user'].get(self.get_key())
         if data:
-            self.__dict__.update(data)
-
-
+            self.__dict__.update(json.loads(data))
 
 
 class AESCipher:

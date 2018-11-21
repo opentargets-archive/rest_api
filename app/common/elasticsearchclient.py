@@ -203,9 +203,9 @@ class InternalCache(object):
             return self._decode(value)
 
     def set(self, key, value, ttl=None):
+        _ttl = ttl if ttl else self.default_ttl
         return self.r_server.setex(self._get_namespaced_key(key),
-                                   self._encode(value),
-                                   ttl or self.default_ttl)
+                                   self._encode(value), _ttl)
 
     def _get_namespaced_key(self, key):
         # try cityhash for better performance (fast and non cryptographic hash library) from cityhash import CityHash64
@@ -2228,7 +2228,8 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             self.cache.set(key, res, took * 60)
         return res
 
-    def _resolve_negable_parameter_set(self, params, include_negative=False):
+    @staticmethod
+    def _resolve_negable_parameter_set(params, include_negative=False):
         filtered_params = []
         for p in params:  # handle negative sets
             if p.startswith('!'):

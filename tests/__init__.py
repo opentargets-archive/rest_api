@@ -29,7 +29,7 @@ class GenericTestCase(unittest.TestCase):
                             'long_window_rate': '6000000'}
         cls.auth_key = AuthKey(**auth_credentials)
         cls.app = create_app('testing')
-        cls.app.extensions['redis-user'].hmset(cls.auth_key.get_key(), cls.auth_key.__dict__)
+        cls.app.extensions['redis-user'].set(cls.auth_key.get_key(), json.dumps(cls.auth_key.__dict__))
         cls.app_context = cls.app.app_context()
         cls.app_context.push()
         cls.client = cls.app.test_client()
@@ -38,7 +38,6 @@ class GenericTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app_context.pop()
-        cls.app.extensions['redis-user'].hdel(cls.auth_key.get_key(), cls.auth_key.__dict__.keys())
         cls.app.extensions['redis-user'].delete(cls.auth_key.get_key())
 
     def setUp(self):
