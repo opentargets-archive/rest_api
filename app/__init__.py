@@ -190,7 +190,7 @@ def create_app(config_name):
         reader = csv.DictReader(csvfile)
         for row in reader:
             auth_key = AuthKey(**row)
-            app.extensions['redis-user'].hmset(auth_key.get_key(), auth_key.__dict__)
+            app.extensions['redis-user'].set(auth_key.get_key(), json.dumps(auth_key.__dict__))
         try:
             csvfile.close()
         except:

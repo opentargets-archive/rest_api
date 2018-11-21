@@ -36,7 +36,7 @@ Valid `OPENTARGETS_API_CONFIG` options:
 see the `config.py` file for details
 
 
-### debugging
+### Debugging
 We never run flask directly. Even in the manage.py script we spawn off a
 WSGIServer(). Hence Flask debug mode does not work out of the box. 
 
@@ -49,6 +49,13 @@ More details on http://stackoverflow.com/questions/10364854/flask-debug-true-doe
 However this will not work when the app is run by `uwsgi`, as it is in 
 the docker container and in production. _This is intentional since DEBUG
 mode there would allow code injection._
+
+### Custom data sources
+
+Custom data sources can be specified via and environment variable, assuming that the relevant indices exist in the Elasticsearch instance to which the API is pointing.
+The environment variable must be named `CUSTOM_DATASOURCE`, and expressed in the form `new_data_source_name:data_type`, e.g.
+`export CUSTOM_DATASOURCE=genomics_england_tiering:genetic_association`
+Multiple custom data sources of the same type can be passed as a comma-separated list.
 
 ## Docker Container
 ### Build

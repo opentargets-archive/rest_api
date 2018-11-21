@@ -1,4 +1,5 @@
 import ast
+import datetime
 import hashlib
 import json as json
 import logging
@@ -203,9 +204,9 @@ class InternalCache(object):
             return self._decode(value)
 
     def set(self, key, value, ttl=None):
+        _ttl = ttl if ttl else self.default_ttl
         return self.r_server.setex(self._get_namespaced_key(key),
-                                   self._encode(value),
-                                   ttl or self.default_ttl)
+                                   _ttl, self._encode(value))
 
     def _get_namespaced_key(self, key):
         # try cityhash for better performance (fast and non cryptographic hash library) from cityhash import CityHash64
@@ -2217,18 +2218,19 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
 
         res = self.cache.get(key)
         if res is None:
-            start_time = time.time()
+            start_time = datetime.datetime.now()
 
             if is_multi:
                 res = self.handler.msearch(*args, **kwargs)
             else:
                 res = self.handler.search(*args, **kwargs)
 
-            took = int(round(time.time() - start_time))
-            self.cache.set(key, res, took * 60)
+            took = (datetime.datetime.now() - start_time) + datetime.timedelta(minutes=1)
+            self.cache.set(key, res, took)
         return res
 
-    def _resolve_negable_parameter_set(self, params, include_negative=False):
+    @staticmethod
+    def _resolve_negable_parameter_set(params, include_negative=False):
         filtered_params = []
         for p in params:  # handle negative sets
             if p.startswith('!'):
