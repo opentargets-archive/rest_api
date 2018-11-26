@@ -163,6 +163,7 @@ class FilterTypes():
     THERAPEUTIC_AREA = 'therapeutic_area'
     TARGETS_ENRICHMENT = 'targets_enrichment'
     TARGET_CLASS = 'target_class'
+    TRACTABILITY = 'tractability'
 
 
 class AssociationSortOptions:
