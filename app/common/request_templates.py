@@ -165,6 +165,7 @@ class FilterTypes():
     TARGET_CLASS = 'target_class'
     SMALL_MOLECULE = 'smallmolecule'
     ANTIBODY = 'antibody'
+    TRACTABILITY = 'tractability'
 
 
 class AssociationSortOptions:

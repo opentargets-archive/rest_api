@@ -1021,12 +1021,12 @@ class esQuery():
                 }
             }
 
-        # print "------------"
-        # print ""
-        # pprint.pprint(ass_query_body)
-        #
-        # print ""
-        # print "------------"
+        print "------------"
+        print ""
+        pprint.pprint(ass_query_body)
+
+        print ""
+        print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -2421,6 +2421,9 @@ class SearchParams(object):
         self.filters[FilterTypes.ANTIBODY] = kwargs.get(FilterTypes.ANTIBODY, [])
         setattr(self, FilterTypes.ANTIBODY, kwargs.get(FilterTypes.ANTIBODY, []))
 
+        self.filters[FilterTypes.TRACTABILITY] = kwargs.get(FilterTypes.TRACTABILITY, [])
+        setattr(self, FilterTypes.TRACTABILITY, kwargs.get(FilterTypes.TRACTABILITY, []))
+
         score_range = [0., self._max_score]
         score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not None:
@@ -3106,6 +3109,57 @@ class AggregationUnitRNAExLevel(AggregationUnit):
             }
 
         return f_agg
+
+
+class AggregationTractability(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_tractability_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_tractability_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 20
+
+    def _get_tractability_facet_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.TRACTABILITY, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.tractability.combined",
+                        'size': self.get_size(),
+                    },
+
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        }
+                    }
+                }
+            }
+        }
+
+    @staticmethod
+    def _get_tractability_filter(combined):
+        if combined:
+            return {
+                "terms": {"private.facets.tractability.combined": combined}
+            }
+
+        return dict()
 
 
 class AggregationTractabilitySmallMolecule(AggregationUnit):
@@ -4000,7 +4054,8 @@ class AggregationBuilder(object):
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
         FilterTypes.ANTIBODY: AggregationTractabilityAntibody,
-        FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule
+        FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule,
+        FilterTypes.SMALL_MOLECULE: AggregationTractability
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
