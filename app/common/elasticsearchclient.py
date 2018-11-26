@@ -2415,12 +2415,6 @@ class SearchParams(object):
         self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, [])
 
-        self.filters[FilterTypes.SMALL_MOLECULE] = kwargs.get(FilterTypes.SMALL_MOLECULE, [])
-        setattr(self, FilterTypes.SMALL_MOLECULE, kwargs.get(FilterTypes.SMALL_MOLECULE, []))
-
-        self.filters[FilterTypes.ANTIBODY] = kwargs.get(FilterTypes.ANTIBODY, [])
-        setattr(self, FilterTypes.ANTIBODY, kwargs.get(FilterTypes.ANTIBODY, []))
-
         self.filters[FilterTypes.TRACTABILITY] = kwargs.get(FilterTypes.TRACTABILITY, [])
         setattr(self, FilterTypes.TRACTABILITY, kwargs.get(FilterTypes.TRACTABILITY, []))
 
@@ -3157,108 +3151,6 @@ class AggregationTractability(AggregationUnit):
         if combined:
             return {
                 "terms": {"private.facets.tractability.combined": combined}
-            }
-
-        return dict()
-
-
-class AggregationTractabilitySmallMolecule(AggregationUnit):
-    def build_query_filter(self):
-        if self.filter is not None:
-            self.query_filter = self._get_smallmolecule_filter(self.filter)
-
-    def build_agg(self, filters):
-        self.agg = self._get_smallmolecule_facet_aggregation(filters)
-
-    def get_default_size(self):
-        return 20
-
-    def _get_smallmolecule_facet_aggregation(self, filters={}):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.SMALL_MOLECULE, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.tractability.smallmolecule",
-                        'size': self.get_size(),
-                    },
-
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        }
-                    }
-                }
-            }
-        }
-
-    @staticmethod
-    def _get_smallmolecule_filter(smallmolecule_codes):
-        if smallmolecule_codes:
-            return {
-                "terms": {"private.facets.tractability.smallmolecule": smallmolecule_codes}
-            }
-
-        return dict()
-
-
-class AggregationTractabilityAntibody(AggregationUnit):
-    def build_query_filter(self):
-        if self.filter is not None:
-            self.query_filter = self._get_antibody_filter(self.filter)
-
-    def build_agg(self, filters):
-        self.agg = self._get_antibody_facet_aggregation(filters)
-
-    def get_default_size(self):
-        return 20
-
-    def _get_antibody_facet_aggregation(self, filters={}):
-        return {
-            "filter": {
-                "bool": {
-                    "must": self._get_complimentary_facet_filters(FilterTypes.ANTIBODY, filters),
-                }
-            },
-            "aggs": {
-                "data": {
-                    "terms": {
-                        "field": "private.facets.tractability.antibody",
-                        'size': self.get_size(),
-                    },
-
-                    "aggs": {
-                        "unique_target_count": {
-                            "cardinality": {
-                                "field": "target.id",
-                                "precision_threshold": 1000},
-                        },
-                        "unique_disease_count": {
-                            "cardinality": {
-                                "field": "disease.id",
-                                "precision_threshold": 1000},
-                        }
-                    }
-                }
-            }
-        }
-
-    @staticmethod
-    def _get_antibody_filter(antibody_codes):
-        if antibody_codes:
-            return {
-                "terms": {"private.facets.tractability.antibody": antibody_codes}
             }
 
         return dict()
@@ -4047,8 +3939,6 @@ class AggregationBuilder(object):
         FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
-        # FilterTypes.ANTIBODY: AggregationTractabilityAntibody,
-        # FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule,
         FilterTypes.TRACTABILITY: AggregationTractability
     }
 

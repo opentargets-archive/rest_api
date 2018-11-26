@@ -71,10 +71,6 @@ class FilterBy(Resource):
                             choices=list(xrange(0, 4)), required=False)
         parser.add_argument('protein_expression_tissue', type=str, action='append',
                             required=False, default=[])
-        parser.add_argument(FilterTypes.ANTIBODY, type=str, action='append',
-                            required=False, default=[])
-        parser.add_argument(FilterTypes.SMALL_MOLECULE, type=str, action='append',
-                            required=False, default=[])
         parser.add_argument(FilterTypes.TRACTABILITY, type=str, action='append',
                             required=False, default=[])
         parser.add_argument('go', type=str, action='append', required=False,

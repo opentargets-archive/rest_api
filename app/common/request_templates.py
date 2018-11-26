@@ -163,8 +163,6 @@ class FilterTypes():
     THERAPEUTIC_AREA = 'therapeutic_area'
     TARGETS_ENRICHMENT = 'targets_enrichment'
     TARGET_CLASS = 'target_class'
-    SMALL_MOLECULE = 'smallmolecule'
-    ANTIBODY = 'antibody'
     TRACTABILITY = 'tractability'
 
 
