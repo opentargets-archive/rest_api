@@ -2414,6 +2414,13 @@ class SearchParams(object):
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_LEVEL, 0)
         self.filters[FilterTypes.PROTEIN_EXPRESSION_TISSUE] = \
             kwargs.get(FilterTypes.PROTEIN_EXPRESSION_TISSUE, [])
+
+        self.filters[FilterTypes.SMALL_MOLECULE] = kwargs.get(FilterTypes.SMALL_MOLECULE, [])
+        setattr(self, FilterTypes.SMALL_MOLECULE, kwargs.get(FilterTypes.SMALL_MOLECULE, []))
+
+        self.filters[FilterTypes.ANTIBODY] = kwargs.get(FilterTypes.ANTIBODY, [])
+        setattr(self, FilterTypes.ANTIBODY, kwargs.get(FilterTypes.ANTIBODY, []))
+
         score_range = [0., self._max_score]
         score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
         if score_min is not None:
@@ -2432,7 +2439,6 @@ class SearchParams(object):
         self.filters[FilterTypes.ECO] = kwargs.get(FilterTypes.ECO)
         self.filters[FilterTypes.GO] = kwargs.get(FilterTypes.GO)
         self.filters[FilterTypes.TARGET_CLASS] = kwargs.get(FilterTypes.TARGET_CLASS)
-        self.filters[FilterTypes.TRACTABILITY] = kwargs.get(FilterTypes.TRACTABILITY)
 
         datasource_filter = []
         ds_params = kwargs.get(FilterTypes.DATASOURCE)
@@ -3102,93 +3108,112 @@ class AggregationUnitRNAExLevel(AggregationUnit):
         return f_agg
 
 
-class AggregationTractability(AggregationUnit):
+class AggregationTractabilitySmallMolecule(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
-            self.query_filter = {}
+            self.query_filter = self._get_smallmolecule_filter(self.filter)
 
     def build_agg(self, filters):
-        self.agg = {}
+        self.agg = self._get_smallmolecule_facet_aggregation(filters)
 
     def get_default_size(self):
-        return 100
+        return 20
 
-    #     def _get_target_class_aggregation(self, filters={}):
-    #         return {
-    #             "filter": {
-    #                 "bool": {
-    #                     "must": self._get_complimentary_facet_filters(FilterTypes.TARGET_CLASS, filters),
-    #                 }
-    #             },
-    #             "aggs": {
-    #                 "data": {
-    #                     "terms": {
-    #                         "field": "private.facets.target_class.level1.id",
-    #                         'size': self.get_size(),
-    #                     },
-    #
-    #                     "aggs": {
-    #                         "label": {
-    #                             "terms": {
-    #                                 "field": "private.facets.target_class.level1.label",
-    #                                 'size': 1,
-    #                             },
-    #                         },
-    #                         FilterTypes.TARGET_CLASS: {
-    #                             "terms": {
-    #                                 "field": "private.facets.target_class.level2.id",
-    #                                 'size': 50,
-    #                             },
-    #                             "aggs": {
-    #                                 "label": {
-    #                                     "terms": {
-    #                                         "field": "private.facets.target_class.level2.label",
-    #                                         'size': 1,
-    #                                     },
-    #                                 },
-    #                                 "unique_target_count": {
-    #                                     "cardinality": {
-    #                                         "field": "target.id",
-    #                                         "precision_threshold": 1000},
-    #                                 },
-    #                                 "unique_disease_count": {
-    #                                     "cardinality": {
-    #                                         "field": "disease.id",
-    #                                         "precision_threshold": 1000},
-    #                                 },
-    #                             }
-    #                         },
-    #                         "unique_target_count": {
-    #                             "cardinality": {
-    #                                 "field": "target.id",
-    #                                 "precision_threshold": 1000},
-    #                         },
-    #                         "unique_disease_count": {
-    #                             "cardinality": {
-    #                                 "field": "disease.id",
-    #                                 "precision_threshold": 1000},
-    #                         },
-    #                     }
-    #                 },
-    #             }
-    #         }
-    #
-    #     def _get_target_class_filter(self, target_class_ids):
-    #         '''
-    #         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
-    #         :param target_class_ids: list of target class ids strings
-    #         :return: boolean filter
-    #         '''
-    #         if target_class_ids:
-    #             return {"bool": {
-    #                 "should": [
-    #                     {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
-    #                     {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
-    #                 ]
-    #                 }
-    #             }
-    #
-    #         return dict()
+    def _get_smallmolecule_facet_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.SMALL_MOLECULE, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.tractability.smallmolecule",
+                        'size': self.get_size(),
+                    },
+
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        }
+                    }
+                }
+            }
+        }
+
+    @staticmethod
+    def _get_smallmolecule_filter(smallmolecule_codes):
+        if smallmolecule_codes:
+            # return {"bool": {
+            #     "should": [
+            #         {"terms": {"private.facets.tractability.smallmolecule": smallmolecule_codes}}
+            #     ]
+            #     }
+            # }
+            return {
+                "terms": {"private.facets.tractability.smallmolecule": smallmolecule_codes}
+            }
+
+        return dict()
+
+
+class AggregationTractabilityAntibody(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_antibody_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_antibody_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 20
+
+    def _get_antibody_facet_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.ANTIBODY, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.tractability.antibody",
+                        'size': self.get_size(),
+                    },
+
+                    "aggs": {
+                        "unique_target_count": {
+                            "cardinality": {
+                                "field": "target.id",
+                                "precision_threshold": 1000},
+                        },
+                        "unique_disease_count": {
+                            "cardinality": {
+                                "field": "disease.id",
+                                "precision_threshold": 1000},
+                        }
+                    }
+                }
+            }
+        }
+
+    @staticmethod
+    def _get_antibody_filter(antibody_codes):
+        if antibody_codes:
+            return {
+                "terms": {"private.facets.tractability.antibody": antibody_codes}
+            }
+
+        return dict()
 
 
 class AggregationUnitRNAExTissue(AggregationUnit):
@@ -3974,7 +3999,8 @@ class AggregationBuilder(object):
         FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
-        FilterTypes.TRACTABILITY: AggregationTractability
+        FilterTypes.ANTIBODY: AggregationTractabilityAntibody,
+        FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
