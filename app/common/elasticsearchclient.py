@@ -3105,16 +3105,90 @@ class AggregationUnitRNAExLevel(AggregationUnit):
 class AggregationTractability(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
-            self.query_filter = \
-                self._get_association_rna_range_filter(self.params.filters[FilterTypes.TRACTABILITY])
+            self.query_filter = {}
 
     def build_agg(self, filters):
-        self.agg = self._get_aggregation_on_rna_expression_tissue(
-            filters, self._get_complimentary_facet_filters,
-            self.get_size(), self.params.rna_expression_level)
+        self.agg = {}
 
     def get_default_size(self):
         return 100
+
+    #     def _get_target_class_aggregation(self, filters={}):
+    #         return {
+    #             "filter": {
+    #                 "bool": {
+    #                     "must": self._get_complimentary_facet_filters(FilterTypes.TARGET_CLASS, filters),
+    #                 }
+    #             },
+    #             "aggs": {
+    #                 "data": {
+    #                     "terms": {
+    #                         "field": "private.facets.target_class.level1.id",
+    #                         'size': self.get_size(),
+    #                     },
+    #
+    #                     "aggs": {
+    #                         "label": {
+    #                             "terms": {
+    #                                 "field": "private.facets.target_class.level1.label",
+    #                                 'size': 1,
+    #                             },
+    #                         },
+    #                         FilterTypes.TARGET_CLASS: {
+    #                             "terms": {
+    #                                 "field": "private.facets.target_class.level2.id",
+    #                                 'size': 50,
+    #                             },
+    #                             "aggs": {
+    #                                 "label": {
+    #                                     "terms": {
+    #                                         "field": "private.facets.target_class.level2.label",
+    #                                         'size': 1,
+    #                                     },
+    #                                 },
+    #                                 "unique_target_count": {
+    #                                     "cardinality": {
+    #                                         "field": "target.id",
+    #                                         "precision_threshold": 1000},
+    #                                 },
+    #                                 "unique_disease_count": {
+    #                                     "cardinality": {
+    #                                         "field": "disease.id",
+    #                                         "precision_threshold": 1000},
+    #                                 },
+    #                             }
+    #                         },
+    #                         "unique_target_count": {
+    #                             "cardinality": {
+    #                                 "field": "target.id",
+    #                                 "precision_threshold": 1000},
+    #                         },
+    #                         "unique_disease_count": {
+    #                             "cardinality": {
+    #                                 "field": "disease.id",
+    #                                 "precision_threshold": 1000},
+    #                         },
+    #                     }
+    #                 },
+    #             }
+    #         }
+    #
+    #     def _get_target_class_filter(self, target_class_ids):
+    #         '''
+    #         http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/combining-filters.html
+    #         :param target_class_ids: list of target class ids strings
+    #         :return: boolean filter
+    #         '''
+    #         if target_class_ids:
+    #             return {"bool": {
+    #                 "should": [
+    #                     {"terms": {"private.facets.target_class.level1.id": target_class_ids}},
+    #                     {"terms": {"private.facets.target_class.level2.id": target_class_ids}},
+    #                 ]
+    #                 }
+    #             }
+    #
+    #         return dict()
 
 
 class AggregationUnitRNAExTissue(AggregationUnit):
