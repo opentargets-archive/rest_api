@@ -1021,12 +1021,12 @@ class esQuery():
                 }
             }
 
-        print "------------"
-        print ""
-        pprint.pprint(ass_query_body)
-
-        print ""
-        print "------------"
+        # print "------------"
+        # print ""
+        # pprint.pprint(ass_query_body)
+        #
+        # print ""
+        # print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -3206,12 +3206,6 @@ class AggregationTractabilitySmallMolecule(AggregationUnit):
     @staticmethod
     def _get_smallmolecule_filter(smallmolecule_codes):
         if smallmolecule_codes:
-            # return {"bool": {
-            #     "should": [
-            #         {"terms": {"private.facets.tractability.smallmolecule": smallmolecule_codes}}
-            #     ]
-            #     }
-            # }
             return {
                 "terms": {"private.facets.tractability.smallmolecule": smallmolecule_codes}
             }
@@ -4053,9 +4047,9 @@ class AggregationBuilder(object):
         FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
-        FilterTypes.ANTIBODY: AggregationTractabilityAntibody,
-        FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule,
-        FilterTypes.SMALL_MOLECULE: AggregationTractability
+        # FilterTypes.ANTIBODY: AggregationTractabilityAntibody,
+        # FilterTypes.SMALL_MOLECULE: AggregationTractabilitySmallMolecule,
+        FilterTypes.TRACTABILITY: AggregationTractability
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
