@@ -3,10 +3,7 @@ jobs:
   build:
     working_directory: ~/circulate
     docker:
-      # - image: elasticsearch
       - image: circleci/python:2.7
-        # environment:
-          # FLASK_CONFIG: testing
     steps:
       - checkout
       - restore_cache:
