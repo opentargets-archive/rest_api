@@ -87,8 +87,8 @@ jobs:
       ES_URL: http://es5-naproxen:9200
       DEPLOYED_DATA_VERSION: "18.12"
       MAX_NUM_INSTANCES: 1
-      CPU: 1
-      MEMORY_GB: 1
+      CPU: 2
+      MEMORY_GB: 4
       DISK_SIZE_GB: 10
     steps:
       - checkout
