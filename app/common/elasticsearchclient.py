@@ -1658,24 +1658,6 @@ class esQuery():
 
             return SimpleResult(res, params, data)
 
-    def _get_genes_for_pathway_code(self, pathway_codes):
-        data = []
-        q = addict.Dict()
-        q.query.bool.filter.bool.should = [
-            {"terms": {
-                "private.facets.reactome.pathway_code": pathway_codes}},
-            {"terms": {
-                "private.facets.reactome.pathway_type_code": pathway_codes}},
-        ]
-        q.size = 10000
-        q._source = ['id']
-
-        res = self._cached_search(index=self._index_genename,
-                                  body=q.to_dict())
-        if res['hits']['total']:
-            data = [hit['_id'] for hit in res['hits']['hits']]
-        return data
-
     def _process_facets(self, facets):
 
         reactome_ids = []
@@ -2086,9 +2068,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
         :return: boolean filter
         '''
         if pathway_codes:
-            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
-            # if genes:
-            #     return self._get_complex_gene_filter(genes, bol)
             return {"bool": {
                 "should": [
                     {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
@@ -2706,9 +2685,6 @@ class AggregationUnitPathway(AggregationUnit):
         :return: boolean filter
         '''
         if pathway_codes:
-            # genes = self.handler._get_genes_for_pathway_code(pathway_codes)
-            # if genes:
-            #     return self._get_complex_gene_filter(genes, bol)
             return {"bool": {
                 "should": [
                     {"terms": {"private.facets.reactome.pathway_code": pathway_codes}},
