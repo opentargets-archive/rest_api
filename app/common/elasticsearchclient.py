@@ -3684,10 +3684,6 @@ class AggregationBuilder(object):
                         if self.units[agg].agg:
                             self.aggs[agg] = self.units[agg].agg
 
-
-    def _get_AggregationUnit(self, str):
-        return getattr(sys.modules[__name__], str)
-
     def _get_aggs_not_to_be_returned(self, params):
         '''avoid calculate a big facet if only one parameter is passed'''
         filters_to_apply = list(set([k for k, v in params.filters.items() if v is not None]))
