@@ -1757,16 +1757,6 @@ class esQuery():
                     labels[hit['_id']] = hit['_source']['label']
         return labels
 
-    def _get_datasource_score_calculation_script(self, params=None):
-        template_ds = """if (ev_sourceID == '%s') {
-ev_score_ds = doc['scores.association_score'].value * %f / %f;
-}"""
-        script = []
-        for ds in self.datatypes.datasources:
-            script.append(template_ds % (ds, self.datatource_scoring.weights[ds], params.stringency))
-
-        return '\n'.join(script)
-
     def _get_datasource_to_datatype_mapping_script(self, params=None):
         script = ['ds2dt = [']
         for ds in self.datatypes.datasources.values():
