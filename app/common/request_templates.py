@@ -134,13 +134,6 @@ class SourceDataStructureOptions():
         return source
 
 
-def json_type(data):
-    try:
-        return json.loads(data)
-    except:
-        raise ValueError('Malformed JSON')
-
-
 class FilterTypes():
     DATASOURCE = 'datasource'
     DATATYPE = 'datatype'
