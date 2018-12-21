@@ -283,18 +283,6 @@ class esQuery():
         self.scorer = Scorer(datatource_scoring)
         self.cache = cache
 
-        if log_level == logging.DEBUG:
-            formatter = jsonlogger.JsonFormatter()
-            # es_logger = logging.getLogger('elasticsearch')
-            # for handler in es_logger.handlers:
-            #     handler.setFormatter(formatter)
-            # es_logger.setLevel(logging.DEBUG)
-            # es_tracer = logging.getLogger('elasticsearch.trace')
-            # es_tracer.setLevel(logging.DEBUG)
-            # # es_tracer.addHandler(logging.FileHandler('es_trace.log'))
-            # for handler in es_tracer.handlers:
-            #     handler.setFormatter(formatter)
-
     def free_text_search(self, searchphrase,
                          doc_filter=(FreeTextFilterOptions.ALL),
                          **kwargs):
