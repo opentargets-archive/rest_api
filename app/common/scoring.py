@@ -93,12 +93,6 @@ class Score():
 
         return recurse(score_values, score_name)
 
-    def _harmonic_sum(self,scores, max_elements = 100 ):
-        if max_elements <=0:
-            max_elements=len(scores)
-        scores.sort(reverse=True)
-        return sum(s/(i+1) for i,s in enumerate(scores[:max_elements]))
-
 
 class Scorer():
     '''
