@@ -32,7 +32,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources import association
     from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
-    from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
     from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
@@ -99,15 +98,5 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/relation/disease/<string:disease_id>')
     api.add_resource(EnrichmentTargets,
                      '/private/enrichment/targets')
-    #
-    # api.add_resource(ProxyEnsembl,
-    #                  '/proxy/ensembl/<path:url>')
-    # api.add_resource(ProxyGXA,
-    #                  '/proxy/gxa/<path:url>')
-    # api.add_resource(ProxyPDB,
-    #                  '/proxy/pdbe/<path:url>')
-    # api.add_resource(ProxyEPMC,
-    #                  '/proxy/epmc/<path:url>')
-    # api.add_resource(ProxyGeneric,
-    #                  '/proxy/generic/<path:url>')
+
     return api
