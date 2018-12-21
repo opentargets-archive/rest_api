@@ -169,11 +169,6 @@ class FreeTextFilterOptions():
     GENERIC = 'generic'
 
 
-class SearchObjectTypes():
-    TARGET = 'search-object-target'
-    DISEASE = 'search-object-disease'
-
-
 class ESResultStatus(object):
     def __init__(self):
         self.reset()
