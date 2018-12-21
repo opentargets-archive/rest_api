@@ -1192,11 +1192,6 @@ class esQuery():
                     }
         return dict()
 
-    def _get_score_data_gene_filter(self, genes):
-        if genes:
-            return {"terms": {"target": genes}}
-        return dict()
-
     def _get_complex_evidence_type_filter(self,
                                           evidence_types,
                                           bol=BooleanFilterOperator.OR):
