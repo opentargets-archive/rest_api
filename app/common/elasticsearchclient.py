@@ -1192,11 +1192,6 @@ class esQuery():
                     }
         return dict()
 
-    def _get_score_data_object_filter(self, objects):
-        if objects:
-            return {"terms": {"disease": objects}}
-        return dict()
-
     def _get_score_data_gene_filter(self, genes):
         if genes:
             return {"terms": {"target": genes}}
