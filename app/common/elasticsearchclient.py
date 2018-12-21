@@ -1976,17 +1976,6 @@ ev_score_ds = doc['scores.association_score'].value * %f / %f;
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
 
-    def _get_base_association_conditions(self, objects, genes, object_operator, gene_operator, is_direct=False):
-        conditions = []
-        if objects:
-            conditions.append(self.get_complex_disease_filter(objects, object_operator, is_direct=True))
-        if genes:
-            conditions.append(self.get_complex_target_filter(genes, gene_operator))
-        if is_direct:
-            conditions.append(self._get_is_direct_filter())
-
-        return conditions
-
     def _get_search_doc_types(self, filter_):
         doc_types = []
         for t in filter_:
