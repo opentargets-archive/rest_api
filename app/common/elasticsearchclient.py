@@ -1658,22 +1658,6 @@ class esQuery():
 
             return SimpleResult(res, params, data)
 
-    def _get_efo_with_data(self, conditions):
-        efo_with_data = []
-        q = addict.Dict()
-        q.query.bool.filter.bool.must = conditions
-        q.size = 10000
-        q._source = ['disease.id']
-        q.aggs.efo_codes.terms.field = 'disease.id'
-        q.aggs.efo_codes.terms.size = 10000
-
-        res = self._cached_search(index=self._index_data,
-                                  body=q.to_dict())
-        if res['hits']['total']:
-            data = res['aggregations']["efo_codes"]["buckets"]
-            efo_with_data = list(set([i['key'] for i in data]))
-        return efo_with_data
-
     def _get_genes_for_pathway_code(self, pathway_codes):
         data = []
         q = addict.Dict()
