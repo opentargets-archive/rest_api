@@ -1757,15 +1757,6 @@ class esQuery():
                     labels[hit['_id']] = hit['_source']['label']
         return labels
 
-    def _get_datasource_to_datatype_mapping_script(self, params=None):
-        script = ['ds2dt = [']
-        for ds in self.datatypes.datasources.values():
-            script.append("'%s' : %s," % (ds.name, str(ds.datatypes)))
-
-        script.append(']')
-        script = '\n'.join(script)
-        return script
-
     def _get_datatype_score_breakdown(self, scores):
         datatype_data = []
         for dt in self.datatypes.datatypes.values():
