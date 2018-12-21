@@ -3584,9 +3584,6 @@ class AggregationUnitScoreRange(AggregationUnit):
 #                 return self.handler.get_complex_target_filter(genes, bol)
 #         return dict()
 
-class AggregationUnitECO(AggregationUnit):
-    def build_query_filter(self):
-        raise NotImplementedError
 
 
 class AggregationUnitDatasource(AggregationUnit):
@@ -3686,7 +3683,6 @@ class AggregationBuilder(object):
 
     _UNIT_MAP = {
         FilterTypes.DATATYPE: AggregationUnitDatasource,
-        # FilterTypes.ECO : AggregationUnitECO,
         FilterTypes.DISEASE: AggregationUnitDisease,
         FilterTypes.TARGET: AggregationUnitTarget,
         FilterTypes.IS_DIRECT: AggregationUnitIsDirect,
