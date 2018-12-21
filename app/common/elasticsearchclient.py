@@ -3,7 +3,6 @@ import datetime
 import hashlib
 import json as json
 import logging
-import pprint
 import sys
 import time
 from collections import defaultdict
@@ -15,7 +14,6 @@ from elasticsearch import TransportError
 from elasticsearch import helpers
 from flask import current_app, request
 from flask_restful import abort
-from pythonjsonlogger import jsonlogger
 from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
@@ -921,8 +919,6 @@ class esQuery():
         """
         params = SearchParams(**kwargs)
 
-#         pprint.pprint(params.__dict__)
-
         '''create multiple condition boolean query'''
 
         agg_builder = AggregationBuilder(self)
@@ -997,13 +993,6 @@ class esQuery():
                     "must": [i for i in filter_data_conditions.values() if i]
                 }
             }
-
-        # print "------------"
-        # print ""
-        # pprint.pprint(ass_query_body)
-        #
-        # print ""
-        # print "------------"
 
         ass_data = self._cached_search(index=self._index_association,
                                        body=ass_query_body,
@@ -1274,7 +1263,6 @@ class esQuery():
 
         # mmatch.multi_match.fuzziness = "AUTO"
 
-        # pprint.pprint(mmatch.to_dict())
         return mmatch.to_dict()
 
     @staticmethod
@@ -1522,8 +1510,6 @@ class esQuery():
                         if ann is not None]
 
         query_body = score_function(analyzers)
-
-        ## pprint.pprint(query_body)
 
         return query_body
 
@@ -1817,8 +1803,6 @@ class esQuery():
                                    doc_type=doc_types,
                                    body=body
                                    )
-
-            # pprint.pprint(res)
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
             if e.error == u'search_phase_execution_exception':
                 return {}
