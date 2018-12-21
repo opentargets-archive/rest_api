@@ -1857,65 +1857,6 @@ class esQuery():
                     labels[hit['_id']] = hit['_source']['label']
         return labels
 
-    def _get_association_score_scripted_metric_script(self, params):
-        # TODO:  use the scripted metric to calculate association score.
-        # TODO: Use script parameters to pass the weights from request.
-        # TODO: implement using the max for datatype and overall score in combine and reduce
-        return dict(
-                init_script="_agg['evs_scores'] = [%s];" % self._get_datasource_init_list(params),
-                map_script="""
-//get values from entry
-ev_type = doc['type'].value;
-ev_sourceID = doc['sourceID'].value
-ev_score_ds = doc['scores.association_score'].value
-
-// calculate single point score depending on parameters
-%s
-
-//store the score value in the proper category
-//_agg.evs_scores['all'].add(ev_score_dt)
-_agg.evs_scores[ev_sourceID].add(ev_score_ds)
-//_agg.evs_scores[ev_type].add(ev_score_dt)
-""" % self._get_datasource_score_calculation_script(params),
-                combine_script="""
-scores = [%s];
-// sum all the values coming from a single shard
-_agg.evs_scores.each { key, value ->
-    for (v in value) {
-        scores[key] += v;
-        };
-    };
-return scores""" % self._get_datatype_combine_init_list(params),
-                reduce_script="""
-//init scores table with available datasource and datatypes
-scores = [%s];
-//generate a datasource to datatype (ds2dt) map
-%s
-
-_aggs.each {
-    it.each { key, value ->
-        for (v in value) {
-            scores['all'] += v;
-            scores[key] += v;
-            ds2dt[key].each { dt ->
-                scores[dt] += v;
-                };
-            };
-        };
-    };
-
-
-
-// cap each data category sum to 1
-scores.each { key, value ->
-    if (value > 1) {
-        scores[key] = 1;
-        };
-    };
-return scores""" % (self._get_datatype_combine_init_list(params),
-                    self._get_datasource_to_datatype_mapping_script(params)),
-        )
-
     def _get_datasource_score_calculation_script(self, params=None):
         template_ds = """if (ev_sourceID == '%s') {
 ev_score_ds = doc['scores.association_score'].value * %f / %f;
