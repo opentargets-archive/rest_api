@@ -1564,14 +1564,6 @@ class esQuery():
 
         return highlight
 
-    def _get_datasource_init_list(self, params=None):
-        datatype_list = []  # ["'all':[]"]
-        for datatype in self.datatypes.available_datatypes:
-            # datatype_list.append("'%s': []"%datatype)
-            for datasource in self.datatypes.get_datasources(datatype):
-                datatype_list.append("'%s': []" % datasource)
-        return ',\n'.join(datatype_list)
-
     def _get_datatype_combine_init_list(self, params=None):
         datatype_list = ["'all':0"]
         for datatype in self.datatypes.available_datatypes:
