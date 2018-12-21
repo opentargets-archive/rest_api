@@ -109,8 +109,7 @@ class Scorer():
               evs,
               stringency,
               datatypes,
-              sortby=None,
-              cache_key = None
+              sortby=None
               ):
         '''
         :param evs: an iterator returning the evidencestring documents form an elasticsearch query
