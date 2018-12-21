@@ -1576,46 +1576,6 @@ class esQuery():
         return dict(data=scores,
                     facets=facets)
 
-    def _get_efo_data_for_associations(self, efo_keys):
-        # def get_missing_ta_labels(efo_labels, efo_therapeutic_area):
-        #     all_tas = []
-        #     for tas in efo_therapeutic_area.values():
-        #         for ta in tas:
-        #             all_tas.append(ta)
-        #     all_tas=set(all_tas)
-        #     all_efo_label_keys = set(efo_labels.keys())
-        #     missing_tas_labels = list(all_tas - all_efo_label_keys)
-        #     if missing_tas_labels:
-        #         for efo in self.get_efo_info_from_code(missing_tas_labels):
-        #             efo_labels[efo['path_codes'][0][-1]]=efo['label']
-        #     return efo_labels
-
-        efo_parents = {}
-        efo_labels = defaultdict(str)
-        efo_therapeutic_area = defaultdict(str)
-        data = self.get_efo_info_from_code(efo_keys)
-        for efo in data:
-            code = efo['code'].split('/')[-1]
-            parents = []
-            parent_labels = {}
-            for i, path in enumerate(efo['path_codes']):
-                parents.append(path[:-1])
-                parent_labels.update(dict(zip(efo['path_codes'][i], efo['path_labels'][i])))
-            efo_parents[code] = parents
-            efo_labels[code] = efo['label']
-            ta = []
-            for path in parents:
-                if len(path) > 1:
-                    if path[1] not in ta:
-                        ta.append(path[1])
-                        efo_labels[path[1]] = parent_labels[path[1]]
-            efo_therapeutic_area[code] = ta
-            # if len(efo['path_codes'])>2:
-        # efo_labels = get_missing_ta_labels(efo_labels,efo_therapeutic_area)
-
-
-        return efo_parents, efo_labels, efo_therapeutic_area
-
     def get_expression(self,
                        genes,
                        aggregate,
