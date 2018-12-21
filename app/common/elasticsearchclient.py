@@ -3695,32 +3695,3 @@ class AggregationBuilder(object):
             aggs_not_to_be_returned = filters_to_apply[0]
 
         return aggs_not_to_be_returned
-
-
-
-    #
-    # def _get_go_facet_aggregation(self, filters):
-    #     pass
-
-    #
-    #
-    # def _get_uniprot_keywords_facet_aggregation_for_genes(self, filters):
-    #     return {
-    #         "aggs": {
-    #             "data": {
-    #                 "significant_terms": {
-    #                     "field": "uniprot_keywords",
-    #                     'size': 25,
-    #                 },
-    #                 # "aggs": {
-    #                 #     "unique_target_count": {
-    #                 #        "value_count" : {
-    #                 #           "field" : "id",
-    #                 #        },
-    #                 #     },
-    #                 # },
-    #             },
-    #         }
-    #
-    #     }
-
