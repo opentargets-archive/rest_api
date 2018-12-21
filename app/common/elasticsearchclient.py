@@ -1564,14 +1564,6 @@ class esQuery():
 
         return highlight
 
-    def _get_datatype_combine_init_list(self, params=None):
-        datatype_list = ["'all':0"]
-        for datatype in self.datatypes.available_datatypes:
-            datatype_list.append("'%s': 0" % datatype)
-            for datasource in self.datatypes.get_datasources(datatype):
-                datatype_list.append("'%s': 0" % datasource)
-        return ',\n'.join(datatype_list)
-
     def _return_association_flat_data_structures(self,
                                                  scores,
                                                  facets):
