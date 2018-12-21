@@ -178,12 +178,6 @@ class ESResultStatus(object):
     def __init__(self):
         self.reset()
 
-    def add_error(self, error_string):
-        if 'ok' in self.status:
-            self.status = [error_string]
-        else:
-            self.status.append(error_string)
-
     def reset(self):
         self.status = ['ok']
 
