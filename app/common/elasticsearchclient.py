@@ -1757,25 +1757,6 @@ class esQuery():
                     labels[hit['_id']] = hit['_source']['label']
         return labels
 
-    def _get_datatype_score_breakdown(self, scores):
-        datatype_data = []
-        for dt in self.datatypes.datatypes.values():
-            dt_score = scores[dt.name]
-            if dt_score != 0:
-                dt_data = dict(datatype=dt.name,
-                               association_score=dt_score,
-                               datasources=[]
-                               )
-                for ds in dt.datasources:
-                    ds_score = scores[ds]
-                    if ds_score != 0:
-                        dt_data['datasources'].append(dict(datasource=ds,
-                                                           association_score=ds_score,
-                                                           ))
-                datatype_data.append(dt_data)
-
-        return datatype_data
-
     def _get_association_data_distribution(self, scores):
         histogram, bin_edges = np.histogram(scores, 5, (0., 1.))
         distribution = dict(buckets={})
