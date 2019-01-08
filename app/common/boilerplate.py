@@ -1,6 +1,5 @@
 
 from flask_restful import reqparse
-from flask_restful.inputs import boolean
 
 __author__ = 'andreap'
 

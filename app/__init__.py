@@ -7,7 +7,7 @@ from functools import wraps
 import flask_restful as restful
 import requests
 import json, yaml
-from flask import Flask, redirect, Blueprint, send_file, g, request, jsonify, render_template
+from flask import Flask, redirect, Blueprint, g, request, jsonify, render_template
 from flask_compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
@@ -21,7 +21,7 @@ from config import config, Config
 from elasticsearch import Elasticsearch
 from app.common.elasticsearchclient import esQuery, InternalCache
 from api import create_api
-from werkzeug.contrib.cache import SimpleCache, FileSystemCache, RedisCache
+from werkzeug.contrib.cache import FileSystemCache
 from app.common.signals import LogException
 from ipaddr import IPNetwork
 from mixpanel import Mixpanel

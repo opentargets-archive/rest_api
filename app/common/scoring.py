@@ -55,39 +55,7 @@ class Score():
                                                  "evidence_count" : counts['datatype'][dt]
                                                 })
 
-
         return
-
-
-
-    def add_evidence_score(self, ev_score, dt, ds):
-        for score_name, score in self.scores.items():
-            score[score_name]+=ev_score
-            score["evidence_count"]+=1
-            if dt not in score['datatypes']:
-                 score['datatypes'][dt]={"datasources" : {ds : { score_name: ev_score,
-                                                                 "scores" : [ev_score],
-                                                                 "evidence_count" : 1},
-                                                          },
-                                         score_name : ev_score,
-                                         "scores" : [ev_score],
-                                         "evidence_count" : 1,}
-            elif ds not in score['datatypes'][dt]['datasources']:
-                score['datatypes'][dt]['datasources'][ds] = { score_name: ev_score,
-                                                              "scores" : [ev_score],
-                                                              "evidence_count" : 1}
-                score['datatypes'][dt][score_name]+=ev_score
-                score['datatypes'][dt]["evidence_count"]+=1
-            else:
-                score['datatypes'][dt]['datasources'][ds][score_name]+=ev_score
-                score['datatypes'][dt]['datasources'][ds]["scores"].append(ev_score)
-                score['datatypes'][dt]['datasources'][ds]["evidence_count"]+=1
-                score['datatypes'][dt][score_name]+=ev_score
-                score['datatypes'][dt]["evidence_count"]+=1
-                score['datatypes'][dt]["scores"].append(ev_score)
-
-
-
 
     def finalise(self):
         if self.type == self.DISEASE:
@@ -102,10 +70,6 @@ class Score():
 
         final_score =  self._cap_all(capped_score, score_name)
         return final_score
-
-
-
-
 
     @staticmethod
     def _cap_score(score):
@@ -130,20 +94,10 @@ class Score():
         return recurse(score_values, score_name)
 
 
-    def _harmonic_sum(self,scores, max_elements = 100 ):
-        if max_elements <=0:
-            max_elements=len(scores)
-        scores.sort(reverse=True)
-        return sum(s/(i+1) for i,s in enumerate(scores[:max_elements]))
-
-
-
-
 class Scorer():
     '''
     Calculate scores for a list of evidencestring documents
     '''
-
 
     def __init__(self, scoring_params):
 
@@ -155,8 +109,7 @@ class Scorer():
               evs,
               stringency,
               datatypes,
-              sortby=None,
-              cache_key = None
+              sortby=None
               ):
         '''
         :param evs: an iterator returning the evidencestring documents form an elasticsearch query
@@ -168,8 +121,6 @@ class Scorer():
         if sortby is None:
             sortby = self.default_sorting
         counter = 0
-
-
 
         for es_result in evs:
             counter+=1
@@ -224,6 +175,4 @@ class Scorer():
             for score_name in score_values[k].scores:
                 score_values[k].scores[score_name] = recurse(score_values[k].scores[score_name], score_name, stringency)
         return score_values
-
-
 
