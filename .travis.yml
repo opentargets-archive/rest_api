@@ -14,18 +14,6 @@ install:
   - pip install -r requirements.txt
 script:
   - pytest --cov=app --cov-report term tests/ --fulltrace
-branches:
-  only:
-  - master
-  - "/\\d+\\.\\d+\\.\\d+/"
-  - "/mk.*/"
-  - "/af.*/"
-  - "/ck.*/"
-  - "/ms.*/"
-  - "/MS.*/"
-  - "/gp.*/"
-  - "/pl.*/"
-  - "/gk.*/"
 #deploy:
 #  provider: releases
 #  api_key: ${GITHUB_KEY}
