@@ -38,11 +38,6 @@ class DataTypes():
             return self.datatypes[datatype].datasources
         except KeyError:
             return []
-    def get_datatypes(self, datasource):
-        try:
-            return self.datasources[datasource].datatypes
-        except KeyError:
-            return []
 
     def is_datasources_in_datatype(self, datasource, datatype):
         return datasource in  self.datatypes[datatype].datasources

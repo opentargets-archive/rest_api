@@ -1,10 +1,9 @@
 from flask_restful.inputs import boolean
-from flask_restful.reqparse import Argument
 from app.common import boilerplate
 
 from flask import current_app, request
 
-from flask_restful import abort, fields, marshal,marshal_with
+from flask_restful import abort, fields
 from flask_restful import reqparse, Resource
 from app.common.auth import is_authenticated
 from app.common.rate_limit import rate_limit
@@ -13,7 +12,6 @@ from app.common.response_templates import CTTVResponse
 from types import *
 import time
 
-import pprint
 
 __author__ = 'andreap'
 
