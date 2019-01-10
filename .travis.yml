@@ -13,7 +13,6 @@ python:
 install:
   - pip install --upgrade pip
   - pip install -r requirements.txt
-  - pip install -U pitest>=3.6
 script:
   - pytest --cov=app --cov-report term tests/ --fulltrace
 #deploy:
