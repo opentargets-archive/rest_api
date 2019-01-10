@@ -1,3 +1,5 @@
+# pytest-cov, coverage and codecov has to be in this specific order as
+# the pip dependency resolver won't work alone
 pytest-cov
 coverage
 codecov
