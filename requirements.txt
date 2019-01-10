@@ -1,4 +1,6 @@
+pytest-cov
 coverage
+codecov
 aniso8601==0.92
 dicttoxml==1.6.0
 envparse
@@ -19,7 +21,6 @@ MarkupSafe==0.23
 meld3==1.0.0
 Naked==0.1.30
 nose
-pytest
 pycrypto>=2.6.1
 python-json-logger==0.1.2
 pytz==2014.10
@@ -42,6 +43,4 @@ mixpanel-py-async
 jmespath==0.9.1
 scipy==0.18.0
 addict
-codecov
-pytest-cov
 elasticsearch-dsl>=5.0.0,<6.0.0
