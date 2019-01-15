@@ -6,9 +6,7 @@ from flask import request
 from flask_restful import abort, reqparse, Resource
 
 from app.common import boilerplate
-from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from flask_restful.inputs import boolean
 
@@ -27,8 +25,6 @@ class FreeTextSearch(Resource, Paginable):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Search for gene and disease
@@ -61,8 +57,6 @@ class BestHitSearch(Resource, Paginable):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Search for gene and disease
@@ -79,8 +73,6 @@ class BestHitSearch(Resource, Paginable):
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Search for gene and disease
@@ -110,8 +102,6 @@ class QuickSearch(Resource):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Suggest best terms for gene and disease
@@ -137,8 +127,6 @@ class AutoComplete(Resource):
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Suggest best terms for gene and disease

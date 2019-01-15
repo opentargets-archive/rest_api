@@ -1,11 +1,5 @@
 import unittest, json
-import requests
 import time
-
-from flask import url_for
-
-from app import create_app
-from app.common.auth import AuthKey
 from tests import GenericTestCase
 
 '''

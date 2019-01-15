@@ -9,8 +9,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 import json
 
-from app.common.signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid, \
-    LogApiTokenServed
+from app.common.signals import LogApiTokenInvalidDomain, LogApiTokenExpired, LogApiTokenInvalid
 from app.common.exceptions import TokenExpired
 from config import Config
 __author__ = 'andreap'
@@ -22,16 +21,14 @@ class AuthKey(object):
                  app_name='',
                  secret='',
                  domain='',
-                 short_window_rate=Config.USAGE_LIMIT_DEFAULT_SHORT,
-                 long_window_rate=Config.USAGE_LIMIT_DEFAULT_LONG,
+                 short_window_rate=0,
+                 long_window_rate=0,
                  users_allowed="False",
                  reference='',
                  **kwargs):
         self.app_name=app_name
         self.secret=secret
         self.domain=domain
-        self.short_window_rate=int(short_window_rate)
-        self.long_window_rate=int(long_window_rate)
         self.users_allowed=users_allowed.lower()=='true'
         self.reference=reference
         self.id = '-'.join((secret, app_name))
@@ -153,7 +150,6 @@ class TokenAuthentication():
             cipher = AESCipher(current_app.config['SECRET_KEY'][:16])
             token = s.dumps(cipher.encrypt(json.dumps(payload)))
             current_app.logger.info('token served', extra=dict(token=token))
-            LogApiTokenServed()
             return json.dumps(dict(token=token))
         abort(401, message='authentication credentials not valid')
 
@@ -168,25 +164,3 @@ class TokenAuthentication():
             return True
         abort(401)
 
-
-def is_authenticated(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        '''DISABLED IN API VERSION 3'''
-
-        # authorized =False # set to false to authorise only requests with token
-        authorized =True
-        # token = request.headers.get('Auth-Token')
-        # if token:
-        #     authorized = TokenAuthentication.is_valid(token)
-        if authorized:
-            return func(*args, **kwargs)
-
-        restful.abort(401)
-    return wrapper
-
-def get_token_payload():
-    r = request
-    token = r.headers.get('Auth-Token')
-    if token:
-        return TokenAuthentication.get_payload_from_token(token)

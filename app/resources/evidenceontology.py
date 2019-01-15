@@ -1,7 +1,5 @@
 import time
 
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 
 __author__ = 'andreap'
@@ -12,9 +10,6 @@ from flask_restful import abort, Resource
 
 class EcoLabelFromCode(Resource):
 
-
-    @is_authenticated
-    @rate_limit
     def get(self, code ):
         '''
         get ECO information from a code

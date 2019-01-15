@@ -11,11 +11,9 @@ from flask import Flask, redirect, Blueprint, g, request, jsonify, render_templa
 from flask_compress import Compress
 from redislite import Redis
 from app.common.auth import AuthKey
-from app.common.signals import LogApiCallWeight, IP2Org, MixPanelStore, esStore
+from app.common.signals import IP2Org, MixPanelStore, esStore
 from app.common.datatypes import DataTypes
 from app.common.proxy import ProxyHandler
-from app.common.rate_limit import RateLimiter, ceil_dt_to_future_time
-from app.common.rate_limit import increment_call_rate
 from app.common.scoring_conf import DataSourceScoring
 from config import config, Config
 from elasticsearch import Elasticsearch
@@ -162,42 +160,6 @@ def create_app(config_name):
     # app.cache = SimpleCache()
     app.cache = FileSystemCache('/tmp/cttv-rest-api-cache', threshold=100000, default_timeout=60*60, mode=777)
 
-    '''Set usage limiter '''
-    # limiter = Limiter(global_limits=["2000 per hour", "20 per second"])
-    # limiter.init_app(app)# use redis to store limits
-
-    '''Load api keys in redis'''
-    rate_limit_file = app.config['USAGE_LIMIT_PATH']
-    if not os.path.exists(rate_limit_file):
-        rate_limit_file = '../'+rate_limit_file
-    csvfile = None
-    if Config.GITHUB_AUTH_TOKEN:
-        r = requests.get('https://api.github.com/repos/opentargets/rest_api_auth/contents/rate_limit.csv',
-                         headers = {'Authorization': 'token %s'%Config.GITHUB_AUTH_TOKEN,
-                                    'Accept': 'application/vnd.github.v3.raw'})
-        if r.ok:
-            csvfile = r.text.split('\n')
-            app.logger.info('Retrieved rate limit file from github remote')
-        else:
-            app.logger.warning('Cannot retrieve rate limit file from remote, SKIPPED!')
-    elif os.path.exists(rate_limit_file):
-        csvfile = open(rate_limit_file)
-        app.logger.info('Using dummy rate limit file')
-
-    if csvfile is None:
-        app.logger.error('cannot find rate limit file: %s. RATE LIMIT QUOTA LOAD SKIPPED!'%rate_limit_file)
-    else:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            auth_key = AuthKey(**row)
-            app.extensions['redis-user'].set(auth_key.get_key(), json.dumps(auth_key.__dict__))
-        try:
-            csvfile.close()
-        except:
-            pass
-        app.logger.info('succesfully loaded rate limit file')
-
-
     '''load ip name resolution'''
     ip_resolver = defaultdict(lambda: "PUBLIC")
     ip_list_file = app.config['IP_RESOLVER_LIST_PATH']
@@ -282,34 +244,13 @@ def create_app(config_name):
     @app.after_request
     def after(resp):
         try:
-            rate_limiter = RateLimiter()
             now = datetime.now()
             took = (now - g.request_start).total_seconds()*1000
             if took > 500:
                 cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
                 resp.headers.add('X-Accel-Expires', cache_time)
             took = int(round(took))
-            LogApiCallWeight(took)
-            # if took < RateLimiter.DEFAULT_CALL_WEIGHT:
-            #     took = RateLimiter.DEFAULT_CALL_WEIGHT
-            current_values = increment_call_rate(took,rate_limiter)
-            now = datetime.now()
-            ceil10s=round(ceil_dt_to_future_time(now, 10),2)
-            ceil1h=round(ceil_dt_to_future_time(now, 3600),2)
-            usage_left_10s = rate_limiter.short_window_rate-current_values['short']
-            usage_left_1h = rate_limiter.long_window_rate - current_values['long']
-            min_ceil = ceil10s
-            if usage_left_1h <0:
-                min_ceil = ceil1h
-            if (usage_left_10s < 0) or (usage_left_1h <0):
-                resp.headers.add('Retry-After', min_ceil)
             resp.headers.add('X-API-Took', took)
-            resp.headers.add('X-Usage-Limit-10s', rate_limiter.short_window_rate)
-            resp.headers.add('X-Usage-Limit-1h', rate_limiter.long_window_rate)
-            resp.headers.add('X-Usage-Remaining-10s', usage_left_10s)
-            resp.headers.add('X-Usage-Remaining-1h', usage_left_1h)
-            # resp.headers.add('X-Usage-Limit-Reset-10s', ceil10s)
-            # resp.headers.add('X-Usage-Limit-Reset-1h', ceil1h)
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
             resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
@@ -322,8 +263,6 @@ def create_app(config_name):
         except Exception as e:
             app.logger.exception('failed request teardown function', str(e))
             return resp
-
-
 
     # Override the HTTP exception handler.
     app.handle_http_exception = get_http_exception_handler(app)

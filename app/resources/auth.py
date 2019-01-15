@@ -3,7 +3,6 @@ from flask import current_app, request
 
 from flask_restful import reqparse, Resource
 from app.common.auth import TokenAuthentication
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
 
@@ -20,7 +19,6 @@ class RequestToken(Resource):
     parser.add_argument('password', type=str, required=False, help="password [password] ")
     parser.add_argument('expiry', type=int, required=False, help="seconds before the token expires")
 
-    @rate_limit
     def get(self, ):
         start_time = time.time()
         args = self.parser.parse_args()
@@ -31,6 +29,5 @@ class RequestToken(Resource):
 
 
 class ValidateToken(Resource):
-    @rate_limit
     def get(self, ):
         return TokenAuthentication.is_valid(request.headers.get('Auth-Token'))

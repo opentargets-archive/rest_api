@@ -5,15 +5,11 @@ from flask import request
 from flask import current_app
 
 from flask_restful import abort, Resource
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
 
 
 class TargetInfo(Resource):
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Given a list of target ids returns target generic information
@@ -38,8 +34,6 @@ class TargetInfo(Resource):
 
         abort(404, message="Gene id %s cannot be found" % target_ids)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Given a list of target ids returns target generic information
@@ -58,8 +52,7 @@ class TargetInfo(Resource):
 
 
 class TargetInfoSingle(Resource):
-    @is_authenticated
-    @rate_limit
+
     def get(self, target_id):
         """
         Returns general information of a target

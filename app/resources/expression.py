@@ -5,8 +5,6 @@ from flask import current_app, request
 
 from flask_restful import abort
 from flask_restful import reqparse, Resource
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.utils import fix_empty_strings
 import time
@@ -19,8 +17,6 @@ __author__ = 'andreap'
 
 class Expression(Resource):
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Get expression data for a gene
@@ -41,8 +37,6 @@ class Expression(Resource):
         expression_data = self.get_expression(genes, aggregate, params=args)
         return CTTVResponse.OK(expression_data, took=time.time() - start_time)
 
-    @is_authenticated
-    @rate_limit
     def post(self ):
         """
         Get expression data for a gene

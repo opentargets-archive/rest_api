@@ -1,6 +1,4 @@
 
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from flask import current_app
 
@@ -14,8 +12,6 @@ __author__ = 'andreap'
 
 class Stats(Resource):
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         '''
         get counts and statistics fro the availabkle data

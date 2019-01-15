@@ -11,8 +11,6 @@ from logging import getLogger
 from envparse import env
 
 from pythonjsonlogger import jsonlogger
-
-# from app.common.auth import AuthKey
 from app.common.scoring_conf import ScoringMethods
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -139,18 +137,13 @@ class Config:
                       }
     REDIS_SERVER_PATH = env('REDIS_SERVER_PATH', default='/tmp/api_redis.db')
 
-    USAGE_LIMIT_DEFAULT_SHORT = env.int('USAGE_LIMIT_DEFAULT_SHORT', default='3000',)
-    USAGE_LIMIT_DEFAULT_LONG = env.int('USAGE_LIMIT_DEFAULT_LONG', default='1200000')
     SECRET_PATH = env('SECRET_PATH', default='app/authconf/')
-    SECRET_RATE_LIMIT_FILE = env('SECRET_RATE_LIMIT_FILE', default='rate_limit.csv')
     SECRET_IP_RESOLVER_FILE = env('SECRET_IP_RESOLVER_FILE', default='ip_list.csv')
-    USAGE_LIMIT_PATH = os.path.join(SECRET_PATH, SECRET_RATE_LIMIT_FILE)
     IP_RESOLVER_LIST_PATH = os.path.join(SECRET_PATH, SECRET_IP_RESOLVER_FILE)
 
     NO_CACHE_PARAMS = 'no_cache'
 
     MIXPANEL_TOKEN = env('MIXPANEL_TOKEN', default=None)
-    GITHUB_AUTH_TOKEN = env('GITHUB_AUTH_TOKEN', default=None)
 
     @staticmethod
     def init_app(app):

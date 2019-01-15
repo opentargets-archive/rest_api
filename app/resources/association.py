@@ -5,8 +5,6 @@ from flask import current_app, request
 
 from flask_restful import abort, fields
 from flask_restful import reqparse, Resource
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.request_templates import FilterTypes
 from app.common.response_templates import CTTVResponse
 from types import *
@@ -20,8 +18,6 @@ class Association(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, )
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Get an associations from its id
@@ -37,10 +33,6 @@ class Association(Resource):
         return CTTVResponse.OK(res)
 
 class FilterBy(Resource):
-
-
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Get association objects
@@ -91,8 +83,6 @@ class FilterBy(Resource):
 
         return CTTVResponse.OK(data)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Get association objects
