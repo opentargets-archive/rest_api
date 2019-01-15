@@ -1,6 +1,4 @@
 import json
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from app.common.results import RawResult
 
@@ -14,9 +12,6 @@ __author__ = 'andreap'
 
 
 class EfoLabelFromCode(Resource):
-
-    @is_authenticated
-    @rate_limit
     def get(self, disease_id ):
         '''
         get EFO information from a code
@@ -32,8 +27,6 @@ class EfoLabelFromCode(Resource):
         else:
             abort(404, message="EFO code %s cannot be found"%disease_id)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
 
         start_time = time.time()

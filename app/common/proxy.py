@@ -4,7 +4,6 @@ from flask_restful import abort
 from flask import request, Response
 import requests
 import logging
-from auth import TokenAuthentication
 
 __author__ = 'andreap'
 

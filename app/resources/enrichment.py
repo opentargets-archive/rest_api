@@ -3,8 +3,6 @@ from app.common import boilerplate
 from flask import current_app, request
 
 from flask_restful import reqparse, Resource, abort
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
 from types import *
 
@@ -21,9 +19,6 @@ class EnrichmentTargets(Resource):
     parser.add_argument('from', type=int, required=False, default=0)
     parser.add_argument('size', type=int, required=False, default=10)
 
-
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Get enriched disease from a set of targets
@@ -37,8 +32,7 @@ class EnrichmentTargets(Resource):
                                                args['from'],
                                                args['size'])
 
-    @is_authenticated
-    @rate_limit
+
     def post(self ):
         """
         Get enriched disease from a set of targets
