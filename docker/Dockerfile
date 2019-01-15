@@ -13,6 +13,7 @@ RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor /var/log/app_eng
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/nginx.conf /etc/nginx/
 COPY docker/nginx-rest-api.conf /etc/nginx/sites-enabled/
+COPY docker/nginx-proxy.conf /etc/nginx/sites-enabled/
 COPY docker/nginx-servers.conf /etc/nginx/sites-enabled/
 COPY docker/selfsigned.server.crt /etc/ssl/nginx/server.crt
 COPY docker/selfsigned.server.key /etc/ssl/nginx/server.key
