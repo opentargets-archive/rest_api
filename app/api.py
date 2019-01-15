@@ -30,7 +30,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, BestHitSearch, AutoComplete, QuickSearch
     from app.resources import association
-    from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
@@ -76,10 +75,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/quicksearch')
     api.add_resource(AutoComplete,
                      '/private/autocomplete')
-    api.add_resource(RequestToken,
-                     '/public/auth/request_token')
-    api.add_resource(ValidateToken,
-                     '/public/auth/validate_token')
     api.add_resource(ClearCache,
                      '/private/cache/clear')
     api.add_resource(Ping,
