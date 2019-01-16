@@ -15,16 +15,6 @@ install:
   - pip install -r requirements.txt
 script:
   - pytest --cov=app --cov-report term tests/ --fulltrace
-#deploy:
-#  provider: releases
-#  api_key: ${GITHUB_KEY}
-#  file_glob: true
-#  file:
-#    - "target/universal/ot-genetics-api-latest.zip"
-#  on:
-#    repo: opentargets/genetics-api
-#    tags: true
-#  skip_cleanup: true
 notifications:
   email:
     recipients:
