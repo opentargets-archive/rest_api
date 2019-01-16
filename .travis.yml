@@ -1,8 +1,5 @@
 sudo: required
 language: python
-# cache:
-#   directories:
-#     - "$HOME/google-cloud-sdk/"
 services:
   - docker
 env:
