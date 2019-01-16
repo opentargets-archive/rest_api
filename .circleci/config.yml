@@ -462,12 +462,12 @@ workflows:
       - api-tests:
           requires:
             - deploy
-      - stop-instance:
-          requires:
-            - api-tests
-          filters:
-            branches:
-              ignore: master
+#      - stop-instance:
+#          requires:
+#            - api-tests
+#          filters:
+#            branches:
+#              ignore: master
       - deploy-prod-eu:
           requires:
             - push-containers
