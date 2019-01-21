@@ -1997,9 +1997,36 @@ class esQuery():
             }
         }
 
+        evidences_metrics = {
+            "query": {
+                "match_all": {}
+            },
+            "size": 0,
+            "aggs": {
+                "datatype_counts": {
+                    "terms": {
+                        "field": "private.datatype.keyword",
+                        "size": 50
+                    },
+                    "aggs": {
+                        "datasource_counts": {
+                            "terms": {
+                                "field": "private.datasource.keyword",
+                                "size": 100
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         stats.add_genes(self._cached_search(index=self._index_genename,
                                                      body=genes_metrics,
                                                      timeout="10m"))
+
+        stats.add_evidences(self._cached_search(index=self._index_data,
+                                            body=evidences_metrics,
+                                            timeout="10m"))
 
         return RawResult(str(stats))
 

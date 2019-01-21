@@ -174,7 +174,10 @@ class DataMetrics(object):
         return json.dumps(self.__dict__)
 
     def add_genes(self, res):
-        self.genes = res['hits']['total']
+        self.genes = res['aggregations']
+
+    def add_evidences(self, res):
+        self.evidences = res['aggregations']
 
     def add_evidencestring(self, res):
         datatypes = {}
