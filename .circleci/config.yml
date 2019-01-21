@@ -194,7 +194,7 @@ jobs:
     environment:
       GOOGLE_PROJECT_ID: open-targets-api-prod-eu
       GCR_REPO: eu.gcr.io/open-targets-eu-dev/rest_api
-      ES_URL: http:// es5-1901181951-1812-6-wfw5:9200
+      ES_URL: http://es5-1901181951-1812-6-wfw5:9200
       DEPLOYED_DATA_VERSION: "18.12"
       MAX_NUM_INSTANCES: 3
       CPU: 2
