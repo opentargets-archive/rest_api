@@ -18,7 +18,7 @@ from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject
+from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject, DataMetrics
 from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
@@ -1933,6 +1933,73 @@ class esQuery():
                                                 '_source': False,
                                             })
         stats.add_key_value('diseases', disease_count['hits']['total'])
+
+        return RawResult(str(stats))
+
+    def get_metrics(self):
+        stats = DataMetrics()
+
+        genes_metrics = {
+            "query": {
+                "match_all": {}
+            },
+            "size": 0,
+            "aggs": {
+                "approved_symbol": {
+                    "filter": {
+                        "exists": {
+                            "field": "approved_symbol"
+                        }
+                    }
+                },
+                "cancerbiomarkers": {
+                    "filter": {
+                        "exists": {
+                            "field": "cancerbiomarkers"
+                        }
+                    }
+                },
+                "chemicalprobes.probeminer": {
+                    "filter": {
+                        "exists": {
+                            "field": "chemicalprobes.probeminer"
+                        }
+                    }
+                },
+                "chemicalprobes.portalprobes": {
+                    "filter": {
+                        "exists": {
+                            "field": "chemicalprobes.portalprobes"
+                        }
+                    }
+                },
+                "hallmarks": {
+                    "filter": {
+                        "exists": {
+                            "field": "hallmarks"
+                        }
+                    }
+                },
+                "mouse_phenotypes.phenotypes": {
+                    "filter": {
+                        "exists": {
+                            "field": "mouse_phenotypes.phenotypes"
+                        }
+                    }
+                },
+                "tractability": {
+                    "filter": {
+                        "exists": {
+                            "field": "tractability"
+                        }
+                    }
+                }
+            }
+        }
+
+        stats.add_genes(self._cached_search(index=self._index_genename,
+                                                     body=genes_metrics,
+                                                     timeout="10m"))
 
         return RawResult(str(stats))
 

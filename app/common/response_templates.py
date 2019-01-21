@@ -165,6 +165,46 @@ class SearchMetadataObject(object):
         #     self.data['search_metadata'] = self.search_metadata
 
 
+class DataMetrics(object):
+
+    def __init__(self):
+        self.data_version=Config.DATA_VERSION
+
+    def __str__(self):
+        return json.dumps(self.__dict__)
+
+    def add_genes(self, res):
+        self.genes = res['hits']['total']
+
+    def add_evidencestring(self, res):
+        datatypes = {}
+        for bucket in res['aggregations']['data']['buckets']:
+            datatypes[bucket['key']]={'total':bucket['doc_count']}
+            datasources = {}
+            for ds_bucket in bucket['datasources']['buckets']:
+                datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
+                datatypes[bucket['key']]['datasources']=datasources
+
+        self.evidencestrings = dict(total = res['hits']['total'],
+                                    datatypes= datatypes)
+
+    def add_associations(self, res, known_datatypes):
+        datatypes = {}
+        for bucket in res['aggregations']['data']['buckets']:
+            datatypes[bucket['key']]={'total':bucket['doc_count']}
+            datasources = {}
+            for ds_bucket in bucket['datasources']['buckets']:
+                try:
+                    if known_datatypes.is_datasources_in_datatype(ds_bucket['key'], bucket['key']):
+                        datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
+                        datatypes[bucket['key']]['datasources']=datasources
+                except KeyError:
+                    pass
+
+
+        self.associations = dict(total = res['hits']['total'],
+                                 datatypes= datatypes)
+
 
 class DataStats(object):
 
