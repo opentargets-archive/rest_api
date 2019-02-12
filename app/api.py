@@ -35,6 +35,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.utils import Ping, Version
     from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
     from app.resources.stats import Stats
+    from app.resources.metrics import Metrics
 
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
@@ -83,6 +84,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/version')
     api.add_resource(Stats,
                      '/public/utils/stats')
+    api.add_resource(Metrics,
+                     '/public/utils/metrics')
     api.add_resource(LogEvent,
                      '/private/utils/logevent')
     api.add_resource(RelationTargetSingle,
