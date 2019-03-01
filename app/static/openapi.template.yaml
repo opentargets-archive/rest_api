@@ -1,15 +1,12 @@
 swagger: '2.0'
-host: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
-# x-google-allow: all
-x-google-endpoints:
-  - name: "${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com"
-    allowCors: "true"
+#TODO be replaced by the app and specify in config
+host: "platform-api.opentargets.io"
+#replaced by the app
 basePath: "/v${API_VERSION}"
 info:
-  # NOTE how for tags (ie. when CIRCLE_BRANCH is unset) the API_VERSION_MINOR
-  # should revert to plain semantic versioning.
-  version: ${API_VERSION_MINOR}${CIRCLE_BRANCH}
+  version: 19.02.1
   title: Open Targets Platform REST API
+  #replaced by the app from api-description.md
   description: Open Targets Platform REST API
   x-logo:
     url: "https://www.targetvalidation.org/imgs/logo/ot_logo_webheader.svg"
@@ -19,9 +16,6 @@ info:
   contact:
     name: Open Targets Platform team
     email: support@targetvalidation.org
-  termsOfService: |
-    Fair usage is enforced with limits to the api calls. Consistently exceeding the fair usage limits will trigger at
-    least a 24 hour ban.
 tags:
   - name: filter
     # open: true
@@ -127,18 +121,6 @@ paths:
       responses:
         200:
           description: Successful response
-          # schema:
-          #   title: DataContainer
-          #   type: object
-          #   properties:
-          #       data:
-          #         type: array
-          #   items:
-          #     title: EvidenceString
-          #     type: object
-          #     properties:
-          #       id:
-          #         type: string
     post:
       summary: Get evidence for a list of IDs
       operationId: postEvidenceById
@@ -160,18 +142,6 @@ paths:
       responses:
         200:
           description: Successful response
-          # schema:
-          #   title: DataContainer
-          #   type: object
-          #   properties:
-          #       data:
-          #         type: array
-          #   items:
-          #     title: EvidenceString
-          #     type: object
-          #     properties:
-          #       id:
-          #         type: string
   /platform/public/evidence/filter:
     get:
       summary: Filter available evidence
@@ -292,18 +262,6 @@ paths:
       responses:
         200:
           description: Successful response
-          # schema:
-          #   title: ArrayOfEvidenceStrings
-          #   type: object
-          #   properties:
-          #       data:
-          #         type: array
-          #   items:
-          #     title: EvidenceString
-          #     type: object
-          #     properties:
-          #       id:
-          #         type: string
   /platform/public/association:
     get:
       summary: Get association by id
@@ -455,18 +413,6 @@ paths:
       responses:
         200:
           description: Successful response
-          # schema:
-          #   title: ArrayOfAssociations
-          #   type: object
-          #   properties:
-          #       data:
-          #         type: array
-          #   items:
-          #     title: Associations
-          #     type: object
-          #     properties:
-          #       id:
-          #         type: string
       x-code-samples:
         - lang: 'httpie'
           source: |
@@ -492,18 +438,6 @@ paths:
       responses:
         200:
           description: Successful response
-          # schema:
-          #   title: ArrayOfAssociations
-          #   type: object
-          #   properties:
-          #       data:
-          #         type: array
-          #   items:
-          #     title: Associations
-          #     type: object
-          #     properties:
-          #       id:
-          #         type: string
   /platform/private/disease/{disease}:
     get:
       summary: Find information about a disease

@@ -6,10 +6,10 @@ allows programmatic retrieval of our data via a set of
 services.
 
 You can make calls to the latest version of our API using the base URL
-`https://api.opentargets.io/v3/platform`. Please make sure you use `https`
+`https://platform-api.opentargets.io/v3/platform`. Please make sure you use `https`
 instead of the unencrypted `http` calls, which we do not accept.
 
-Continue reading below or [try query in the interactive interface](https://api.opentargets.io/v3/platform/docs/swagger-ui)
+Continue reading below or [try query in the interactive interface](https://platform-api.opentargets.io/v3/platform/docs/swagger-ui)
 
 Note that we only serve the latest version of the API. If you are interested in querying an
 old version, please [get in touch](mailto:support@targetvalidation.org) so that
@@ -42,7 +42,7 @@ use a `POST` request instead of  `GET`. `POST` methods require a body encoded as
 When querying for a specific disease using the latest version of the API, your call would look like the example below:
 
 ```sh
-curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://api.opentargets.io/v3/platform/public/evidence/filter
+curl -X POST -d '{"disease":["EFO_0000253"]}' --header 'Content-Type: application/json' https://platform-api.opentargets.io/v3/platform/public/evidence/filter
 ```
 ### How to interpret a response
 
@@ -54,7 +54,7 @@ In the body of the response, you will find the data you have requested for in a 
 [jq](https://stedolan.github.io/jq/) program is a useful tool to parse the json response while on the command line.
 
 ```sh
-curl https://api.opentargets.io/v3/platform/public/association/filter\?target\=ENSG00000157764 | jq
+curl https://platform-api.opentargets.io/v3/platform/public/association/filter\?target\=ENSG00000157764 | jq
 ```
 
 We do not analyse the nature of any specific API queries except for the purposes of improving the performance of our API.
