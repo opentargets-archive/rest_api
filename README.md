@@ -58,27 +58,56 @@ docker build -t rest_api:local .
 ```
 or use our docker containers on quay.io ([![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api))
 
-### Run
-Notice you can specify the elasticsearch server using the `ELASTICSEARCH_URL` environment variable and the data version you have loaded in elasticsearch with
-the `OPENTARGETS_DATA_VERSION` environment variable (:warning: example below assumes `localhost:9200` and data version `17.12` - adjust to your
-own situation):
-```bash
-docker run -d -p 8080:80 \
--e "ELASTICSEARCH_URL=http://localhost:9200" \
--e "OPENTARGETS_DATA_VERSION=17.12" \
---privileged quay.io/opentargets/rest_api
+### Running with Docker on HTTP
+
+**Pre-requisites**
+ * The REST API Docker image URL on [Quay.io](https://quay.io/repository/opentargets/rest_api?tab=tags)
+ * The correct image tag for the Open Targets release you're running (e.g. 19.02.1)
+ * The URL of the Elasticsearch server
+ * The data version, e.g. 19.02
+ 
 ```
+docker run -p 8080:80 \
+-e "ELASTICSEARCH_URL=http://localhost:9200" \
+-e "OPENTARGETS_DATA_VERSION=19.02" \
+--privileged quay.io/opentargets/rest_api:19.02.1
+```
+
+### Running with Docker on HTTPS
+
+**Pre-requisites**
+
+As above, _plus_:
+
+* Appropriate SSL certificates in `./nginx_ssl` called `server.crt` and `server.key`
+
+Naming the certificate and key files `server.crt` and `server.key` means that you don't need to edit `nginx.template`.
+
+Note that this example presents the REST API on port 7443; customise the command as required.
+
+```
+docker run -p 7443:443 \
+-e "ELASTICSEARCH_URL=http://localhost:9200" \
+-e "OPENTARGETS_DATA_VERSION=19.02" \
+-v "$(pwd)"/nginx_ssl:/etc/ssl/nginx \
+--privileged quay.io/opentargets/rest_api:19.02.1
+```
+
+If there are issues with the certificate not being presented, ensure that the volume mapping for `./nginx_ssl` is correct.
+
 For more options available when using `docker run` you can take a look at the [ansible role](https://github.com/opentargets/biogen_instance/blob/master/roles/web/tasks/main.yml) that we use to spin a single instance of our frontend stack.
 
-**Check that is running**
+### Check that it's running
+
 Supposing the container runs in `localhost` and expose port `8080`, Swagger UI is available at: [http://localhost:8080/v3/platform/docs](http://localhost:8080/v3/platform/docs)
 
 You can ping the API with `curl localhost:8080/v3/platform/public/utils/ping`
 
 You can check that is talking to your instance of Elasticsearch by using the `/platform/latest/public/utils/stats` method.
 
-### Why privileged mode?
-The rest api container runs 3 services talking and launching each other: nginx, uwsgi and the actual flask app.
+#### Why privileged mode?
+
+The REST API container runs 3 services talking and launching each other: nginx, uwsgi and the actual flask app.
 nginx and uwsgi talks trough a binary protocol in a unix socket.
 it is very efficient, but by default sockets have a small queue, so if nginx is under heavy load and sends too many requests to uwsgi they get rejected by the socket and raise an error. to increase the size of the queue unfortunately you need root privileges.
 at the moment we think that the performance gain is worth the privileged mode. but it strongly depends on the environment you deploy the container into
