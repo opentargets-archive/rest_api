@@ -38,7 +38,7 @@ Each HTTPS response will serve data in headers and body. The headers will give y
 In the body of the response, you will find the data you have requested for in `JSON` format. The [jq](https://stedolan.github.io/jq/) program is a useful tool to parse the json response while on the command line.
 
 ```sh
-curl https://api.opentargets.io/v3/platform/public/association/filter\?target\=ENSG00000157764 | jq
+curl https://platform-api.opentargets.io/v3/platform/public/association/filter\?target\=ENSG00000157764 | jq
 ```
 
 We do not analyse the nature of any specific API queries except for the purposes of improving the performance of our API.
