@@ -1,10 +1,9 @@
 import copy
 import json
-from flask.ext.restful import abort
+from flask_restful import abort
 from flask import request, Response
 import requests
 import logging
-from auth import TokenAuthentication
 
 __author__ = 'andreap'
 

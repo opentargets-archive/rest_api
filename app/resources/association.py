@@ -1,29 +1,23 @@
-from flask.ext.restful.inputs import boolean
-from flask.ext.restful.reqparse import Argument
+from flask_restful.inputs import boolean
 from app.common import boilerplate
 
 from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask.ext.restful import reqparse
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
+
+from flask_restful import abort, fields
+from flask_restful import reqparse, Resource
 from app.common.request_templates import FilterTypes
 from app.common.response_templates import CTTVResponse
 from types import *
 import time
 
-import pprint
 
 __author__ = 'andreap'
 
-class Association(restful.Resource):
+class Association(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=str, action='append', required=True, )
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Get an associations from its id
@@ -38,11 +32,7 @@ class Association(restful.Resource):
             abort(404, message='Cannot find evidences for id %s'%str(evidenceids))
         return CTTVResponse.OK(res)
 
-class FilterBy(restful.Resource):
-
-
-    @is_authenticated
-    @rate_limit
+class FilterBy(Resource):
     def get(self):
         """
         Get association objects
@@ -71,6 +61,8 @@ class FilterBy(restful.Resource):
                             choices=list(xrange(0, 4)), required=False)
         parser.add_argument('protein_expression_tissue', type=str, action='append',
                             required=False, default=[])
+        parser.add_argument(FilterTypes.TRACTABILITY, type=str, action='append',
+                            required=False, default=[])
         parser.add_argument('go', type=str, action='append', required=False,
                             help="consider only genes linked to this GO term")
         # parser.add_argument('filter', type=str, required=False, help="pass a string uncluding the list of filters you want to apply in the right order. Only use if you cannot preserve the order of the arguments in the get request")
@@ -91,8 +83,6 @@ class FilterBy(restful.Resource):
 
         return CTTVResponse.OK(data)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Get association objects

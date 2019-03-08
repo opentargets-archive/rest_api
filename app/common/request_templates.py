@@ -66,9 +66,10 @@ class CustomDataStructure(OutputDataStructure):
 
 
 class ScoreDataStructure(OutputDataStructure):
-    source =  {"includes": ["target.id",
+    source = {"includes": ["target.id",
                            "target.gene_info.symbol",
                            "target.gene_info.name",
+                           "target.tractability",
                            "disease.id",
                            "disease.efo_info.label",
                            "disease.efo_info.therapeutic_area",
@@ -76,11 +77,10 @@ class ScoreDataStructure(OutputDataStructure):
                            "is_direct",
                            "evidence_count*",
                            "association_score*",
-                           "id",
-                           ],
-               "excludes": ["_private*",
+                           "id"],
+              "excludes": ["_private*",
                            "private*"]
-               }
+              }
 
 
 
@@ -134,13 +134,6 @@ class SourceDataStructureOptions():
         return source
 
 
-def json_type(data):
-    try:
-        return json.loads(data)
-    except:
-        raise ValueError('Malformed JSON')
-
-
 class FilterTypes():
     DATASOURCE = 'datasource'
     DATATYPE = 'datatype'
@@ -163,6 +156,7 @@ class FilterTypes():
     THERAPEUTIC_AREA = 'therapeutic_area'
     TARGETS_ENRICHMENT = 'targets_enrichment'
     TARGET_CLASS = 'target_class'
+    TRACTABILITY = 'tractability'
 
 
 class AssociationSortOptions:

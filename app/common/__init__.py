@@ -7,6 +7,7 @@ from contextlib import contextmanager
 import tempfile as tmp
 import requests as r
 from config import Config
+import flask_restful as restful
 
 __author__ = 'andreap'
 
@@ -68,5 +69,5 @@ def load_tissue_map():
               'so getting it from master',
               Config.ES_TISSUE_MAP_URL.format('master'),
               file=sys.stderr)
-
-    return tmap
+    finally:
+        return tmap

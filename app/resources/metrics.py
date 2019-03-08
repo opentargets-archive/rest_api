@@ -10,15 +10,14 @@ __author__ = 'andreap'
 
 
 
-class Stats(Resource):
-
+class Metrics(Resource):
     def get(self):
         '''
         get counts and statistics fro the availabkle data
         '''
         start_time = time.time()
         es = current_app.extensions['esquery']
-        res = es.get_stats()
+        res = es.get_metrics()
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 

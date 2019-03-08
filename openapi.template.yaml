@@ -887,3 +887,23 @@ paths:
             assert r.status_code == 200
             assert r.headers['content-type'] == 'application/json'
             print(r.json())
+  /platform/public/utils/metrics:
+    get:
+      summary: Get metrics about the current data release
+      operationId: getDataMetrics
+      tags:
+        - public
+        - utils
+      description: |
+        Returns the metrics about associations and evidences, divided by datasource, genes and so on.
+      responses:
+        200:
+          description: Successful response
+      x-code-samples:
+        - lang: 'Python'
+          source: |
+            import requests
+            r = requests.get('https://www.targetvalidation.com/api/latest/public/metrics')
+            assert r.status_code == 200
+            assert r.headers['content-type'] == 'application/json'
+            print(r.json())

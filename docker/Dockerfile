@@ -1,18 +1,42 @@
-FROM quay.io/opentargets/opentargets_rest_api_base
-LABEL maintainer="ops@opentargets.org"
+FROM ubuntu:xenial
+MAINTAINER ops @opentargets <ops@opentargets.org>
+
+# Install required packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python-software-properties \
+    build-essential \
+    supervisor \
+    python-dev \
+    python \
+    wget \
+    curl \
+    ca-certificates \
+    openssh-server \
+    git \
+    sqlite3 \
+    nginx-extras \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py
 
 
 # setup
-RUN mkdir -p /var/www/app /var/www/app-conf /var/log/supervisor /var/log/app_engine && \
- rm /etc/nginx/sites-enabled/default && \
- ln -sf /dev/stdout /var/log/nginx/access.log && \
- ln -sf /dev/stderr /var/log/nginx/error.log
+RUN mkdir -p /var/www/app \
+    /var/www/app-conf \
+    /var/log/supervisor \
+    /var/log/app_engine \
+    /var/cache/nginx/cache_proxy && \
+    rm /etc/nginx/sites-enabled/default && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log
 
 
 #copy configuration files
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/nginx.conf /etc/nginx/
 COPY docker/nginx-rest-api.conf /etc/nginx/sites-enabled/
+COPY docker/nginx-proxy.conf /etc/nginx/sites-enabled/
 COPY docker/nginx-servers.conf /etc/nginx/sites-enabled/
 COPY docker/selfsigned.server.crt /etc/ssl/nginx/server.crt
 COPY docker/selfsigned.server.key /etc/ssl/nginx/server.key

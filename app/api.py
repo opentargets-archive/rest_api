@@ -6,7 +6,7 @@ from app.common import load_tissue_map
 
 __author__ = 'andreap'
 
-from flask.ext.restful import Api
+from flask_restful import Api
 
 
 def create_api(app, api_version = '0.0', specpath = '' ):
@@ -30,13 +30,12 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, BestHitSearch, AutoComplete, QuickSearch
     from app.resources import association
-    from app.resources.auth import RequestToken, ValidateToken
     from app.resources.expression import Expression
-    from app.resources.proxy import ProxyEnsembl, ProxyGXA, ProxyPDB, ProxyGeneric
     from app.resources.cache import ClearCache
     from app.resources.utils import Ping, Version
     from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
     from app.resources.stats import Stats
+    from app.resources.metrics import Metrics
 
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
@@ -77,10 +76,6 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/quicksearch')
     api.add_resource(AutoComplete,
                      '/private/autocomplete')
-    api.add_resource(RequestToken,
-                     '/public/auth/request_token')
-    api.add_resource(ValidateToken,
-                     '/public/auth/validate_token')
     api.add_resource(ClearCache,
                      '/private/cache/clear')
     api.add_resource(Ping,
@@ -89,6 +84,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/public/utils/version')
     api.add_resource(Stats,
                      '/public/utils/stats')
+    api.add_resource(Metrics,
+                     '/public/utils/metrics')
     api.add_resource(LogEvent,
                      '/private/utils/logevent')
     api.add_resource(RelationTargetSingle,
@@ -99,15 +96,5 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/relation/disease/<string:disease_id>')
     api.add_resource(EnrichmentTargets,
                      '/private/enrichment/targets')
-    #
-    # api.add_resource(ProxyEnsembl,
-    #                  '/proxy/ensembl/<path:url>')
-    # api.add_resource(ProxyGXA,
-    #                  '/proxy/gxa/<path:url>')
-    # api.add_resource(ProxyPDB,
-    #                  '/proxy/pdbe/<path:url>')
-    # api.add_resource(ProxyEPMC,
-    #                  '/proxy/epmc/<path:url>')
-    # api.add_resource(ProxyGeneric,
-    #                  '/proxy/generic/<path:url>')
+
     return api

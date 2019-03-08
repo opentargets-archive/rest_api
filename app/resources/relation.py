@@ -1,23 +1,16 @@
-from flask.ext.restful.inputs import boolean
-from flask.ext.restful.reqparse import Argument
+from flask_restful import Resource, abort
 from app.common import boilerplate
 
 
-from flask import current_app, request
-from flask.ext import restful
-from flask.ext.restful import abort, fields, marshal,marshal_with
-from flask.ext.restful import reqparse
-from app.common.auth import is_authenticated
-from app.common.rate_limit import rate_limit
+from flask import current_app
+
 from app.common.response_templates import CTTVResponse
 import time
 
 __author__ = 'andreap'
 
-class Relations(restful.Resource):
+class Relations(Resource):
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Given a list of subjects id, returns related entities
@@ -38,8 +31,6 @@ class Relations(restful.Resource):
             abort(404, message='Cannot find relations for id %s'%str(subjects))
         return CTTVResponse.OK(res)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Given a list of subjects id, returns related entities
@@ -63,10 +54,8 @@ class Relations(restful.Resource):
 
 
 
-class RelationTargetSingle(restful.Resource):
+class RelationTargetSingle(Resource):
 
-    @is_authenticated
-    @rate_limit
     def get(self, target_id):
         """
         Given a target id, returns related targets
@@ -83,9 +72,7 @@ class RelationTargetSingle(restful.Resource):
 
 
 
-class RelationDiseaseSingle(restful.Resource):
-    @is_authenticated
-    @rate_limit
+class RelationDiseaseSingle(Resource):
     def get(self, disease_id):
         """
         Given a disease id, returns related targets?

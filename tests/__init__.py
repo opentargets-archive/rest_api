@@ -6,8 +6,8 @@ import time
 import uuid
 
 from app import create_app
-from app.common.auth import AuthKey
 from envparse import env
+import flask_restful as restful
 
 __author__ = 'andreap'
 
@@ -26,9 +26,7 @@ class GenericTestCase(unittest.TestCase):
                             'secret': 'YNVukca767p49Czt7jOt42U3R6t1FscD',
                             'users_allowed': 'true',
                             'long_window_rate': '6000000'}
-        cls.auth_key = AuthKey(**auth_credentials)
         cls.app = create_app('testing')
-        cls.app.extensions['redis-user'].hmset(cls.auth_key.get_key(), cls.auth_key.__dict__)
         cls.app_context = cls.app.app_context()
         cls.app_context.push()
         cls.client = cls.app.test_client()
@@ -37,22 +35,13 @@ class GenericTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app_context.pop()
-        cls.app.extensions['redis-user'].hdel(cls.auth_key.get_key(), cls.auth_key.__dict__.keys())
-        cls.app.extensions['redis-user'].delete(cls.auth_key.get_key())
 
     def setUp(self):
-
-
         self.token = None
         self.update_token()
-        # log = logging.getLogger('dd.datadogpy')
-        # log.setLevel(logging.DEBUG)
-
 
     def _make_token_request(self, expire = 10*60):
-        return self._make_request('/platform/public/auth/request_token',data={'app_name':self.auth_key.app_name,
-                                                                               'secret':self.auth_key.secret,
-                                                                                'uid': str(uuid.uuid4()),
+        return self._make_request('/platform/public/auth/request_token',data={'uid': str(uuid.uuid4()),
                                                                                 'password': 'test',
                                                                                'expiry': expire},
                                   headers =dict(Authorization="Basic Y3R0djpkajhtaXhpamswNGpwZGc="))
@@ -66,7 +55,7 @@ class GenericTestCase(unittest.TestCase):
                       method = "GET",
                       token = None,
                       headers = None,
-                      rate_limit_fail = False,
+                      rate_limit_fail = True,
                       **kwargs):
         params = dict(method = method)
         params['data'] = data
@@ -81,17 +70,7 @@ class GenericTestCase(unittest.TestCase):
                 params['headers']={}
             params['headers']['Auth-Token']=token
         params.update(**kwargs)
-
-        if not rate_limit_fail:
-            status_code = 429
-            while status_code == 429:
-                response = self.client.open('/v' + self.API_VERSION + path,**params)
-                status_code = response.status_code
-                if status_code == 429:
-                    time.sleep(10)
-        else:
-            response = self.client.open('/v' + self.API_VERSION + path,**params)
-        return response
+        return self.client.open('/v' + self.API_VERSION + path,**params)
 
     def update_token(self):
         if self.token:

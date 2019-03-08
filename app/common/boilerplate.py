@@ -1,6 +1,5 @@
 
-from flask.ext.restful import reqparse
-from flask_restful.inputs import boolean
+from flask_restful import reqparse
 
 __author__ = 'andreap'
 
@@ -13,10 +12,6 @@ def get_parser():
     parser.add_argument('datastructure', type=str, required=False, help="Type of data structure to return. Can be: 'full','simple','ids', 'count' ",choices=['full','simple','ids', 'count'])
     parser.add_argument('fields', type=str, action='append', required=False, help="fields you want to retrieve")
     parser.add_argument('next', action='append', required=False, help="paginate to element after this value with the current sorting", default=[],)
-
-    # parser.add_argument('groupby', type=str, action='append', required=False, help="group returned elements by the indicated value")
-    # parser.add_argument('auth_token', type=str, required=False, help="a valid auth token")
-
     return parser
 
 

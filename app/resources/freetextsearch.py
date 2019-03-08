@@ -2,21 +2,19 @@ import time
 
 from flask import current_app
 from flask import request
-from flask.ext import restful
-from flask.ext.restful import abort, reqparse
+
+from flask_restful import abort, reqparse, Resource
 
 from app.common import boilerplate
-from app.common.auth import is_authenticated
 from app.common.boilerplate import Paginable
-from app.common.rate_limit import rate_limit
 from app.common.response_templates import CTTVResponse
-from flask.ext.restful.inputs import boolean
+from flask_restful.inputs import boolean
 
 
 __author__ = 'andreap'
 
 
-class FreeTextSearch(restful.Resource, Paginable):
+class FreeTextSearch(Resource, Paginable):
     parser = boilerplate.get_parser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank")
     parser.add_argument('filter', type=str, required=False, action='append', help="filter by target or disease")
@@ -27,8 +25,6 @@ class FreeTextSearch(restful.Resource, Paginable):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Search for gene and disease
@@ -49,7 +45,7 @@ class FreeTextSearch(restful.Resource, Paginable):
             abort(400, message="Query is too short")
 
 
-class BestHitSearch(restful.Resource, Paginable):
+class BestHitSearch(Resource, Paginable):
     '''This is similar to freeTextSearch but different because it allows for a list of search queries instead of one
     query'''
     parser = boilerplate.get_parser()
@@ -61,8 +57,6 @@ class BestHitSearch(restful.Resource, Paginable):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Search for gene and disease
@@ -79,8 +73,6 @@ class BestHitSearch(restful.Resource, Paginable):
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
-    @is_authenticated
-    @rate_limit
     def post(self):
         """
         Search for gene and disease
@@ -101,7 +93,7 @@ class BestHitSearch(restful.Resource, Paginable):
                                took=time.time() - start_time)
 
 
-class QuickSearch(restful.Resource):
+class QuickSearch(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank")
     parser.add_argument('size', type=int, required=False, help="number of objects to be returned per type")
@@ -110,8 +102,6 @@ class QuickSearch(restful.Resource):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Suggest best terms for gene and disease
@@ -131,14 +121,12 @@ class QuickSearch(restful.Resource):
             abort(400, message="Query is too short")
 
 
-class AutoComplete(restful.Resource):
+class AutoComplete(Resource):
     # TODO delete this function from the rest of the code
     parser = reqparse.RequestParser()
     parser.add_argument('q', type=str, required=True, help="Query cannot be blank!")
     parser.add_argument('size', type=int, required=False, help="number ofobjects be returned.")
 
-    @is_authenticated
-    @rate_limit
     def get(self):
         """
         Suggest best terms for gene and disease
