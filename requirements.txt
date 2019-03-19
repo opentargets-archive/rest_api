@@ -5,6 +5,7 @@ coverage
 codecov
 aniso8601==0.92
 dicttoxml==1.6.0
+celery==4.2.1
 envparse
 Flask
 Flask-Cors

@@ -34,6 +34,8 @@ RUN mkdir -p /var/www/app \
 
 #copy configuration files
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# This file is required to run specifically the celery worker. More info docker-entrypoint.sh
+COPY docker/supervisord_celery.conf /etc/supervisor/conf.d/supervisord_celery.tmp
 COPY docker/nginx.conf /etc/nginx/
 COPY docker/nginx-rest-api.conf /etc/nginx/sites-enabled/
 COPY docker/nginx-proxy.conf /etc/nginx/sites-enabled/

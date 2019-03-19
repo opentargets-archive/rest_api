@@ -331,7 +331,8 @@ class esQuery():
                                    pvalue_threshold=1e-3,
                                    from_=0,
                                    size=10,
-                                   sort='enrichment.score'):
+                                   sort='enrichment.score',
+                                   async_task = False):
 
         '''
         N is the population size - all_targets
@@ -365,7 +366,13 @@ class esQuery():
             start_time = time.time()
             q = addict.Dict()
             q.query.bool.filter.range['association_counts.total'].gte = 1
-            all_targets = self._cached_search(index=self._index_search,
+            if (async_task):
+                all_targets = self._cached_search_no_request(index=self._index_search,
+                                              doc_type=self._docname_search_target,
+                                              body=q.to_dict(),
+                                              size=0)
+            else:
+                all_targets = self._cached_search(index=self._index_search,
                                               doc_type=self._docname_search_target,
                                               body=q.to_dict(),
                                               size=0)
@@ -2054,6 +2061,25 @@ class esQuery():
                         }
                     }
                 }
+    # This function is similar to _cached_search but with no request attached. Celery task worker.
+    def _cached_search_no_request(self, *args, **kwargs):
+        key = str(args) + str(kwargs)
+        is_multi = False
+
+        if ('is_multi' in kwargs):
+            is_multi = kwargs.pop('is_multi')
+
+        res = self.cache.get(key)
+        if res is None:
+            start_time = datetime.datetime.now()
+            if is_multi:
+                res = self.handler.msearch(*args, **kwargs)
+            else:
+                res = self.handler.search(*args, **kwargs)
+            took = (datetime.datetime.now() - start_time) + datetime.timedelta(minutes=1)
+            self.cache.set(key, res, took)
+
+        return res
 
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
