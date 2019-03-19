@@ -33,7 +33,7 @@ class AsyncTaskManager(Resource):
                                kwargs={'args': args})
                 result = {'uuid': str(async_result.id)}
         except SocketError as e:
-                socket_error = json.dumps({'status': e.message})
+                socket_error = json.dumps({'error': e.message})
                 return Response(response=socket_error,
                          status=503,
                          mimetype="application/json")
