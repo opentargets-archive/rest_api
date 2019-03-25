@@ -841,3 +841,43 @@ paths:
             assert r.status_code == 200
             assert r.headers['content-type'] == 'application/json'
             print(r.json())
+  /platform/private/tasks/submit:
+    post:
+      summary: Asyncronous Task Manager
+      operationId: postAsyncTaskManager
+      tags:
+        - private
+      description: |
+        Returns a task_id (uuid) that can be used to retrieve the result using the endpoint /platform/private/tasks/status/<string:uuid>
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: string
+            example: |
+              {"task_type" : "batch_search",
+               "target" : ["ENSG00000001", "ENSG00000002"],
+               "pvalue" : 0.001,
+               "size" : 20}
+          description: IDs of the targets to do the enrichment analysis for.
+          required: true
+      responses:
+        200:
+          description: Successful response
+  /platform/private/tasks/status/{uuid}:
+    get:
+      summary: Find information about a specific task_id
+      operationId: getTaskStatus
+      tags:
+        - private
+      description: |
+        Get an object. Eg. for the batch search will return an enrichment analysis for a list of targets passed previously.
+      parameters:
+        - name: uuid
+          in: path
+          type: string
+          required: true
+          description: a task identifier.
+      responses:
+        200:
+          description: Successful response
