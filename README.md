@@ -30,6 +30,12 @@ Valid `OPENTARGETS_API_CONFIG` options:
 
 see the `config.py` file for details
 
+### Custom data sources
+Custom data sources can be specified via and environment variable, assuming that the relevant indices exist in the Elasticsearch instance to which the API is pointing.
+The environment variable must be named `CUSTOM_DATASOURCE`, and expressed in the form `new_data_source_name:data_type`, e.g.
+`export CUSTOM_DATASOURCE=genomics_england_tiering:genetic_association`
+Multiple custom data sources of the same type can be passed as a comma-separated list.
+
 
 ### debugging
 We never run flask directly. Even in the manage.py script we spawn off a
