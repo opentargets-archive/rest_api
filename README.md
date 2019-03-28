@@ -116,7 +116,7 @@ at the moment we think that the performance gain is worth the privileged mode. b
 ### Proxy settings
 
 The REST API container also serves as the default proxy for all external API calls made by the Open Targets frontend [webapp](https://github.com/opentargets/webapp). To add more domains to the proxy configuration, add them to
-[docker/nginx-proxy.conf](docker/nginx-proxy.conf).
+[docker/nginx-custom.conf](docker/nginx-custom.conf).
 
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
