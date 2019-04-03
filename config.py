@@ -54,12 +54,12 @@ class Config:
     ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
     BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
     CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/1')
+    CELERY_TASK_RESULT_EXPIRES = env('CELERY_TASK_RESULT_EXPIRES', default=14400)
     CELERY_TRACK_STARTED = True
     CELERY_SEND_EVENTS = True
     CELERY_TASK_TRACK_STARTED = True
     CELERY_TASK_SEND_SENT_EVENT = True
     CELERY_SEND_EVENTS = True
-    CELERY_TASK_RESULT_EXPIRES = 14400
     # TODO - would be better to throw an error instead of falling back to a default if this parameter is not set.
     DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='19.02')
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
