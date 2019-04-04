@@ -30,6 +30,12 @@ Valid `OPENTARGETS_API_CONFIG` options:
 
 see the `config.py` file for details
 
+### Custom data sources
+Custom data sources can be specified via and environment variable, assuming that the relevant indices exist in the Elasticsearch instance to which the API is pointing.
+The environment variable must be named `CUSTOM_DATASOURCE`, and expressed in the form `new_data_source_name:data_type`, e.g.
+`export CUSTOM_DATASOURCE=genomics_england_tiering:genetic_association`
+Multiple custom data sources of the same type can be passed as a comma-separated list. 
+
 
 ### debugging
 We never run flask directly. Even in the manage.py script we spawn off a
@@ -106,6 +112,11 @@ The REST API container runs 3 services talking and launching each other: nginx, 
 nginx and uwsgi talks trough a binary protocol in a unix socket.
 it is very efficient, but by default sockets have a small queue, so if nginx is under heavy load and sends too many requests to uwsgi they get rejected by the socket and raise an error. to increase the size of the queue unfortunately you need root privileges.
 at the moment we think that the performance gain is worth the privileged mode. but it strongly depends on the environment you deploy the container into
+
+### Proxy settings
+
+The REST API container also serves as the default proxy for all external API calls made by the Open Targets frontend [webapp](https://github.com/opentargets/webapp). To add more domains to the proxy configuration, add them to
+[docker/nginx-custom.conf](docker/nginx-custom.conf).
 
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
