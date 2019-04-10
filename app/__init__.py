@@ -33,7 +33,6 @@ from mixpanel_async import AsyncBufferedConsumer
 # login_manager.login_view = 'auth.login'
 from celery import Celery
 from celery.signals import task_sent
-from app.common.taskexecutor import *
 
 
 __author__ = 'andreap'

@@ -51,7 +51,7 @@ class Config:
     API_VERSION_MINOR = env('API_VERSION_MINOR', cast=str)
 
     ## [key configurations]
-    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
+    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='localhost:9200')
     BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
     CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/1')
     CELERY_TASK_RESULT_EXPIRES = env('CELERY_TASK_RESULT_EXPIRES', default=14400)

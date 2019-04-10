@@ -5,13 +5,8 @@ __author__ = 'cinzia'
 
 
 class TaskStatus(Resource):
-    def get(self, uuid):
-        response = self.taskstatus(uuid)
-        return Response(response=response,
-                        status=200,
-                        mimetype="application/json")
 
-
+    @classmethod
     def taskstatus(self, task_id):
         celery_obj = current_app.extensions['celery']
         try:
@@ -21,10 +16,10 @@ class TaskStatus(Resource):
                 response= task.info
             else:
                 if task.state == 'FAILURE':
-                    response = json.dump({'status': task.result})
+                    response = json.dumps({'status': task.result})
                 else:
-                    response= json.dump({'status': task.state})
+                    response= json.dumps({'status': task.state})
         except Exception as ex:
-            response = json.dump({'status': 'exception', 'message' : str(ex.message)})
+            response = json.dumps({'status': 'exception', 'message' : str(ex.message)})
 
         return response
