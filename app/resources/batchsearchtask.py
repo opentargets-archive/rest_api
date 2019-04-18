@@ -27,12 +27,12 @@ class BatchSearchTask(Resource):
 
         # blueprints did not work. Rules issue.
         url_prefix = 'v' + str(current_app.config['API_VERSION']) + '/platform'
-        uri = str(request.url_root)+url_prefix+'/private/enrichment/targets'
+        uri = str(request.url_root)
 
         celery_obj = current_app.extensions['celery']
         try:
             #self.remove_empty_params(args)
-            async_result=celery_obj.send_task('request_worker.run',(uri,args))
+            async_result=celery_obj.send_task('request_worker.run',(uri,url_prefix,args))
             result = {'uuid': str(async_result.id)}
         except SocketError as e:
                 socket_error = json.dumps({'error': e.message})
