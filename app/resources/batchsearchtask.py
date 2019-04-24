@@ -32,7 +32,7 @@ class BatchSearchTask(Resource):
         celery_obj = current_app.extensions['celery']
         try:
             #self.remove_empty_params(args)
-            async_result=celery_obj.send_task('request_worker.run',(uri,url_prefix,args))
+            async_result=celery_obj.send_task('batch_search_worker.run',(uri,url_prefix,args))
             result = {'uuid': str(async_result.id)}
         except SocketError as e:
                 socket_error = json.dumps({'error': e.message})
