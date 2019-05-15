@@ -27,6 +27,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.target import TargetInfo, TargetInfoSingle
     from app.resources import evidence
     from app.resources.efo import EfoLabelFromCode
+    from app.resources.drug import Drug
     from app.resources.evidenceontology import EcoLabelFromCode
     from app.resources.freetextsearch import FreeTextSearch, BestHitSearch, AutoComplete, QuickSearch
     from app.resources import association
@@ -60,6 +61,8 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/disease',
                      endpoint="disease-facets"
                     )
+    api.add_resource(Drug,
+                     '/private/drug/<string:drug_id>')
     api.add_resource(EcoLabelFromCode,
                      '/private/eco/<string:code>')
     api.add_resource(TargetInfoSingle,
