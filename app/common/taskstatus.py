@@ -16,10 +16,10 @@ class TaskStatus(Resource):
                 response= task.info
             else:
                 if task.state == 'FAILURE':
-                    response = json.dumps({'status': task.result})
+                    response = json.dumps({'state': task.state, 'message': task.result})
                 else:
-                    response= json.dumps({'status': task.state})
+                    response= json.dumps({'state': task.state,'message': task.result})
         except Exception as ex:
-            response = json.dumps({'status': 'exception', 'message' : str(ex.message)})
+            response = json.dumps({'state': 'FAILURE', 'message' : str(ex.message)})
 
         return response
