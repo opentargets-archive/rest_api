@@ -51,7 +51,7 @@ class Config:
     API_VERSION_MINOR = env('API_VERSION_MINOR', cast=str)
 
     ## [key configurations]
-    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='localhost:9200')
+    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
     # TODO - would be better to throw an error instead of falling back to a default if this parameter is not set.
     DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='19.04')
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
