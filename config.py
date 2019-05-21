@@ -52,8 +52,16 @@ class Config:
 
     ## [key configurations]
     ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
+    BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/1')
+    CELERY_TASK_RESULT_EXPIRES = env('CELERY_TASK_RESULT_EXPIRES', default=14400)
+    CELERY_TRACK_STARTED = True
+    CELERY_SEND_EVENTS = True
+    CELERY_TASK_TRACK_STARTED = True
+    CELERY_TASK_SEND_SENT_EVENT = True
+    CELERY_SEND_EVENTS = True
     # TODO - would be better to throw an error instead of falling back to a default if this parameter is not set.
-    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='18.08')
+    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='19.04')
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
     ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
     ES_TISSUE_MAP = None

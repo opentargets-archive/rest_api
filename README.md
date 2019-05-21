@@ -37,6 +37,20 @@ The environment variable must be named `CUSTOM_DATASOURCE`, and expressed in the
 Multiple custom data sources of the same type can be passed as a comma-separated list. 
 
 
+### Batch search requests: 
+It is possible to request the 'Batch search' service using a specific endpoint.
+This service responds with an uuid to retrieve the result of the search.
+
+Usage
+The worker uses two ENV VARIABLES: 
+
+CELERY_BROKER_URL or default='redis://localhost:6379/0'
+CELERY_RESULT_BACKEND or default='redis://localhost:6379/1'
+
+The github repository platform-batch-search-worker-service provides the workers:
+https://github.com/opentargets/platform-batch-search-worker-service
+
+
 ### debugging
 We never run flask directly. Even in the manage.py script we spawn off a
 WSGIServer(). Hence Flask debug mode does not work out of the box. 

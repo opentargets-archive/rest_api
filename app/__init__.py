@@ -31,9 +31,39 @@ from mixpanel_async import AsyncBufferedConsumer
 # login_manager = LoginManager()
 # login_manager.session_protection = 'strong'
 # login_manager.login_view = 'auth.login'
+from celery import Celery
+from celery.signals import task_sent
 
 
 __author__ = 'andreap'
+
+
+celery = Celery(__name__)
+
+def configure_celery_integration(flask_app, celery_app):
+    celery_app.conf.update(flask_app.config)
+
+    task_base = celery_app.Task
+
+    class ContextTask(celery_app.Task):
+        def __call__(self, *args, **kwargs):
+            with flask_app.app_context():
+                # return self.run(*args, **kwargs)
+                return task_base.__call__(self, *args, **kwargs)
+
+    celery_app.Task = ContextTask
+
+
+@task_sent.connect
+def task_sent_handler(sender=None, task_id=None, body=None, task=None, args=None, kwargs=None, **kwds):
+    print('''   Task Sent! sender: %s body: %s task_id: %s task: %s args: %s kargs: %s
+                kwds: %s''' % (   sender, body, task_id, task, args, kwargs, kwds))
+    # Change the status from pending to SENT.
+    task = celery.tasks.get(sender)
+    backend = task.backend if task else celery.backend
+    backend.store_result(task_id, None, "SENT")
+
+
 
 def get_http_exception_handler(app):
     """Overrides the default http exception handler to return JSON."""
@@ -68,7 +98,7 @@ def create_app(config_name):
     # $ export OPENTARGETS_API_LOCAL_SETTINGS=/path/to/settings.cfg
     #
     # where settings.cfg looks like:
-    #
+    # 
     # DEBUG = False
     # SECRET_KEY = 'foo'
     #
@@ -77,11 +107,13 @@ def create_app(config_name):
     config[config_name].init_app(app)
     api_version = app.config['API_VERSION']
     api_version_minor = app.config['API_VERSION_MINOR']
-
+    # set broker, backend and others configs...
+    configure_celery_integration(app, celery)
+    app.app_context().push()
 
     app.logger.info('looking for elasticsearch at: %s' % app.config['ELASTICSEARCH_URL'])
 
-
+    app.extensions['celery'] = celery
     app.extensions['redis-core'] = Redis(app.config['REDIS_SERVER_PATH'], db=0) #served data
     app.extensions['redis-service'] = Redis(app.config['REDIS_SERVER_PATH'], db=1) #cache, rate limit and internal things
     app.extensions['redis-user'] = Redis(app.config['REDIS_SERVER_PATH'], db=2)# user info
