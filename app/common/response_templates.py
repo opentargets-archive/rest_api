@@ -165,6 +165,33 @@ class SearchMetadataObject(object):
         #     self.data['search_metadata'] = self.search_metadata
 
 
+class TherapeuticArea(object):
+
+    def __init__(self):
+        self.data_version=Config.DATA_VERSION
+
+    def __str__(self):
+        return json.dumps(self.__dict__)
+
+    def add_therapeuticareas(self, res):
+        datatypes = {}
+        #for bucket in res['aggregations']['therapeutic_labels']['buckets']:
+        #    datatypes[bucket['key']]={'total':bucket['doc_count']}
+        #    datasources = {}
+        #    for ds_bucket in bucket['datasources']['buckets']:
+        #        datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
+        #        datatypes[bucket['key']]['datasources']=datasources
+        print len(res['aggregations']['therapeutic_labels']['buckets'])
+        print len(res['aggregations']['therapeutic_codes']['buckets'])
+        index = 0
+        for bucket in res['aggregations']['therapeutic_labels']['buckets']:
+            #datatypes[bucket['key']] = res['aggregations']['therapeutic_codes']['buckets'][index]['key']
+            datatypes[res['aggregations']['therapeutic_codes']['buckets'][index]['key']] = bucket['key']
+            index=index+1
+
+        self.therapeuticareas = datatypes
+        self.total = str(index)
+
 class DataMetrics(object):
 
     def __init__(self):

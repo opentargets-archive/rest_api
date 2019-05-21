@@ -51,9 +51,9 @@ class Config:
     API_VERSION_MINOR = env('API_VERSION_MINOR', cast=str)
 
     ## [key configurations]
-    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='')
+    ELASTICSEARCH_URL = env('ELASTICSEARCH_URL', default='localhost:9200')
     # TODO - would be better to throw an error instead of falling back to a default if this parameter is not set.
-    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='18.08')
+    DATA_VERSION = env('OPENTARGETS_DATA_VERSION', default='19.04')
     # tagged version from expression_hierarchy repository must have same DATA_VERSION tag
     ES_TISSUE_MAP_URL = 'https://raw.githubusercontent.com/opentargets/expression_hierarchy/{0}/process/map_with_efos.json'
     ES_TISSUE_MAP = None
