@@ -180,7 +180,6 @@ class TherapeuticArea(object):
             datasources = {}
             datasources['label'] = bucket['key']
             datasources['code'] = res['aggregations']['therapeutic_codes']['buckets'][index]['key']
-            datasources['uri'] = bucket['_source']['buckets'][0]['key']
             datatypes.append(datasources)
             index=index+1
 

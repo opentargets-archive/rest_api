@@ -1865,14 +1865,6 @@ class esQuery():
                                                                                "terms": {
                                                                                    "field": "therapeutic_labels.keyword",
                                                                                    "size": 100
-                                                                               },
-                                                                               "aggs": {
-                                                                                   "_source": {
-                                                                                       "terms": {
-                                                                                           "field": "code",
-                                                                                           "size": 1
-                                                                                       }
-                                                                                   }
                                                                                }
                                                                            },
                                                                            "therapeutic_codes": {
