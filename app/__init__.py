@@ -235,19 +235,15 @@ def create_app(config_name):
     def after(resp):
         try:
             now = datetime.now()
-            took = (now - g.request_start).total_seconds()*1000
-            if took > 500:
-                cache_time = str(int(3600*took))# set cache to last one our for each second spent in the request
-                resp.headers.add('X-Accel-Expires', cache_time)
-            took = int(round(took))
-            resp.headers.add('X-API-Took', took)
+            took = int(round((now - g.request_start).total_seconds()))
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
             resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
             if do_not_cache(request):# do not cache in the browser
                 resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
             else:
-                resp.headers.add('Cache-Control', "no-transform, public, max-age=%i, s-maxage=%i"%(took*1800/1000, took*9000/1000))
+                cache = 30 * 24 * 60 * 60 #cache for seven days
+                resp.headers.add('Cache-Control', "no-transform, max-age=%i"%(cache))
             return resp
 
         except Exception as e:
