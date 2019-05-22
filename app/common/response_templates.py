@@ -175,19 +175,12 @@ class TherapeuticArea(object):
 
     def add_therapeuticareas(self, res):
         datatypes = []
-        #for bucket in res['aggregations']['therapeutic_labels']['buckets']:
-        #    datatypes[bucket['key']]={'total':bucket['doc_count']}
-        #    datasources = {}
-        #    for ds_bucket in bucket['datasources']['buckets']:
-        #        datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
-        #        datatypes[bucket['key']]['datasources']=datasources
-        print len(res['aggregations']['therapeutic_labels']['buckets'])
-        print len(res['aggregations']['therapeutic_codes']['buckets'])
         index = 0
         for bucket in res['aggregations']['therapeutic_labels']['buckets']:
             datasources = {}
             datasources['label'] = bucket['key']
             datasources['code'] = res['aggregations']['therapeutic_codes']['buckets'][index]['key']
+            datasources['uri'] = bucket['_source']['buckets'][0]['key']
             datatypes.append(datasources)
             index=index+1
 

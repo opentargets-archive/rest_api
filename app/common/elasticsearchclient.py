@@ -1854,30 +1854,38 @@ class esQuery():
     def get_therapeutic_areas(self):
         therapeutic_areas = TherapeuticArea()
         therapeutic_areas.add_therapeuticareas(self._cached_search(index=self._index_efo,
-                                                     # doc_type=self._docname_data,
-                                                     body={
-                                                         "query": {
-                                                             "match_all": {}
-                                                         },
-                                                         "size": 0,
-                                                         "aggs": {
-                                                             "therapeutic_labels": {
-                                                                 "terms": {
-                                                                     "field": "therapeutic_labels.keyword",
-                                                                     "size": 100
-                                                                 }
-                                                             },
-                                                             "therapeutic_codes": {
-                                                                 "terms": {
-                                                                     "field": "therapeutic_codes.keyword",
-                                                                     "size": 100
-                                                                 }
-                                                             }
-                                                         }
-                                                     },
-                                                     timeout="30m",
-                                                     )
-                                            )
+                                                                   # doc_type=self._docname_data,
+                                                                   body={
+                                                                       "query": {
+                                                                           "match_all": {}
+                                                                       },
+                                                                       "size": 0,
+                                                                       "aggs": {
+                                                                           "therapeutic_labels": {
+                                                                               "terms": {
+                                                                                   "field": "therapeutic_labels.keyword",
+                                                                                   "size": 100
+                                                                               },
+                                                                               "aggs": {
+                                                                                   "_source": {
+                                                                                       "terms": {
+                                                                                           "field": "code",
+                                                                                           "size": 1
+                                                                                       }
+                                                                                   }
+                                                                               }
+                                                                           },
+                                                                           "therapeutic_codes": {
+                                                                               "terms": {
+                                                                                   "field": "therapeutic_codes.keyword",
+                                                                                   "size": 100
+                                                                               }
+                                                                           }
+                                                                       }
+                                                                   },
+                                                                   timeout="30m",
+                                                                   )
+                                               )
 
         return RawResult(str(therapeutic_areas))
 
