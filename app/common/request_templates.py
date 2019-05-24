@@ -70,6 +70,7 @@ class ScoreDataStructure(OutputDataStructure):
                            "target.gene_info.symbol",
                            "target.gene_info.name",
                            "target.tractability",
+                           "target.safety",
                            "disease.id",
                            "disease.efo_info.label",
                            "disease.efo_info.therapeutic_area",
@@ -157,6 +158,7 @@ class FilterTypes():
     TARGETS_ENRICHMENT = 'targets_enrichment'
     TARGET_CLASS = 'target_class'
     TRACTABILITY = 'tractability'
+    SAFETY = 'safety'
 
 
 class AssociationSortOptions:

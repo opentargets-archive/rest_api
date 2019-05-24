@@ -996,7 +996,7 @@ class esQuery():
 
         # print "------------"
         # print ""	
-        # pprint.pprint(ass_query_body)	
+        # pprint.pprint(ass_query_body)
         #	
         # print ""	
         # print "------------"
@@ -1993,6 +1993,13 @@ class esQuery():
                             "field": "tractability"
                         }
                     }
+                },
+                "safety": {
+                    "filter": {
+                        "exists": {
+                            "field": "safety"
+                        }
+                    }
                 }
             }
         }
@@ -2268,6 +2275,9 @@ class SearchParams(object):
 
         self.filters[FilterTypes.TRACTABILITY] = kwargs.get(FilterTypes.TRACTABILITY, [])
         setattr(self, FilterTypes.TRACTABILITY, kwargs.get(FilterTypes.TRACTABILITY, []))
+        self.filters[FilterTypes.SAFETY] = kwargs.get(FilterTypes.SAFETY, [])
+        setattr(self, FilterTypes.SAFETY, kwargs.get(FilterTypes.SAFETY, []))
+
 
         score_range = [0., self._max_score]
         score_min = kwargs.get(FilterTypes.ASSOCIATION_SCORE_MIN, 0.)
@@ -3004,6 +3014,47 @@ class AggregationTractability(AggregationUnit):
         return dict()
 
 
+class AggregationSafety(AggregationUnit):
+    def build_query_filter(self):
+        if self.filter is not None:
+            self.query_filter = self._get_safety_filter(self.filter)
+
+    def build_agg(self, filters):
+        self.agg = self._get_safety_facet_aggregation(filters)
+
+    def get_default_size(self):
+        return 20
+
+    def _get_safety_facet_aggregation(self, filters={}):
+        return {
+            "filter": {
+                "bool": {
+                    "must": self._get_complimentary_facet_filters(FilterTypes.SAFETY, filters),
+                }
+            },
+            "aggs": {
+                "data": {
+                    "terms": {
+                        "field": "private.facets.safety",
+                        'size': self.get_size(),
+                    }
+                }
+            }
+        }
+
+
+    @staticmethod
+    def _get_safety_filter(safety):
+        if safety:
+            return {
+                "terms": {"private.facets.safety": safety}
+            }
+
+        return dict()
+
+
+
+
 class AggregationUnitRNAExTissue(AggregationUnit):
     def build_query_filter(self):
         if self.filter is not None:
@@ -3731,7 +3782,8 @@ class AggregationBuilder(object):
         FilterTypes.ZSCORE_EXPRESSION_TISSUE: AggregationUnitZSCOREExTissue,
         FilterTypes.PROTEIN_EXPRESSION_LEVEL: AggregationUnitPROExLevel,
         FilterTypes.PROTEIN_EXPRESSION_TISSUE: AggregationUnitPROExTissue,
-        FilterTypes.TRACTABILITY: AggregationTractability
+        FilterTypes.TRACTABILITY: AggregationTractability,
+        FilterTypes.SAFETY: AggregationSafety
     }
 
     _SERVICE_FILTER_TYPES = [FilterTypes.IS_DIRECT,
