@@ -476,6 +476,23 @@ paths:
       responses:
         200:
           description: Successful response
+  /platform/private/drug/{DRUG_ID}:
+    get:
+      summary: Get drug by ID
+      operationId: getDrugByID
+      tags:
+        - private
+      description: |
+        Get `drug` objects.
+      parameters:
+        - name: drug_id
+          in: path
+          type: string
+          required: true
+          description: An ID in the drug index.
+      responses:
+        200:
+          description: Successful response
   /platform/private/eco/{ECO_ID}:
     get:
       summary: Get evidence code by ID
