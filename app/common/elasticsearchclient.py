@@ -3035,7 +3035,7 @@ class AggregationSafety(AggregationUnit):
             "aggs": {
                 "data": {
                     "terms": {
-                        "field": "private.facets.safety",
+                        "field": "private.facets.safety.keyword",
                         'size': self.get_size(),
                     }
                 }
