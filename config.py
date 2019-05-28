@@ -71,6 +71,9 @@ class Config:
 
     ELASTICSEARCH_DATA_INDEX_NAME = ES_PREFIX(name='evidence-data', suffix='*')
     ELASTICSEARCH_DATA_DOC_NAME = 'evidencestring'
+
+    ELASTICSEARCH_DRUG_INDEX_NAME = ES_PREFIX(name='drug-data')
+    ELASTICSEARCH_DRUG_DOC_NAME = 'drug'
     ELASTICSEARCH_EFO_LABEL_INDEX_NAME = ES_PREFIX(name='efo-data')
     ELASTICSEARCH_EFO_LABEL_DOC_NAME = 'efo'
     ELASTICSEARCH_ECO_INDEX_NAME = ES_PREFIX(name='eco-data')

@@ -217,6 +217,7 @@ class esQuery():
                  datatypes,
                  datatource_scoring,
                  index_data=None,
+                 index_drug=None,
                  index_efo=None,
                  index_eco=None,
                  index_genename=None,
@@ -226,6 +227,7 @@ class esQuery():
                  index_search=None,
                  index_relation=None,
                  docname_data=None,
+                 docname_drug=None,
                  docname_efo=None,
                  docname_eco=None,
                  docname_genename=None,
@@ -252,6 +254,7 @@ class esQuery():
 
         self.handler = handler
         self._index_data = index_data
+        self._index_drug = index_drug
         self._index_efo = index_efo
         self._index_eco = index_eco
         self._index_genename = index_genename
@@ -262,6 +265,7 @@ class esQuery():
         self._index_relation = index_relation
 
         self._docname_data = docname_data
+        self._docname_drug = docname_drug
         self._docname_efo = docname_efo
         self._docname_eco = docname_eco
         self._docname_genename = docname_genename
@@ -738,6 +742,28 @@ class esQuery():
             return PaginatedResult(res, params)
 
 
+
+    def get_drug_info_from_id(self, drug_id, **kwargs):
+        params = SearchParams(**kwargs)
+
+        if not isinstance(drug_id, list):
+            drug_id = [drug_id]
+
+        query_body = addict.Dict()
+        query_body.query.ids["values"] = drug_id
+        query_body.size = params.size
+
+        if params.fields:
+            query_body._source = params.fields
+
+        if drug_id:
+            res = self._cached_search(index=self._index_drug,
+                                      doc_type=self._docname_drug,
+                                      body=query_body.to_dict()
+                                      )
+            return PaginatedResult(res, params)
+
+
     def get_evidences_by_id(self, evidenceid, **kwargs):
 
         if isinstance(evidenceid, str):
@@ -1038,7 +1064,7 @@ class esQuery():
         # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
         # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
         # data_distribution["total"] = len(data['data'])
-        if params.is_direct and params.target:
+        if params.target:
             try:
                 therapeutic_areas = set()
                 for s in scores:
