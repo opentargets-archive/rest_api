@@ -37,6 +37,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     from app.resources.relation import RelationTargetSingle, RelationDiseaseSingle
     from app.resources.stats import Stats
     from app.resources.metrics import Metrics
+    from app.resources.therapeuticarea import TherapeuticAreas
 
     # api.add_resource(AvailableGenes,
     #                  basepath+'/available-genes')
@@ -99,5 +100,7 @@ def create_api(app, api_version = '0.0', specpath = '' ):
                      '/private/relation/disease/<string:disease_id>')
     api.add_resource(EnrichmentTargets,
                      '/private/enrichment/targets')
+    api.add_resource(TherapeuticAreas,
+                     '/public/utils/therapeuticareas')
 
     return api

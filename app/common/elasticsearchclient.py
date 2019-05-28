@@ -18,7 +18,8 @@ from scipy.stats import hypergeom
 
 from app.common.request_templates import FilterTypes
 from app.common.request_templates import SourceDataStructureOptions, AssociationSortOptions
-from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject, DataMetrics
+from app.common.response_templates import Association, DataStats, Relation, SearchMetadataObject, DataMetrics, \
+    TherapeuticArea
 from app.common.results import PaginatedResult, SimpleResult, RawResult, EmptySimpleResult, \
     EmptyPaginatedResult
 from app.common.scoring import Scorer
@@ -1875,6 +1876,38 @@ class esQuery():
 
     def _get_search_doc_name(self, doc_type):
         return self._docname_search + '-' + doc_type
+
+    def get_therapeutic_areas(self):
+        therapeutic_areas = TherapeuticArea()
+        therapeutic_areas.add_therapeuticareas(self._cached_search(
+            index=self._index_efo,
+            # doc_type=self._docname_data,
+            body={
+                "query": {
+                    "match_all": {}
+                },
+                "size": 0,
+                "aggs": {
+                    "therapeutic_labels": {
+                        "terms": {
+                            "field": "therapeutic_labels.keyword",
+                            "size": 100
+                        }
+                    },
+                    "therapeutic_codes": {
+                        "terms": {
+                            "field": "therapeutic_codes.keyword",
+                            "size": 100
+                        }
+                    }
+                }
+            },
+            timeout="30m",
+        )
+        )
+
+        return RawResult(str(therapeutic_areas))
+
 
     def get_stats(self):
 
