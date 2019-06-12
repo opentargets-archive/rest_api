@@ -161,12 +161,6 @@ class FreeTextFilterOptions():
     ALL = 'all'
     TARGET = 'target'
     DISEASE = 'disease'
-    GO_TERM = 'go'
-    PROTEIN_FEATURE = 'protein_feature'
-    PUBLICATION = 'pub'
-    SNP = 'snp'
-    GENERIC = 'generic'
-
 
 class ESResultStatus(object):
     def __init__(self):
@@ -281,9 +275,7 @@ class esQuery():
         self.scorer = Scorer(datatource_scoring)
         self.cache = cache
 
-    def free_text_search(self, searchphrase,
-                         doc_filter=(FreeTextFilterOptions.ALL),
-                         **kwargs):
+    def free_text_search(self, searchphrase, doc_filter, **kwargs):
         '''
         Multiple types of fuzzy search are supported by elasticsearch and the differences can be confusing. The list
         below attempts to disambiguate these various types.
@@ -305,15 +297,12 @@ class esQuery():
         '''
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
-        if doc_filter is None:
-            doc_filter = [FreeTextFilterOptions.ALL]
-        doc_filter = self._get_search_doc_types(doc_filter)
         res = self._free_text_query(searchphrase, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
         if 'hits' in res and res['hits']['total']:
             for hit in res['hits']['hits']:
-                datapoint = dict(type=hit['_type'],
+                datapoint = dict(type='search-object-'+hit['type'],
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
@@ -525,7 +514,6 @@ class esQuery():
             if 'hits' in res and res['hits']['total']:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
-                type_ = hit['_type']
                 if highlight:
                     for field_name, matched_strings in highlight.items():
                         if field_name in KEYWORD_MAPPING_FIELDS:
@@ -534,7 +522,7 @@ class esQuery():
                                     exact_match = True
                                     break
 
-                datapoint = dict(type=type_,
+                datapoint = dict(type='search-object-'+hit['type'],
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
@@ -1318,16 +1306,33 @@ class esQuery():
         return func_score.to_dict()
 
     @staticmethod
-    def _generate_noop_function(analyzer_list):
+    def _generate_noop_function(analyzer_list, doc_types):
         func_score = addict.Dict()
         func_score.bool.should = analyzer_list
+
+        if doc_types is not None:
+            func_score.bool.filter.bool.should = []
+            for doc_type in doc_types
+                should_match = {}
+                should_match["match_phrase"] = {}
+                should_match["match_phrase"]["type.keyword"] = doc_type
+                func_score.bool.filter.bool.should.append(should_match)
+                
         return func_score.to_dict()
 
     @staticmethod
-    def _generate_avg_function(analyzer_list):
+    def _generate_avg_function(analyzer_list, doc_types):
         func_score = addict.Dict()
         func_score.function_score.score_mode = "avg"
         func_score.function_score.query.bool.should = analyzer_list
+        if doc_types is not None:
+            func_score.function_score.query.bool.filter.bool.should = []
+            for doc_type in doc_types
+                should_match = {}
+                should_match["match_phrase"] = {}
+                should_match["match_phrase"]["type.keyword"] = doc_type
+                func_score.function_score.query.bool.filter.bool.should.append(should_match)
+
         func_score.function_score.functions = [
             {
                 "field_value_factor": {
@@ -1341,25 +1346,13 @@ class esQuery():
         ]
         return func_score.to_dict()
 
-    def _get_free_text_query(self, searchphrase, params=None):
+    def _get_free_text_query(self, searchphrase, params, doc_types):
         score_function = self._generate_avg_function
 
         ngram_analyzer = "edgeNGram_analyzer"
         ngram_type = "cross_fields"
         ngram_operator = None
 
-        # ngram_fields = ["name^0.5",
-        #                 "full_name^0.5",
-        #                 "description^0.5",
-        #                 "efo_synonyms^0.5",
-        #                 #"approved_symbol^0.5",
-        #                 #"symbol_synonyms^0.5",
-        #                 "name_synonyms^0.5",
-        #                 "ortholog.*.name^0.5",
-        #                 "drugs.evidence_data^0.5",
-        #                 "drugs.chembl_drugs.synonyms^0.5",
-        #                 "drugs.drugbank^0.5",
-        #                 "phenotypes.label^0.5"]
         ngram_fields = ["name",
                          "full_name",
                         "approved_name",
@@ -1403,11 +1396,6 @@ class esQuery():
         keyword_operator = None
         keyword_analyzer = "keyword"
         keyword_type = "phrase"
-        # keyword_fields = ["id.keyword^100",
-        #                   "symbol.keyword^100",
-        #                   "approved_symbol.keyword^100",
-        #                   "uniprot_accessions.keyword^100",
-        #                   ]
         keyword_fields = ["name.keyword^100",
                           "id^100",
                           "symbol^100",
@@ -1430,8 +1418,7 @@ class esQuery():
 
                 whitespace_fields = [
                     "drugs.evidence_data",
-                    "drugs.chembl_drugs.synonyms",
-                    # "drugs.drugbank"
+                    "drugs.chembl_drugs.synonyms"
                 ]
 
             elif 'target' in params.search_profile:
@@ -1487,55 +1474,6 @@ class esQuery():
                                   "ortholog.*.id^0.2"
                 ]
 
-                # keyword_fields = ["id.keyword^100",
-                #                   "symbol.keyword^100",
-                #                   "approved_symbol.keyword^100",
-                #                   "ensembl_gene_id.keyword^100",
-                #                   "uniprot_accessions.keyword^100",
-                #                   "hgnc_id.keyword^100"
-                #                   ]
-
-            elif 'old' in params.search_profile:
-                score_function = self._generate_mult_function
-
-                ngram_analyzer = None
-                whitespace_analyzer = "standard"
-                whitespace_type = "phrase_prefix"
-                whitespace_fields = ["name^3",
-                                           "description^2",
-                                           "efo_synonyms",
-                                           "symbol_synonyms",
-                                           "approved_symbol",
-                                           "approved_name",
-                                           "name_synonyms",
-                                           "gene_family_description",
-                                           "efo_path_labels^0.1",
-                                           "ortholog.*.symbol^0.5",
-                                           "ortholog.*.name^0.2",
-                                           "drugs.*^0.5",
-                                           "phenotypes.label^0.3"
-                                           ]
-
-                keyword_analyzer = "keyword"
-                keyword_type = "best_fields"
-                keyword_fields = ["name^3",
-                                  "description^2",
-                                  "id",
-                                  "approved_symbol",
-                                  "symbol_synonyms",
-                                  "name_synonyms",
-                                  "uniprot_accessions",
-                                  "hgnc_id",
-                                  "ensembl_gene_id",
-                                  "efo_path_codes",
-                                  "efo_url",
-                                  "efo_synonyms^2",
-                                  "ortholog.*.symbol^0.2",
-                                  "ortholog.*.id^0.2",
-                                  "drugs.*^0.5",
-                                  "phenotypes.*"
-                                  ]
-
 
         analyzers = [self._generate_multimatch(searchphrase, ann, ann_fields, ann_type, ann_operator) \
                         for ann, ann_fields, ann_type, ann_operator in [(ngram_analyzer, ngram_fields, ngram_type, ngram_operator),
@@ -1543,7 +1481,7 @@ class esQuery():
                                     (keyword_analyzer, keyword_fields, keyword_type, keyword_operator)] \
                         if ann is not None]
 
-        query_body = score_function(analyzers)
+        query_body = score_function(analyzers, doc_types)
 
         return query_body
 
@@ -1822,13 +1760,17 @@ class esQuery():
         if params.fields:
             source_filter["includes"] = params.fields
 
-        body = {'query': self._get_free_text_query(searchphrase, params),
+        body = {'query': self._get_free_text_query(searchphrase, params, doc_types),
                 'size': params.size,
                 'from': params.start_from,
                 '_source': source_filter,
                 "explain": current_app.config['DEBUG'],
                 "suggest": self._get_free_text_suggestions(searchphrase)
                 }
+
+        #add a filter based on data type
+        body["query"]["filter"]
+
         if highlight is not None:
             body['highlight'] = highlight
 

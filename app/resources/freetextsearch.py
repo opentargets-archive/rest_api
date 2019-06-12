@@ -37,10 +37,9 @@ class FreeTextSearch(Resource, Paginable):
         filter = kwargs.pop('filter') or ['all']
 
         if len(searchphrase) > 1:
-            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter=filter, **kwargs)
-
-            return CTTVResponse.OK(res,
-                                   took=time.time() - start_time)
+            res = current_app.extensions['esquery'].free_text_search(searchphrase, 
+                doc_filter=filter, **kwargs)
+            return CTTVResponse.OK(res, took=time.time() - start_time)
         else:
             abort(400, message="Query is too short")
 
