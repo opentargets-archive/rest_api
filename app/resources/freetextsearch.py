@@ -34,7 +34,7 @@ class FreeTextSearch(Resource, Paginable):
 
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
-        filter = kwargs.pop('filter') or ['all']
+        filter = kwargs.pop('filter')
 
         if len(searchphrase) > 1:
             res = current_app.extensions['esquery'].free_text_search(searchphrase, 

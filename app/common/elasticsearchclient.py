@@ -302,7 +302,7 @@ class esQuery():
         data = []
         if 'hits' in res and res['hits']['total']:
             for hit in res['hits']['hits']:
-                datapoint = dict(type='search-object-'+hit['type'],
+                datapoint = dict(type='search-object-'+hit['_source']['type'],
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
@@ -1312,7 +1312,7 @@ class esQuery():
 
         if doc_types is not None:
             func_score.bool.filter.bool.should = []
-            for doc_type in doc_types
+            for doc_type in doc_types:
                 should_match = {}
                 should_match["match_phrase"] = {}
                 should_match["match_phrase"]["type.keyword"] = doc_type
@@ -1327,7 +1327,7 @@ class esQuery():
         func_score.function_score.query.bool.should = analyzer_list
         if doc_types is not None:
             func_score.function_score.query.bool.filter.bool.should = []
-            for doc_type in doc_types
+            for doc_type in doc_types:
                 should_match = {}
                 should_match["match_phrase"] = {}
                 should_match["match_phrase"]["type.keyword"] = doc_type
@@ -1768,15 +1768,12 @@ class esQuery():
                 "suggest": self._get_free_text_suggestions(searchphrase)
                 }
 
-        #add a filter based on data type
-        body["query"]["filter"]
-
         if highlight is not None:
             body['highlight'] = highlight
 
         try:
             res = self._cached_search(index=self._index_search,
-                                   doc_type=doc_types,
+#                                   doc_type=doc_types,
                                    body=body
                                    )
         except TransportError as e :  # TODO: remove this try. needed to go around rare elastiscsearch error due to fields with different mappings
