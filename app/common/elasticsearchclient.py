@@ -557,7 +557,7 @@ class esQuery():
             highlight = ''
             if 'highlight' in hit:
                 highlight = hit['highlight']
-            datapoint = dict(type=hit['_type'],
+            datapoint = dict(type='search-object-'+hit['_source']['type'],
                              id=hit['_id'],
                              score=hit['_score'],
                              highlight=highlight,
@@ -578,7 +578,7 @@ class esQuery():
             data[opt] = []
             returned_ids[opt] = []
 
-        res = self._free_text_query(searchphrase, [], params)
+        res = self._free_text_query(searchphrase, None, params)
 
         if ('hits' in res) and res['hits']['total']:
             '''handle best hit'''
@@ -588,7 +588,7 @@ class esQuery():
             ''' store the other results in the corresponding object'''
             for hit in res['hits']['hits'][1:]:
                 for opt in active_options:
-                    if hit['_type'] == self._get_search_doc_name(opt):
+                    if hit['_source']['type'] == opt:
                         if len(data[opt]) < params.size:
                             data[opt].append(format_datapoint(hit))
 
@@ -596,7 +596,7 @@ class esQuery():
             for opt in active_options:
 
                 if len(data[opt]) < params.size:
-                    res_opt = self._free_text_query(searchphrase, self._get_search_doc_types([opt]), params)
+                    res_opt = self._free_text_query(searchphrase, [opt], params)
                     for hit in res_opt['hits']['hits']:
                         if len(data[opt]) < params.size:
                             if hit['_id'] not in returned_ids[opt]:
