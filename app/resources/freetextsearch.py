@@ -64,7 +64,7 @@ class BestHitSearch(Resource, Paginable):
         """
         start_time = time.time()
         kwargs = self.parser.parse_args()
-        filter_ = kwargs.pop('filter') or ['all']
+        filter_ = kwargs.pop('filter')
         searchphrases = kwargs.pop('q')
         if len(searchphrases) > 500:
             raise AttributeError('request size too big')

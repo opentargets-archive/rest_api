@@ -483,10 +483,7 @@ class esQuery():
 
                                )
 
-    def best_hit_search(self,
-                        searchphrases,
-                        doc_filter=(FreeTextFilterOptions.ALL),
-                        **kwargs):
+    def best_hit_search(self, searchphrases, doc_filter, **kwargs):
         '''
         similar to free_text_serach but can take multiple queries
 
@@ -497,10 +494,6 @@ class esQuery():
         '''
 
         params = SearchParams(**kwargs)
-
-        if doc_filter is None:
-            doc_filter = [FreeTextFilterOptions.ALL]
-        doc_filter = self._get_search_doc_types(doc_filter)
         results = self._best_hit_query(searchphrases, doc_filter, params)
         # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
@@ -522,7 +515,7 @@ class esQuery():
                                     exact_match = True
                                     break
 
-                datapoint = dict(type='search-object-'+hit['type'],
+                datapoint = dict(type='search-object-'+hit['_source']['type'],
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
@@ -1789,7 +1782,7 @@ class esQuery():
            If there is not a 'fields' parameter, then fields are included by default
 
         '''
-        head = {'index': self._index_search, 'type': doc_types}
+        head = {'index': self._index_search}
         multi_body = []
         highlight = self._get_mapping_highlights()
 
@@ -1798,8 +1791,7 @@ class esQuery():
             source_filter["includes"] = params.fields
 
         for searchphrase in searchphrases:
-            # body = {'query': self._get_exact_mapping_query(searchphrase.lower()), #this is 3 times faster if needed
-            body = {'query': self._get_free_text_query(searchphrase.lower(), params),
+            body = {'query': self._get_free_text_query(searchphrase.lower(), params, doc_types),
                     'size': 1,
                     'from': params.start_from,
                     '_source': source_filter,
