@@ -209,7 +209,7 @@ class DataMetrics(object):
                 datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
                 datatypes[bucket['key']]['datasources']=datasources
 
-        self.evidencestrings = dict(total = res['hits']['total'],
+        self.evidencestrings = dict(total = res['hits']['total']['value'],
                                     datatypes= datatypes)
 
     def add_associations(self, res, known_datatypes):
@@ -226,7 +226,7 @@ class DataMetrics(object):
                     pass
 
 
-        self.associations = dict(total = res['hits']['total'],
+        self.associations = dict(total = res['hits']['total']['value'],
                                  datatypes= datatypes)
 
 
@@ -247,7 +247,7 @@ class DataStats(object):
                 datasources[ds_bucket['key']]={'total':ds_bucket['doc_count']}
                 datatypes[bucket['key']]['datasources']=datasources
 
-        self.evidencestrings = dict(total = res['hits']['total'],
+        self.evidencestrings = dict(total = res['hits']['total']['value'],
                                     datatypes= datatypes)
 
     def add_associations(self, res, known_datatypes):
@@ -264,7 +264,7 @@ class DataStats(object):
                     pass
 
 
-        self.associations = dict(total = res['hits']['total'],
+        self.associations = dict(total = res['hits']['total']['value'],
                                  datatypes= datatypes)
 
     def add_key_value(self, key, value):

@@ -160,7 +160,7 @@ class PaginatedResult(Result):
         super(self.__class__,self).__init__(*args, **kwargs)
         if self.total is None:
             if self.res:
-                self.total = self.res['hits']['total']
+                self.total = self.res['hits']['total']['value']
             else:
                 self.total = len(self.data)
         if self.took is None:

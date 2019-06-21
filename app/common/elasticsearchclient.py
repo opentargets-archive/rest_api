@@ -75,11 +75,6 @@ def ex_level_tissues_to_terms_list(key, ts, expression_level):
                         }
                     }
                }
-#     else:
-#         range = str(expression_level) + "_.*"
-#         ret = {"regexp": {"private.facets.expression_tissues." + key + ".id.keyword": \
-#                           range}}
-
     return ret
 
 
@@ -258,18 +253,6 @@ class esQuery():
         self._index_search = index_search
         self._index_relation = index_relation
 
-        self._docname_data = docname_data
-        self._docname_drug = docname_drug
-        self._docname_efo = docname_efo
-        self._docname_eco = docname_eco
-        self._docname_genename = docname_genename
-        self._docname_expression = docname_expression
-        self._docname_reactome = docname_reactome
-        self._docname_association = docname_association
-        self._docname_search = docname_search
-        self._docname_search_target = docname_search + '-target',
-        self._docname_search_disease = docname_search + '-disease'
-        self._docname_relation = docname_relation
         self.datatypes = datatypes
         self.datatource_scoring = datatource_scoring
         self.scorer = Scorer(datatource_scoring)
@@ -298,9 +281,8 @@ class esQuery():
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
         res = self._free_text_query(searchphrase, doc_filter, params)
-        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
-        if 'hits' in res and res['hits']['total']:
+        if 'hits' in res and res['hits']['total']['value'] > 0:
             for hit in res['hits']['hits']:
                 datapoint = dict(type='search-object-'+hit['_source']['type'],
                                  data=hit['_source'],
@@ -360,10 +342,9 @@ class esQuery():
             q = addict.Dict()
             q.query.bool.filter.range['association_counts.total'].gte = 1
             all_targets = self._cached_search(index=self._index_search,
-                                              doc_type=self._docname_search_target,
                                               body=q.to_dict(),
                                               size=0)
-            N = all_targets["hits"]["total"]
+            N = all_targets["hits"]["total"]['value']
             # print 'all targets query', time.time() - start_time
 
 
@@ -402,7 +383,6 @@ class esQuery():
             start_time = time.time()
             background = self.handler.mget(body=dict(ids=disease_data.keys()),
                                            index=self._index_search,
-                                           doc_type=self._docname_search_disease,
                                            _source=['association_counts', 'name'],
                                            realtime=False,
                                           )
@@ -495,7 +475,6 @@ class esQuery():
 
         params = SearchParams(**kwargs)
         results = self._best_hit_query(searchphrases, doc_filter, params)
-        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
         data = []
 
         # there are len(params.q) responses - one per query
@@ -504,7 +483,7 @@ class esQuery():
                 i]  # even though we are guaranteed that responses come back in order, and can match query to the result - this might be convenient to have
             lower_name = searchphrase.lower()
             exact_match = False
-            if 'hits' in res and res['hits']['total']:
+            if 'hits' in res and res['hits']['total']['value'] > 0:
                 hit = res['hits']['hits'][0]
                 highlight = hit.get('highlight', None)
                 if highlight:
@@ -580,7 +559,7 @@ class esQuery():
 
         res = self._free_text_query(searchphrase, None, params)
 
-        if ('hits' in res) and res['hits']['total']:
+        if ('hits' in res) and res['hits']['total']['value'] > 0:
             '''handle best hit'''
             best_hit = res['hits']['hits'][0]
             data['besthit'] = format_datapoint(best_hit)
@@ -627,17 +606,17 @@ class esQuery():
         searchphrase = searchphrase.lower()
         params = SearchParams(**kwargs)
 
-        res = self.handler.suggest(index=[self._index_search],
-                                   body={"suggest": {
-                                       "text": searchphrase,
-                                       "completion": {
-                                           "field": "private.suggestions"
-                                       }
-                                   }
-                                   }
-
-                                   )
-        # current_app.logger.debug("Got %d Hits in %ims" % (res['hits']['total'], res['took']))
+        res = self.handler.suggest(
+                index=[self._index_search],
+                body={
+                    "suggest": {
+                        "text": searchphrase,
+                        "completion": {
+                            "field": "private.suggestions"
+                        }
+                    }
+                }
+            )
         data = []
         if 'suggest' in res:
             data = res['suggest'][0]['options']
@@ -675,7 +654,6 @@ class esQuery():
                 query_body._source = params.fields
 
             res = self._cached_search(index=self._index_genename,
-                                      doc_type=self._docname_genename,
                                       body=query_body.to_dict())
 
             if 'aggregations' in res:
@@ -717,7 +695,6 @@ class esQuery():
 
         if efo_codes:
             res = self._cached_search(index=self._index_efo,
-                                      doc_type=self._docname_efo,
                                       body=query_body.to_dict()
                                       )
             return PaginatedResult(res, params)
@@ -739,7 +716,6 @@ class esQuery():
 
         if drug_id:
             res = self._cached_search(index=self._index_drug,
-                                      doc_type=self._docname_drug,
                                       body=query_body.to_dict()
                                       )
             return PaginatedResult(res, params)
@@ -755,7 +731,6 @@ class esQuery():
             params.datastructure = SourceDataStructureOptions.FULL
 
         res = self._cached_search(index=self._index_data,
-                                  # doc_type=self._docname_data,
                                   body={"query": {
                                       "ids": {"values": evidenceid},
                                   },
@@ -768,7 +743,6 @@ class esQuery():
 
     def get_label_for_eco_code(self, code):
         res = self._cached_search(index=self._index_eco,
-                                  doc_type=self._docname_eco,
                                   body={'query': {
                                       "ids": {
                                           "type": "eco",
@@ -876,7 +850,6 @@ class esQuery():
         q.sort.append({"id.keyword": "desc"})
 
         res = self._cached_search(index=self._index_data,
-                                  # doc_type=self._docname_data,
                                   body=q.to_dict(),
                                   timeout="10m",
                                   )
@@ -942,34 +915,6 @@ class esQuery():
                     "private.facets.free_text_search": params.search
                 }
             }
-            #     "bool": {
-            #         "should": [
-            #             {"multi_match": {
-            #                 "query": params.search,
-            #                 "fields": ["target.*",
-            #                            "disease.*",
-            #                            # "private.*",
-            #                            ],
-            #                 "type": "phrase_prefix",
-            #                 "lenient": True,
-            #                 "analyzer": 'whitespace',
-            #
-            #             }
-            #             },
-            #             {"multi_match": {
-            #                 "query": params.search,
-            #                 "fields": ["target.*",
-            #                            "disease.*",
-            #                            # "private.*",
-            #                            ],
-            #                 "analyzer": 'keyword',
-            #                 "type": "best_fields",
-            #                 "lenient": True,
-            #             }
-            #             },
-            #         ],
-            #     }
-            # }
 
         if params.datastructure in [SourceDataStructureOptions.FULL, SourceDataStructureOptions.DEFAULT]:
             params.datastructure = SourceDataStructureOptions.SCORE
@@ -1042,9 +987,6 @@ class esQuery():
         # inject tissue information: anatomical part and organs
         data = _inject_tissue_data(data, Config.ES_TISSUE_MAP)
 
-        # TODO: use elasticsearch histogram to get this in the whole dataset ignoring filters??"
-        # data_distribution = self._get_association_data_distribution([s['association_score'] for s in data['data']])
-        # data_distribution["total"] = len(data['data'])
         if params.target:
             try:
                 therapeutic_areas = set()
@@ -1692,7 +1634,6 @@ class esQuery():
         labels = defaultdict(str)
         if reactome_ids:
             res = self._cached_search(index=self._index_reactome,
-                                      doc_type=self._docname_reactome,
                                       body={"query": {
                                               "ids": {
                                                   "values": reactome_ids
@@ -1703,7 +1644,7 @@ class esQuery():
                                           'from': 0,
                                           }
                                       )
-            if res['hits']['total']:
+            if res['hits']['total']['value'] > 0:
                 for hit in res['hits']['hits']:
                     labels[hit['_id']] = hit['_source']['label']
         return labels
@@ -1726,19 +1667,9 @@ class esQuery():
         q._source = ['id']
         res = self._cached_search(index=self._index_genename,
                                   body=q.to_dict())
-        if res['hits']['total']:
+        if res['hits']['total']['value'] > 0:
             data = [hit['_id'] for hit in res['hits']['hits']]
         return data
-
-    def _get_search_doc_types(self, filter_):
-        doc_types = []
-        for t in filter_:
-            t = t.lower()
-            if t == FreeTextFilterOptions.ALL:
-                return []
-            elif t in FreeTextFilterOptions.__dict__.values():
-                doc_types.append(self._docname_search + '-' + t)
-        return doc_types
 
     def _free_text_query(self, searchphrase, doc_types, params):
         '''
@@ -1805,14 +1736,10 @@ class esQuery():
         return self._cached_search(body=multi_body,
                                    is_multi=True)
 
-    def _get_search_doc_name(self, doc_type):
-        return self._docname_search + '-' + doc_type
-
     def get_therapeutic_areas(self):
         therapeutic_areas = TherapeuticArea()
         therapeutic_areas.add_therapeuticareas(self._cached_search(
             index=self._index_efo,
-            # doc_type=self._docname_data,
             body={
                 "query": {
                     "match_all": {}
@@ -1843,86 +1770,86 @@ class esQuery():
     def get_stats(self):
 
         stats = DataStats()
-        stats.add_evidencestring(self._cached_search(index=self._index_data,
-                                                     # doc_type=self._docname_data,
-                                                     body={"query": {"match_all": {}},
-                                                           "aggs": {
-                                                               "data": {
-                                                                   "terms": {
-                                                                       "field": "type.keyword",
-                                                                       'size': 100,
-                                                                   },
-                                                                   "aggs": {
-                                                                       "datasources": {
-                                                                           "terms": {
-                                                                               "field": "sourceID.keyword",
-                                                                               'size': 100,
-                                                                           },
-                                                                       }
-                                                                   }
-                                                               }
-                                                           },
-                                                           'size': 0,
-                                                           '_source': False,
-                                                           },
-                                                     timeout="10m",
-                                                     )
-                                 )
+        stats.add_evidencestring(self._cached_search(
+                index=self._index_data,
+                body={"query": {"match_all": {}},
+                    "aggs": {
+                        "data": {
+                            "terms": {
+                                "field": "type.keyword",
+                                'size': 100,
+                            },
+                            "aggs": {
+                                "datasources": {
+                                    "terms": {
+                                        "field": "sourceID.keyword",
+                                        'size': 100,
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    'size': 0,
+                    '_source': False,
+                    },
+                timeout="10m",
+                )
+            )
 
-        stats.add_associations(self._cached_search(index=self._index_association,
-                                                   # doc_type=self._docname_data,
-                                                   body={"query": {"match_all": {}},
-                                                         "aggs": {
-                                                             "data": {
-                                                                 "terms": {
-                                                                     "field": "private.facets.datatype.keyword",
-                                                                     'size': 100,
-                                                                 },
-                                                                 "aggs": {
-                                                                     "datasources": {
-                                                                         "terms": {
-                                                                             "field": "private.facets.datasource.keyword",
-                                                                             'size': 100,
-                                                                         },
-                                                                     }
-                                                                 }
-                                                             }
-                                                         },
-                                                         'size': 0,
-                                                         '_source': False,
-                                                         },
-                                                   timeout="10m",
-                                                   ),
-                               self.datatypes
-                               )
-
-        target_count = self._cached_search(index=self._index_search,
-                                           doc_type=self._docname_search_target,
-                                           body={"query": {
-                                               "range": {
-                                                   "association_counts.total": {
-                                                       "gt": 0,
-                                                   }
-                                               }
-                                           },
-                                               'size': 1,
-                                               '_source': False,
-                                           })
-        stats.add_key_value('targets', target_count['hits']['total'])
-
-        disease_count = self._cached_search(index=self._index_search,
-                                            doc_type=self._docname_search_disease,
-                                            body={"query": {
-                                                "range": {
-                                                    "association_counts.total": {
-                                                        "gt": 0,
-                                                    }
-                                                }
+        stats.add_associations(self._cached_search(
+                    index=self._index_association,
+                    body={"query": {"match_all": {}},
+                            "aggs": {
+                                "data": {
+                                    "terms": {
+                                        "field": "private.facets.datatype.keyword",
+                                        'size': 100,
+                                    },
+                                    "aggs": {
+                                        "datasources": {
+                                            "terms": {
+                                                "field": "private.facets.datasource.keyword",
+                                                'size': 100,
                                             },
-                                                'size': 1,
-                                                '_source': False,
-                                            })
-        stats.add_key_value('diseases', disease_count['hits']['total'])
+                                        }
+                                    }
+                                }
+                            },
+                            'size': 0,
+                            '_source': False,
+                            },
+                    timeout="10m",
+                    ),
+                    self.datatypes
+                )
+
+        target_count = self._cached_search(
+            index=self._index_search,
+            body={"query": {
+                "range": {
+                    "association_counts.total": {
+                        "gt": 0,
+                    }
+                }
+            },
+                'size': 1,
+                '_source': False,
+            })
+        stats.add_key_value('targets', target_count['hits']['total']['value'])
+
+        disease_count = self._cached_search(
+            index=self._index_search,
+            body={"query": {
+                "range": {
+                    "association_counts.total": {
+                        "gt": 0,
+                    }
+                }
+            },
+                'size': 1,
+                '_source': False,
+            })
+        stats.add_key_value('diseases', disease_count['hits']['total']['value'])
 
         return RawResult(str(stats))
 
@@ -2117,17 +2044,13 @@ class esQuery():
 
     def get_relations(self, subject_ids, object_ids, **kwargs):
         params = SearchParams(**kwargs)
-        # query_body = {"match_all": {}}
-        # if params.search:
-        #     query_body = {"match_phrase_prefix": {"_all": {"query": params.search}}}
-
-        subject_query = self.get_complex_subject_filter(subject_ids)
+        subject_query = self.get_complex_subject_filter(subject_ids, field='subject')
         object_query = self.get_complex_subject_filter(object_ids, field='object')
+        must = [x for x in (subject_query,object_query) if len(x) > 0]
         query_body = {
             "query": {
                 "bool": {
-                    "must": [subject_query,
-                             object_query]
+                    "must": must
                 }
             },
             'size': params.size,
@@ -2136,12 +2059,15 @@ class esQuery():
             '_source': True,
 
         }
+        current_app.logger.debug("query_body="+str(query_body))
 
-        res = self._cached_search(index=self._index_relation,
-                                  body=query_body,
-                                  )
+        res = self._cached_search(
+                index=self._index_relation,
+                body=query_body
+            )
+
         data = []
-        if res['hits']['total']:
+        if res['hits']['total']['value'] > 0:
             for hit in res['hits']['hits']:
                 d = hit['_source']
                 r = Relation(**d)
