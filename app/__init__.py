@@ -241,11 +241,12 @@ def create_app(config_name):
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Headers','Content-Type,Auth-Token')
             resp.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+            #Google cloud CDN must be explicity marked as public to be cached
             if do_not_cache(request):# do not cache in the browser
                 resp.headers.add('Cache-Control', "no-cache, must-revalidate, max-age=0")
             else:
-                cache = 30 * 24 * 60 * 60 #cache for seven days
-                resp.headers.add('Cache-Control', "no-transform, max-age=%i"%(cache))
+                cache = 30 * 24 * 60 * 60 #cache for 30 days
+                resp.headers.add('Cache-Control', "public, no-transform, max-age=%i"%(cache))
             return resp
 
         except Exception as e:
