@@ -34,13 +34,12 @@ class FreeTextSearch(Resource, Paginable):
 
         kwargs = self.parser.parse_args()
         searchphrase = kwargs.pop('q')
-        filter = kwargs.pop('filter') or ['all']
+        filter = kwargs.pop('filter')
 
         if len(searchphrase) > 1:
-            res = current_app.extensions['esquery'].free_text_search(searchphrase, doc_filter=filter, **kwargs)
-
-            return CTTVResponse.OK(res,
-                                   took=time.time() - start_time)
+            res = current_app.extensions['esquery'].free_text_search(searchphrase, 
+                doc_filter=filter, **kwargs)
+            return CTTVResponse.OK(res, took=time.time() - start_time)
         else:
             abort(400, message="Query is too short")
 
@@ -65,7 +64,7 @@ class BestHitSearch(Resource, Paginable):
         """
         start_time = time.time()
         kwargs = self.parser.parse_args()
-        filter_ = kwargs.pop('filter') or ['all']
+        filter_ = kwargs.pop('filter')
         searchphrases = kwargs.pop('q')
         if len(searchphrases) > 500:
             raise AttributeError('request size too big')
