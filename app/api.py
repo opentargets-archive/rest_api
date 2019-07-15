@@ -47,8 +47,12 @@ def create_api(app, api_version = '0.0', specpath = '' ):
     api.add_resource(evidence.FilterBy,
                      '/public/evidence/filter',
                       endpoint="evidence-filter"
-
                      )
+
+    api.add_resource(evidence.DrugEvidence,
+                     '/public/evidence/known_drug'
+                     )
+
     api.add_resource(association.Association,
                      '/public/association',
                      )

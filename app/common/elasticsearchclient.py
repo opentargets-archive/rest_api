@@ -224,8 +224,6 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
-                 # docname_search_target=None,
-                 # docname_search_disease=None,
                  docname_relation=None,
                  cache=None,
                  log_level=logging.DEBUG):
@@ -861,6 +859,88 @@ class esQuery():
 
         return PaginatedResult(res, params, data=evidence)
 
+    def get_evidence_known_drug(self, 
+                     targets=None,
+                     diseases=None
+                     ):
+
+
+        q = addict.Dict()
+        q.size = 0
+        q.query.bool.filter = []
+
+        filter_drug_type = addict.Dict()
+        filter_drug_type.match.type = 'known_drug'
+        q.query.bool.filter.append(filter_drug_type)
+
+        #filter by target
+        if targets is not None:
+            for target in targets:
+                filter_target = addict.Dict()
+                filter_target.match['target.id'] = target
+                q.query.bool.filter.append(filter_target)
+        
+        #filter by disease
+        if diseases is not None:
+            for disease in diseases:
+                filter_disease = addict.Dict()
+                filter_disease.match['disease.id'] = disease
+                q.query.bool.filter.append(filter_disease)
+
+        #return a large number of possible buckets
+        q.aggs.evidence_known_drug.composite.size=10000
+
+        #setup the sub-buckets we want to get the combinations of
+        q.aggs.evidence_known_drug.composite.sources = []
+
+        bucket_source_disease = addict.Dict()
+        bucket_source_disease.disease.terms.field = "disease.id"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_disease)
+
+        bucket_source_drug = addict.Dict()
+        bucket_source_drug.drug.terms.field = "drug.molecule_name.keyword"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_drug)
+
+        bucket_source_trial_phase = addict.Dict()
+        bucket_source_trial_phase.phase.terms.field = "evidence.drug2clinic.clinical_trial_phase.label"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_phase)
+
+        bucket_source_trial_status = addict.Dict()
+        bucket_source_trial_status.status.terms.field = "evidence.drug2clinic.status"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_status)
+
+        bucket_source_target = addict.Dict()
+        bucket_source_target.target.terms.field = "target.id"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_target)
+        
+        #get certain fields from within each bucket
+        ##this will only return the top 100 results in each bucket, which should be enough
+
+        q.aggs.evidence_known_drug.aggregations.content.top_hits._source = [
+            "evidence.drug2clinic.urls",
+        ] 
+        q.aggs.evidence_known_drug.aggregations.content.top_hits.size=100
+
+
+        #print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
+        res = self._cached_search(
+                index=self._index_data,
+                body = q.to_dict(),
+                timeout="10m",
+            )
+        #print(json.dumps(res, indent=2, sort_keys=True))
+
+        data = []
+        for bucket in res["aggregations"]["evidence_known_drug"]["buckets"]:
+            values = bucket["key"]
+            urls = []
+            for hit in bucket["content"]["hits"]["hits"]:
+                urls.extend(hit["_source"]["evidence"]["drug2clinic"]["urls"])
+            values["urls"] = urls
+
+            data.append(values)
+
+        return SimpleResult(res, data=data)
 
     def get_associations_by_id(self, associationid, **kwargs):
 
@@ -893,7 +973,7 @@ class esQuery():
     def get_associations(self,
                          **kwargs):
         """
-        Get the association scores for the provided target and diseases.
+        Get the associationscores for the provided target and diseases.
         steps in the process:
 
 
