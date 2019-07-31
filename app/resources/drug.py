@@ -15,9 +15,7 @@ class Drug(Resource):
         es = current_app.extensions['esquery']
         res = es.get_drug_info_from_id(drug_id)
         if res:
-            data = res.toDict()['data']
-            if data:
-                return CTTVResponse.OK(RawResult(json.dumps(data[0])),
-                                   took=time.time() - start_time)
+            return CTTVResponse.OK(res,
+                took=time.time() - start_time)
         else:
             abort(404, message="drug code %s cannot be found"%drug_id)

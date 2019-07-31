@@ -884,17 +884,20 @@ class esQuery():
         if diseases is not None:
             for disease in diseases:
                 filter_disease = addict.Dict()
-                filter_disease.match['disease.id'] = disease
+                #this is indirect so we filter on all child efo codes
+                filter_disease.match['private.efo_codes'] = disease
                 q.query.bool.filter.append(filter_disease)
 
         #return a large number of possible buckets
         q.aggs.evidence_known_drug.composite.size=10000
 
         #setup the sub-buckets we want to get the combinations of
+        #the ordering here determines sort order of buckets
+        #these fields must be "keyword" type
         q.aggs.evidence_known_drug.composite.sources = []
 
         bucket_source_disease = addict.Dict()
-        bucket_source_disease.disease.terms.field = "disease.id"
+        bucket_source_disease.disease_id.terms.field = "disease.id"
         q.aggs.evidence_known_drug.composite.sources.append(bucket_source_disease)
 
         bucket_source_drug = addict.Dict()
@@ -915,28 +918,68 @@ class esQuery():
         
         #get certain fields from within each bucket
         ##this will only return the top 100 results in each bucket, which should be enough
+        ##note: this is *slow*
 
         q.aggs.evidence_known_drug.aggregations.content.top_hits._source = [
+            "disease.efo_info.label",
             "evidence.drug2clinic.urls",
+            "target.activity"
         ] 
+        #this can be increased by changing index.max_inner_result_window index setting
         q.aggs.evidence_known_drug.aggregations.content.top_hits.size=100
 
 
-        #print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
+        #this will output the query used
+        print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
         res = self._cached_search(
                 index=self._index_data,
                 body = q.to_dict(),
                 timeout="10m",
             )
-        #print(json.dumps(res, indent=2, sort_keys=True))
+        #this will output the results returned
+        print(json.dumps(res, indent=2, sort_keys=True))
 
         data = []
         for bucket in res["aggregations"]["evidence_known_drug"]["buckets"]:
-            values = bucket["key"]
+            values = {}
+
+            values["disease_id"] = bucket["key"]["disease_id"]
+            values["drug"] = bucket["key"]["drug"]
+            values["phase"] = bucket["key"]["phase"]
+            values["status"] = bucket["key"]["status"]
+            values["target"] = bucket["key"]["target"]
+
             urls = []
+            disease_name = None
+            target_activity = None
             for hit in bucket["content"]["hits"]["hits"]:
-                urls.extend(hit["_source"]["evidence"]["drug2clinic"]["urls"])
-            values["urls"] = urls
+                urls.append(hit["_source"]["evidence"]["drug2clinic"]["urls"])
+
+                if disease_name is None:
+                    disease_name = hit["_source"]["disease"]["efo_info"]["label"]
+                elif disease_name == hit["_source"]["disease"]["efo_info"]["label"]:
+                    #matches existing name, do nothing
+                    pass
+                else:
+                    #found a new name that is different from the previous one
+                    raise ValueError("Unexpected disease names %s and %s".format(disease_name,
+                        hit["_source"]["disease"]["efo_info"]["label"]))
+
+                if target_activity is None:
+                    target_activity = hit["_source"]["target"]["activity"]
+                elif target_activity == hit["_source"]["target"]["activity"]:
+                    #matches existing name, do nothing
+                    pass
+                else:
+                    #found a new name that is different from the previous one
+                    raise ValueError("Unexpected target activity %s and %s".format(target_activity,
+                        hit["_source"]["target"]["activity"]))
+
+            values["urls"] = sorted(urls)
+            values["disease_name"] = disease_name
+            values["target_activity"] = target_activity
+
+            values["count"] = bucket["doc_count"]
 
             data.append(values)
 
