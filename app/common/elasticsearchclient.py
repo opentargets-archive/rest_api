@@ -898,7 +898,7 @@ class esQuery():
         q.aggs.evidence_known_drug.composite.sources = []
 
         bucket_source_trial_phase = addict.Dict()
-        bucket_source_trial_phase.phase.terms.field = "evidence.drug2clinic.clinical_trial_phase.label"
+        bucket_source_trial_phase.phase.terms.field = "evidence.drug2clinic.clinical_trial_phase.numeric_index"
         q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_phase)
 
         bucket_source_trial_status = addict.Dict()
@@ -924,7 +924,13 @@ class esQuery():
         q.aggs.evidence_known_drug.aggregations.content.top_hits._source = [
             "disease.efo_info.label",
             "evidence.drug2clinic.urls",
-            "target.activity"
+            "evidence.drug2clinic.clinical_trial_phase.label",
+            "evidence.target2drug.mechanism_of_action",
+            "target.activity",
+            "target.gene_info.symbol",
+            "target.target_class",
+            "drug.id",
+            "drug.molecule_type"
         ] 
         #this can be increased by changing index.max_inner_result_window index setting
         q.aggs.evidence_known_drug.aggregations.content.top_hits.size=100
@@ -939,28 +945,35 @@ class esQuery():
 
 
         #this will output the query used
-        print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
+        #print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
         res = self._cached_search(
                 index=self._index_data,
                 body = q.to_dict(),
                 timeout="10m",
             )
         #this will output the results returned
-        print(json.dumps(res, indent=2, sort_keys=True))
+        #print(json.dumps(res, indent=2, sort_keys=True))
 
         data = []
         for bucket in res["aggregations"]["evidence_known_drug"]["buckets"]:
             values = {}
 
             values["disease_id"] = bucket["key"]["disease_id"]
-            values["drug"] = bucket["key"]["drug"]
-            values["phase"] = bucket["key"]["phase"]
+            values["drug_label"] = bucket["key"]["drug"]
+            values["clinical_trial_phase_number"] = bucket["key"]["phase"]
             values["status"] = bucket["key"]["status"]
-            values["target"] = bucket["key"]["target"]
+            values["target_id"] = bucket["key"]["target"]
 
             urls = []
             disease_name = None
+            trial_phase_label = None
+            drug_id = None
+            drug_type = None
+            mechanisms_of_action = set()
             target_activity = None
+            target_symbol = None
+            target_classes = set()
+
             for hit in bucket["content"]["hits"]["hits"]:
                 for url in hit["_source"]["evidence"]["drug2clinic"]["urls"]:
                     urls.append(url)
@@ -968,27 +981,80 @@ class esQuery():
                 if disease_name is None:
                     disease_name = hit["_source"]["disease"]["efo_info"]["label"]
                 elif disease_name == hit["_source"]["disease"]["efo_info"]["label"]:
-                    #matches existing name, do nothing
+                    #matches existing do nothing
                     pass
                 else:
-                    #found a new name that is different from the previous one
+                    #found a new that is different from the previous one
                     raise ValueError("Unexpected disease names %s and %s".format(disease_name,
                         hit["_source"]["disease"]["efo_info"]["label"]))
 
                 if target_activity is None:
                     target_activity = hit["_source"]["target"]["activity"]
                 elif target_activity == hit["_source"]["target"]["activity"]:
-                    #matches existing name, do nothing
+                    #matches existing do nothing
                     pass
                 else:
-                    #found a new name that is different from the previous one
+                    #found a new that is different from the previous one
                     raise ValueError("Unexpected target activity %s and %s".format(target_activity,
                         hit["_source"]["target"]["activity"]))
 
+                if target_symbol is None:
+                    target_symbol = hit["_source"]["target"]["gene_info"]["symbol"]
+                elif target_symbol == hit["_source"]["target"]["gene_info"]["symbol"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected target symbol %s and %s".format(target_symbol,
+                        hit["_source"]["target"]["gene_info"]["symbol"]))
+
+                for target_class in hit["_source"]["target"]["target_class"]:
+                    target_classes.add(target_class)
+
+                if trial_phase_label is None:
+                    trial_phase_label = hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]
+                elif trial_phase_label == hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected trial phase label %s and %s".format(trial_phase_label,
+                        hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]))
+
+                if drug_id is None:
+                    drug_id = hit["_source"]["drug"]["id"]
+                elif drug_id == hit["_source"]["drug"]["id"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected drug_id %s and %s".format(drug_id,
+                        hit["_source"]["drug"]["id"]))
+
+                if drug_type is None:
+                    drug_type = hit["_source"]["drug"]["molecule_type"]
+                elif drug_type == hit["_source"]["drug"]["molecule_type"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected drug_type %s and %s".format(drug_type,
+                        hit["_source"]["drug"]["molecule_type"]))
+
+                mechanism_of_action = hit["_source"]["evidence"]["target2drug"]["mechanism_of_action"]
+                if mechanism_of_action not in mechanisms_of_action:
+                    mechanisms_of_action.add(mechanism_of_action)
+
             values["urls"] = sorted(urls)
             values["disease_name"] = disease_name
-            values["target_activity"] = target_activity
             values["count"] = bucket["doc_count"]
+            values["clinical_trial_phase_label"] = trial_phase_label
+            values["drug_id"] = drug_id
+            values["drug_type"] = drug_type
+            values["mechanisms_of_action"] = sorted(mechanisms_of_action)
+            values["target_activity"] = target_activity
+            values["target_symbol"] = target_symbol
+            values["target_classes"] = sorted(target_classes)
 
             data.append(values)
 
