@@ -224,8 +224,6 @@ class esQuery():
                  docname_reactome=None,
                  docname_association=None,
                  docname_search=None,
-                 # docname_search_target=None,
-                 # docname_search_disease=None,
                  docname_relation=None,
                  cache=None,
                  log_level=logging.DEBUG):
@@ -861,6 +859,221 @@ class esQuery():
 
         return PaginatedResult(res, params, data=evidence)
 
+    def get_evidence_known_drug(self, 
+                     targets=None,
+                     diseases=None
+                     ):
+
+
+        q = addict.Dict()
+        q.size = 0
+        q.query.bool.filter = []
+
+        filter_drug_type = addict.Dict()
+        filter_drug_type.match.type = 'known_drug'
+        q.query.bool.filter.append(filter_drug_type)
+
+        #filter by target
+        if targets is not None:
+            for target in targets:
+                filter_target = addict.Dict()
+                filter_target.match['target.id'] = target
+                q.query.bool.filter.append(filter_target)
+        
+        #filter by disease
+        if diseases is not None:
+            for disease in diseases:
+                filter_disease = addict.Dict()
+                #this is indirect so we filter on all child efo codes
+                filter_disease.match['private.efo_codes'] = disease
+                q.query.bool.filter.append(filter_disease)
+
+        #return a large number of possible buckets
+        #note this plus the summary buckets must sum to less than 10k
+        q.aggs.evidence_known_drug.composite.size=9000
+
+        #setup the sub-buckets we want to get the combinations of
+        #the ordering here determines sort order of buckets
+        #these fields must be "keyword" type
+        q.aggs.evidence_known_drug.composite.sources = []
+
+        bucket_source_trial_phase = addict.Dict()
+        bucket_source_trial_phase.phase.terms.field = "evidence.drug2clinic.clinical_trial_phase.numeric_index"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_phase)
+
+        bucket_source_trial_status = addict.Dict()
+        bucket_source_trial_status.status.terms.field = "evidence.drug2clinic.status"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_status)
+
+        bucket_source_drug = addict.Dict()
+        bucket_source_drug.drug.terms.field = "drug.molecule_name.keyword"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_drug)
+
+        bucket_source_disease = addict.Dict()
+        bucket_source_disease.disease_id.terms.field = "disease.id"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_disease)
+
+        bucket_source_target = addict.Dict()
+        bucket_source_target.target.terms.field = "target.id"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_target)
+        
+        #get certain fields from within each bucket
+        ##this will only return the top 100 results in each bucket, which should be enough
+        ##note: this is *slow*
+
+        q.aggs.evidence_known_drug.aggregations.content.top_hits._source = [
+            "disease.efo_info.label",
+            "evidence.drug2clinic.urls",
+            "evidence.drug2clinic.clinical_trial_phase.label",
+            "evidence.target2drug.mechanism_of_action",
+            "target.activity",
+            "target.gene_info.symbol",
+            "target.target_class",
+            "drug.id",
+            "drug.molecule_type"
+        ] 
+        #this can be increased by changing index.max_inner_result_window index setting
+        q.aggs.evidence_known_drug.aggregations.content.top_hits.size=100
+
+        #these are to generate the summary
+        q.aggs.associated_diseases.cardinality.field = "disease.id"
+        q.aggs.associated_targets.cardinality.field = "target.id"
+        q.aggs.unique_drugs.cardinality.field = "drug.molecule_name.keyword"
+        q.aggs.clinical_trials.terms.field = "evidence.drug2clinic.clinical_trial_phase.label"
+        q.aggs.drug_type.terms.field = "drug.molecule_type.keyword"
+        q.aggs.drug_type.aggs.drug_type_activity.terms.field = "target.activity"
+
+
+        #this will output the query used
+        #print(json.dumps(q.to_dict(), indent=2, sort_keys=True))
+        res = self._cached_search(
+                index=self._index_data,
+                body = q.to_dict(),
+                timeout="10m",
+            )
+        #this will output the results returned
+        #print(json.dumps(res, indent=2, sort_keys=True))
+
+        data = []
+        for bucket in res["aggregations"]["evidence_known_drug"]["buckets"]:
+            values = {}
+
+            values["disease_id"] = bucket["key"]["disease_id"]
+            values["drug_label"] = bucket["key"]["drug"]
+            values["clinical_trial_phase_number"] = bucket["key"]["phase"]
+            values["status"] = bucket["key"]["status"]
+            values["target_id"] = bucket["key"]["target"]
+
+            urls = []
+            disease_name = None
+            trial_phase_label = None
+            drug_id = None
+            drug_type = None
+            mechanisms_of_action = set()
+            target_activity = None
+            target_symbol = None
+            target_classes = set()
+
+            for hit in bucket["content"]["hits"]["hits"]:
+                for url in hit["_source"]["evidence"]["drug2clinic"]["urls"]:
+                    urls.append(url)
+
+                if disease_name is None:
+                    disease_name = hit["_source"]["disease"]["efo_info"]["label"]
+                elif disease_name == hit["_source"]["disease"]["efo_info"]["label"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected disease names %s and %s".format(disease_name,
+                        hit["_source"]["disease"]["efo_info"]["label"]))
+
+                if target_activity is None:
+                    target_activity = hit["_source"]["target"]["activity"]
+                elif target_activity == hit["_source"]["target"]["activity"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected target activity %s and %s".format(target_activity,
+                        hit["_source"]["target"]["activity"]))
+
+                if target_symbol is None:
+                    target_symbol = hit["_source"]["target"]["gene_info"]["symbol"]
+                elif target_symbol == hit["_source"]["target"]["gene_info"]["symbol"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected target symbol %s and %s".format(target_symbol,
+                        hit["_source"]["target"]["gene_info"]["symbol"]))
+
+                for target_class in hit["_source"]["target"]["target_class"]:
+                    target_classes.add(target_class)
+
+                if trial_phase_label is None:
+                    trial_phase_label = hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]
+                elif trial_phase_label == hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected trial phase label %s and %s".format(trial_phase_label,
+                        hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]))
+
+                if drug_id is None:
+                    drug_id = hit["_source"]["drug"]["id"]
+                elif drug_id == hit["_source"]["drug"]["id"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected drug_id %s and %s".format(drug_id,
+                        hit["_source"]["drug"]["id"]))
+
+                if drug_type is None:
+                    drug_type = hit["_source"]["drug"]["molecule_type"]
+                elif drug_type == hit["_source"]["drug"]["molecule_type"]:
+                    #matches existing do nothing
+                    pass
+                else:
+                    #found a new that is different from the previous one
+                    raise ValueError("Unexpected drug_type %s and %s".format(drug_type,
+                        hit["_source"]["drug"]["molecule_type"]))
+
+                mechanism_of_action = hit["_source"]["evidence"]["target2drug"]["mechanism_of_action"]
+                if mechanism_of_action not in mechanisms_of_action:
+                    mechanisms_of_action.add(mechanism_of_action)
+
+            values["urls"] = sorted(urls)
+            values["disease_name"] = disease_name
+            values["count"] = bucket["doc_count"]
+            values["clinical_trial_phase_label"] = trial_phase_label
+            values["drug_id"] = drug_id
+            values["drug_type"] = drug_type
+            values["mechanisms_of_action"] = sorted(mechanisms_of_action)
+            values["target_activity"] = target_activity
+            values["target_symbol"] = target_symbol
+            values["target_classes"] = sorted(target_classes)
+
+            data.append(values)
+
+        facets = {}
+        facets["unique_drugs"] = res["aggregations"]["unique_drugs"]["value"]
+        facets["associated_diseases"] = res["aggregations"]["associated_diseases"]["value"]
+        facets["associated_targets"] = res["aggregations"]["associated_targets"]["value"]
+        facets["clinical_trials"] = {}
+        for bucket in res["aggregations"]["clinical_trials"]["buckets"]:
+            facets["clinical_trials"][bucket["key"]] = bucket["doc_count"]
+        facets["drug_type_activity"] = {}
+        for bucket in res["aggregations"]["drug_type"]["buckets"]:
+            drug_type = bucket["key"]
+            facets["drug_type_activity"][drug_type] = {}
+            for subbucket in bucket["drug_type_activity"]["buckets"]:
+                facets["drug_type_activity"][drug_type][subbucket["key"]] = subbucket["doc_count"]
+
+
+        return SimpleResult(res, data=data, facets=facets)
 
     def get_associations_by_id(self, associationid, **kwargs):
 
@@ -893,7 +1106,7 @@ class esQuery():
     def get_associations(self,
                          **kwargs):
         """
-        Get the association scores for the provided target and diseases.
+        Get the associationscores for the provided target and diseases.
         steps in the process:
 
 

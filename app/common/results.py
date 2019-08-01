@@ -233,14 +233,22 @@ class SimpleResult(Result):
     '''
 
     def toDict(self):
+        toReturn = {}
+        toReturn["data_version"] = Config.DATA_VERSION
+        #create data from the results if not explicity stated
         if not self.data:
             try:
                 self.data = [hit['_source'] for hit in self.res['hits']['hits']]
             except:
                 raise AttributeError('some data is needed to be returned in a SimpleResult')
-        return {'data': self.data,
-                'data_version' : Config.DATA_VERSION,
-                }
+
+        toReturn["data"] = self.data
+
+        #add facets, if present
+        if self.facets:
+            toReturn["facets"] = self.facets
+
+        return toReturn
 
 class RawResult(Result):
     ''' just need res to be passed and it will be returned as it is

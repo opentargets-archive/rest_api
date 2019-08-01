@@ -72,6 +72,20 @@ class Evidence(Resource):
         return CTTVResponse.OK(res,
                                took=time.time() - start_time)
 
+class DrugEvidence(Resource):
+    def get(self):
+        parser = boilerplate.get_parser()
+        parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
+        parser.add_argument('disease', type=str, action='append', required=False, help="List of efo code in disease")
+
+        args = parser.parse_args()
+        targets = args.pop('target',[]) or None
+        diseases = args.pop('disease',[]) or None
+
+        es = current_app.extensions['esquery']
+        data = es.get_evidence_known_drug(targets, diseases)
+
+        return CTTVResponse.OK(data, )
 
 class FilterBy(Resource, Paginable):
 
@@ -82,16 +96,10 @@ class FilterBy(Resource, Paginable):
         """
         parser = boilerplate.get_parser()
         parser.add_argument('target', type=str, action='append', required=False, help="ensembl id in target.id")
-        # parser.add_argument('gene-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('disease', type=str, action='append', required=False, help="List of efo code in disease")
-        # parser.add_argument('efo-bool', type=str, action='store', required=False, help="Boolean operator to combine genes")
         parser.add_argument('eco', type=str, action='append', required=False, help="List of evidence types as eco code")
-        # parser.add_argument('eco-bool', type=str, action='store', required=False, help="Boolean operator to combine evidence types")
-        # parser.add_argument('body', type=str, action='store', required=False, location='form', help="json object with query parameter")
         parser.add_argument('datasource', type=str, action='append', required=False, help="List of datasource to consider")
         parser.add_argument('datatype', type=str, action='append', required=False, help="List of datatype to consider")
-        # parser.add_argument('auth_token', type=str, required=True, help="auth_token is required")
-        # parser.add_argument('direct', type=boolean, required=False, help="return only evidence directly associated with the efo term if false or to all its children if true", default=False)
         parser.add_argument('pathway', type=str, action='append', required=False, help="pathway involving a set of genes")
         parser.add_argument('uniprotkw', type=str, action='append', required=False, help="uniprot keyword linked to a set of genes")
         parser.add_argument('scorevalue_min', type=float, required=False, help="filter by minimum score value")
@@ -104,11 +112,8 @@ class FilterBy(Resource, Paginable):
 
         args = parser.parse_args()
         targets = args.pop('target',[]) or []
-        # gene_operator = args.pop('gene-bool','OR') or 'OR'
         diseases = args.pop('disease',[]) or []
-        # object_operator = args.pop('efo-bool','OR') or 'OR'
         evidence_types = args.pop('eco',[]) or []
-        # evidence_type_operator = args.pop('eco-bool','OR') or 'OR'
         datasources =  args.pop('datasource',[]) or []
         datatypes =  args.pop('datatype',[]) or []
         if args.get('sort') is None:
