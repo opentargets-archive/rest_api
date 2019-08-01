@@ -889,20 +889,13 @@ class esQuery():
                 q.query.bool.filter.append(filter_disease)
 
         #return a large number of possible buckets
-        q.aggs.evidence_known_drug.composite.size=10000
+        #note this plus the summary buckets must sum to less than 10k
+        q.aggs.evidence_known_drug.composite.size=9000
 
         #setup the sub-buckets we want to get the combinations of
         #the ordering here determines sort order of buckets
         #these fields must be "keyword" type
         q.aggs.evidence_known_drug.composite.sources = []
-
-        bucket_source_disease = addict.Dict()
-        bucket_source_disease.disease_id.terms.field = "disease.id"
-        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_disease)
-
-        bucket_source_drug = addict.Dict()
-        bucket_source_drug.drug.terms.field = "drug.molecule_name.keyword"
-        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_drug)
 
         bucket_source_trial_phase = addict.Dict()
         bucket_source_trial_phase.phase.terms.field = "evidence.drug2clinic.clinical_trial_phase.label"
@@ -911,6 +904,14 @@ class esQuery():
         bucket_source_trial_status = addict.Dict()
         bucket_source_trial_status.status.terms.field = "evidence.drug2clinic.status"
         q.aggs.evidence_known_drug.composite.sources.append(bucket_source_trial_status)
+
+        bucket_source_drug = addict.Dict()
+        bucket_source_drug.drug.terms.field = "drug.molecule_name.keyword"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_drug)
+
+        bucket_source_disease = addict.Dict()
+        bucket_source_disease.disease_id.terms.field = "disease.id"
+        q.aggs.evidence_known_drug.composite.sources.append(bucket_source_disease)
 
         bucket_source_target = addict.Dict()
         bucket_source_target.target.terms.field = "target.id"
@@ -927,6 +928,14 @@ class esQuery():
         ] 
         #this can be increased by changing index.max_inner_result_window index setting
         q.aggs.evidence_known_drug.aggregations.content.top_hits.size=100
+
+        #these are to generate the summary
+        q.aggs.associated_diseases.cardinality.field = "disease.id"
+        q.aggs.associated_targets.cardinality.field = "target.id"
+        q.aggs.unique_drugs.cardinality.field = "drug.molecule_name.keyword"
+        q.aggs.clinical_trials.terms.field = "evidence.drug2clinic.clinical_trial_phase.label"
+        q.aggs.drug_type.terms.field = "drug.molecule_type.keyword"
+        q.aggs.drug_type.aggs.drug_type_activity.terms.field = "target.activity"
 
 
         #this will output the query used
@@ -953,7 +962,8 @@ class esQuery():
             disease_name = None
             target_activity = None
             for hit in bucket["content"]["hits"]["hits"]:
-                urls.append(hit["_source"]["evidence"]["drug2clinic"]["urls"])
+                for url in hit["_source"]["evidence"]["drug2clinic"]["urls"]:
+                    urls.append(url)
 
                 if disease_name is None:
                     disease_name = hit["_source"]["disease"]["efo_info"]["label"]
@@ -978,12 +988,26 @@ class esQuery():
             values["urls"] = sorted(urls)
             values["disease_name"] = disease_name
             values["target_activity"] = target_activity
-
             values["count"] = bucket["doc_count"]
 
             data.append(values)
 
-        return SimpleResult(res, data=data)
+        facets = {}
+        facets["unique_drugs"] = res["aggregations"]["unique_drugs"]["value"]
+        facets["associated_diseases"] = res["aggregations"]["associated_diseases"]["value"]
+        facets["associated_targets"] = res["aggregations"]["associated_targets"]["value"]
+        facets["clinical_trials"] = {}
+        for bucket in res["aggregations"]["clinical_trials"]["buckets"]:
+            facets["clinical_trials"][bucket["key"]] = bucket["doc_count"]
+        facets["drug_type_activity"] = {}
+        for bucket in res["aggregations"]["drug_type"]["buckets"]:
+            drug_type = bucket["key"]
+            facets["drug_type_activity"][drug_type] = {}
+            for subbucket in bucket["drug_type_activity"]["buckets"]:
+                facets["drug_type_activity"][drug_type][subbucket["key"]] = subbucket["doc_count"]
+
+
+        return SimpleResult(res, data=data, facets=facets)
 
     def get_associations_by_id(self, associationid, **kwargs):
 
