@@ -492,7 +492,7 @@ class esQuery():
                                     exact_match = True
                                     break
 
-                datapoint = dict(type='search-object-'+hit['_source']['type'],
+                datapoint = dict(type='search-object-target',
                                  data=hit['_source'],
                                  id=hit['_id'],
                                  score=hit['_score'],
