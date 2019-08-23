@@ -2009,6 +2009,14 @@ class esQuery():
                 )
             )
 
+        # To get the right number of docs use stats. (search aggregates the nested docs, count is giving different info)
+        index_data_stats=self._cached_stats(self._index_data)
+        stats.evidencestrings["total"] = [ v["total"]["docs"]["count"] for k, v in index_data_stats["indices"].iteritems()][0]
+
+        # To get the right number of docs use stats.
+        index_association_stats = self._cached_stats(self._index_association)
+        total_associations = [ v["total"]["docs"]["count"] for k, v in index_association_stats["indices"].iteritems()][0]
+
         stats.add_associations(self._cached_search(
                     index=self._index_association,
                     body={"query": {"match_all": {}},
@@ -2033,36 +2041,45 @@ class esQuery():
                             },
                     timeout="10m",
                     ),
-                    self.datatypes
+                    total_associations, self.datatypes
                 )
+
+        # To get the right number of docs use stats. (search aggregates the nested docs, count is giving different info)
 
         target_count = self._cached_search(
             index=self._index_search,
-            body={"query": {
-                "range": {
-                    "association_counts.total": {
-                        "gt": 0,
+            body={
+                "track_total_hits": True,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            { "term":  { "type": "target"  }},
+                            { "range": { "association_counts.total": { "gt": 0 }}}
+                        ]
                     }
-                }
-            },
-                'size': 1,
-                '_source': False,
+                },
+                "size": 1,
+                "_source": False
             })
         stats.add_key_value('targets', target_count['hits']['total']['value'])
 
         disease_count = self._cached_search(
             index=self._index_search,
-            body={"query": {
-                "range": {
-                    "association_counts.total": {
-                        "gt": 0,
+            body={
+                "track_total_hits": True,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            { "term":  { "type": "disease"  }},
+                            { "range": { "association_counts.total": { "gt": 0 }}}
+                        ]
                     }
-                }
-            },
-                'size': 1,
-                '_source': False,
+                },
+                "size": 1,
+                "_source": False
             })
         stats.add_key_value('diseases', disease_count['hits']['total']['value'])
+
 
         return RawResult(str(stats))
 
@@ -2184,6 +2201,24 @@ class esQuery():
                         }
                     }
                 }
+
+
+    def _cached_stats(self, *args, **kwargs):
+        key = str(args) + str(kwargs)
+        no_cache = Config.NO_CACHE_PARAMS in request.values
+
+        if no_cache:
+            res = self.handler.indices.stats(*args, **kwargs)
+            return res
+
+        res = self.cache.get(key)
+        if res is None:
+            start_time = datetime.datetime.now()
+            res = self.handler.indices.stats(*args, **kwargs)
+            took = (datetime.datetime.now() - start_time) + datetime.timedelta(minutes=1)
+            self.cache.set(key, res, took)
+
+        return res
 
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
