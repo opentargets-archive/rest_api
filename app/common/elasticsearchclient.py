@@ -1141,7 +1141,8 @@ class esQuery():
             'size': params.size,
             '_source': source,
             'from': params.start_from,
-            "sort": self._digest_sort_strings(params)
+            "sort": self._digest_sort_strings(params),
+            "track_total_hits": params.track_total_hits
         }
 
         if params.pagination_index:
