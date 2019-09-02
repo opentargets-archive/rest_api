@@ -842,6 +842,7 @@ class esQuery():
         q['from'] = params.start_from
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
+        q["track_total_hits"] = params.track_total_hits
 
         if params.pagination_index:
             q.search_after = params.pagination_index
@@ -2345,13 +2346,15 @@ class esQuery():
 
 
 class SearchParams(object):
+    #By default ES7 returns by default just the first 10000 entries.
+    _default_track_total_hits = True
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
     _default_pvalue = 1e-3
 
     def __init__(self, **kwargs):
-
+        self.track_total_hits = kwargs.get('track_total_hits', self._default_track_total_hits)
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
