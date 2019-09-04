@@ -8,7 +8,6 @@ from flask_restful import abort, reqparse, Resource
 from app.common import boilerplate
 from app.common.boilerplate import Paginable
 from app.common.response_templates import CTTVResponse
-from app.common.results import EmptySimpleResult
 from flask_restful.inputs import boolean
 
 
@@ -102,13 +101,6 @@ class QuickSearch(Resource):
     parser.add_argument('search_profile', type=str, required=False,
                         help="specify the entity type to look for. Only {drug|all} at the momment")
 
-    def is_protected_searchphrase(self, phrase):
-        list_of_words = ("ENSG", "EFO_")
-        if phrase.startswith(list_of_words):
-            return True
-        else:
-            return False
-
     def get(self):
         """
         Suggest best terms for gene and disease
@@ -121,10 +113,7 @@ class QuickSearch(Resource):
         if size > 10:
             size = 10
         if len(searchphrase) > 1:
-            if self.is_protected_searchphrase(searchphrase):
-                res = EmptySimpleResult(None, data={}, suggest=[])
-            else:
-                res = current_app.extensions['esquery'].quick_search(searchphrase, size=size, **kwargs)
+            res = current_app.extensions['esquery'].quick_search(searchphrase, size=size, **kwargs)
             took = time.time() - start_time
             return CTTVResponse.OK(res, took=took)
         else:
