@@ -2222,11 +2222,21 @@ class esQuery():
 
         return res
 
+    # ES7 uses a field called track_total_hits to return the total number of hits should be tracked.
+    # The default value is False and it returns 1000. OT needs True as default.
+    def _add_track_total_hits(self, **kwargs):
+        body = kwargs.get('body')
+        if body is not None:
+            if 'track_total_hits' not in body:
+                body['track_total_hits'] = True
+                kwargs['body'] = body
+
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
         is_multi = False
 
+        self._add_track_total_hits(**kwargs)
         if ('is_multi' in kwargs):
             is_multi = kwargs.pop('is_multi')
 
