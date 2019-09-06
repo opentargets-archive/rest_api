@@ -1474,14 +1474,18 @@ class esQuery():
     def _generate_avg_function(analyzer_list, doc_types):
         func_score = addict.Dict()
         func_score.function_score.score_mode = "avg"
-        func_score.function_score.query.bool.should = analyzer_list
+        func_score.function_score.query.bool.must = []
+        must_first_clause = {}
+        must_first_clause["bool"] = {}
+        must_first_clause["bool"]["should"] = analyzer_list
+        func_score.function_score.query.bool.must.append(must_first_clause)
         if doc_types is not None:
-            func_score.function_score.query.bool.filter.bool.should = []
             for doc_type in doc_types:
-                should_match = {}
-                should_match["match_phrase"] = {}
-                should_match["match_phrase"]["type.keyword"] = doc_type
-                func_score.function_score.query.bool.filter.bool.should.append(should_match)
+                must_second_clause = {}
+                must_second_clause["term"] = {}
+                must_second_clause["term"]["type.keyword"] = doc_type
+                func_score.function_score.query.bool.must.append(must_second_clause)
+
 
         func_score.function_score.functions = [
             {
@@ -1556,6 +1560,7 @@ class esQuery():
                           "uniprot_accessions^100",
                           "hgnc_id^100",
                           "ensembl_gene_id^100"]
+
 
         if params:
             if 'drug' in params.search_profile:
@@ -2237,6 +2242,10 @@ class esQuery():
         is_multi = False
 
         self._add_track_total_hits(**kwargs)
+
+        # Debug the ES body
+        # print json.dumps(kwargs['body'], indent=4, sort_keys=True)
+
         if ('is_multi' in kwargs):
             is_multi = kwargs.pop('is_multi')
 
