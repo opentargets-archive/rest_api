@@ -970,7 +970,7 @@ class esQuery():
             for target_bucket in disease_bucket["target"]["buckets"]:
                 target_id = target_bucket["key"]
                 for drug_bucket in target_bucket["drug"]["buckets"]:
-                    drug_id = drug_bucket["key"]
+                    drug_label = drug_bucket["key"]
                     for phase_bucket in drug_bucket["phase"]["buckets"]:
                         phase_id = phase_bucket["key"]
 
@@ -989,7 +989,7 @@ class esQuery():
                             values = {}
 
                             values["disease_id"] = disease_id
-                            values["drug_label"] = drug_id
+                            values["drug_label"] = drug_label
                             values["clinical_trial_phase_number"] = phase_id
                             values["status"] = status_id
                             values["target_id"] = target_id
