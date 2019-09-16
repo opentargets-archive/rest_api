@@ -1940,7 +1940,8 @@ class esQuery():
                 'from': params.start_from,
                 '_source': source_filter,
                 "explain": current_app.config['DEBUG'],
-                "suggest": self._get_free_text_suggestions(searchphrase)
+                "suggest": self._get_free_text_suggestions(searchphrase),
+                'track_total_hits': Truegt
                 }
 
         if highlight is not None:
@@ -1979,6 +1980,7 @@ class esQuery():
                     '_source': source_filter,
                     "explain": current_app.config['DEBUG'],
                     'highlight': highlight,
+                    'track_total_hits': True
                     }
 
             multi_body.append(head)
@@ -2258,21 +2260,11 @@ class esQuery():
 
         return res
 
-    # ES7 uses a field called track_total_hits to return the total number of hits should be tracked.
-    # The default value is False and it returns 1000. OT needs True as default.
-    def _add_track_total_hits(self, **kwargs):
-        body = kwargs.get('body')
-        if body is not None:
-            if 'track_total_hits' not in body:
-                body['track_total_hits'] = True
-                kwargs['body'] = body
 
     def _cached_search(self, *args, **kwargs):
         key = str(args) + str(kwargs)
         no_cache = Config.NO_CACHE_PARAMS in request.values
         is_multi = False
-
-        self._add_track_total_hits(**kwargs)
 
         # Debug the ES body
         # print json.dumps(kwargs['body'], indent=4, sort_keys=True)
