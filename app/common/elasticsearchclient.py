@@ -1940,8 +1940,8 @@ class esQuery():
                 'from': params.start_from,
                 '_source': source_filter,
                 "explain": current_app.config['DEBUG'],
-                "suggest": self._get_free_text_suggestions(searchphrase),
-                'track_total_hits': True
+                "suggest": self._get_free_text_suggestions(searchphrase)
+                #'track_total_hits': True
                 }
 
         if highlight is not None:
