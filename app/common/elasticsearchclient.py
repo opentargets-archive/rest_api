@@ -339,8 +339,11 @@ class esQuery():
             start_time = time.time()
             q = addict.Dict()
             q.query.bool.filter.range['association_counts.total'].gte = 1
+            # By default ES7 returns by default just the first 10000 entries.
+            q.track_total_hits= True
             all_targets = self._cached_search(index=self._index_search,
                                               body=q.to_dict(),
+
                                               size=0)
             N = all_targets["hits"]["total"]['value']
             # print 'all targets query', time.time() - start_time
@@ -842,7 +845,8 @@ class esQuery():
         q['from'] = params.start_from
         q.sort = self._digest_sort_strings(params)
         q._source = source_filter
-        q["track_total_hits"] = params.track_total_hits
+        # By default ES7 returns by default just the first 10000 entries.
+        q["track_total_hits"] = True
 
         if params.pagination_index:
             q.search_after = params.pagination_index
@@ -1173,7 +1177,7 @@ class esQuery():
             '_source': source,
             'from': params.start_from,
             "sort": self._digest_sort_strings(params),
-            "track_total_hits": params.track_total_hits
+            "track_total_hits": True
         }
 
         if params.pagination_index:
@@ -1973,6 +1977,7 @@ class esQuery():
         if params.fields:
             source_filter["includes"] = params.fields
 
+        # By default ES7 returns by default just the first 10000 entries.
         for searchphrase in searchphrases:
             body = {'query': self._get_free_text_query(searchphrase.lower(), params, doc_types),
                     'size': 1,
@@ -2085,7 +2090,7 @@ class esQuery():
                 )
 
         # To get the right number of docs use stats. (search aggregates the nested docs, count is giving different info)
-
+        # By default ES7 returns by default just the first 10000 entries.
         target_count = self._cached_search(
             index=self._index_search,
             body={
@@ -2103,6 +2108,7 @@ class esQuery():
             })
         stats.add_key_value('targets', target_count['hits']['total']['value'])
 
+        # By default ES7 returns by default just the first 10000 entries.
         disease_count = self._cached_search(
             index=self._index_search,
             body={
@@ -2267,7 +2273,8 @@ class esQuery():
         is_multi = False
 
         # Debug the ES body
-        # print json.dumps(kwargs['body'], indent=4, sort_keys=True)
+        #print kwargs
+        #print json.dumps(kwargs['body'], indent=4, sort_keys=True)
 
         if ('is_multi' in kwargs):
             is_multi = kwargs.pop('is_multi')
@@ -2389,15 +2396,12 @@ class esQuery():
 
 
 class SearchParams(object):
-    #By default ES7 returns by default just the first 10000 entries.
-    _default_track_total_hits = True
     _max_search_result_limit = 10000
     _default_return_size = 10
     _allowed_groupby = ['gene', 'evidence-type', 'efo']
     _default_pvalue = 1e-3
 
     def __init__(self, **kwargs):
-        self.track_total_hits = kwargs.get('track_total_hits', self._default_track_total_hits)
         self.sortmethod = None
         self.size = kwargs.get('size', self._default_return_size)
         self.start_from = kwargs.get('from', 0) or kwargs.get('from_', 0) or 0
