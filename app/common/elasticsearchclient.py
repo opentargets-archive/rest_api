@@ -1019,7 +1019,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected disease names %s and %s".format(disease_name,
+                                    raise ValueError("Unexpected disease names {} and {}".format(disease_name,
                                         hit["_source"]["disease"]["efo_info"]["label"]))
 
                                 if target_activity is None:
@@ -1029,7 +1029,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected target activity %s and %s".format(target_activity,
+                                    raise ValueError("Unexpected target activity {} and {}".format(target_activity,
                                         hit["_source"]["target"]["activity"]))
 
                                 if target_symbol is None:
@@ -1039,7 +1039,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected target symbol %s and %s".format(target_symbol,
+                                    raise ValueError("Unexpected target symbol {} and {}".format(target_symbol,
                                         hit["_source"]["target"]["gene_info"]["symbol"]))
 
                                 for target_class in hit["_source"]["target"]["target_class"]:
@@ -1052,7 +1052,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected trial phase label %s and %s".format(trial_phase_label,
+                                    raise ValueError("Unexpected trial phase label {} and {}".format(trial_phase_label,
                                         hit["_source"]["evidence"]["drug2clinic"]["clinical_trial_phase"]["label"]))
 
                                 if drug_id is None:
@@ -1062,7 +1062,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected drug_id %s and %s".format(drug_id,
+                                    raise ValueError("Unexpected drug_id {} and {}".format(drug_id,
                                         hit["_source"]["drug"]["id"]))
 
                                 if drug_type is None:
@@ -1072,7 +1072,7 @@ class esQuery():
                                     pass
                                 else:
                                     #found a new that is different from the previous one
-                                    raise ValueError("Unexpected drug_type %s and %s".format(drug_type,
+                                    raise ValueError("Unexpected drug_type {} and {}".format(drug_type,
                                         hit["_source"]["drug"]["molecule_type"]))
 
                                 mechanism_of_action = hit["_source"]["evidence"]["target2drug"]["mechanism_of_action"]
