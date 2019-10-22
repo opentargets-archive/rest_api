@@ -66,8 +66,8 @@ or use our docker containers on quay.io ([![Docker Repository on Quay](https://q
  * The correct image tag for the Open Targets release you're running (e.g. 19.02.1)
  * The URL of the Elasticsearch server
  * The data version, e.g. `19.02`. If you're using the data pipeline,
-   this must match the `release-tag` or `ES_PREFIX` setting
-   used in the pipeline run.
+   this must match the common prefix of the Elasticsearch index names
+   in the ‘mrtarget.es.yml’ file of the pipeline.
 
 ```
 docker run -p 8080:80 \
