@@ -21,7 +21,7 @@ python-json-logger==0.1.2
 PyYAML
 ujson==1.33
 uWSGI==2.0.17.1
-Werkzeug
+Werkzeug==0.16.0
 numpy==1.9.2
 redislite
 requests
