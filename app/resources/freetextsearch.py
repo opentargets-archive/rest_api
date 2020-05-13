@@ -82,7 +82,7 @@ class BestHitSearch(Resource, Paginable):
         if 'filter' in kwargs:
             filter_ = [kwargs.pop('filter')]
         else:
-            filter_ = ['all']
+            filter_ = None
         searchphrases = kwargs.pop('q')
         if len(searchphrases) > 500:
             raise AttributeError('request size too big')
