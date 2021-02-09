@@ -1,5 +1,5 @@
 ## Open Targets REST API
-
+ 
 [![Travis CI](https://travis-ci.com/opentargets/rest_api.svg?branch=master)](https://travis-ci.com/opentargets/rest_api)
 
 [![Docker Repository on Quay](https://quay.io/repository/opentargets/rest_api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/rest_api)
